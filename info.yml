@@ -1,0 +1,87 @@
+#
+# Copyright (c) 2013 Shotgun Software, Inc
+# ----------------------------------------------------
+#
+# Metadata defining the behaviour and requirements for this app
+
+# expected fields in the configuration file for this app
+configuration:
+    display_name:
+        type: str
+        default_value: Tank File Manager
+        description:
+    
+    template_work:
+        type: template
+        required_fields: [version]
+        optional_fields: [name]
+        description: A reference to a template which locates a work file on disk.
+
+    template_work_area:
+        type: template
+        description: A reference to a template which locates the work directory on
+                     disk
+
+    template_publish:
+        type: template
+        required_fields: [version]
+        optional_fields: [name]
+        description: A reference to a template which locates a publish file on disk.
+           
+    template_publish_area:
+        type: template
+        description: A reference to a template which locates the publish directory on
+                     disk
+           
+    sg_entity_types:
+        type: list
+        description: "List of Shotgun Entity Types to include in the listings when
+                      selecting a work area."
+        default_value: [Shot, Asset]
+        values:
+            type: shotgun_entity_type
+            
+    allow_task_creation:
+        type: bool
+        description: "Controls whether new tasks can be created when selecting a
+                      work area."
+        default_value: True
+        
+    launch_at_startup:
+        type: bool
+        description: A flag whether to launch this app's UI at startup.
+        default_value: False
+           
+    hook_scene_operation:
+        type: hook
+        parameters: [operation, file_path]
+        default_value: "scene_operation_{engine_name}"
+        description:    
+        
+    hook_copy_file:
+        type: hook
+        parameters: [source_path, target_path]
+        default_value: copy_file
+        description: Specify a hook that will be used to copy the file 'source_path' 
+                     to 'target_path'.
+           
+            
+# the Shotgun fields that this app needs in order to operate correctly
+requires_shotgun_fields:
+
+# More verbose description of this item 
+display_name: "Work Files"
+description: "Work file management."
+
+# Required minimum versions for this item to run
+requires_shotgun_version:
+requires_core_version: "v0.12.21"
+requires_engine_version: 
+
+# the engines that this app can operate in:
+supported_engines: [tk-nuke, tk-maya]
+
+# the frameworks required to run this app
+frameworks:
+    - {"name": "tk-framework-widget", "version": "v0.1.8"}
+    

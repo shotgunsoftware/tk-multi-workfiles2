@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="res">
+    <file>save_as_icon.png</file>
+    <file>thumb_empty.png</file>
+  </qresource>
+</RCC>
