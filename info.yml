@@ -83,5 +83,5 @@ supported_engines: [tk-nuke, tk-maya]
 
 # the frameworks required to run this app
 frameworks:
-    - {"name": "tk-framework-widget", "version": "v0.1.8"}
+    - {"name": "tk-framework-widget", "version": "v0.1.9"}
     
