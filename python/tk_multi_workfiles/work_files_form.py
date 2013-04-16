@@ -45,7 +45,6 @@ class WorkFilesForm(QtGui.QWidget):
 
         self._ui.open_file_btn.clicked.connect(self._on_open_file)
         self._ui.new_file_btn.clicked.connect(self._on_new_file)
-        self._ui.cancel_btn.clicked.connect(self._on_cancel)
         
         self._ui.file_list.action_requested.connect(self._on_open_file)
 
@@ -71,12 +70,6 @@ class WorkFilesForm(QtGui.QWidget):
     def _on_new_file(self):
         self.new_file.emit()
         
-    def _on_cancel(self):
-        """
-        Just close window
-        """
-        self.close()
-
     def _set_work_area(self, ctx):
         """
         Set the current work area to the specified context.
@@ -132,12 +125,12 @@ class WorkFilesForm(QtGui.QWidget):
         self._ui.filter_combo.clear()
         
         # add user work files item:
-        self._ui.filter_combo.addItem("My Work Files", {"user":current_user, "publishes":False})
+        self._ui.filter_combo.addItem("Show Files in my Work Area", {"user":current_user, "publishes":False})
         selected_idx = 0
         
         # add publishes item:
         publishes_filter = {"publishes":True}
-        self._ui.filter_combo.addItem("Published Files", publishes_filter)
+        self._ui.filter_combo.addItem("Show Files in the Publish Area", publishes_filter)
         if filter_compare(previous_filter, publishes_filter):
             selected_idx = 1
         
@@ -157,7 +150,7 @@ class WorkFilesForm(QtGui.QWidget):
                 if filter_compare(previous_filter, filter):
                     selected_idx = self._ui.filter_combo.count()
                 
-                self._ui.filter_combo.addItem("Work Files for %s" % user["name"], filter)
+                self._ui.filter_combo.addItem("Show Files in %s's Work Area" % user["name"], filter)
                 
         # set the current index:
         self._ui.filter_combo.setCurrentIndex(selected_idx)
@@ -193,9 +186,6 @@ class WorkFilesForm(QtGui.QWidget):
                     sg_details = self._app.shotgun.find_one(ctx.entity["type"], [["project", "is", ctx.project], ["id", "is", ctx.entity["id"]]], ["description", "image"])
                 except:
                     pass
-                entity_desc = sg_details.get("description")
-                if entity_desc:
-                    entity_details += "<br>%s" % entity_desc
                 
                 entity_img_url = sg_details.get("image")
                 if entity_img_url:

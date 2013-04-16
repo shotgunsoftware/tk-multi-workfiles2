@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'work_files_form.ui'
 #
-# Created: Tue Apr 16 18:25:15 2013
+# Created: Wed Apr 17 00:04:37 2013
 #      by: pyside-uic 0.2.13 running on PySide 1.1.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PySide import QtCore, QtGui
 class Ui_WorkFilesForm(object):
     def setupUi(self, WorkFilesForm):
         WorkFilesForm.setObjectName("WorkFilesForm")
-        WorkFilesForm.resize(968, 579)
+        WorkFilesForm.resize(859, 523)
         WorkFilesForm.setStyleSheet("")
         self.gridLayout = QtGui.QGridLayout(WorkFilesForm)
         self.gridLayout.setContentsMargins(6, 6, 6, 6)
@@ -46,6 +46,15 @@ class Ui_WorkFilesForm(object):
         self.gridLayout_2.setContentsMargins(4, 4, 4, 4)
         self.gridLayout_2.setSpacing(12)
         self.gridLayout_2.setObjectName("gridLayout_2")
+        self.entity_thumbnail = QtGui.QLabel(self.work_area_frame)
+        self.entity_thumbnail.setMinimumSize(QtCore.QSize(160, 100))
+        self.entity_thumbnail.setMaximumSize(QtCore.QSize(160, 100))
+        self.entity_thumbnail.setText("")
+        self.entity_thumbnail.setPixmap(QtGui.QPixmap(":/res/thumb_empty.png"))
+        self.entity_thumbnail.setScaledContents(False)
+        self.entity_thumbnail.setAlignment(QtCore.Qt.AlignCenter)
+        self.entity_thumbnail.setObjectName("entity_thumbnail")
+        self.gridLayout_2.addWidget(self.entity_thumbnail, 0, 0, 1, 1)
         self.task_thumbnail = QtGui.QLabel(self.work_area_frame)
         self.task_thumbnail.setMinimumSize(QtCore.QSize(160, 100))
         self.task_thumbnail.setMaximumSize(QtCore.QSize(160, 100))
@@ -58,25 +67,16 @@ class Ui_WorkFilesForm(object):
         self.task_thumbnail.setIndent(0)
         self.task_thumbnail.setObjectName("task_thumbnail")
         self.gridLayout_2.addWidget(self.task_thumbnail, 0, 1, 1, 1)
-        self.entity_thumbnail = QtGui.QLabel(self.work_area_frame)
-        self.entity_thumbnail.setMinimumSize(QtCore.QSize(160, 100))
-        self.entity_thumbnail.setMaximumSize(QtCore.QSize(160, 100))
-        self.entity_thumbnail.setText("")
-        self.entity_thumbnail.setPixmap(QtGui.QPixmap(":/res/thumb_empty.png"))
-        self.entity_thumbnail.setScaledContents(False)
-        self.entity_thumbnail.setAlignment(QtCore.Qt.AlignCenter)
-        self.entity_thumbnail.setObjectName("entity_thumbnail")
-        self.gridLayout_2.addWidget(self.entity_thumbnail, 0, 0, 1, 1)
-        self.entity_details = QtGui.QLabel(self.work_area_frame)
-        self.entity_details.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
-        self.entity_details.setWordWrap(True)
-        self.entity_details.setObjectName("entity_details")
-        self.gridLayout_2.addWidget(self.entity_details, 1, 0, 1, 1)
         self.task_details = QtGui.QLabel(self.work_area_frame)
         self.task_details.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
         self.task_details.setWordWrap(True)
         self.task_details.setObjectName("task_details")
         self.gridLayout_2.addWidget(self.task_details, 1, 1, 1, 1)
+        self.entity_details = QtGui.QLabel(self.work_area_frame)
+        self.entity_details.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.entity_details.setWordWrap(True)
+        self.entity_details.setObjectName("entity_details")
+        self.gridLayout_2.addWidget(self.entity_details, 1, 0, 1, 1)
         self.verticalLayout_7.addLayout(self.gridLayout_2)
         self.horizontalLayout_6 = QtGui.QHBoxLayout()
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
@@ -136,15 +136,6 @@ class Ui_WorkFilesForm(object):
         self.open_file_btn.setObjectName("open_file_btn")
         self.horizontalLayout_2.addWidget(self.open_file_btn)
         self.gridLayout.addLayout(self.horizontalLayout_2, 1, 1, 1, 1)
-        self.horizontalLayout = QtGui.QHBoxLayout()
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.cancel_btn = QtGui.QPushButton(WorkFilesForm)
-        self.cancel_btn.setMinimumSize(QtCore.QSize(80, 0))
-        self.cancel_btn.setObjectName("cancel_btn")
-        self.horizontalLayout.addWidget(self.cancel_btn)
-        spacerItem3 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.horizontalLayout.addItem(spacerItem3)
-        self.gridLayout.addLayout(self.horizontalLayout, 1, 0, 1, 1)
         self.gridLayout.setColumnStretch(1, 1)
         self.gridLayout.setRowStretch(0, 1)
 
@@ -154,8 +145,8 @@ class Ui_WorkFilesForm(object):
     def retranslateUi(self, WorkFilesForm):
         WorkFilesForm.setWindowTitle(QtGui.QApplication.translate("WorkFilesForm", "Form", None, QtGui.QApplication.UnicodeUTF8))
         self.items_title_label_2.setText(QtGui.QApplication.translate("WorkFilesForm", "<big>Please Choose a Work Area:</big>", None, QtGui.QApplication.UnicodeUTF8))
-        self.entity_details.setText(QtGui.QApplication.translate("WorkFilesForm", "<big>Shot blah</big><br>Description...", None, QtGui.QApplication.UnicodeUTF8))
-        self.task_details.setText(QtGui.QApplication.translate("WorkFilesForm", "<big>Task Lighting</big><br>Description...", None, QtGui.QApplication.UnicodeUTF8))
+        self.task_details.setText(QtGui.QApplication.translate("WorkFilesForm", "<big>Task Lighting</big>", None, QtGui.QApplication.UnicodeUTF8))
+        self.entity_details.setText(QtGui.QApplication.translate("WorkFilesForm", "<big>Shot blah</big>", None, QtGui.QApplication.UnicodeUTF8))
         self.change_work_area_btn.setText(QtGui.QApplication.translate("WorkFilesForm", "Change...", None, QtGui.QApplication.UnicodeUTF8))
         self.work_area_details.setHtml(QtGui.QApplication.translate("WorkFilesForm", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
@@ -164,8 +155,6 @@ class Ui_WorkFilesForm(object):
 "<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.new_file_btn.setText(QtGui.QApplication.translate("WorkFilesForm", "New File", None, QtGui.QApplication.UnicodeUTF8))
         self.open_file_btn.setText(QtGui.QApplication.translate("WorkFilesForm", "Open File", None, QtGui.QApplication.UnicodeUTF8))
-        self.cancel_btn.setText(QtGui.QApplication.translate("WorkFilesForm", "Close", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..file_list_view import FileListView
-from . import resources_rc
 from . import resources_rc
