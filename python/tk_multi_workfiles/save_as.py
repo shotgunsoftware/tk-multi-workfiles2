@@ -52,13 +52,16 @@ class SaveAs(object):
         is_publish = self._publish_template.validate(current_path)
         fields = {}
         title = "Tank Save As"
+        name = ""
         if is_publish:
             fields = self._publish_template.get_fields(current_path)
             title = "Copy to Work Area"
+            name = fields.get("name")
         elif self._work_template.validate(current_path):
             fields = self._work_template.get_fields(current_path)
             title = "Tank Save As"
-        name = fields.get("name", "name")
+            name = fields.get("name")
+            name = "%s2" % name if name else name
         
         worker_cb = lambda details, wp=current_path, ip=is_publish: self.generate_new_work_file_path(wp, ip, details.get("name"), details.get("reset_version"))
         with AsyncWorker(worker_cb) as preview_updater:
