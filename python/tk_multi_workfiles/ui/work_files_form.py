@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'work_files_form.ui'
 #
-# Created: Mon Apr 15 19:37:07 2013
+# Created: Tue Apr 16 17:24:47 2013
 #      by: pyside-uic 0.2.13 running on PySide 1.1.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,15 +13,16 @@ class Ui_WorkFilesForm(object):
     def setupUi(self, WorkFilesForm):
         WorkFilesForm.setObjectName("WorkFilesForm")
         WorkFilesForm.resize(968, 579)
+        WorkFilesForm.setStyleSheet("")
         self.gridLayout = QtGui.QGridLayout(WorkFilesForm)
         self.gridLayout.setContentsMargins(6, 6, 6, 6)
         self.gridLayout.setObjectName("gridLayout")
         self.verticalLayout_6 = QtGui.QVBoxLayout()
-        self.verticalLayout_6.setSpacing(3)
-        self.verticalLayout_6.setContentsMargins(0, 4, -1, 1)
+        self.verticalLayout_6.setSpacing(0)
+        self.verticalLayout_6.setContentsMargins(0, 0, -1, 0)
         self.verticalLayout_6.setObjectName("verticalLayout_6")
         self.items_title_label_2 = QtGui.QLabel(WorkFilesForm)
-        self.items_title_label_2.setMinimumSize(QtCore.QSize(0, 40))
+        self.items_title_label_2.setMinimumSize(QtCore.QSize(0, 44))
         self.items_title_label_2.setStyleSheet("#items_title_label {\n"
 "font-size: 14pt\n"
 "}")
@@ -33,6 +34,7 @@ class Ui_WorkFilesForm(object):
 "border-style: solid;\n"
 "border-radius: 2px;\n"
 "border-width: 1px;\n"
+"border-color: rgb(32,32,32);\n"
 "}")
         self.work_area_frame.setFrameShape(QtGui.QFrame.StyledPanel)
         self.work_area_frame.setFrameShadow(QtGui.QFrame.Raised)
