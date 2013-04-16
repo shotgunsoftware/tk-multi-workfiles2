@@ -34,7 +34,6 @@ class AsyncWorker(QtCore.QThread):
         """
         Call to do some work using the data provided
         """
-        print "PLEASE DO SOME WORK!"
         with QtCore.QMutexLocker(self._mutex):
             self._data = data
             self._wait_condition.wakeAll()
