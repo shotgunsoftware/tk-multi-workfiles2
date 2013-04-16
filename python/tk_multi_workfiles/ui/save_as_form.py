@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'save_as_form.ui'
 #
-# Created: Tue Apr 16 18:25:15 2013
+# Created: Tue Apr 16 23:51:34 2013
 #      by: pyside-uic 0.2.13 running on PySide 1.1.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PySide import QtCore, QtGui
 class Ui_SaveAsForm(object):
     def setupUi(self, SaveAsForm):
         SaveAsForm.setObjectName("SaveAsForm")
-        SaveAsForm.resize(510, 300)
+        SaveAsForm.resize(510, 334)
         SaveAsForm.setMinimumSize(QtCore.QSize(510, 300))
         SaveAsForm.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.verticalLayout = QtGui.QVBoxLayout(SaveAsForm)
@@ -133,7 +133,7 @@ class Ui_SaveAsForm(object):
     def retranslateUi(self, SaveAsForm):
         SaveAsForm.setWindowTitle(QtGui.QApplication.translate("SaveAsForm", "Form", None, QtGui.QApplication.UnicodeUTF8))
         self.header_label.setText(QtGui.QApplication.translate("SaveAsForm", "You are currently working on a file that has already been published!  By clicking continue, the file will be copied into your work area and you can continue your work there.", None, QtGui.QApplication.UnicodeUTF8))
-        self.reset_version_cb.setText(QtGui.QApplication.translate("SaveAsForm", "Reset Version Number?", None, QtGui.QApplication.UnicodeUTF8))
+        self.reset_version_cb.setText(QtGui.QApplication.translate("SaveAsForm", "Reset Version No.?", None, QtGui.QApplication.UnicodeUTF8))
         self.label_5.setText(QtGui.QApplication.translate("SaveAsForm", "<html><head/><body><p><span style=\" font-weight:600;\">Name:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.filename_preview_label.setText(QtGui.QApplication.translate("SaveAsForm", "name.v001.ma", None, QtGui.QApplication.UnicodeUTF8))
         self.path_preview_edit.setHtml(QtGui.QApplication.translate("SaveAsForm", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
