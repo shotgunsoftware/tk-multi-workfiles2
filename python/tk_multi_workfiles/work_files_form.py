@@ -19,7 +19,7 @@ class WorkFilesForm(QtGui.QWidget):
     """
     
     # signals
-    change_work_area = QtCore.Signal()
+    #change_work_area = QtCore.Signal()
     
     open_file = QtCore.Signal(WorkFile)
     open_publish = QtCore.Signal(WorkFile)
@@ -34,8 +34,6 @@ class WorkFilesForm(QtGui.QWidget):
         self._app = app
         self._handler = handler
 
-        self._current_ctx = None
-    
         # set up the UI
         from .ui.work_files_form import Ui_WorkFilesForm
         self._ui = Ui_WorkFilesForm()
@@ -52,7 +50,10 @@ class WorkFilesForm(QtGui.QWidget):
         self._ui.file_list.action_requested.connect(self._on_open_file)
 
         self._ui.file_list.set_app(self._app)
-        
+
+        # ste up the work area:
+        ctx = self._handler.get_current_work_area() 
+        self._set_work_area(ctx)
         
     def closeEvent(self, e):
         """
@@ -61,19 +62,6 @@ class WorkFilesForm(QtGui.QWidget):
         """
         self._ui.file_list.destroy()
         return QtGui.QWidget.closeEvent(self, e)
-        
-    def set_work_area(self, ctx):
-        """
-        Set the current work area to the specified context.
-        """
-        # update work area info:
-        self._update_work_area(ctx)
-        
-        # update the filter menu:
-        self._update_filter_menu()
-        
-        # finally, update file list:
-        self._refresh_file_list()
         
     def _on_open_file(self):
         # get the currently selected work file
@@ -88,9 +76,27 @@ class WorkFilesForm(QtGui.QWidget):
         Just close window
         """
         self.close()
+
+    def _set_work_area(self, ctx):
+        """
+        Set the current work area to the specified context.
+        """
+        # update work area info:
+        self._update_work_area(ctx)
+        
+        # update the filter menu:
+        self._update_filter_menu()
+        
+        # finally, update file list:
+        self._refresh_file_list()
         
     def _on_change_work_area(self):
-        self.change_work_area.emit()
+        
+        new_ctx = self._handler.change_work_area()
+        if new_ctx:
+            self._set_work_area(new_ctx)
+            
+        #self.change_work_area.emit()
         
     def _refresh_file_list(self):
         """
@@ -170,8 +176,6 @@ class WorkFilesForm(QtGui.QWidget):
         """
         A lot of this should be done in a worker thread!
         """
-        self._current_ctx = ctx
-        
         # load and update entity & task details:
         entity_details = "<big>Entity: -</big>"
         entity_thumbnail = QtGui.QPixmap(":/res/thumb_empty.png")

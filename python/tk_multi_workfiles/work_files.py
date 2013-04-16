@@ -38,7 +38,7 @@ class WorkFiles(object):
             # TODO: load from setting
             pass
         
-        self._set_work_area(initial_ctx)
+        self._update_current_work_area(initial_ctx)
         
     def show_dlg(self):
         """
@@ -48,13 +48,13 @@ class WorkFiles(object):
         self._workfiles_ui = self._app.engine.show_dialog(display_name, self._app, WorkFilesForm, self._app, self)
 
         # hook up signals:
-        self._workfiles_ui.change_work_area.connect(self._do_change_work_area)
+        #self._workfiles_ui.change_work_area.connect(self._do_change_work_area)
         self._workfiles_ui.open_file.connect(self._on_open_file)
         self._workfiles_ui.new_file.connect(self._on_new_file)
         self._workfiles_ui.open_publish.connect(self._on_open_publish)
 
         # update the UI
-        self._set_work_area(self._context)
+        #self._set_work_area(self._context)
         
     def get_work_area_path(self):
         """
@@ -407,6 +407,9 @@ class WorkFiles(object):
         """
         # switch context
         try:
+            # ensure folders exist:
+            self._create_folders(self._context)
+            
             self._set_context(self._context)
         except TankError, e:
             QtGui.QMessageBox.critical(self._workfiles_ui, "Something went wrong!", 
@@ -419,11 +422,16 @@ class WorkFiles(object):
         # close work files UI:
         self._workfiles_ui.close()
         
-    def _do_change_work_area(self):
+    def get_current_work_area(self):
+        """
+        Get the current work area/context
+        """
+        return self._context
+        
+    def change_work_area(self):
         """
         Show a ui for the user to select a new work area/context
         """
-        
         from .select_work_area_form import SelectWorkAreaForm
         (res, widget) = self._app.engine.show_modal("Change Work Area", self._app, SelectWorkAreaForm, self._app, self._init_change_work_area_form)
         
@@ -433,8 +441,14 @@ class WorkFiles(object):
         widget.close()
         
         if res == QtGui.QDialog.Accepted:
+            
             # update the current work area:
-            self._set_work_area(widget.context)
+            self._update_current_work_area(widget.context)
+            
+            # and return it:
+            return self._context
+
+        return None
         
     def _init_change_work_area_form(self, form):
         """
@@ -450,7 +464,7 @@ class WorkFiles(object):
         """
         raise NotImplementedError
         
-    def _set_work_area(self, ctx):
+    def _update_current_work_area(self, ctx):
         """
         Update the current work area being used
         """
@@ -474,13 +488,11 @@ class WorkFiles(object):
                 self._work_area_template = templates.get("template_work_area")
                 self._publish_template = templates.get("template_publish")
                 self._publish_area_template = templates.get("template_publish_area")
+                
             self._context = ctx
                     
             # TODO: validate templates?
-        
-        # update the UI        
-        if self._workfiles_ui:    
-            self._workfiles_ui.set_work_area(self._context)
+
         
     def _get_area_path(self, template):
         """
@@ -489,14 +501,13 @@ class WorkFiles(object):
         """
         path = None
         if self._context and template:
-            try:
-                fields = self._context.as_template_fields(template)
-                if not "Step" in fields:
-                    fields["Step"] = "{Step}"
+            fields = self._context.as_template_fields(template)
+            if not "Step" in fields:
+                fields["Step"] = "{Step}"
+            
+            missing_keys = template.missing_keys(fields)
+            if not missing_keys:
                 path = template.apply_fields(fields)
-            except TankError, e:
-                print e
-                pass
         return path
     
         
