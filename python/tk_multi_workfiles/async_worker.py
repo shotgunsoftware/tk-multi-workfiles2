@@ -8,12 +8,13 @@ from tank.platform.qt import QtCore, QtGui
 
 class AsyncWorker(QtCore.QThread):
     """
-    
+    Background worker that executes a callback
+    in a separate thread when requested.
     """
 
     # signal emitted when some work has been done.
     # arguments are (data, result)
-    work_done = QtCore.Signal("QVariant", "QVariant")
+    work_done = QtCore.Signal(object, object)
 
     def __init__(self, worker_cb, parent=None):
         """
@@ -31,8 +32,9 @@ class AsyncWorker(QtCore.QThread):
 
     def do(self, data):
         """
-        Call to check the specified version
+        Call to do some work using the data provided
         """
+        print "PLEASE DO SOME WORK!"
         with QtCore.QMutexLocker(self._mutex):
             self._data = data
             self._wait_condition.wakeAll()
