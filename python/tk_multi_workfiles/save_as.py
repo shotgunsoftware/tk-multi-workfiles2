@@ -92,8 +92,6 @@ class SaveAs(object):
                         self.save_as(new_path)
                     except Exception, e:
                         self._app.log_exception("Something went wrong while saving!")
-                    else:
-                        QtGui.QMessageBox.information(None, "Success", "File Succesfully Saved!")
                         
                     break
                 else:
