@@ -136,7 +136,7 @@ class FileListView(browser_widget.BrowserWidget):
         current_task_name = result["current_task_name"]
 
         if not task_groups:
-            self.set_message("No Files found!")
+            self.set_message("Couldn't find any files! Click the new file button to start work.")
             return
         
         #pprint(task_groups)
