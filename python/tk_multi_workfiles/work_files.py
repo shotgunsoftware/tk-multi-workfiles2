@@ -433,7 +433,7 @@ class WorkFiles(object):
         Show a ui for the user to select a new work area/context
         """
         from .select_work_area_form import SelectWorkAreaForm
-        (res, widget) = self._app.engine.show_modal("Pick a Work Area", self._app, SelectWorkAreaForm, self._app, self._init_change_work_area_form)
+        (res, widget) = self._app.engine.show_modal("Pick a Work Area", self._app, SelectWorkAreaForm, self._app, self)
         
         # make sure to explicitly call close so 
         # that browser threads are cleaned up
@@ -450,20 +450,13 @@ class WorkFiles(object):
 
         return None
         
-    def _init_change_work_area_form(self, form):
-        """
-        Initialize change work area form - allows
-        us to hook up signals etc.
-        """
-        form.create_task.connect(lambda f=form: self._on_create_new_task(f))
-        
-    def _on_create_new_task(self, form):
+    def create_new_task(self):
         """
         Called when user clicks the new task button 
         on the select work area form
         """
-        raise NotImplementedError
-        
+        raise NotImplementedError     
+    
     def _update_current_work_area(self, ctx):
         """
         Update the current work area being used

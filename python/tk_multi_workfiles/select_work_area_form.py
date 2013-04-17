@@ -13,15 +13,15 @@ from .task_browser import TaskBrowserWidget
 
 class SelectWorkAreaForm(QtGui.QWidget):
     
-    create_task = QtCore.Signal()
-    
-    def __init__(self, app, init_cb=None):
+    def __init__(self, app, handler, parent=None):
         """
         Construction
         """
-        QtGui.QWidget.__init__(self)
+        QtGui.QWidget.__init__(self, parent)
         
         self._app = app
+        self._handler = handler
+        
         self._exit_code = QtGui.QDialog.Rejected
         self._settings = QtCore.QSettings("Shotgun Software", "tk-multi-workfiles")
 
@@ -52,7 +52,7 @@ class SelectWorkAreaForm(QtGui.QWidget):
         # set up the task browser:
         self._ui.task_browser.set_app(self._app)
         self._ui.task_browser.selection_changed.connect(self._on_task_selected)
-        self._ui.task_browser.action_requested.connect(self._on_context_selected)
+        #self._ui.task_browser.action_requested.connect(self._on_context_selected)
         self._ui.task_browser.set_label("Tasks")
         
         # connect the buttons:
@@ -75,11 +75,10 @@ class SelectWorkAreaForm(QtGui.QWidget):
         except Exception, e:
             self._app.log_warning("Cannot restore state of 'Only Show My Tasks' checkbox: %s" % e)
         
-        if init_cb:
-            init_cb(self)
-        
         # reload:
-        self.reload()
+        ctx = self._handler.get_current_work_area()
+        self._initial_task_to_select = ctx.task if ctx else None
+        self._reload_entities(ctx.entity if ctx else None)
         
     @property
     def exit_code(self):
@@ -88,23 +87,7 @@ class SelectWorkAreaForm(QtGui.QWidget):
     @property
     def context(self):
         return self._get_context()
-    """
-    @context.setter
-    def context(self, value):
-        pass
-    """
-     
-    def reload(self):
-        """
-        Called to reload data in the UI
-        """
-        # reload entities:
-        self._reload_entities()
         
-        # and reload tasks based on 
-        # currently selected entity
-        self._reload_tasks()
-    
     def closeEvent(self, event):
         """
         Make sure that the various background threads are closed
@@ -126,7 +109,8 @@ class SelectWorkAreaForm(QtGui.QWidget):
         """
         Called when create task button is clicked
         """
-        self.create_task.emit()
+        # run new task:
+        self._handler.create_new_task()
 
     def _get_context(self):
         """
@@ -181,7 +165,7 @@ class SelectWorkAreaForm(QtGui.QWidget):
         self._settings.setValue("show_mine_only", settings_val)
         
         # reload entity list:
-        self.reload()
+        self._reload_entities()
                 
         
     def _on_entity_selected(self):
@@ -196,10 +180,14 @@ class SelectWorkAreaForm(QtGui.QWidget):
         """
         self._update_ui()
         
-    def _reload_entities(self):
+    def _reload_entities(self, entity_to_select = None):
         """
         Called to reload the list of entities
         """
+        if not entity_to_select:
+            entity_to_select = self._ui.entity_browser.selected_entity
+            self._initial_task_to_select = None
+        
         # clear both entity and task lists:
         self._ui.entity_browser.clear()
         self._ui.task_browser.clear()
@@ -207,6 +195,7 @@ class SelectWorkAreaForm(QtGui.QWidget):
         # reload entities:
         d = {}
         d["own_tasks_only"] = self._ui.mine_only_cb.isChecked()
+        d["entity"] = entity_to_select
         self._ui.entity_browser.load(d)
         
     def _reload_tasks(self):
@@ -221,12 +210,17 @@ class SelectWorkAreaForm(QtGui.QWidget):
             self._ui.task_browser.set_message("Please select an item in the listing to the left.")
             self._update_ui()
             return
+
+        task_to_select = self._ui.task_browser.selected_task
+        if not task_to_select:
+            task_to_select = self._initial_task_to_select
         
         # pass in data to task retreiver
         d = {}
         d["own_tasks_only"] = self._ui.mine_only_cb.isChecked()
         d["entity"] = curr_selection.sg_data
-
+        d["task"] = task_to_select
+        
         # pass in the sg data dump for the entity to the task loader code
         self._ui.task_browser.load(d)
         

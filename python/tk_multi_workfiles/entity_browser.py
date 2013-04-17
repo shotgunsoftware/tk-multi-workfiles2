@@ -39,6 +39,8 @@ class EntityBrowserWidget(browser_widget.BrowserWidget):
             self._current_user_loaded = True
         
         sg_data = []
+        
+        current_entity = data.get("entity")
 
         if data["own_tasks_only"]:
 
@@ -85,7 +87,7 @@ class EntityBrowserWidget(browser_widget.BrowserWidget):
                 sg_data.append(item)
             
         
-        return {"data": sg_data}
+        return {"data": sg_data, "current_entity" : current_entity}
 
 
     def process_result(self, result):
@@ -93,7 +95,10 @@ class EntityBrowserWidget(browser_widget.BrowserWidget):
         if len(result.get("data")) == 0:
             self.set_message("No matching items found!")
             return
+        
+        current_entity = result.get("current_entity")
 
+        item_to_select = None        
         for item in result.get("data"):
             i = self.add_item(browser_widget.ListHeader)
             i.set_title("%ss" % tank.util.get_entity_type_display_name(self._app.tank, item.get("type")))
@@ -108,7 +113,13 @@ class EntityBrowserWidget(browser_widget.BrowserWidget):
                 i.set_details(details)
                 i.sg_data = d
                 if d.get("image"):
-                    i.set_thumbnail(d.get("image"))                
+                    i.set_thumbnail(d.get("image"))
+                    
+                if d and current_entity and d["id"] == current_entity.get("id"):
+                    item_to_select = i
+            
+            if item_to_select:
+                self.select(item_to_select)
 
         
         

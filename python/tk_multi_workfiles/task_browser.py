@@ -63,6 +63,7 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
         # start building output data structure        
         output = {}
         output["associated_entity"] = data["entity"]
+        output["current_task"] = data.get("task")
 
         if data["own_tasks_only"]:
             
@@ -112,6 +113,9 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
         entity_str = "%s %s" % (entity_data.get("type", "Unknown"), entity_data.get("code", "Unknown"))
 
         if tasks:
+            current_task = result.get("current_task")
+            item_to_select = None        
+            
             i = self.add_item(browser_widget.ListHeader)
             i.set_title("Tasks for %s" % entity_str)
             
@@ -157,5 +161,23 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
                             if u.get("image"):
                                 i.set_thumbnail(u.get("image"))
                             break            
+                
+                if d and current_task and d["id"] == current_task.get("id"):
+                    item_to_select = i
+            
+            if item_to_select:
+                self.select(item_to_select)
+                
+    def _on_item_clicked(self, item):
         
+        if item.supports_selection() == False:
+            # not all items are selectable
+            return
+
+        # implement single togglable selection     
+        select = not item.is_selected()
+        self.clear_selection()
+        item.set_selected(select)
+            
+        self.selection_changed.emit()
         
