@@ -2,6 +2,8 @@
 Copyright (c) 2013 Shotgun Software, Inc
 ----------------------------------------------------
 """
+import sys
+
 import tank
 from tank.platform.qt import QtCore, QtGui 
 
@@ -21,6 +23,14 @@ class WrapperDialog(QtGui.QDialog):
             self.setWindowTitle(title)
         if fixed_size:
             self.setFixedSize(fixed_size)
+    
+    def __enter__(self):
+        return self
+        
+    def __exit__(self, type, value, traceback):
+        # ensure that dialog is safey cleaned up when running nuke on a Mac
+        if sys.platform == "darwin" and tank.platform.current_engine().name == "tk-nuke":
+            self.deleteLater() 
     
     def _handle_widget_close(self, event, default_handler):
         """

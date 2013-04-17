@@ -41,6 +41,9 @@ class Versioning(object):
         """
         # validate that scene is actually a work file with a version:
         try:
+            if not self._work_template:
+                raise TankError("Work template is invalid")
+            
             work_path = self._get_current_file_path()
             current_version = self.get_work_file_version(work_path)
         except TankError, e:
@@ -65,43 +68,41 @@ class Versioning(object):
                 from .change_version_form import ChangeVersionForm
                 #(res, form) = self._app.engine.show_modal("Change Version", self._app, ChangeVersionForm, version_checker, current_version, new_version)
                 form = ChangeVersionForm(version_checker, current_version, new_version)
-                dlg = WrapperDialog(form, "Change Version", form.geometry().size())
-                res = dlg.exec_()
-                
-                if res == QtGui.QDialog.Accepted:
-                    # get new version:
-                    new_version = form.new_version
+                with WrapperDialog(form, "Change Version", form.geometry().size()) as dlg:
+                    res = dlg.exec_()
                     
-                    # validate:
-                    msg = self.check_version_availability(work_path, new_version)
-                    if msg:
-                        msg = "<b>Warning: %s<b><br><br>Are you sure you want to change to this version?" % msg
-                        res = QtGui.QMessageBox.question(None, "Confirm", msg, QtGui.QMessageBox.Cancel | QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
-                        if res == QtGui.QMessageBox.No:
-                            continue
-                        elif res == QtGui.QMessageBox.Cancel:
-                            break
+                    if res == QtGui.QDialog.Accepted:
+                        # get new version:
+                        new_version = form.new_version
                         
-                    # ok, so change version:
-                    try:
-                        self.change_work_file_version(work_path, new_version)
-                    except TankError, e:
-                        QtGui.QMessageBox.critical(None, "Failure", "Version up of scene failed!\n\n%s" % e)
-                        continue
-                    except Exception, e:
-                        self._app.log_exception("Something went wrong while changing the version!")
-                        continue
-
-                    QtGui.QMessageBox.information(None, "Success", "Version up of scene Succeeded!")                        
-                    break
-                else:
-                    break
+                        # validate:
+                        msg = self.check_version_availability(work_path, new_version)
+                        if msg:
+                            msg = "<b>Warning: %s<b><br><br>Are you sure you want to change to this version?" % msg
+                            res = QtGui.QMessageBox.question(None, "Confirm", msg, QtGui.QMessageBox.Cancel | QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+                            if res == QtGui.QMessageBox.No:
+                                continue
+                            elif res == QtGui.QMessageBox.Cancel:
+                                break
+                            
+                        # ok, so change version:
+                        try:
+                            self.change_work_file_version(work_path, new_version)
+                        except TankError, e:
+                            QtGui.QMessageBox.critical(None, "Failure", "Version up of scene failed!\n\n%s" % e)
+                            continue
+                        except Exception, e:
+                            self._app.log_exception("Something went wrong while changing the version!")
+                            continue
+    
+                        break
+                    else:                 
+                        break
             
     def get_work_file_version(self, work_path):
         """
         Get the current work file version:
         """
-        
         # use the work template to extract the version:
         fields = self._work_template.get_fields(work_path)
         current_version = fields.get("version")
