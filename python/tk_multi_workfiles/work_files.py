@@ -330,18 +330,19 @@ class WorkFiles(object):
             return
            
            
-        # ensure folders exist.  This serves the
-        # dual purpose of populating the path
-        # cache
-        try:
-            self._create_folders(new_ctx)
-        except TankError, e:
-            QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to create folders!", 
-                                       "Failed to create folders:\n\n%s!" % e)
-            return
-        except Exception, e:
-            self._app.log_exception("Failed to create folders")
-            return
+        if new_ctx != self._app.context:
+            # ensure folders exist.  This serves the
+            # dual purpose of populating the path
+            # cache
+            try:
+                self._create_folders(new_ctx)
+            except TankError, e:
+                QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to create folders!", 
+                                           "Failed to create folders:\n\n%s!" % e)
+                return
+            except Exception, e:
+                self._app.log_exception("Failed to create folders")
+                return
         
         # if need to, copy file
         if src_path:
@@ -419,8 +420,9 @@ class WorkFiles(object):
         """
         # switch context
         try:
-            # ensure folders exist:
-            self._create_folders(self._context)
+            if self._context != self._app.context:
+                # ensure folders exist:
+                self._create_folders(self._context)
 
             # reset the current scene:
             self._reset_current_scene()
