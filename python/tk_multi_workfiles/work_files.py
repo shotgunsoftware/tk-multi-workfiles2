@@ -428,13 +428,13 @@ class WorkFiles(object):
             # restart the engine with the new context
             self._restart_engine(self._context)
         except TankError, e:
-            QtGui.QMessageBox.critical(self._workfiles_ui, "Something went wrong!", 
+            QtGui.QMessageBox.information(self._workfiles_ui, "Something went wrong!", 
                                        "Something went wrong:\n\n%s!" % e)
             return
         except Exception, e:
             self._app.log_exception("Failed to do new file")
             return
-        
+
         # close work files UI:
         self._workfiles_ui.close()
         

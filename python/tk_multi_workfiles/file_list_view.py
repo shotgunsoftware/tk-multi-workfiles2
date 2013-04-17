@@ -47,6 +47,8 @@ class FileListView(browser_widget.BrowserWidget):
         if handler:
             # get the list of files from the handler:
             files = handler.find_files(user)
+            ctx = handler.get_current_work_area()
+            current_task_name = ctx.task.get("name") if ctx and ctx.task else None
             
             # re-pivot this list of files ready to display:
             """
@@ -121,6 +123,7 @@ class FileListView(browser_widget.BrowserWidget):
         
             result["task_groups"] = filtered_task_groups
             result["task_name_order"] = task_name_order
+            result["current_task_name"] = current_task_name
         
         return result
     
@@ -130,6 +133,7 @@ class FileListView(browser_widget.BrowserWidget):
         """
         task_groups = result["task_groups"]
         task_name_order = result["task_name_order"]
+        current_task_name = result["current_task_name"]
 
         if not task_groups:
             self.set_message("No Files found!")
@@ -138,10 +142,11 @@ class FileListView(browser_widget.BrowserWidget):
         #pprint(task_groups)
         
         for task_name, name_groups in task_groups.iteritems():
-            
-            # add header for task:
-            h = self.add_item(browser_widget.ListHeader)
-            h.set_title("%s" % (task_name))
+        
+            if len(task_groups) > 1 or task_name != current_task_name:
+                # add header for task:
+                h = self.add_item(browser_widget.ListHeader)
+                h.set_title("%s" % (task_name))
             
             ordered_names = task_name_order[task_name]
             for name in ordered_names:
