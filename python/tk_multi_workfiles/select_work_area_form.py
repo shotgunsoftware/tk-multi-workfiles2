@@ -135,16 +135,13 @@ class SelectWorkAreaForm(QtGui.QWidget):
         
         # get the selected task:
         task = self._ui.task_browser.selected_task
-        if task is None:
-            # no task selected so can't create context
-            return None
         
         # try to create a context:
         ctx = None
-        if task != TaskBrowserWidget.NO_TASK:
+        if task:
             ctx = self._app.tank.context_from_entity("Task", task.get("id"))
         else:
-            # NO_TASK selected so use entity instead:
+            # no task selected so use entity instead:
             entity = self._ui.entity_browser.selected_entity
             if entity:
                 ctx = self._app.tank.context_from_entity(entity.get("type"), entity.get("id"))
@@ -237,8 +234,8 @@ class SelectWorkAreaForm(QtGui.QWidget):
         """
         Update UI following a change
         """
-        curr_selection = self._ui.task_browser.get_selected_item()
-        self._ui.select_btn.setEnabled(curr_selection is not None)
+        current_entity = self._ui.entity_browser.selected_entity
+        self._ui.select_btn.setEnabled(current_entity is not None)
         
     """
     def set_context(self):

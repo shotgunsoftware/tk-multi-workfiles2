@@ -14,8 +14,6 @@ browser_widget = tank.platform.import_framework("tk-framework-widget", "browser_
 
 class TaskBrowserWidget(browser_widget.BrowserWidget):
 
-    NO_TASK = {}
-    
     def __init__(self, parent=None):
         browser_widget.BrowserWidget.__init__(self, parent)
         
@@ -112,11 +110,6 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
         tasks = result["tasks"]
         
         entity_str = "%s %s" % (entity_data.get("type", "Unknown"), entity_data.get("code", "Unknown"))
-
-        # always add 'no task' task:
-        i = self.add_item(browser_widget.ListItem)
-        i.set_details("<b>No Task</b>")
-        i.sg_data = TaskBrowserWidget.NO_TASK
 
         if tasks:
             i = self.add_item(browser_widget.ListHeader)
