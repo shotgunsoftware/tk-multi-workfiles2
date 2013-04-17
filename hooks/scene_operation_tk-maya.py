@@ -51,7 +51,7 @@ class SceneOperation(Hook):
             cmds.file(save=True, force=True)
         elif operation == "reset":
             """
-            Reset the scene to a new state
+            Reset the scene to an empty state
             """
             while cmds.file(query=True, modified=True):
                 # changes have been made to the scene

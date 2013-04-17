@@ -9,6 +9,7 @@ import nuke
 import tank
 from tank import Hook
 from tank import TankError
+from tank.platform.qt import QtGui
 
 class SceneOperation(Hook):
     """
@@ -71,9 +72,23 @@ class SceneOperation(Hook):
             
         elif operation == "reset":
             """
-            Reset the scene to a new state
+            Reset the scene to an empty state
             """
-            # TODO - this needs to check for any changes as it just clears the script!
+            while nuke.root().modified():
+                # changes have been made to the scene
+                res = QtGui.QMessageBox.question(None,
+                                                 "Save your script?",
+                                                 "Your script has unsaved changes. Save before proceeding?",
+                                                 QtGui.QMessageBox.Yes|QtGui.QMessageBox.No|QtGui.QMessageBox.Cancel)
+            
+                if res == QtGui.QMessageBox.Cancel:
+                    raise TankError("Operation cancelled")
+                elif res == QtGui.QMessageBox.No:
+                    break
+                else:
+                    nuke.scriptSave()
+
+            # now clear the script:
             nuke.scriptClear()
             
         else:
