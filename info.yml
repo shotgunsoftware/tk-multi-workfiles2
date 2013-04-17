@@ -16,22 +16,26 @@ configuration:
         required_fields: [version]
         optional_fields: [name]
         description: A reference to a template which locates a work file on disk.
+        allows_empty: True
 
     template_work_area:
         type: template
         description: A reference to a template which locates the work directory on
                      disk
+        allows_empty: True
 
     template_publish:
         type: template
         required_fields: [version]
         optional_fields: [name]
         description: A reference to a template which locates a publish file on disk.
+        allows_empty: True
            
     template_publish_area:
         type: template
         description: A reference to a template which locates the publish directory on
                      disk
+        allows_empty: True
            
     sg_entity_types:
         type: list
@@ -75,7 +79,7 @@ description: "Work file management."
 
 # Required minimum versions for this item to run
 requires_shotgun_version:
-requires_core_version: "v0.12.25"
+requires_core_version: "v0.12.26"
 requires_engine_version: 
 
 # the engines that this app can operate in:
