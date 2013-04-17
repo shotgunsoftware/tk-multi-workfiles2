@@ -47,12 +47,15 @@ class WorkFilesForm(QtGui.QWidget):
         self._ui.new_file_btn.clicked.connect(self._on_new_file)
         
         self._ui.file_list.action_requested.connect(self._on_open_file)
+        self._ui.file_list.selection_changed.connect(self._on_file_selection_changed)
 
         self._ui.file_list.set_app(self._app)
 
         # ste up the work area:
         ctx = self._handler.get_current_work_area() 
         self._set_work_area(ctx)
+        
+        self._on_file_selection_changed()
         
     def closeEvent(self, e):
         """
@@ -102,12 +105,21 @@ class WorkFilesForm(QtGui.QWidget):
         self._ui.file_list.clear()
         self._ui.file_list.load({"handler":self._handler, "user":filter.get("user"), "publishes":filter.get("publishes", False)})
         
+        self._on_file_selection_changed()
+        
     def _on_filter_selection_changed(self, idx):
         """
         Called when the filter is changed
         """
         self._refresh_file_list()
         
+    def _on_file_selection_changed(self):
+        """
+        
+        """
+        selected_file = self._ui.file_list.selected_file
+        self._ui.open_file_btn.setEnabled(selected_file is not None)
+            
     def _update_filter_menu(self):
         """
         Update the list of users to display work files for
