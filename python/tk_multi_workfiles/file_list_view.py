@@ -168,6 +168,7 @@ class FileListView(browser_widget.BrowserWidget):
                 if thumbnail:
                     item.set_thumbnail(thumbnail)
 
+                """
                 # if have other publish versions then add them to context menu
                 publish_versions = [v for v, f in files.iteritems() if f.is_published]
                 if publish_versions:
@@ -185,7 +186,7 @@ class FileListView(browser_widget.BrowserWidget):
                         action = QtGui.QAction("Open publish v%03d read-only" % version, item)
                         action.triggered.connect(lambda f = files[version]: self._on_open_action_triggered(f))
                         item.addAction(action)
-            
+                """
                     
     def _build_details_string(self, file, highest_publish_version, highest_local_version):
         """
@@ -227,29 +228,6 @@ class FileListView(browser_widget.BrowserWidget):
             colour_str = red
 
         lines.append("<b>Version:</b> v%03d%s" % (highest_local_version, version_desc))
-        """
-        version_desc = ""
-        colour_str = None
-        if file.is_published:
-            if file.is_local:
-                # work file is up-to-date with latest publish
-                version_desc = " - work file is most recent publish"
-                colour_str = "rgb(145, 206, 95)"
-            elif have_work_files:
-                # publish is more recent than work file
-                version_desc = " - work file is out of date/publish is more recent"
-                colour_str = "rgb(200, 84, 74)"
-            else:
-                # don't have a local version of the publish
-                version_desc = " - don't have work file"
-        else:
-            if have_publishes:
-                # work file is more recent than publish
-                version_desc = " - work file is newer than publish"
-            else:
-                version_desc = " - never been published"
-        lines.append("Version: v%03d%s" % (file.version, version_desc))
-        """
         
         # last modified date:
         date_str = ""                
