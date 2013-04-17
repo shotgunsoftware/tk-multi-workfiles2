@@ -6,7 +6,6 @@ import sys
 import os
 from itertools import chain
 from datetime import datetime
-from pwd import getpwuid
 
 import tank
 from tank.platform.qt import QtCore, QtGui 
@@ -169,11 +168,11 @@ class WorkFiles(object):
 
         return file_details
         
-    def _new_file(self):
+    def _reset_current_scene(self):
         """
         Use hook to clear the current scene
         """
-        self._app.execute_hook("hook_scene_operation", operation="new", file_path=None)
+        self._app.execute_hook("hook_scene_operation", operation="reset", file_path=None)
     
     def _open_file(self, path):
         """
@@ -196,18 +195,12 @@ class WorkFiles(object):
         """
         self._app.execute_hook("hook_scene_operation", operation="save", file_path=None)
         
-    def _set_context(self, ctx):
+    def _restart_engine(self, ctx):
         """
         Set context to the new context.  This will
         clear the current scene and restart the
         current engine with the specified context
         """
-        # do new scene:
-        try:
-            self._new_file()            
-        except TankError, e:
-            raise TankError("Failed to do new scene: %s" % e)
-            
         # restart engine:        
         try:
             current_engine_name = self._app.engine.name
@@ -336,11 +329,22 @@ class WorkFiles(object):
             # can't do anything!
             return
            
+           
+        # ensure folders exist.  This serves the
+        # dual purpose of populating the path
+        # cache
+        try:
+            self._create_folders(new_ctx)
+        except TankError, e:
+            QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to create folders!", 
+                                       "Failed to create folders:\n\n%s!" % e)
+            return
+        except Exception, e:
+            self._app.log_exception("Failed to create folders")
+            return
+        
         # if need to, copy file
         if src_path:
-            # ensure folders exist:
-            self._create_folders(new_ctx)
-            
             # check that local path doesn't already exist:
             if os.path.exists(work_path):
                 #TODO: replace with tank dialog
@@ -350,12 +354,24 @@ class WorkFiles(object):
                 if answer == QtGui.QMessageBox.Cancel:
                     return
                 
-            # copy file:
-            self._copy_file(src_path, work_path)
+            try:
+                # copy file:
+                self._copy_file(src_path, work_path)
+            except TankError, e:
+                QtGui.QMessageBox.critical(self._workfiles_ui, "Copy file failed!", 
+                                           "Copy of file failed!\n\n%s!" % e)
+                return
+            except Exception, e:
+                self._app.log_exception("Copy file failed")
+                return            
                     
         # switch context (including do new file):
         try:
-            self._set_context(new_ctx)
+            # reset the current scene:
+            self._reset_current_scene()
+            
+            # restart the engine with the new context
+            self._restart_engine(new_ctx)
         except TankError, e:
             QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to change work area", 
                                        "Failed to change the work area to '%s':\n\n%s\n\nUnable to continue!" % (new_ctx, e))
@@ -405,8 +421,12 @@ class WorkFiles(object):
         try:
             # ensure folders exist:
             self._create_folders(self._context)
+
+            # reset the current scene:
+            self._reset_current_scene()
             
-            self._set_context(self._context)
+            # restart the engine with the new context
+            self._restart_engine(self._context)
         except TankError, e:
             QtGui.QMessageBox.critical(self._workfiles_ui, "Something went wrong!", 
                                        "Something went wrong:\n\n%s!" % e)
@@ -526,6 +546,7 @@ class WorkFiles(object):
             pass
         else:
             try:
+                from pwd import getpwuid                
                 login_name = getpwuid(os.stat(path).st_uid).pw_name
             except:
                 pass

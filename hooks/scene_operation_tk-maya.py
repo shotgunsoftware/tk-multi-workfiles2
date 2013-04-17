@@ -49,7 +49,10 @@ class SceneOperation(Hook):
             # save the scene as file_path:
             cmds.file(rename=file_path)
             cmds.file(save=True, force=True)
-        elif operation == "new":
+        elif operation == "reset":
+            """
+            Reset the scene to a new state
+            """
             while cmds.file(query=True, modified=True):
                 # changes have been made to the scene
                 res = QtGui.QMessageBox.question(None,

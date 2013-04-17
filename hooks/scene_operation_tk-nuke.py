@@ -33,19 +33,26 @@ class SceneOperation(Hook):
                     all others     - None
         """
         
+        if file_path:
+            file_path = file_path.replace("/", os.path.sep)
+        
         if operation == "current_path":
             # return the current script path
             return nuke.root().name().replace("/", os.path.sep)
+        
         elif operation == "open":
             # open the specified script
             nuke.scriptOpen(file_path)
             
             # reset any write node render paths:
-            self._reset_write_node_render_paths()
+            if self._reset_write_node_render_paths():
+                # something changed so make sure to save the script again:
+                nuke.scriptSave()
             
         elif operation == "save":
             # save the current script:
             nuke.scriptSave()
+            
         elif operation == "save_as":
             old_path = nuke.root()["name"].value()
             try:
@@ -61,9 +68,14 @@ class SceneOperation(Hook):
                 # something went wrong so reset to old path:
                 nuke.root()["name"].setValue(old_path)
                 raise TankError("Failed to save scene %s", e)
-        elif operation == "new":
+            
+        elif operation == "reset":
+            """
+            Reset the scene to a new state
+            """
             # TODO - this needs to check for any changes as it just clears the script!
             nuke.scriptClear()
+            
         else:
             raise TankError("Don't know how to perform scene operation '%s'" % operation)
         
@@ -73,12 +85,14 @@ class SceneOperation(Hook):
         Use the tk-nuke-writenode app interface to find and reset
         the render path of any Tank write nodes in the current script
         """
-        write_node_app = tank.platform.current_engine().apps.get("tk-nuke-writenode")
+        write_node_app = self.parent.engine.apps.get("tk-nuke-writenode")
         if not write_node_app:
             return
         
         write_nodes = write_node_app.get_write_nodes()
         for write_node in write_nodes:
             write_node_app.reset_node_render_path(write_node)
+            
+        return len(write_nodes) > 0
         
         
