@@ -189,7 +189,6 @@ class SelectWorkAreaForm(QtGui.QWidget):
         Called when the selected entity is changed
         """
         self._reload_tasks()
-        self._update_ui()
         
     def _on_task_selected(self):
         """
@@ -220,6 +219,7 @@ class SelectWorkAreaForm(QtGui.QWidget):
         curr_selection = self._ui.entity_browser.get_selected_item()
         if curr_selection is None:
             self._ui.task_browser.set_message("Please select an item in the listing to the left.")
+            self._update_ui()
             return
         
         # pass in data to task retreiver
@@ -229,6 +229,8 @@ class SelectWorkAreaForm(QtGui.QWidget):
 
         # pass in the sg data dump for the entity to the task loader code
         self._ui.task_browser.load(d)
+        
+        self._update_ui()
         
     def _update_ui(self):
         """
