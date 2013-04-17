@@ -42,19 +42,15 @@ class WorkFiles(object):
         
     def show_dlg(self):
         """
+        Show the main tank file manager dialog 
         """
-        display_name = self._app.get_setting("display_name")
         from .work_files_form import WorkFilesForm
-        self._workfiles_ui = self._app.engine.show_dialog(display_name, self._app, WorkFilesForm, self._app, self)
+        self._workfiles_ui = self._app.engine.show_dialog("Tank File Manager", self._app, WorkFilesForm, self._app, self)
 
         # hook up signals:
-        #self._workfiles_ui.change_work_area.connect(self._do_change_work_area)
         self._workfiles_ui.open_file.connect(self._on_open_file)
         self._workfiles_ui.new_file.connect(self._on_new_file)
         self._workfiles_ui.open_publish.connect(self._on_open_publish)
-
-        # update the UI
-        #self._set_work_area(self._context)
         
     def get_work_area_path(self):
         """

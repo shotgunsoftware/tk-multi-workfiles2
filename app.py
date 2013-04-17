@@ -21,17 +21,14 @@ class MultiWorkFiles(tank.platform.Application):
 
         # register commands:
         self._work_files_handler = tk_multi_workfiles.WorkFiles(self)
+
+        self.engine.register_command("Tank File Manager...", self._work_files_handler.show_dlg)
         
-        cmd_name = self.get_setting("display_name")
-        self.engine.register_command("%s..." % cmd_name, self._work_files_handler.show_dlg)
-        
-        cmd_name = "Tank Save As"
         cmd = lambda app=self: tk_multi_workfiles.SaveAs.show_save_as_dlg(app)
-        self.engine.register_command("%s..." % cmd_name, cmd)
+        self.engine.register_command("Tank Save As...", cmd)
         
-        cmd_name = "Version Up Open Scene"
         cmd = lambda app=self: tk_multi_workfiles.Versioning.show_change_version_dlg(app)
-        self.engine.register_command("%s..." % cmd_name, cmd)
+        self.engine.register_command("Version up Current Scene...", cmd)
         
         # only launch the dialog once at startup
         # use tank object to store this flag

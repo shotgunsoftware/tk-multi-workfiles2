@@ -6,11 +6,6 @@
 
 # expected fields in the configuration file for this app
 configuration:
-    display_name:
-        type: str
-        default_value: Tank File Manager
-        description:
-    
     template_work:
         type: template
         required_fields: [version]
@@ -40,7 +35,7 @@ configuration:
     sg_entity_types:
         type: list
         description: "List of Shotgun Entity Types to include in the listings when
-                      selecting a work area."
+                      picking a work area."
         default_value: [Shot, Asset]
         values:
             type: shotgun_entity_type
@@ -53,14 +48,15 @@ configuration:
         
     launch_at_startup:
         type: bool
-        description: A flag whether to launch this app's UI at startup.
-        default_value: False
+        description: Controls if the main file manager dialog should launch at startup.
+        default_value: True
            
     hook_scene_operation:
         type: hook
         parameters: [operation, file_path]
         default_value: "scene_operation_{engine_name}"
-        description:    
+        description: All the application specific scene operations (open, save etc) that 
+                     the app needs to carry out are collected together in this hook.
         
     hook_copy_file:
         type: hook
@@ -74,16 +70,19 @@ configuration:
 requires_shotgun_fields:
 
 # More verbose description of this item 
-display_name: "Work Files"
-description: "Work file management."
-
+display_name: "Manage your Work Files"
+description: "Using this app you can change the current work area and 
+              browse work files and publishes.  The app additionally 
+              provides 'Save As' and 'Change Version' commands for 
+              managing work files"
+              
 # Required minimum versions for this item to run
 requires_shotgun_version:
 requires_core_version: "v0.12.26"
 requires_engine_version: 
 
 # the engines that this app can operate in:
-supported_engines: [tk-nuke, tk-maya]
+supported_engines: []
 
 # the frameworks required to run this app
 frameworks:
