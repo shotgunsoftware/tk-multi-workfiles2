@@ -170,15 +170,15 @@ class WorkFilesForm(QtGui.QWidget):
         A lot of this should be done in a worker thread!
         """
         # load and update entity & task details:
-        entity_details = "<big>Entity: -</big>"
-        entity_thumbnail = QtGui.QPixmap(":/res/thumb_empty.png")
-        task_details = "<big>Task: -</big>"
-        task_thumbnail = QtGui.QPixmap(":/res/thumb_empty.png")
+        entity_details = "<b>Entity: -</b>"
+        entity_thumbnail = QtGui.QPixmap()#":/res/thumb_empty.png")
+        task_details = "Task: -"
+        task_thumbnail = QtGui.QPixmap()#":/res/thumb_empty.png")
                     
         if ctx:
             if ctx.entity:
                 entity_type_name = tank.util.get_entity_type_display_name(self._app.tank, ctx.entity.get("type"))
-                entity_details = "<big>%s: %s</big>" % (entity_type_name, ctx.entity.get("name"))
+                entity_details = "<b>%s: %s</b>" % (entity_type_name, ctx.entity.get("name"))
                 
                 # get additional details:
                 sg_details = {}
@@ -194,7 +194,7 @@ class WorkFilesForm(QtGui.QWidget):
                         entity_thumbnail = QtGui.QPixmap(thumbnail_path)
     
             if ctx.task:
-                task_details = "<big>Task: %s</big>" % (ctx.task["name"])
+                task_details = "Task: %s" % (ctx.task["name"])
                 
                 sg_details = {}
                 try:
@@ -218,10 +218,8 @@ class WorkFilesForm(QtGui.QWidget):
                         if thumbnail_path:
                             task_thumbnail = QtGui.QPixmap(thumbnail_path)
                 
-        self._ui.entity_details.setText(entity_details)
+        self._ui.entity_details.setText("<br>".join([entity_details, task_details]))
         self._set_thumbnail(self._ui.entity_thumbnail, entity_thumbnail)
-
-        self._ui.task_details.setText(task_details)
         self._set_thumbnail(self._ui.task_thumbnail, task_thumbnail)
         
         # update work area details:
@@ -236,7 +234,7 @@ class WorkFilesForm(QtGui.QWidget):
         Set thumbnail on control resizing as required. 
         """
         geom = ctrl.geometry()
-        scaled_pm = pm.scaled(geom.width(), geom.height(), QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+        scaled_pm = pm.scaled(geom.width(), geom.height(), QtCore.Qt.KeepAspectRatioByExpanding, QtCore.Qt.SmoothTransformation)
         ctrl.setPixmap(scaled_pm)
 
     def _download_thumbnail(self, url):
