@@ -79,7 +79,8 @@ class WorkFiles(object):
             return []
         
         current_user = tank.util.get_shotgun_user(self._app.shotgun)
-        if user and user["id"] == current_user["id"]:
+        if current_user and user and user["id"] == current_user["id"]:
+            # user is current user. Set to none not to override.
             user = None
 
         # find all published files that match the current template:
@@ -255,7 +256,7 @@ class WorkFiles(object):
             user = fields.get("HumanUser")
             if user:
                 current_user = tank.util.get_shotgun_user(self._app.shotgun)
-                if current_user["login"] != user:
+                if current_user and current_user["login"] != user:
                     
                     fields["HumanUser"] = current_user["login"]
                     # TODO: do we need to version up as well??

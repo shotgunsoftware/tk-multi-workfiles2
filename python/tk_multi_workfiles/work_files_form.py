@@ -153,7 +153,7 @@ class WorkFilesForm(QtGui.QWidget):
         # add rest of users
         if users:
             for user in users:
-                if user["id"] == current_user["id"]:
+                if current_user is not None and user["id"] == current_user["id"]:
                     # already added
                     continue
             
