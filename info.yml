@@ -82,7 +82,7 @@ requires_core_version: "v0.12.26"
 requires_engine_version: 
 
 # the engines that this app can operate in:
-supported_engines: []
+supported_engines: 
 
 # the frameworks required to run this app
 frameworks:
