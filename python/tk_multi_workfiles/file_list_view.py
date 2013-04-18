@@ -206,6 +206,11 @@ class FileListView(browser_widget.BrowserWidget):
         green = "rgb(145, 206, 95)"
         
         if highest_publish_file:
+            
+            tool_tip = highest_publish_file.publish_description
+            if not tool_tip:
+                tool_tip = "<i>No description was entered for this publish</i>" 
+            
             highest_pub_version = highest_publish_file.version if highest_publish_file else -1
             highest_local_version = highest_local_file.version if highest_local_file else -1
             
@@ -215,10 +220,15 @@ class FileListView(browser_widget.BrowserWidget):
             elif highest_local_version > highest_pub_version:
                 # TODO - check file modification time
                 colour_str = green
-                
+                tool_tip = "%s<br>- You have the latest version in your work area" % tool_tip
+            
         # add item:
         item = self.add_item(browser_widget.ListItem)
         item.file = file
+
+        # set tool tip
+        if tool_tip:
+            item.setToolTip(tool_tip)
         
         # name & version:
         title_str = "<b>%s, v%03d</b>" % (file.name, file.version)

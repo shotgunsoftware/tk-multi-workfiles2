@@ -118,7 +118,8 @@ class WorkFiles(object):
                 details["task"] = publish_details.get("task")
                 details["thumbnail"] = publish_details.get("image")
                 details["modified_time"] = publish_details.get("created_at")
-                details["modified_by"] = publish_details.get("created_by", {})#.get("name")
+                details["modified_by"] = publish_details.get("created_by", {})
+                details["publish_description"] = publish_details.get("description")
             else:
                 if self._context.task:
                     # can use the task form the context
@@ -162,7 +163,8 @@ class WorkFiles(object):
             details["task"] = publish_details.get("task")
             details["thumbnail"] = publish_details.get("image")
             details["modified_time"] = publish_details.get("created_at")
-            details["modified_by"] = publish_details.get("created_by", {})#.get("name")
+            details["modified_by"] = publish_details.get("created_by", {})
+            details["publish_description"] = publish_details.get("description")
                 
             file_details.append(WorkFile(work_path, publish_path, is_work_file, True, details))            
 
@@ -564,7 +566,7 @@ class WorkFiles(object):
         if self._context.task:
             filters.append(["task", "is", self._context.task])
         
-        sg_publish_fields = ["description", "version_number", "image", "created_at", "created_by", "name", "path", "task"]
+        sg_publish_fields = ["description", "version_number", "image", "created_at", "created_by", "name", "path", "task", "description"]
         sg_published_files = self._app.shotgun.find("TankPublishedFile", filters, sg_publish_fields)
         
         publish_files = {}
