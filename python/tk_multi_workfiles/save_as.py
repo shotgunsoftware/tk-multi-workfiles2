@@ -57,7 +57,11 @@ class SaveAs(object):
             title = "Tank Save As"
             name = fields.get("name")
             # TODO: default to default name from template if there is one, otherwise scene
-            name = "%s2" % name if name else "scene"
+            if name:
+                name = "%s2" % name
+        
+        if not name:
+            name = "scene"
         
         worker_cb = lambda details, wp=current_path, ip=is_publish: self.generate_new_work_file_path(wp, ip, details.get("name"), details.get("reset_version"))
         with AsyncWorker(worker_cb) as preview_updater:
@@ -75,6 +79,12 @@ class SaveAs(object):
                     new_path = details.get("path")
                     msg = details.get("message")
                     
+                    if not new_path:
+                        # something went wrong!
+                        QtGui.QMessageBox.information(None, "Unable to Save", "%s\n\nUnable to Save!" % msg)
+                        continue
+                    
+                    """
                     if msg:
                         msg = "<b>%s<b><br><br>Are you sure you want to save?" % msg
                         res = QtGui.QMessageBox.question(None, "Confirm", msg, QtGui.QMessageBox.Cancel | QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
@@ -82,7 +92,8 @@ class SaveAs(object):
                             continue
                         elif res == QtGui.QMessageBox.Cancel:
                             break
-                        
+                    """
+                     
                     # ok, so do save-as:
                     try:
                         self.save_as(new_path)
@@ -107,7 +118,6 @@ class SaveAs(object):
         # and save the current file as the new path:
         self._save_current_file_as(new_path)
             
-            
     def _save_current_file_as(self, path):
         """
         Use hook to get the current work/scene file path
@@ -122,6 +132,11 @@ class SaveAs(object):
         new_work_path = ""
         msg = None
         can_reset_version = False
+
+        # validate name:
+        if not self._work_template.keys["name"].validate(new_name):
+            msg = "Your filename contains illegal characters!"
+            return {"message":msg}
 
         # get fields from current path:
         fields = {}
@@ -166,11 +181,11 @@ class SaveAs(object):
                 can_reset_version = False
                 new_version = max_version + 1
                 
-                if max_version == max_publish_version:
-                    msg = "Because a publish with this name already exists (v%03d), the work file will be saved with the next available version, v%03d" % (max_version, new_version)
+                if max_version == max_work_version:
+                    msg = "A work file with this name already exists.  If you proceed, your file will use the next available version number."
                 else:
-                    msg = "Because a work file with this name already exists (v%03d), the work file will be saved with the next available version, v%03d" % (max_version, new_version)
-                
+                    msg = "A publish file with this name already exists.  If you proceed, your file will use the next available version number."
+                    
             else:
                 # don't have an existing version
                 can_reset_version = True
