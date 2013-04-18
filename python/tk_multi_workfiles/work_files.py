@@ -297,7 +297,9 @@ class WorkFiles(object):
                 
                 # add additional fields:
                 current_user = tank.util.get_shotgun_user(self._app.shotgun)
-                fields["HumanUser"] = current_user["login"]
+                if current_user:
+                    # populate if current user is defined.
+                    fields["HumanUser"] = current_user.get("login")
 
                 # get next version:                
                 new_version = self._get_next_available_version(fields)
