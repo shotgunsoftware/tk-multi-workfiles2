@@ -43,6 +43,7 @@ class WorkFiles(object):
         """
         Show the main tank file manager dialog 
         """
+        
         from .work_files_form import WorkFilesForm
         self._workfiles_ui = self._app.engine.show_dialog("Tank File Manager", self._app, WorkFilesForm, self._app, self)
 
@@ -91,6 +92,22 @@ class WorkFiles(object):
             work_fields["HumanUser"] = user["login"]
         work_file_paths = self._app.tank.paths_from_template(self._work_template, work_fields, ["version"])
         
+        # build an index of the published file tasks to use if we don't have a task in the context:
+        publish_task_map = {}
+        task_id_to_task_map = {}
+        if not self._context.task:
+            for publish_path, publish_details in publish_file_details.iteritems():
+                task = publish_details.get("task")
+                if not task:
+                    continue
+                
+                publish_fields = self._publish_template.get_fields(publish_path)
+                publish_fields["version"] = 0
+                work_path_key = self._work_template.apply_fields(dict(chain(work_fields.iteritems(), publish_fields.iteritems())))
+                
+                task_id_to_task_map[task["id"]] = task
+                publish_task_map.setdefault(work_path_key, set()).add(task["id"])
+         
         # add entries for work files:
         file_details = []
         handled_publish_files = set()
@@ -125,11 +142,22 @@ class WorkFiles(object):
                     # can use the task form the context
                     details["task"] = self._context.task
                 else:
-                    #print "Trying "
-                    
+                    task = None
                     # try to create a context from the path and see if that contains a task:
                     wf_ctx = self._app.tank.context_from_path(work_path, self._context)
-                    details["task"] = wf_ctx.task
+                    task = wf_ctx.task
+                    if not task:
+                        # try creating a versionless version and see if there is a match in the
+                        # published files:
+                        key_fields = fields.copy()
+                        key_fields["version"] = 0
+                        key = self._work_template.apply_fields(key_fields)
+                        if key:
+                            task_ids = publish_task_map.get(key)
+                            if task_ids and len(task_ids) == 1:
+                                task = task_id_to_task_map[list(task_ids)[0]]
+                            
+                    details["task"] = task
 
                 # get the local file modified time - ensure it has a time-zone set:
                 details["modified_time"] = datetime.fromtimestamp(os.path.getmtime(work_path), tz=sg_timezone.local)
@@ -373,8 +401,9 @@ class WorkFiles(object):
             # reset the current scene:
             self._reset_current_scene()
             
-            # restart the engine with the new context
-            self._restart_engine(new_ctx)
+            if new_ctx != self._app.context:
+                # restart the engine with the new context
+                self._restart_engine(new_ctx)
         except TankError, e:
             QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to change work area", 
                                        "Failed to change the work area to '%s':\n\n%s\n\nUnable to continue!" % (new_ctx, e))
@@ -423,9 +452,10 @@ class WorkFiles(object):
 
             # reset the current scene:
             self._reset_current_scene()
-            
-            # restart the engine with the new context
-            self._restart_engine(self._context)
+
+            if self._context != self._app.context:            
+                # restart the engine with the new context
+                self._restart_engine(self._context)
         except TankError, e:
             QtGui.QMessageBox.information(self._workfiles_ui, "Something went wrong!", 
                                        "Something went wrong:\n\n%s!" % e)
@@ -509,13 +539,16 @@ class WorkFiles(object):
         """
         path = None
         if self._context and template:
-            fields = self._context.as_template_fields(template)
-            if not "Step" in fields:
-                fields["Step"] = "{Step}"
-            
-            missing_keys = template.missing_keys(fields)
-            if not missing_keys:
-                path = template.apply_fields(fields)
+            try:
+                fields = self._context.as_template_fields(template)
+                if not "Step" in fields:
+                    fields["Step"] = "{Step}"
+                
+                missing_keys = template.missing_keys(fields)
+                if not missing_keys:
+                    path = template.apply_fields(fields)
+            except:
+                pass
         return path
     
         
