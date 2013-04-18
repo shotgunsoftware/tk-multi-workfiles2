@@ -64,3 +64,8 @@ class WorkFile(object):
     @property
     def modified_by(self):
         return self._details.get("modified_by")
+    
+    @property
+    def publish_description(self):
+        return self._details.get("publish_description")
+    

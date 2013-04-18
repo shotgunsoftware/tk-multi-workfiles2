@@ -118,7 +118,8 @@ class WorkFiles(object):
                 details["task"] = publish_details.get("task")
                 details["thumbnail"] = publish_details.get("image")
                 details["modified_time"] = publish_details.get("created_at")
-                details["modified_by"] = publish_details.get("created_by", {})#.get("name")
+                details["modified_by"] = publish_details.get("created_by", {})
+                details["publish_description"] = publish_details.get("description")
             else:
                 if self._context.task:
                     # can use the task form the context
@@ -162,7 +163,8 @@ class WorkFiles(object):
             details["task"] = publish_details.get("task")
             details["thumbnail"] = publish_details.get("image")
             details["modified_time"] = publish_details.get("created_at")
-            details["modified_by"] = publish_details.get("created_by", {})#.get("name")
+            details["modified_by"] = publish_details.get("created_by", {})
+            details["publish_description"] = publish_details.get("description")
                 
             file_details.append(WorkFile(work_path, publish_path, is_work_file, True, details))            
 
@@ -403,12 +405,7 @@ class WorkFiles(object):
         """
         from .versioning import Versioning
         versioning = Versioning(self._app, self._work_template, self._publish_template, self._context)
-        
-        max_work_version = versioning.get_max_workfile_version(fields)
-        max_publish_version = versioning.get_max_publish_version(fields.get("name"))
-        
-        return max(max_work_version, max_publish_version) + 1
-        
+        return versioning.get_next_available_version(fields)
 
     def _on_open_publish(self, file):
         raise NotImplementedError
@@ -569,7 +566,7 @@ class WorkFiles(object):
         if self._context.task:
             filters.append(["task", "is", self._context.task])
         
-        sg_publish_fields = ["description", "version_number", "image", "created_at", "created_by", "name", "path", "task"]
+        sg_publish_fields = ["description", "version_number", "image", "created_at", "created_by", "name", "path", "task", "description"]
         sg_published_files = self._app.shotgun.find("TankPublishedFile", filters, sg_publish_fields)
         
         publish_files = {}
