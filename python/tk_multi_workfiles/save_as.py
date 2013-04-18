@@ -81,7 +81,7 @@ class SaveAs(object):
                     
                     if not new_path:
                         # something went wrong!
-                        QtGui.QMessageBox.information(None, "Unable to Save", "%s\n\nUnable to Save!" % msg)
+                        QtGui.QMessageBox.information(None, "Unable to Save", "Unable to Save!\n\n%s" % msg)
                         continue
                     
                     """
@@ -134,6 +134,10 @@ class SaveAs(object):
         can_reset_version = False
 
         # validate name:
+        if not new_name:
+            msg = "You must enter a name!"
+            return {"message":msg}
+        
         if not self._work_template.keys["name"].validate(new_name):
             msg = "Your filename contains illegal characters!"
             return {"message":msg}
