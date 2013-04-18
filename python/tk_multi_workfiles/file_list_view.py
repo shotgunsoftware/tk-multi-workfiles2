@@ -41,8 +41,8 @@ class FileListView(browser_widget.BrowserWidget):
         handler = data.get("handler")
         user = data.get("user")
         
-        only_show_local = not data.get("publishes")
-        only_show_publishes = (user == None)
+        show_local = (user != None)
+        show_publishes = data.get("publishes")
         
         if handler:
             # get the list of files from the handler:
@@ -82,11 +82,11 @@ class FileListView(browser_widget.BrowserWidget):
                     
                     # find highest version info:
                     local_versions = [f.version for f in files.values() if f.is_local]
-                    if not local_versions and only_show_local:
+                    if not local_versions and not show_publishes:
                         continue
                     
                     publish_versions = [f.version for f in files.values() if f.is_published]
-                    if not publish_versions and only_show_publishes:
+                    if not publish_versions and not show_local:
                         continue
                     
                     highest_local_version = max(local_versions) if local_versions else -1
@@ -94,8 +94,8 @@ class FileListView(browser_widget.BrowserWidget):
                     highest_version = max(highest_local_version, highest_publish_version)
                     highest_file = files[highest_version]
                     
-                    details["highest_local_version"] = highest_local_version
-                    details["highest_publish_version"] = highest_publish_version
+                    details["highest_local_file"] = files[highest_local_version] if highest_local_version >= 0 else None
+                    details["highest_publish_file"] = files[highest_publish_version] if highest_publish_version >= 0 else None
                     
                     # find thumbnail to use:
                     sorted_versions = sorted(files.keys(), reverse=True)
@@ -153,22 +153,23 @@ class FileListView(browser_widget.BrowserWidget):
                 details = name_groups[name]
                 
                 files = details["files"]
-                highest_local_version = details["highest_local_version"]
-                highest_publish_version = details["highest_publish_version"]
+                highest_local_file = details["highest_local_file"]
+                highest_publish_file = details["highest_publish_file"]
                 thumbnail = details["thumbnail"]
                 
-                # get the primary file to use for this item:
-                highest_version = max(highest_local_version, highest_publish_version)
+                # get the primary file to use for this item - this is always the file 
+                # with the highest version from those available and is the one that will
+                # be opened:
+                highest_publish_version = highest_publish_file.version if highest_publish_file else 0
+                highest_local_version = highest_local_file.version if highest_local_file else 0
+                highest_version = max(highest_publish_version, highest_local_version)
                 primary_file = files[highest_version]
 
                 # add new item to list:
-                item = self.add_item(browser_widget.ListItem)
-                item.file = primary_file
+                item = self._add_file_item(primary_file, highest_publish_file, highest_local_file)
+                if not item:
+                    continue
                 
-                # set item details:
-                details_str = self._build_details_string(primary_file, highest_publish_version, highest_local_version)
-                item.set_details(details_str)
-
                 # set thumbnail if have one:
                 if thumbnail:
                     item.set_thumbnail(thumbnail)
@@ -192,48 +193,39 @@ class FileListView(browser_widget.BrowserWidget):
                         action.triggered.connect(lambda f = files[version]: self._on_open_action_triggered(f))
                         item.addAction(action)
                 """
-                    
-    def _build_details_string(self, file, highest_publish_version, highest_local_version):
+                   
+    def _add_file_item(self, file, highest_publish_file, highest_local_file):
         """
-        
         """
-        
+        colour_str = None
         lines = []
-        
-        # name:
-        lines.append("<b>%s</b>" % file.name)
-        
-        # version:
+        tool_tip = ""
+                   
+        # work out colour:
         red = "rgb(200, 84, 74)"
         green = "rgb(145, 206, 95)"
         
-        version_desc = ""
-        colour_str = None
-        if highest_local_version < 0:
-            # no local version
-            colour_str = red
-            version_desc = " - work file doesn't exist"
-          
-        elif highest_publish_version < 0:
-            # no publish version
-            version_desc = " - never been published"
-    
-        elif highest_publish_version == highest_local_version:
-            # local version is publish version (very rarely happens!)
-            version_desc = " - work file is the most recent publish"
-            colour_str = green
+        if highest_publish_file:
+            highest_pub_version = highest_publish_file.version if highest_publish_file else -1
+            highest_local_version = highest_local_file.version if highest_local_file else -1
             
-        elif highest_publish_version < highest_local_version:
-            # local version is newer than publish
-            version_desc = " - work file is newer than latest publish (v%03d)" % highest_publish_version 
+            # there is a publish
+            if highest_local_version <= highest_pub_version:
+                colour_str = red
+            elif highest_local_version > highest_pub_version:
+                # TODO - check file modification time
+                colour_str = green
+                
+        # add item:
+        item = self.add_item(browser_widget.ListItem)
+        item.file = file
         
-        else:#highest_publish_version > highest_local_version:
-            # publish is newer than local version
-            version_desc = " - work file is older than the latest publish (v%03d)" % highest_publish_version
-            colour_str = red
-
-        lines.append("<b>Version:</b> v%03d%s" % (highest_local_version, version_desc))
-        
+        # name & version:
+        title_str = "<b>%s, v%03d</b>" % (file.name, file.version)
+        if colour_str:    
+            title_str = "<span style='color:%s'>%s</span>" % (colour_str, title_str)
+        lines.append(title_str)
+                
         # last modified date:
         date_str = ""                
         if file.last_modified_time:
@@ -248,20 +240,25 @@ class FileListView(browser_widget.BrowserWidget):
                 date_str = "on %d%s %s" % (modified_date.day, 
                                         self._day_suffix(modified_date.day), 
                                         modified_date.strftime("%B %Y"))
-        lines.append("Last Updated %s" % date_str)
+                
+            if not file.is_published:
+                lines.append("Last Updated %s" % date_str)
+            else:
+                lines.append("Published %s" % date_str)
 
         # last modified by
         if file.modified_by is not None and "name" in file.modified_by:
             last_changed_by_str = "%s" % file.modified_by["name"]
-            lines.append("Last Changed by %s" % last_changed_by_str)
-    
-        # build details string:
-        details_str = "<br>".join(lines)
+            if not file.is_published:
+                lines.append("Updated by %s" % last_changed_by_str)
+            else:
+                lines.append("Published by %s" % last_changed_by_str)
         
-        if colour_str:    
-            details_str = "<p style='color:%s'>%s</p>" % (colour_str, details_str)
-            
-        return details_str
+        # build and set details string:
+        item.set_details("<br>".join(lines))
+        
+        return item
+
                     
     def _day_suffix(self, day):
         """
