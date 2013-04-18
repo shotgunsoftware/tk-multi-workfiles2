@@ -39,17 +39,6 @@ configuration:
         default_value: [Shot, Asset]
         values:
             type: shotgun_entity_type
-            
-    allow_task_creation:
-        type: bool
-        description: "Controls whether new tasks can be created when selecting a
-                      work area."
-        default_value: True
-        
-    launch_at_startup:
-        type: bool
-        description: Controls if the main file manager dialog should launch at startup.
-        default_value: True
            
     hook_scene_operation:
         type: hook
