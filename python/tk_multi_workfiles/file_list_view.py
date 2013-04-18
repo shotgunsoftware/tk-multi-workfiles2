@@ -208,7 +208,9 @@ class FileListView(browser_widget.BrowserWidget):
         if highest_publish_file:
             
             tool_tip = highest_publish_file.publish_description
-            if not tool_tip:
+            if tool_tip:
+                tool_tip = "<b>Description</b>:<br>%s" % tool_tip
+            else:
                 tool_tip = "<i>No description was entered for this publish</i>" 
             
             highest_pub_version = highest_publish_file.version if highest_publish_file else -1
