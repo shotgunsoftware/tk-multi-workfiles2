@@ -35,15 +35,10 @@ class SaveAs(object):
         self._work_template = self._app.get_template("template_work")
         self._publish_template = self._app.get_template("template_publish")
         
-        self.generate_new_work_file_path("", False, "", False)
-        
     def _show_save_as_dlg(self):
         """
         Show the save as dialog
         """
-        
-        #self._get_published_file_details()
-        #return
         
         # get the current file path:
         current_path = self._get_current_file_path()
