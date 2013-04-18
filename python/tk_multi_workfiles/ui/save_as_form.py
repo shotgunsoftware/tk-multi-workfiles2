@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'save_as_form.ui'
 #
-# Created: Thu Apr 18 09:54:44 2013
+# Created: Thu Apr 18 10:56:32 2013
 #      by: pyside-uic 0.2.13 running on PySide 1.1.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -154,5 +154,4 @@ class Ui_SaveAsForm(object):
         self.cancel_btn.setText(QtGui.QApplication.translate("SaveAsForm", "Cancel", None, QtGui.QApplication.UnicodeUTF8))
         self.continue_btn.setText(QtGui.QApplication.translate("SaveAsForm", "Save", None, QtGui.QApplication.UnicodeUTF8))
 
-from . import resources_rc
 from . import resources_rc

@@ -41,7 +41,14 @@ class SaveAs(object):
         """
         
         # get the current file path:
-        current_path = self._get_current_file_path()
+        try:
+            current_path = self._get_current_file_path()
+        except Exception, e:
+            msg = ("Failed to get the current file path:\n\n"
+                  "%s\n\n"
+                  "Unable to continue!" % e)
+            QtGui.QMessageBox.critical(None, "Save As Error!", msg)
+            return
         
         # determine if this is a publish path or not:
         is_publish = self._publish_template.validate(current_path)

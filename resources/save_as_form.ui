@@ -339,7 +339,6 @@ p, li { white-space: pre-wrap; }
  </tabstops>
  <resources>
   <include location="resources.qrc"/>
-  <include location="../../../Users/Alan_Dann/dev/shotgun/tk-multi-workfiles/resources/resources.qrc"/>
  </resources>
  <connections/>
 </ui>

@@ -10,8 +10,6 @@ from tank.platform.qt import QtCore, QtGui
 
 from .wrapper_dialog import WrapperDialog
 
-from .async_worker import AsyncWorker
-
 class Versioning(object):
     """
     Main versioning functionality
@@ -39,75 +37,69 @@ class Versioning(object):
         """
         Show the change version dialog
         """
-        # validate that scene is actually a work file with a version:
         try:
-            if not self._work_template:
-                raise TankError("Work template is invalid")
-            
             work_path = self._get_current_file_path()
-            current_version = self.get_work_file_version(work_path)
-        except TankError, e:
-            # TODO: change to tank dialog
-            msg = ("Failed to get a version for the current work file:\n\n"
-                  "%s\n\n"
-                  "Unable to change version!" % e)
-            QtGui.QMessageBox.information(None, "Change Version Error!", msg)
-            return
         except Exception, e:
-            self._app.log_exception("Failed to get a version for the current work file")
+            msg = ("Failed to get the current file path:\n\n"
+                  "%s\n\n"
+                  "Unable to continue!" % e)
+            QtGui.QMessageBox.critical(None, "Change Version Error!", msg)
             return
         
-        # initial new version:
-        # TODO: do something more clever here?
-        new_version = current_version + 1
+        if not work_path or not self._work_template.validate(work_path):
+            msg = ("Unable to Change Version!\n\nPlease save the scene as a valid work file before continuing")
+            QtGui.QMessageBox.information(None, "Unable To Change Version!", msg)
+            return
         
-        worker_cb = lambda v, wp=work_path: self.check_version_availability(wp, v)
-        with AsyncWorker(worker_cb) as version_checker:
-            while True:
-                # show modal dialog:
-                from .change_version_form import ChangeVersionForm
-                #(res, form) = self._app.engine.show_modal("Change Version", self._app, ChangeVersionForm, version_checker, current_version, new_version)
-                form = ChangeVersionForm(version_checker, current_version, new_version)
-                with WrapperDialog(form, "Change Version", form.geometry().size()) as dlg:
-                    res = dlg.exec_()
-                    
-                    if res == QtGui.QDialog.Accepted:
-                        # get new version:
-                        new_version = form.new_version
-                        
-                        # validate:
-                        msg = self.check_version_availability(work_path, new_version)
-                        if msg:
-                            msg = "<b>Warning: %s<b><br><br>Are you sure you want to change to this version?" % msg
-                            res = QtGui.QMessageBox.question(None, "Confirm", msg, QtGui.QMessageBox.Cancel | QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
-                            if res == QtGui.QMessageBox.No:
-                                continue
-                            elif res == QtGui.QMessageBox.Cancel:
-                                break
-                            
-                        # ok, so change version:
-                        try:
-                            self.change_work_file_version(work_path, new_version)
-                        except TankError, e:
-                            QtGui.QMessageBox.critical(None, "Failure", "Version up of scene failed!\n\n%s" % e)
-                            continue
-                        except Exception, e:
-                            self._app.log_exception("Something went wrong while changing the version!")
-                            continue
-    
-                        break
-                    else:                 
-                        break
-            
-    def get_work_file_version(self, work_path):
-        """
-        Get the current work file version:
-        """
-        # use the work template to extract the version:
+        # use work template to get current version:
         fields = self._work_template.get_fields(work_path)
         current_version = fields.get("version")
         
-        return current_version
+        # get next available version:
+        new_version = self.get_next_available_version(fields)
+        
+        while True:
+            # show modal dialog:
+            from .change_version_form import ChangeVersionForm
+            form = ChangeVersionForm(current_version, new_version)
+            with WrapperDialog(form, "Change Version", form.geometry().size()) as dlg:
+                res = dlg.exec_()
+                
+                if res == QtGui.QDialog.Accepted:
+                    # get new version:
+                    new_version = form.new_version
+                    
+                    # validate:
+                    msg = self.check_version_availability(work_path, new_version)
+                    if msg:
+                        msg = "<b>Warning: %s<b><br><br>Are you sure you want to change to this version?" % msg
+                        res = QtGui.QMessageBox.question(None, "Confirm", msg, QtGui.QMessageBox.Cancel | QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+                        if res == QtGui.QMessageBox.No:
+                            continue
+                        elif res == QtGui.QMessageBox.Cancel:
+                            break
+                        
+                    # ok, so change version:
+                    try:
+                        self.change_work_file_version(work_path, new_version)
+                    except TankError, e:
+                        QtGui.QMessageBox.critical(None, "Failure", "Version up of scene failed!\n\n%s" % e)
+                        continue
+                    except Exception, e:
+                        self._app.log_exception("Something went wrong while changing the version!")
+                        continue
+
+                    break
+                else:                 
+                    break
+            
+    def get_next_available_version(self, fields):
+        """
+        Get the next available version
+        """
+        max_work_version = self.get_max_workfile_version(fields)
+        max_publish_version = self.get_max_publish_version(fields.get("name"))
+        return max(max_work_version, max_publish_version) + 1
             
     def get_max_workfile_version(self, fields):
         """
@@ -122,6 +114,9 @@ class Versioning(object):
         """
         
         """
+        # TODO - change this to do a simpler query as it only needs to return a
+        # version number!
+        
         publish_paths = self._get_published_file_paths_for_context(self._context)
         existing_publish_versions = []
         for p in publish_paths:

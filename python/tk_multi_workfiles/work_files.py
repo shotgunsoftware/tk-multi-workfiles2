@@ -403,12 +403,7 @@ class WorkFiles(object):
         """
         from .versioning import Versioning
         versioning = Versioning(self._app, self._work_template, self._publish_template, self._context)
-        
-        max_work_version = versioning.get_max_workfile_version(fields)
-        max_publish_version = versioning.get_max_publish_version(fields.get("name"))
-        
-        return max(max_work_version, max_publish_version) + 1
-        
+        return versioning.get_next_available_version(fields)
 
     def _on_open_publish(self, file):
         raise NotImplementedError
