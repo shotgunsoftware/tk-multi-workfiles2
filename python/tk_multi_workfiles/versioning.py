@@ -56,7 +56,7 @@ class Versioning(object):
         current_version = fields.get("version")
         
         # get next available version:
-        new_version = self.get_max_workfile_version(fields)
+        new_version = self.get_max_workfile_version(fields)+1
         
         while True:
             # show modal dialog:

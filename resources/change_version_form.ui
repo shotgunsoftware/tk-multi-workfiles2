@@ -22,6 +22,9 @@
     <height>16777215</height>
    </size>
   </property>
+  <property name="focusPolicy">
+   <enum>Qt::TabFocus</enum>
+  </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
@@ -77,6 +80,9 @@
              <height>16777215</height>
             </size>
            </property>
+           <property name="toolTip">
+            <string>Enter a new version for your work file</string>
+           </property>
            <property name="inputMask">
             <string/>
            </property>
@@ -110,6 +116,9 @@
          </item>
          <item row="0" column="1">
           <widget class="QLabel" name="current_version_label">
+           <property name="toolTip">
+            <string>The current version of your work file</string>
+           </property>
            <property name="text">
             <string>?</string>
            </property>
@@ -192,6 +201,9 @@
       <widget class="QPushButton" name="change_version_btn">
        <property name="text">
         <string>Change Version</string>
+       </property>
+       <property name="default">
+        <bool>true</bool>
        </property>
       </widget>
      </item>

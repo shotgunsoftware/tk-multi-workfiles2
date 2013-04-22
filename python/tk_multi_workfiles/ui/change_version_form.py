@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'change_version_form.ui'
 #
-# Created: Mon Apr 22 10:19:24 2013
+# Created: Mon Apr 22 16:15:35 2013
 #      by: pyside-uic 0.2.13 running on PySide 1.1.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -15,6 +15,7 @@ class Ui_ChangeVersionForm(object):
         ChangeVersionForm.resize(320, 190)
         ChangeVersionForm.setMinimumSize(QtCore.QSize(320, 190))
         ChangeVersionForm.setMaximumSize(QtCore.QSize(16777215, 16777215))
+        ChangeVersionForm.setFocusPolicy(QtCore.Qt.TabFocus)
         self.verticalLayout = QtGui.QVBoxLayout(ChangeVersionForm)
         self.verticalLayout.setSpacing(4)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -73,6 +74,7 @@ class Ui_ChangeVersionForm(object):
         self.cancel_btn.setObjectName("cancel_btn")
         self.horizontalLayout.addWidget(self.cancel_btn)
         self.change_version_btn = QtGui.QPushButton(ChangeVersionForm)
+        self.change_version_btn.setDefault(True)
         self.change_version_btn.setObjectName("change_version_btn")
         self.horizontalLayout.addWidget(self.change_version_btn)
         self.verticalLayout.addLayout(self.horizontalLayout)
@@ -87,8 +89,10 @@ class Ui_ChangeVersionForm(object):
     def retranslateUi(self, ChangeVersionForm):
         ChangeVersionForm.setWindowTitle(QtGui.QApplication.translate("ChangeVersionForm", "Form", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("ChangeVersionForm", "Below you can change the version number of your current scene without doing a publish", None, QtGui.QApplication.UnicodeUTF8))
+        self.new_version_edit.setToolTip(QtGui.QApplication.translate("ChangeVersionForm", "Enter a new version for your work file", None, QtGui.QApplication.UnicodeUTF8))
         self.label_3.setText(QtGui.QApplication.translate("ChangeVersionForm", "<html><head/><body><p><span style=\" font-weight:600;\">New Version:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.label_2.setText(QtGui.QApplication.translate("ChangeVersionForm", "<html><head/><body><p><span style=\" font-weight:600;\">Current Version:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
+        self.current_version_label.setToolTip(QtGui.QApplication.translate("ChangeVersionForm", "The current version of your work file", None, QtGui.QApplication.UnicodeUTF8))
         self.current_version_label.setText(QtGui.QApplication.translate("ChangeVersionForm", "?", None, QtGui.QApplication.UnicodeUTF8))
         self.cancel_btn.setText(QtGui.QApplication.translate("ChangeVersionForm", "Cancel", None, QtGui.QApplication.UnicodeUTF8))
         self.change_version_btn.setText(QtGui.QApplication.translate("ChangeVersionForm", "Change Version", None, QtGui.QApplication.UnicodeUTF8))

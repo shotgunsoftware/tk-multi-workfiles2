@@ -37,6 +37,8 @@ class ChangeVersionForm(QtGui.QWidget):
         self._ui.new_version_edit.setText("%d" % new_version)
         
         self._ui.new_version_edit.selectAll()
+
+        self.setFocusProxy(self._ui.new_version_edit)
         
     @property
     def new_version(self):
