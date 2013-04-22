@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'change_version_form.ui'
 #
-# Created: Thu Apr 18 10:56:32 2013
+# Created: Mon Apr 22 10:19:24 2013
 #      by: pyside-uic 0.2.13 running on PySide 1.1.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -79,7 +79,10 @@ class Ui_ChangeVersionForm(object):
         self.verticalLayout.setStretch(2, 1)
 
         self.retranslateUi(ChangeVersionForm)
+        QtCore.QObject.connect(self.new_version_edit, QtCore.SIGNAL("returnPressed()"), self.change_version_btn.click)
         QtCore.QMetaObject.connectSlotsByName(ChangeVersionForm)
+        ChangeVersionForm.setTabOrder(self.new_version_edit, self.change_version_btn)
+        ChangeVersionForm.setTabOrder(self.change_version_btn, self.cancel_btn)
 
     def retranslateUi(self, ChangeVersionForm):
         ChangeVersionForm.setWindowTitle(QtGui.QApplication.translate("ChangeVersionForm", "Form", None, QtGui.QApplication.UnicodeUTF8))

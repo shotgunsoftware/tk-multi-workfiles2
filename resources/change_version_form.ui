@@ -199,6 +199,28 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>new_version_edit</tabstop>
+  <tabstop>change_version_btn</tabstop>
+  <tabstop>cancel_btn</tabstop>
+ </tabstops>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>new_version_edit</sender>
+   <signal>returnPressed()</signal>
+   <receiver>change_version_btn</receiver>
+   <slot>click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>210</x>
+     <y>99</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>229</x>
+     <y>171</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

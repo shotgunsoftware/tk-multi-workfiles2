@@ -36,6 +36,8 @@ class ChangeVersionForm(QtGui.QWidget):
         self._ui.current_version_label.setText("v%03d" % current_version)
         self._ui.new_version_edit.setText("%d" % new_version)
         
+        self._ui.new_version_edit.selectAll()
+        
     @property
     def new_version(self):
         """

@@ -56,7 +56,7 @@ class Versioning(object):
         current_version = fields.get("version")
         
         # get next available version:
-        new_version = self.get_next_available_version(fields)
+        new_version = self.get_max_workfile_version(fields)
         
         while True:
             # show modal dialog:
@@ -69,11 +69,17 @@ class Versioning(object):
                     # get new version:
                     new_version = form.new_version
                     
+                    if new_version == current_version:
+                        QtGui.QMessageBox.information(None, "Version Error", "The new version (v%03d) must be different to the current version!" % new_version)
+                        continue
+                    
                     # validate:
-                    msg = self.check_version_availability(work_path, new_version)
+                    msg = self._check_version_availability(work_path, new_version)
                     if msg:
                         msg = "<b>Warning: %s<b><br><br>Are you sure you want to change to this version?" % msg
-                        res = QtGui.QMessageBox.question(None, "Confirm", msg, QtGui.QMessageBox.Cancel | QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+                        res = QtGui.QMessageBox.question(None, "Confirm", msg, 
+                                                         QtGui.QMessageBox.Cancel | QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
+                                                         QtGui.QMessageBox.No)
                         if res == QtGui.QMessageBox.No:
                             continue
                         elif res == QtGui.QMessageBox.Cancel:
@@ -103,7 +109,9 @@ class Versioning(object):
             
     def get_max_workfile_version(self, fields):
         """
-        
+        Get the current highest version of the work file that
+        is generated using the current work template and the
+        specified fields
         """
         work_area_paths = self._app.tank.paths_from_template(self._work_template, fields, ["version"])
         existing_work_versions = [self._work_template.get_fields(p).get("version") for p in work_area_paths]
@@ -112,7 +120,8 @@ class Versioning(object):
     
     def get_max_publish_version(self, name):
         """
-        
+        Get the current highest publish version using the current
+        context and the specified 'name' field.
         """
         # TODO - change this to do a simpler query as it only needs to return a
         # version number!
@@ -132,7 +141,7 @@ class Versioning(object):
         max_publish_version = max(existing_publish_versions) if existing_publish_versions else None
         return max_publish_version
                     
-    def check_version_availability(self, work_path, version):
+    def _check_version_availability(self, work_path, version):
         """
         Check to see if the specified version is already in use
         either as a work file or as a publish
@@ -154,13 +163,6 @@ class Versioning(object):
         new_work_file = self._work_template.apply_fields(fields)
         if os.path.exists(new_work_file):
             return "Work file already exists for version v%03d - changing to this version will overwrite the existing file!" % version
-        
-        # check to see if a publish of that version already exists:
-        # TODO: do we need to add anything to fields?
-        publish_file = self._publish_template.apply_fields(fields)
-        matches = tank.util.find_publish(self._app.tank, [publish_file])
-        if matches:
-            return "Published file already exists for version v%03d - changing to this version will mean you are shadowing existing work!" % version
     
     def change_work_file_version(self, work_path, new_version):
         """
