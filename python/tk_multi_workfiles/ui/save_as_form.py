@@ -14,6 +14,7 @@ class Ui_SaveAsForm(object):
         SaveAsForm.resize(510, 294)
         SaveAsForm.setMinimumSize(QtCore.QSize(510, 0))
         SaveAsForm.setMaximumSize(QtCore.QSize(16777215, 16777215))
+        SaveAsForm.setFocusPolicy(QtCore.Qt.ClickFocus)
         self.verticalLayout = QtGui.QVBoxLayout(SaveAsForm)
         self.verticalLayout.setSpacing(4)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -84,6 +85,7 @@ class Ui_SaveAsForm(object):
         self.path_preview_edit.setSizePolicy(sizePolicy)
         self.path_preview_edit.setMinimumSize(QtCore.QSize(0, 0))
         self.path_preview_edit.setMaximumSize(QtCore.QSize(16777215, 60))
+        self.path_preview_edit.setFocusPolicy(QtCore.Qt.NoFocus)
         self.path_preview_edit.setStyleSheet("QTextEdit {\n"
 "background-color: rgb(0,0,0,0);\n"
 "border-style: none;\n"
@@ -126,6 +128,7 @@ class Ui_SaveAsForm(object):
         self.cancel_btn.setObjectName("cancel_btn")
         self.horizontalLayout_3.addWidget(self.cancel_btn)
         self.continue_btn = QtGui.QPushButton(SaveAsForm)
+        self.continue_btn.setDefault(True)
         self.continue_btn.setObjectName("continue_btn")
         self.horizontalLayout_3.addWidget(self.continue_btn)
         self.verticalLayout.addLayout(self.horizontalLayout_3)
@@ -133,7 +136,10 @@ class Ui_SaveAsForm(object):
 
         self.retranslateUi(SaveAsForm)
         QtCore.QMetaObject.connectSlotsByName(SaveAsForm)
-        SaveAsForm.setTabOrder(self.continue_btn, self.cancel_btn)
+        SaveAsForm.setTabOrder(self.name_edit, self.reset_version_cb)
+        SaveAsForm.setTabOrder(self.reset_version_cb, self.cancel_btn)
+        SaveAsForm.setTabOrder(self.cancel_btn, self.continue_btn)
+        SaveAsForm.setTabOrder(self.continue_btn, self.path_preview_edit)
 
     def retranslateUi(self, SaveAsForm):
         SaveAsForm.setWindowTitle(QtGui.QApplication.translate("SaveAsForm", "Form", None, QtGui.QApplication.UnicodeUTF8))

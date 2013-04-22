@@ -22,6 +22,9 @@
     <height>16777215</height>
    </size>
   </property>
+  <property name="focusPolicy">
+   <enum>Qt::ClickFocus</enum>
+  </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
@@ -197,6 +200,9 @@ border-color: rgb(32,32,32);
            <height>60</height>
           </size>
          </property>
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
+         </property>
          <property name="styleSheet">
           <string notr="true">QTextEdit {
 background-color: rgb(0,0,0,0);
@@ -327,6 +333,9 @@ p, li { white-space: pre-wrap; }
        <property name="text">
         <string>Save</string>
        </property>
+       <property name="default">
+        <bool>true</bool>
+       </property>
       </widget>
      </item>
     </layout>
@@ -334,8 +343,11 @@ p, li { white-space: pre-wrap; }
   </layout>
  </widget>
  <tabstops>
-  <tabstop>continue_btn</tabstop>
+  <tabstop>name_edit</tabstop>
+  <tabstop>reset_version_cb</tabstop>
   <tabstop>cancel_btn</tabstop>
+  <tabstop>continue_btn</tabstop>
+  <tabstop>path_preview_edit</tabstop>
  </tabstops>
  <resources>
   <include location="resources.qrc"/>
