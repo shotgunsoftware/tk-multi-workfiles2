@@ -623,7 +623,7 @@ class WorkFiles(object):
     
     def get_usersandbox_users(self):
         """
-        Find all available user sandboxe users for the 
+        Find all available user sandbox users for the 
         current work area.
         """
         if not self._work_area_template:
