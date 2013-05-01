@@ -43,7 +43,8 @@ class SceneOperation(Hook):
             mxs.loadMaxFile(file_path)
         elif operation == "save":
             # save the current scene:
-            mxs.saveMaxFile()
+            file_path = os.path.join(mxs.maxFilePath, mxs.maxFileName)
+            mxs.saveMaxFile(file_path)
         elif operation == "save_as":
             # save the scene as file_path:
             mxs.saveMaxFile(file_path)
