@@ -30,7 +30,6 @@ class FileListView(browser_widget.BrowserWidget):
             return selected_item.file
         return None
 
-        
     def get_data(self, data):
         """
         Called by browser widget in worker thread to query the list
@@ -40,13 +39,13 @@ class FileListView(browser_widget.BrowserWidget):
         
         handler = data.get("handler")
         user = data.get("user")
-        
-        show_local = (user != None)
-        show_publishes = data.get("publishes")
+        show_local = data.get("show_local")
+        show_publishes = data.get("show_publishes")
         
         if handler:
             # get the list of files from the handler:
             files = handler.find_files(user)
+            
             ctx = handler.get_current_work_area()
             current_task_name = ctx.task.get("name") if ctx and ctx.task else None
             
@@ -65,8 +64,8 @@ class FileListView(browser_widget.BrowserWidget):
                 name_group = task_group.setdefault(file.name, dict())
                 
                 # finally, add file to files:
-                files = name_group.setdefault("files", dict())
-                files[file.version] = file
+                file_versions = name_group.setdefault("files", dict())
+                file_versions[file.version] = file
                 
             # do some pre-processing of file groups:
             filtered_task_groups = {}
@@ -78,30 +77,30 @@ class FileListView(browser_widget.BrowserWidget):
                 filtered_name_groups = {}
                 
                 for name, details in name_groups.iteritems():
-                    files = details["files"]
+                    files_versions = details["files"]
                     
                     # find highest version info:
-                    local_versions = [f.version for f in files.values() if f.is_local]
+                    local_versions = [f.version for f in files_versions.values() if f.is_local]
                     if not local_versions and not show_publishes:
                         continue
                     
-                    publish_versions = [f.version for f in files.values() if f.is_published]
+                    publish_versions = [f.version for f in files_versions.values() if f.is_published]
                     if not publish_versions and not show_local:
                         continue
                     
                     highest_local_version = max(local_versions) if local_versions else -1
                     highest_publish_version = max(publish_versions) if publish_versions else -1
                     highest_version = max(highest_local_version, highest_publish_version)
-                    highest_file = files[highest_version]
+                    highest_file = files_versions[highest_version]
                     
-                    details["highest_local_file"] = files[highest_local_version] if highest_local_version >= 0 else None
-                    details["highest_publish_file"] = files[highest_publish_version] if highest_publish_version >= 0 else None
+                    details["highest_local_file"] = files_versions[highest_local_version] if highest_local_version >= 0 else None
+                    details["highest_publish_file"] = files_versions[highest_publish_version] if highest_publish_version >= 0 else None
                     
                     # find thumbnail to use:
-                    sorted_versions = sorted(files.keys(), reverse=True)
+                    sorted_versions = sorted(files_versions.keys(), reverse=True)
                     thumbnail = None
                     for version in sorted_versions:
-                        thumbnail = files[version].thumbnail
+                        thumbnail = files_versions[version].thumbnail
                         if thumbnail:
                             break
                     details["thumbnail"] = thumbnail
@@ -112,7 +111,7 @@ class FileListView(browser_widget.BrowserWidget):
                     filtered_name_groups[name] = details
 
                 if not filtered_name_groups:
-                    # everyting in this group was filtered out!
+                    # everything in this group was filtered out!
                     continue
                 
                 filtered_task_groups[task] = filtered_name_groups
@@ -138,8 +137,6 @@ class FileListView(browser_widget.BrowserWidget):
         if not task_groups:
             self.set_message("Couldn't find any files! Click the new file button to start work.")
             return
-        
-        #pprint(task_groups)
         
         for task_name, name_groups in task_groups.iteritems():
         
@@ -278,10 +275,10 @@ class FileListView(browser_widget.BrowserWidget):
         """
         return ["th", "st", "nd", "rd"][day%10 if not 11<=day<=13 and day%10 < 4 else 0]
                     
-                    
+    """
     def _on_open_action_triggered(self, file):
         print "%s" % file
-            
+    """     
             
             
             

@@ -103,7 +103,10 @@ class WorkFilesForm(QtGui.QWidget):
         
         # clear and reload list:
         self._ui.file_list.clear()
-        self._ui.file_list.load({"handler":self._handler, "user":filter.get("user"), "publishes":filter.get("publishes", False)})
+        self._ui.file_list.load({"handler":self._handler, 
+                                "user":filter.get("user"), 
+                                "show_local":filter.get("show_local", False),
+                                "show_publishes":filter.get("show_publishes", False)})
         
         self._on_file_selection_changed()
         
@@ -131,18 +134,20 @@ class WorkFilesForm(QtGui.QWidget):
         # get selected filter:
         previous_filter = self._get_current_filter()
         
-        filter_compare = lambda f1, f2: f1.get("user") == f2.get("user") and f1.get("publishes") == f2.get("publishes")        
+        filter_compare = lambda f1, f2: (f1.get("user") == f2.get("user") 
+                            and f1.get("show_local", False) == f2.get("show_local", False)
+                            and f1.get("show_publishes", False) == f2.get("show_publishes", False))
         
         # clear menu:
         self._ui.filter_combo.clear()
         
         # add user work files item:
-        self._ui.filter_combo.addItem("Show Files in my Work Area", {"user":current_user, "publishes":False})
+        self._ui.filter_combo.addItem("Show Files in my Work Area", ({"user":current_user, "show_local":True, "show_publishes":False}, ))
         selected_idx = 0
         
         # add publishes item:
-        publishes_filter = {"publishes":True}
-        self._ui.filter_combo.addItem("Show Files in the Publish Area", publishes_filter)
+        publishes_filter = {"show_local":False, "show_publishes":True}
+        self._ui.filter_combo.addItem("Show Files in the Publish Area", (publishes_filter, ))
         if filter_compare(previous_filter, publishes_filter):
             selected_idx = 1
         
@@ -157,12 +162,12 @@ class WorkFilesForm(QtGui.QWidget):
                     # already added
                     continue
             
-                filter = {"user":user}
+                filter = {"user":user, "show_local":True, "show_publishes":False}
             
                 if filter_compare(previous_filter, filter):
                     selected_idx = self._ui.filter_combo.count()
                 
-                self._ui.filter_combo.addItem("Show Files in %s's Work Area" % user["name"], filter)
+                self._ui.filter_combo.addItem("Show Files in %s's Work Area" % user["name"], (filter, ))
                 
         # set the current index:
         self._ui.filter_combo.setCurrentIndex(selected_idx)
@@ -175,6 +180,14 @@ class WorkFilesForm(QtGui.QWidget):
         idx = self._ui.filter_combo.currentIndex()
         if idx >= 0:
             filter = self._ui.filter_combo.itemData(idx)
+            
+            # convert from QVariant object if itemData is returned as such
+            if hasattr(QtCore, "QVariant") and isinstance(filter, QtCore.QVariant):
+                filter = filter.toPyObject()
+            
+            # filter is also a tuple ({}, ) to avoid PyQt QString conversion fun!
+            filter = filter[0]
+        
         return filter
         
     def _update_work_area(self, ctx):

@@ -105,7 +105,7 @@ class SaveAsForm(QtGui.QWidget):
         self._update_preview_info()
     
     def _get_new_name(self):
-        return self._ui.name_edit.text().strip()
+        return str(self._ui.name_edit.text()).strip()
     
     def _should_reset_version(self):
         return self._reset_version
