@@ -30,8 +30,8 @@ class Ui_WorkFilesForm(object):
         self.items_title_label_2.setObjectName("items_title_label_2")
         self.verticalLayout_6.addWidget(self.items_title_label_2)
         self.work_area_frame = QtGui.QFrame(WorkFilesForm)
-        self.work_area_frame.setMinimumSize(QtCore.QSize(370, 0))
-        self.work_area_frame.setMaximumSize(QtCore.QSize(370, 16777215))
+        self.work_area_frame.setMinimumSize(QtCore.QSize(0, 0))
+        self.work_area_frame.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.work_area_frame.setCursor(QtCore.Qt.PointingHandCursor)
         self.work_area_frame.setStyleSheet("#work_area_frame {\n"
 "border-style: solid;\n"
@@ -47,6 +47,7 @@ class Ui_WorkFilesForm(object):
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.entity_pages = QtGui.QStackedWidget(self.work_area_frame)
         self.entity_pages.setStyleSheet("")
+        self.entity_pages.setLineWidth(0)
         self.entity_pages.setObjectName("entity_pages")
         self.entity_page = QtGui.QWidget()
         self.entity_page.setObjectName("entity_page")
@@ -59,7 +60,8 @@ class Ui_WorkFilesForm(object):
         self.verticalLayout_3.setSpacing(6)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.entity_label = QtGui.QLabel(self.entity_page)
-        self.entity_label.setMaximumSize(QtCore.QSize(16777215, 16777215))
+        self.entity_label.setMinimumSize(QtCore.QSize(240, 0))
+        self.entity_label.setMaximumSize(QtCore.QSize(240, 16777215))
         self.entity_label.setStyleSheet("#entity_label {\n"
 "font-size: 12pt\n"
 "}")
@@ -76,6 +78,7 @@ class Ui_WorkFilesForm(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.entity_description.sizePolicy().hasHeightForWidth())
         self.entity_description.setSizePolicy(sizePolicy)
+        self.entity_description.setMinimumSize(QtCore.QSize(240, 0))
         self.entity_description.setMaximumSize(QtCore.QSize(240, 16777215))
         self.entity_description.setStyleSheet("#entity_description {\n"
 "font-size: 9pt\n"
@@ -98,6 +101,7 @@ class Ui_WorkFilesForm(object):
 "background-color: rgb(0,0,0,32);\n"
 "border-radius: 2px;\n"
 "}")
+        self.entity_thumbnail.setLineWidth(0)
         self.entity_thumbnail.setText("")
         self.entity_thumbnail.setScaledContents(False)
         self.entity_thumbnail.setAlignment(QtCore.Qt.AlignCenter)
@@ -120,7 +124,8 @@ class Ui_WorkFilesForm(object):
         self.verticalLayout_2.setSpacing(6)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.task_label = QtGui.QLabel(self.task_page)
-        self.task_label.setMaximumSize(QtCore.QSize(16777215, 16777215))
+        self.task_label.setMinimumSize(QtCore.QSize(240, 0))
+        self.task_label.setMaximumSize(QtCore.QSize(240, 16777215))
         self.task_label.setStyleSheet("#task_label {\n"
 "font-size: 12pt\n"
 "}")
@@ -137,6 +142,7 @@ class Ui_WorkFilesForm(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.task_details.sizePolicy().hasHeightForWidth())
         self.task_details.setSizePolicy(sizePolicy)
+        self.task_details.setMinimumSize(QtCore.QSize(240, 0))
         self.task_details.setMaximumSize(QtCore.QSize(240, 16777215))
         self.task_details.setStyleSheet("#task_details {\n"
 "font-size: 9pt\n"
@@ -160,6 +166,7 @@ class Ui_WorkFilesForm(object):
 "border-radius: 2px;\n"
 "}")
         self.task_thumbnail.setFrameShape(QtGui.QFrame.NoFrame)
+        self.task_thumbnail.setLineWidth(0)
         self.task_thumbnail.setText("")
         self.task_thumbnail.setAlignment(QtCore.Qt.AlignCenter)
         self.task_thumbnail.setMargin(0)
@@ -229,7 +236,7 @@ class Ui_WorkFilesForm(object):
         self.verticalLayout.setContentsMargins(6, 6, 6, 6)
         self.verticalLayout.setObjectName("verticalLayout")
         self.filter_combo = QtGui.QComboBox(self.files_filter_frame)
-        self.filter_combo.setMinimumSize(QtCore.QSize(360, 0))
+        self.filter_combo.setMinimumSize(QtCore.QSize(0, 0))
         self.filter_combo.setObjectName("filter_combo")
         self.verticalLayout.addWidget(self.filter_combo)
         self.horizontalLayout_8 = QtGui.QHBoxLayout()
