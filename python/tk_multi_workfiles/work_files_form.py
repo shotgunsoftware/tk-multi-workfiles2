@@ -19,11 +19,10 @@ class WorkFilesForm(QtGui.QWidget):
     """
     
     # signals
-    #change_work_area = QtCore.Signal()
-    
     open_file = QtCore.Signal(WorkFile)
     open_publish = QtCore.Signal(WorkFile)
     new_file = QtCore.Signal()
+    show_in_fs = QtCore.Signal(bool, dict)
     
     def __init__(self, app, handler, parent = None):
         """
@@ -39,8 +38,31 @@ class WorkFilesForm(QtGui.QWidget):
         self._ui = Ui_WorkFilesForm()
         self._ui.setupUi(self)
         
+        # patch up the lines to be the same colour as the font:
+        clr = QtGui.QApplication.palette().color(QtGui.QPalette.Text)  
+        rgb_str = "rgb(%d,%d,%d)" % (clr.red(), clr.green(), clr.blue())
+          
+        self._ui.entity_line.setFrameShadow(QtGui.QFrame.Plain)
+        self._ui.entity_line.setStyleSheet("#entity_line{color: %s;}" % rgb_str)
+        self._ui.task_line.setFrameShadow(QtGui.QFrame.Plain)
+        self._ui.task_line.setStyleSheet("#task_line{color: %s;}" % rgb_str)
+        
+        ss = "{font-size: 14pt; border-style: dashed; border-width: 2px; border-radius: 3px; border-color: %s;}" % rgb_str
+        self._ui.no_task_label.setStyleSheet("#no_task_label %s" % ss)
+        self._ui.no_entity_label.setStyleSheet("#no_task_label %s" % ss)
+        
+        self._ui.show_in_fs_label.mousePressEvent = self._on_show_in_fs_mouse_press_event
+        
+        # update the style sheet for the work area form so it
+        # becomes highlighted when hovering over it
+        clr = QtGui.QApplication.palette().color(QtGui.QPalette.Window)
+        clr = clr.lighter() if clr.lightness() < 128 else clr.darker()
+        ss = self._ui.work_area_frame.styleSheet()
+        ss = "%s #work_area_frame:hover {background-color: rgb(%d,%d,%d);}" % (ss, clr.red(), clr.green(), clr.blue())
+        self._ui.work_area_frame.setStyleSheet(ss)
+        
         # connect up controls:
-        self._ui.change_work_area_btn.clicked.connect(self._on_change_work_area)
+        self._ui.work_area_frame.mousePressEvent = self._on_work_area_mouse_press_event
         self._ui.filter_combo.currentIndexChanged.connect(self._on_filter_selection_changed)
 
         self._ui.open_file_btn.clicked.connect(self._on_open_file)
@@ -51,11 +73,18 @@ class WorkFilesForm(QtGui.QWidget):
 
         self._ui.file_list.set_app(self._app)
 
-        # ste up the work area:
+        # set up the work area:
         ctx = self._handler.get_current_work_area() 
         self._set_work_area(ctx)
         
         self._on_file_selection_changed()
+        
+    def _on_show_in_fs_mouse_press_event(self, event):
+        """
+        
+        """
+        current_filter = self._get_current_filter()
+        self.show_in_fs.emit(current_filter.get("show_local", False), current_filter.get("user"))
         
     def closeEvent(self, e):
         """
@@ -86,13 +115,18 @@ class WorkFilesForm(QtGui.QWidget):
         # finally, update file list:
         self._refresh_file_list()
         
-    def _on_change_work_area(self):
+        # update new button enabled state
+        can_do_new = self._handler.can_do_new_file()
+        self._ui.new_file_btn.setEnabled(can_do_new)
         
+    def _on_work_area_mouse_press_event(self, event):
+        """
+        Event triggered when mouse is pressed in the work area
+        form
+        """
         new_ctx = self._handler.change_work_area()
         if new_ctx:
             self._set_work_area(new_ctx)
-            
-        #self.change_work_area.emit()
         
     def _refresh_file_list(self):
         """
@@ -134,7 +168,7 @@ class WorkFilesForm(QtGui.QWidget):
         # get selected filter:
         previous_filter = self._get_current_filter()
         
-        filter_compare = lambda f1, f2: (f1.get("user") == f2.get("user") 
+        filter_compare = lambda f1, f2: (f1.get("user", {}).get("id") == f2.get("user", {}).get("id")
                             and f1.get("show_local", False) == f2.get("show_local", False)
                             and f1.get("show_publishes", False) == f2.get("show_publishes", False))
         
@@ -151,12 +185,11 @@ class WorkFilesForm(QtGui.QWidget):
         if filter_compare(previous_filter, publishes_filter):
             selected_idx = 1
         
-        # add some separators!
-        self._ui.filter_combo.insertSeparator(2)
-        self._ui.filter_combo.insertSeparator(3)
-        
         # add rest of users
         if users:
+            # add some separators!
+            self._ui.filter_combo.insertSeparator(2)
+        
             for user in users:
                 if current_user is not None and user["id"] == current_user["id"]:
                     # already added
@@ -195,38 +228,56 @@ class WorkFilesForm(QtGui.QWidget):
         A lot of this should be done in a worker thread!
         """
         # load and update entity & task details:
-        entity_details = "<b>Entity: -</b>"
-        entity_thumbnail = QtGui.QPixmap()#":/res/thumb_empty.png")
-        task_details = "Task: -"
+        task_header = "Task: -"
+        task_details = ""
         task_thumbnail = QtGui.QPixmap()#":/res/thumb_empty.png")
                     
-        if ctx:
-            if ctx.entity:
-                entity_type_name = tank.util.get_entity_type_display_name(self._app.tank, ctx.entity.get("type"))
-                entity_details = "<b>%s: %s</b>" % (entity_type_name, ctx.entity.get("name"))
+        if ctx and ctx.entity:
+            # work area defined - yay!
+            self._ui.entity_pages.setCurrentWidget(self._ui.entity_page)
+            
+            # header:
+            entity_type_name = tank.util.get_entity_type_display_name(self._app.tank, ctx.entity.get("type"))
+            self._ui.entity_label.setText("%s: %s" % (entity_type_name, ctx.entity.get("name") or "-"))
+            self._ui.entity_label.setToolTip("%s" % ctx.entity.get("name", ""))
+            
+            # get additional details:
+            sg_details = {}
+            try:
+                sg_details = self._app.shotgun.find_one(ctx.entity["type"], [["project", "is", ctx.project], ["id", "is", ctx.entity["id"]]], ["description", "image"])
+            except:
+                pass
+            
+            # thumbnail:
+            entity_thumbnail = QtGui.QPixmap()
+            entity_img_url = sg_details.get("image")
+            if entity_img_url:
+                thumbnail_path = self._download_thumbnail(entity_img_url)
+                if thumbnail_path:
+                    entity_thumbnail = QtGui.QPixmap(thumbnail_path)
+            self._set_thumbnail(self._ui.entity_thumbnail, entity_thumbnail)
+                                
+            # description:
+            self._ui.entity_description.setText(sg_details.get("description"))
+
+            # task:
+            if ctx.task:
+                # have a task - double yay!!
+                self._ui.task_pages.setCurrentWidget(self._ui.task_page)
+                
+                # header:
+                self._ui.task_label.setText("Task: %s" % (ctx.task.get("name") or "-"))
+                self._ui.task_label.setToolTip("%s" % ctx.task.get("name", ""))
                 
                 # get additional details:
-                sg_details = {}
-                try:
-                    sg_details = self._app.shotgun.find_one(ctx.entity["type"], [["project", "is", ctx.project], ["id", "is", ctx.entity["id"]]], ["description", "image"])
-                except:
-                    pass
-                
-                entity_img_url = sg_details.get("image")
-                if entity_img_url:
-                    thumbnail_path = self._download_thumbnail(entity_img_url)
-                    if thumbnail_path:
-                        entity_thumbnail = QtGui.QPixmap(thumbnail_path)
-    
-            if ctx.task:
-                task_details = "Task: %s" % (ctx.task["name"])
-                
                 sg_details = {}
                 try:
                     sg_details = self._app.shotgun.find_one("Task", [["project", "is", ctx.project], ["id", "is", ctx.task["id"]]], ["task_assignees", "sg_status_list"])
                 except Exception, e:
                     pass
                 
+                # thumbnail:
+                task_thumbnail = QtGui.QPixmap()
                 task_assignees = sg_details.get("task_assignees", [])
                 if len(task_assignees) > 0:
                     user_id = task_assignees[0]["id"]
@@ -242,18 +293,24 @@ class WorkFilesForm(QtGui.QWidget):
                         thumbnail_path = self._download_thumbnail(img_url)
                         if thumbnail_path:
                             task_thumbnail = QtGui.QPixmap(thumbnail_path)
+                            
+                self._set_thumbnail(self._ui.task_thumbnail, task_thumbnail)
                 
-        self._ui.entity_details.setText("<br>".join([entity_details, task_details]))
-        self._set_thumbnail(self._ui.entity_thumbnail, entity_thumbnail)
-        self._set_thumbnail(self._ui.task_thumbnail, task_thumbnail)
+                # details
+                assignees = []
+                for assignee in sg_details.get("task_assignees", []):
+                    name = assignee.get("name")
+                    if name:
+                        assignees.append(name)
+                self._ui.task_details.setText("Status: %s<br>Assigned to: %s" % (sg_details.get("sg_status_list"), ", ".join(assignees) if assignees else "-"))
+                
+            else:
+                # task not chosen
+                self._ui.task_pages.setCurrentWidget(self._ui.no_task_page)         
+        else:
+            # no work area defined!
+            self._ui.entity_pages.setCurrentWidget(self._ui.no_entity_page)
         
-        # update work area details:
-        work_area_path = self._handler.get_work_area_path()
-        publish_area_path = self._handler.get_publish_area_path()
-        work_area_details = "<b>Work Area:</b><br>%s<br><br><b>Publish Area:</b><br>%s<br>" % (work_area_path if work_area_path else "<i>Unknown</i>", 
-                                                                                     publish_area_path if publish_area_path else "<i>Unknown</i>")
-        self._ui.work_area_details.setText(work_area_details)
-
     def _set_thumbnail(self, ctrl, pm):
         """
         Set thumbnail on control resizing as required. 

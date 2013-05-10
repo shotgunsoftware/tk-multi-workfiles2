@@ -51,21 +51,8 @@ class WorkFiles(object):
         self._workfiles_ui.open_file.connect(self._on_open_file)
         self._workfiles_ui.new_file.connect(self._on_new_file)
         self._workfiles_ui.open_publish.connect(self._on_open_publish)
+        self._workfiles_ui.show_in_fs.connect(self._on_show_in_file_system)
         
-    def get_work_area_path(self):
-        """
-        Get the work area path from the
-        current template and context
-        """
-        return self._get_area_path(self._work_area_template)
-    
-    def get_publish_area_path(self):
-        """
-        Get the publish area path from the
-        current template and context
-        """
-        return self._get_area_path(self._publish_area_template)
-    
     def find_files(self, user):
         """
         Find files using the current context, work and publish templates
@@ -198,6 +185,73 @@ class WorkFiles(object):
             file_details.append(WorkFile(work_path, publish_path, is_work_file, True, details))            
 
         return file_details
+        
+    def _on_show_in_file_system(self, work_area, user):
+        """
+        Show the work area/publish area path in the file system
+        """
+        try:
+            # first, determine which template to use:
+            template = self._work_area_template if work_area else self._publish_area_template
+            if not self._context or not template:
+                return
+            
+            # now build fields to construct path with:
+            fields = self._context.as_template_fields(template)
+            if user:
+                fields["HumanUser"] = user["login"]
+                
+            # try to build a path from the template with these fields:
+            while template and template.missing_keys(fields):
+                template = template.parent
+            if not template:
+                # failed to find a template with no missing keys!
+                return
+            
+            # build the path:
+            path = template.apply_fields(fields)
+        except TankError, e:
+            return
+        
+        # now find the deepest path that actually exists:
+        while path and not os.path.exists(path):
+            path = os.path.dirname(path)
+        if not path:
+            return
+        path = path.replace("/", os.path.sep)
+        
+        # build the command:
+        system = sys.platform
+        if system == "linux2":
+            cmd = "xdg-open \"%s\"" % path
+        elif system == "darwin":
+            cmd = "open \"%s\"" % path
+        elif system == "win32":
+            cmd = "cmd.exe /C start \"Folder\" \"%s\"" % path
+        else:
+            raise TankError("Platform '%s' is not supported." % system)
+        
+        # run the command:
+        exit_code = os.system(cmd)
+        if exit_code != 0:
+            self._app.log_error("Failed to launch '%s'!" % cmd)     
+        
+    def can_do_new_file(self):
+        """
+        Do some validation to see if it's possible to
+        start a new file with the selected context.
+        """
+        if (not self._context
+            or not self._context.entity 
+            or not self._work_area_template):
+            return False
+        
+        # ensure that context contains everything required by the work area template:
+        ctx_fields = self._context.as_template_fields(self._work_area_template)
+        if self._work_area_template.missing_keys(ctx_fields):
+            return False
+        
+        return True
         
     def _reset_current_scene(self):
         """
@@ -533,26 +587,6 @@ class WorkFiles(object):
             self._context = ctx
                     
             # TODO: validate templates?
-
-        
-    def _get_area_path(self, template):
-        """
-        Get the path from the specified template 
-        and current context
-        """
-        path = None
-        if self._context and template:
-            try:
-                fields = self._context.as_template_fields(template)
-                if not "Step" in fields:
-                    fields["Step"] = "{Step}"
-                
-                missing_keys = template.missing_keys(fields)
-                if not missing_keys:
-                    path = template.apply_fields(fields)
-            except:
-                pass
-        return path
     
         
     def _get_user_details(self, login_name):
