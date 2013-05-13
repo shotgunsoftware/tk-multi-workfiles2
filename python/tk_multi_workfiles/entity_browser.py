@@ -65,27 +65,33 @@ class EntityBrowserWidget(browser_widget.BrowserWidget):
 
                 # now load data for those
                 for et in entities_to_load:
-                    item = {}
-                    item["type"] = et
-                    # weird syntax
+                    
+                    # get entities from shotgun:
                     filter = ["id", "in"]
                     filter.extend(entities_to_load[et])
-                    item["data"] = self._app.shotgun.find(et, 
-                                                          [ filter ], 
-                                                          ["code", "description", "image"])
-                    sg_data.append(item)
-            
+                    entities = self._app.shotgun.find(et, 
+                                                      [ filter ], 
+                                                      ["code", "description", "image"])
+                    
+                    # sort by name (code)
+                    entities.sort(key=lambda v:v.get("code", "").lower())
+                    
+                    # append to results:
+                    sg_data.append({"type":et, "data":entities})
         else:
             # load all entities
-            for et in types_to_load:            
-                item = {}
-                item["type"] = et
-                item["data"] = self._app.shotgun.find(et, 
-                                                      [ ["project", "is", self._app.context.project],
-                                                        ["sg_status_list", "is_not", "fin" ] ], 
-                                                      ["code", "description", "image"])
-                sg_data.append(item)
-            
+            for et in types_to_load:
+                # get entities from shotgun:
+                entities = self._app.shotgun.find(et, 
+                                                  [ ["project", "is", self._app.context.project],
+                                                    ["sg_status_list", "is_not", "fin" ] ], 
+                                                  ["code", "description", "image"])
+                
+                # sort by name (code)
+                entities.sort(key=lambda v:v.get("code", "").lower())
+                
+                # append to results:
+                sg_data.append({"type":et, "data":entities})
         
         return {"data": sg_data, "current_entity" : current_entity}
 

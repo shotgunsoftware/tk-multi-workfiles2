@@ -81,14 +81,13 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
                                                     ["content", 
                                                      "task_assignees", 
                                                      "image", 
-                                                     "sg_status_list"])
-                         
+                                                     "sg_status_list", "step.Step.list_order"])
         else:
             # get all tasks
             output["tasks"] = self._app.shotgun.find("Task", 
                                                 [ ["project", "is", self._app.context.project],
                                                   ["entity", "is", data["entity"] ] ], 
-                                                ["content", "task_assignees", "image", "sg_status_list"])
+                                                ["content", "task_assignees", "image", "sg_status_list", "step.Step.list_order"])
         
             # get all the users where tasks are assigned.
             user_ids = []
@@ -102,6 +101,9 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
                 output["users"] = self._app.shotgun.find("HumanUser", [ sg_filter ], ["image"])
             else:
                 output["users"] = []
+
+        # sort tasks so that they are in the correct (step.Step.list_order) order:
+        output["tasks"].sort(key=lambda v:(v.get("step.Step.list_order") or sys.maxint, v.get("content")))
         
         return output
                     
@@ -115,9 +117,6 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
         if tasks:
             current_task = result.get("current_task")
             item_to_select = None        
-            
-            i = self.add_item(browser_widget.ListHeader)
-            i.set_title("Tasks for %s" % entity_str)
             
             for d in tasks:
                 i = self.add_item(browser_widget.ListItem)
