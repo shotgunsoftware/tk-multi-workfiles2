@@ -256,7 +256,10 @@ class WorkFiles(object):
         """
         Use hook to clear the current scene
         """
-        self._app.execute_hook("hook_scene_operation", operation="reset", file_path=None)
+        res = self._app.execute_hook("hook_scene_operation", operation="reset", file_path=None)
+        if res == None or not isinstance(res, bool):
+            raise TankError("Unexpected type returned from 'hook_scene_operation' - expected 'bool' but returned '%s'" % type(res).__name__)
+        return res
     
     def _open_file(self, path):
         """
@@ -455,7 +458,9 @@ class WorkFiles(object):
         # switch context (including do new file):
         try:
             # reset the current scene:
-            self._reset_current_scene()
+            if not self._reset_current_scene():
+                self._app.log_debug("Unable to perform New Scene operation after failing to reset scene!")
+                return
             
             if new_ctx != self._app.context:
                 # restart the engine with the new context
@@ -504,7 +509,9 @@ class WorkFiles(object):
                 self._create_folders(self._context)
 
             # reset the current scene:
-            self._reset_current_scene()
+            if not self._reset_current_scene():
+                self._app.log_debug("Unable to perform New Scene operation after failing to reset scene!")
+                return
 
             if self._context != self._app.context:            
                 # restart the engine with the new context

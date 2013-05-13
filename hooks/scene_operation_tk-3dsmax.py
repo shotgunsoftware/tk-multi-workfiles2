@@ -30,6 +30,8 @@ class SceneOperation(Hook):
         :returns:   Depends on operation:
                     'current_path' - Return the current scene
                                      file path as a String
+                    'reset'        - True if scene was reset to an empty 
+                                     state, otherwise False
                     all others     - None
         """
         
@@ -55,11 +57,12 @@ class SceneOperation(Hook):
             # use the standard Max mechanism to check
             # for and save the file if required:
             if not mxs.checkForSave():
-                raise TankError("New scene cancelled")
+                return False
             
             # now reset the scene:
             mxs.resetMAXFile(mxs.pyhelper.namify("noPrompt"))
             
+            return True
         else:
             raise TankError("Don't know how to perform scene operation '%s'" % operation)
 

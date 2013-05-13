@@ -31,6 +31,8 @@ class SceneOperation(Hook):
         :returns:   Depends on operation:
                     'current_path' - Return the current scene
                                      file path as a String
+                    'reset'        - True if scene was reset to an empty 
+                                     state, otherwise False
                     all others     - None
         """
         
@@ -61,7 +63,7 @@ class SceneOperation(Hook):
                                                  QtGui.QMessageBox.Yes|QtGui.QMessageBox.No|QtGui.QMessageBox.Cancel)
             
                 if res == QtGui.QMessageBox.Cancel:
-                    raise TankError("New scene cancelled")
+                    return False
                 elif res == QtGui.QMessageBox.No:
                     break
                 else:
@@ -73,7 +75,7 @@ class SceneOperation(Hook):
             
             # do new file:    
             cmds.file(newFile=True, force=True)
-
+            return True
         else:
             raise TankError("Don't know how to perform scene operation '%s'" % operation)
 
