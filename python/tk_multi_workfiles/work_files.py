@@ -50,7 +50,6 @@ class WorkFiles(object):
         # hook up signals:
         self._workfiles_ui.open_file.connect(self._on_open_file)
         self._workfiles_ui.new_file.connect(self._on_new_file)
-        self._workfiles_ui.open_publish.connect(self._on_open_publish)
         self._workfiles_ui.show_in_fs.connect(self._on_show_in_file_system)
         
     def find_files(self, user):
@@ -493,9 +492,6 @@ class WorkFiles(object):
         versioning = Versioning(self._app, self._work_template, self._publish_template, self._context)
         return versioning.get_next_available_version(fields)
 
-    def _on_open_publish(self, file):
-        raise NotImplementedError
-    
     def _on_new_file(self):
         """
         Perform a new-scene operation initialized with

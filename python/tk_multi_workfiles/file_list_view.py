@@ -11,7 +11,12 @@ import tank
 from tank.platform.qt import QtCore, QtGui
 browser_widget = tank.platform.import_framework("tk-framework-widget", "browser_widget")
 
+from .work_file import WorkFile
+
 class FileListView(browser_widget.BrowserWidget):
+    
+    # signals
+    open_previous_version = QtCore.Signal(WorkFile)
     
     def __init__(self, parent=None):
         """
@@ -171,25 +176,21 @@ class FileListView(browser_widget.BrowserWidget):
                 if thumbnail:
                     item.set_thumbnail(thumbnail)
 
-                """
                 # if have other publish versions then add them to context menu
-                publish_versions = [v for v, f in files.iteritems() if f.is_published]
-                if publish_versions:
-                    # sort into reverse order:
-                    publish_versions = sorted(publish_versions, reverse=True)
-
-                    # use action context menu:                    
+                previous_versions = [f.version for f in files.values() if f.version != highest_version]#if f.is_published and f.version != highest_publish_version]
+                if previous_versions:
                     item.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+
+                    # sort versions into reverse order:
+                    previous_versions.sort(reverse=True)
                     
-                    max_menu_items = 10
-                    for i, version in enumerate(publish_versions):
-                        if i >= max_menu_items:
-                            break
+                    # and add first 20 to context menu:
+                    for v in previous_versions[:20]:
+                        f = files[v]
                         
-                        action = QtGui.QAction("Open publish v%03d read-only" % version, item)
-                        action.triggered.connect(lambda f = files[version]: self._on_open_action_triggered(f))
+                        action = QtGui.QAction("Open previous version v%03d" % f.version, item)
+                        action.triggered.connect(lambda f=f: self._on_open_action_triggered(f))
                         item.addAction(action)
-                """
                    
     def _add_file_item(self, file, highest_publish_file, highest_local_file):
         """
@@ -282,18 +283,18 @@ class FileListView(browser_widget.BrowserWidget):
         item.set_details("<br>".join(lines))
         
         return item
-
                     
     def _day_suffix(self, day):
         """
         Return the suffix for the day of the month
         """
         return ["th", "st", "nd", "rd"][day%10 if not 11<=day<=13 and day%10 < 4 else 0]
-                    
-    """
+              
     def _on_open_action_triggered(self, file):
-        print "%s" % file
-    """     
+        """
+        Open action triggered from context menu
+        """
+        self.open_previous_version.emit(file)
             
             
             

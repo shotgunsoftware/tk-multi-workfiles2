@@ -20,7 +20,6 @@ class WorkFilesForm(QtGui.QWidget):
     
     # signals
     open_file = QtCore.Signal(WorkFile)
-    open_publish = QtCore.Signal(WorkFile)
     new_file = QtCore.Signal()
     show_in_fs = QtCore.Signal(bool, dict)
     
@@ -72,6 +71,7 @@ class WorkFilesForm(QtGui.QWidget):
         self._ui.file_list.selection_changed.connect(self._on_file_selection_changed)
 
         self._ui.file_list.set_app(self._app)
+        self._ui.file_list.open_previous_version.connect(self._on_open_previous_version)
 
         # set up the work area:
         ctx = self._handler.get_current_work_area() 
@@ -98,6 +98,9 @@ class WorkFilesForm(QtGui.QWidget):
         # get the currently selected work file
         selected_file = self._ui.file_list.selected_file
         self.open_file.emit(selected_file)
+
+    def _on_open_previous_version(self, file):
+        self.open_file.emit(file)
 
     def _on_new_file(self):
         self.new_file.emit()
