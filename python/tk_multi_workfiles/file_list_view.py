@@ -213,13 +213,28 @@ class FileListView(browser_widget.BrowserWidget):
             highest_pub_version = highest_publish_file.version if highest_publish_file else -1
             highest_local_version = highest_local_file.version if highest_local_file else -1
             
-            # there is a publish
-            if highest_local_version <= highest_pub_version:
-                colour_str = red
-            elif highest_local_version > highest_pub_version:
-                # TODO - check file modification time
+            local_is_latest = False
+            
+            if highest_local_version > highest_pub_version:
+                if highest_local_file.last_modified_time and highest_publish_file.last_modified_time:
+                    # check file modification time - we only consider a local version to be 'latest' 
+                    # if it has a more recent modification time than the published file (with 2mins
+                    # tollerance)
+                    if highest_local_file.last_modified_time > highest_publish_file.last_modified_time:
+                        local_is_latest = True
+                    else:
+                        diff = highest_publish_file.last_modified_time - highest_local_file.last_modified_time
+                        if diff.seconds < 120:
+                            local_is_latest = True
+                else:
+                    # can't compare times so assume local is more recent than publish:
+                    local_is_latest = True
+            
+            if local_is_latest:
                 colour_str = green
                 tool_tip = "%s<br>- You have the latest version in your work area" % tool_tip
+            else:
+                colour_str = red
             
         # add item:
         item = self.add_item(browser_widget.ListItem)

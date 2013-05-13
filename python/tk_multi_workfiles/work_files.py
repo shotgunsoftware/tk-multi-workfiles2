@@ -152,7 +152,7 @@ class WorkFiles(object):
                 
                 # get the last modified by:
                 last_user = self._get_file_last_modified_user(work_path)
-                details["modified_by"] = last_user#.get("name") if last_user else None
+                details["modified_by"] = last_user
 
             file_details.append(WorkFile(work_path, publish_path, True, publish_details != None, details))
          
