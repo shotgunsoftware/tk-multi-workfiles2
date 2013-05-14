@@ -17,6 +17,7 @@ class FileListView(browser_widget.BrowserWidget):
     
     # signals
     open_previous_version = QtCore.Signal(WorkFile)
+    view_in_shotgun = QtCore.Signal(WorkFile)
     
     def __init__(self, parent=None):
         """
@@ -194,10 +195,19 @@ class FileListView(browser_widget.BrowserWidget):
                 if thumbnail:
                     item.set_thumbnail(thumbnail)
 
+                
+                # add context menu:
+                item.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+
+                # if it's a publish then add 'View In Shotgun' item:
+                if highest_publish_file:
+                    action = QtGui.QAction("View in Shotgun", item)
+                    action.triggered.connect(lambda f=highest_publish_file: self._on_show_in_shotgun_action_triggered(f))
+                    item.addAction(action)
+                
                 # if have other publish versions then add them to context menu
-                previous_versions = [f.version for f in files.values() if f.version != highest_version]#if f.is_published and f.version != highest_publish_version]
+                previous_versions = [f.version for f in files.values() if f.version != highest_version]
                 if previous_versions:
-                    item.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
 
                     # sort versions into reverse order:
                     previous_versions.sort(reverse=True)
@@ -313,7 +323,12 @@ class FileListView(browser_widget.BrowserWidget):
         Open action triggered from context menu
         """
         self.open_previous_version.emit(file)
-            
+
+    def _on_show_in_shotgun_action_triggered(self, file):
+        """
+        Show in Shotgun action triggered from context menu
+        """
+        self.view_in_shotgun.emit(file)
             
             
             

@@ -52,6 +52,7 @@ class WorkFiles(object):
         self._workfiles_ui.open_file.connect(self._on_open_file)
         self._workfiles_ui.new_file.connect(self._on_new_file)
         self._workfiles_ui.show_in_fs.connect(self._on_show_in_file_system)
+        self._workfiles_ui.show_in_shotgun.connect(self._on_show_in_shotgun)
         
     def find_files(self, user):
         """
@@ -125,6 +126,7 @@ class WorkFiles(object):
                 details["modified_time"] = publish_details.get("created_at")
                 details["modified_by"] = publish_details.get("created_by", {})
                 details["publish_description"] = publish_details.get("description")
+                details["published_file_id"] = publish_details.get("published_file_id")
             else:
                 if self._context.task:
                     # can use the task form the context
@@ -181,6 +183,7 @@ class WorkFiles(object):
             details["modified_time"] = publish_details.get("created_at")
             details["modified_by"] = publish_details.get("created_by", {})
             details["publish_description"] = publish_details.get("description")
+            details["published_file_id"] = publish_details.get("published_file_id")
                 
             file_details.append(WorkFile(work_path, publish_path, is_work_file, True, details))            
 
@@ -235,6 +238,17 @@ class WorkFiles(object):
         exit_code = os.system(cmd)
         if exit_code != 0:
             self._app.log_error("Failed to launch '%s'!" % cmd)     
+        
+    def _on_show_in_shotgun(self, file):
+        """
+        Show the specified published file in shotgun
+        """
+        if not file.is_published or file.published_file_id is None:
+            return
+        
+        # construct and open the url:
+        url = "%s/detail/TankPublishedFile/%d" % (self._app.tank.shotgun.base_url, file.published_file_id)
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl(url))
         
     def have_valid_configuration_for_work_area(self):
         return self._configuration_is_valid
@@ -657,6 +671,7 @@ class WorkFiles(object):
                 
             details = sg_file.copy()
             details["path"] = path
+            details["published_file_id"] = sg_file.get("id")
             
             publish_files[path] = details
             

@@ -42,6 +42,10 @@ class WorkFile(object):
         return self._is_published
         
     @property
+    def published_file_id(self):
+        return self._details.get("published_file_id")
+        
+    @property
     def version(self):
         return self._details.get("version")
     

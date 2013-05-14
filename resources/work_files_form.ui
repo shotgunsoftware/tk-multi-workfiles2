@@ -499,6 +499,9 @@ border-color: rgb(32,32,32);
               <height>0</height>
              </size>
             </property>
+            <property name="toolTip">
+             <string>Choose where to find the list of available files</string>
+            </property>
            </widget>
           </item>
           <item>
@@ -520,6 +523,9 @@ border-color: rgb(32,32,32);
              <widget class="QLabel" name="show_in_fs_label">
               <property name="cursor">
                <cursorShape>PointingHandCursor</cursorShape>
+              </property>
+              <property name="toolTip">
+               <string>Show the selected location in the file system</string>
               </property>
               <property name="text">
                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; text-decoration: underline;&quot;&gt;Show in File System&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -586,6 +592,9 @@ background-color: rgb(255, 128, 0);
          <height>0</height>
         </size>
        </property>
+       <property name="toolTip">
+        <string>Start a New file in the selected Work Area</string>
+       </property>
        <property name="text">
         <string>New File</string>
        </property>
@@ -598,6 +607,9 @@ background-color: rgb(255, 128, 0);
          <width>80</width>
          <height>0</height>
         </size>
+       </property>
+       <property name="toolTip">
+        <string>Open the selected file</string>
        </property>
        <property name="text">
         <string>Open File</string>

@@ -22,6 +22,7 @@ class WorkFilesForm(QtGui.QWidget):
     open_file = QtCore.Signal(WorkFile)
     new_file = QtCore.Signal()
     show_in_fs = QtCore.Signal(bool, dict)
+    show_in_shotgun = QtCore.Signal(WorkFile)
     
     def __init__(self, app, handler, parent = None):
         """
@@ -72,12 +73,16 @@ class WorkFilesForm(QtGui.QWidget):
 
         self._ui.file_list.set_app(self._app)
         self._ui.file_list.open_previous_version.connect(self._on_open_previous_version)
+        self._ui.file_list.view_in_shotgun.connect(self._on_view_in_shotgun)
 
         # set up the work area:
         ctx = self._handler.get_current_work_area() 
         self._set_work_area(ctx)
         
         self._on_file_selection_changed()
+        
+    def _on_view_in_shotgun(self, file):
+        self.show_in_shotgun.emit(file)
         
     def _on_show_in_fs_mouse_press_event(self, event):
         """
@@ -264,7 +269,8 @@ class WorkFilesForm(QtGui.QWidget):
             self._set_thumbnail(self._ui.entity_thumbnail, entity_thumbnail)
                                 
             # description:
-            self._ui.entity_description.setText(sg_details.get("description"))
+            desc = sg_details.get("description") or ("<i>No description was entered for this %s</i>" % entity_type_name)
+            self._ui.entity_description.setText(desc)
 
             # task:
             if ctx.task:

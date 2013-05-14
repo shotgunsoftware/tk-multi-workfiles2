@@ -287,8 +287,12 @@ class Ui_WorkFilesForm(object):
         self.no_task_label.setText(QtGui.QApplication.translate("WorkFilesForm", "Click to Select a Task", None, QtGui.QApplication.UnicodeUTF8))
         self.no_entity_label.setText(QtGui.QApplication.translate("WorkFilesForm", "Click to Select a Work Area", None, QtGui.QApplication.UnicodeUTF8))
         self.items_title_label_3.setText(QtGui.QApplication.translate("WorkFilesForm", "<big>Choose Which Files to Display</big>", None, QtGui.QApplication.UnicodeUTF8))
+        self.filter_combo.setToolTip(QtGui.QApplication.translate("WorkFilesForm", "Choose where to find the list of available files", None, QtGui.QApplication.UnicodeUTF8))
+        self.show_in_fs_label.setToolTip(QtGui.QApplication.translate("WorkFilesForm", "Show the selected location in the file system", None, QtGui.QApplication.UnicodeUTF8))
         self.show_in_fs_label.setText(QtGui.QApplication.translate("WorkFilesForm", "<html><head/><body><p><span style=\" text-decoration: underline;\">Show in File System</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
+        self.new_file_btn.setToolTip(QtGui.QApplication.translate("WorkFilesForm", "Start a New file in the selected Work Area", None, QtGui.QApplication.UnicodeUTF8))
         self.new_file_btn.setText(QtGui.QApplication.translate("WorkFilesForm", "New File", None, QtGui.QApplication.UnicodeUTF8))
+        self.open_file_btn.setToolTip(QtGui.QApplication.translate("WorkFilesForm", "Open the selected file", None, QtGui.QApplication.UnicodeUTF8))
         self.open_file_btn.setText(QtGui.QApplication.translate("WorkFilesForm", "Open File", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..file_list_view import FileListView
