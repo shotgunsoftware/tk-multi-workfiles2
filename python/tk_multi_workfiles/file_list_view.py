@@ -42,17 +42,23 @@ class FileListView(browser_widget.BrowserWidget):
         """
         result = {"task_groups":{}, "task_name_order":{}}
         
-        handler = data.get("handler")
+        handler = data["handler"]
         user = data.get("user")
         show_local = data.get("show_local")
         show_publishes = data.get("show_publishes")
+
+        # get some additional info from the handler:
+        ctx = handler.get_current_work_area()
         
-        if handler:
+        result["can_do_new_file"] = handler.can_do_new_file()
+        result["have_valid_workarea"] = (ctx and ctx.entity)
+        result["have_valid_configuration"] = handler.have_valid_configuration_for_work_area()
+        result["current_task_name"] = ctx.task.get("name") if ctx and ctx.task else None
+        
+        if result["have_valid_workarea"] and result["have_valid_configuration"]:
+        
             # get the list of files from the handler:
             files = handler.find_files(user)
-            
-            ctx = handler.get_current_work_area()
-            current_task_name = ctx.task.get("name") if ctx and ctx.task else None
             
             # re-pivot this list of files ready to display:
             """
@@ -114,20 +120,19 @@ class FileListView(browser_widget.BrowserWidget):
                     name_modified_pairs.append((name, highest_file.last_modified_time))
                     
                     filtered_name_groups[name] = details
-
+    
                 if not filtered_name_groups:
                     # everything in this group was filtered out!
                     continue
                 
                 filtered_task_groups[task] = filtered_name_groups
-
+    
                 # sort names in reverse order of modified date:
                 name_modified_pairs.sort(key=itemgetter(1), reverse=True)
                 task_name_order[task] = [n for (n, _) in name_modified_pairs]
         
             result["task_groups"] = filtered_task_groups
             result["task_name_order"] = task_name_order
-            result["current_task_name"] = current_task_name
         
         return result
     
@@ -140,7 +145,20 @@ class FileListView(browser_widget.BrowserWidget):
         current_task_name = result["current_task_name"]
 
         if not task_groups:
-            self.set_message("Couldn't find any files! Click the new file button to start work.")
+            # build a useful error message using the info we have available:
+            msg = ""
+            if not result["have_valid_workarea"]:
+                msg = "Please select a Work Area to begin..."
+            elif not result["have_valid_configuration"]:
+                msg = ("Tank File Manager has not been configured for the environment "
+                       "being used by the selected Work Area!\n"
+                       "Please choose a different Work Area to continue.")
+            elif not result["can_do_new_file"]:
+                msg = "Couldn't find any files in this Work Area!\nTry selecting a different Work Area."
+            else:
+                msg = "Couldn't find any files!\nClick the New file button to start work."
+            
+            self.set_message(msg)
             return
         
         for task_name, name_groups in task_groups.iteritems():

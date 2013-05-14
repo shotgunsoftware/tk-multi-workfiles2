@@ -27,6 +27,7 @@ class WorkFiles(object):
         
         # set up the work area from the app:
         self._context = None
+        self._configuration_is_valid = False
         self._work_template = None
         self._work_area_template = None
         self._publish_template = None
@@ -234,6 +235,9 @@ class WorkFiles(object):
         exit_code = os.system(cmd)
         if exit_code != 0:
             self._app.log_error("Failed to launch '%s'!" % cmd)     
+        
+    def have_valid_configuration_for_work_area(self):
+        return self._configuration_is_valid
         
     def can_do_new_file(self):
         """
@@ -567,6 +571,7 @@ class WorkFiles(object):
         Update the current work area being used
         """
         if self._context != ctx:
+            
             # update templates for the new context:
             templates = {}
             try:
@@ -575,18 +580,17 @@ class WorkFiles(object):
                                                                   "template_publish",
                                                                   "template_publish_area"])
             except TankError, e:
-                if self._workfiles_ui:
-                    msg = "Unable to show files for the selected work area!\n\n%s" % e
-                    QtGui.QMessageBox.information(self._workfiles_ui, "Unrecognised work area!", msg)
-                else:
-                    print e
+                # had problems getting the work file settings for the specified context!
+                self._app.log_debug(e)
+                self._configuration_is_valid = False
+            else:
+                self._configuration_is_valid = True
             
-            if templates is not None:
-                self._work_template = templates.get("template_work")
-                self._work_area_template = templates.get("template_work_area")
-                self._publish_template = templates.get("template_publish")
-                self._publish_area_template = templates.get("template_publish_area")
-                
+            #if templates is not None:
+            self._work_template = templates.get("template_work")
+            self._work_area_template = templates.get("template_work_area")
+            self._publish_template = templates.get("template_publish")
+            self._publish_area_template = templates.get("template_publish_area")
             self._context = ctx
                     
             # TODO: validate templates?
@@ -726,8 +730,6 @@ class WorkFiles(object):
         templates = {}
         for key in keys:
             template = self._app.get_template_from(settings, key)
-            if not template:
-                raise TankError("Failed to find template '%s' in Work Files settings for context %s" % (key, context))
             templates[key] = template
             
         return templates

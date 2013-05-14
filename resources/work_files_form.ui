@@ -42,12 +42,10 @@
           </size>
          </property>
          <property name="styleSheet">
-          <string notr="true">#items_title_label {
-font-size: 14pt
-}</string>
+          <string notr="true"/>
          </property>
          <property name="text">
-          <string>Select a Work Area</string>
+          <string>&lt;big&gt;Select a Work Area&lt;/big&gt;</string>
          </property>
          <property name="margin">
           <number>4</number>
@@ -463,12 +461,10 @@ border-radius: 3px;
           </size>
          </property>
          <property name="styleSheet">
-          <string notr="true">#items_title_label {
-font-size: 14pt
-}</string>
+          <string notr="true"/>
          </property>
          <property name="text">
-          <string>Choose Which Files to Display</string>
+          <string>&lt;big&gt;Choose Which Files to Display&lt;/big&gt;</string>
          </property>
          <property name="margin">
           <number>4</number>

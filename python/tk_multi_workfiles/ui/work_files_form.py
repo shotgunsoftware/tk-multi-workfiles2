@@ -23,9 +23,7 @@ class Ui_WorkFilesForm(object):
         self.verticalLayout_6.setObjectName("verticalLayout_6")
         self.items_title_label_2 = QtGui.QLabel(WorkFilesForm)
         self.items_title_label_2.setMinimumSize(QtCore.QSize(0, 44))
-        self.items_title_label_2.setStyleSheet("#items_title_label {\n"
-"font-size: 14pt\n"
-"}")
+        self.items_title_label_2.setStyleSheet("")
         self.items_title_label_2.setMargin(4)
         self.items_title_label_2.setObjectName("items_title_label_2")
         self.verticalLayout_6.addWidget(self.items_title_label_2)
@@ -216,9 +214,7 @@ class Ui_WorkFilesForm(object):
         self.verticalLayout_6.addWidget(self.work_area_frame)
         self.items_title_label_3 = QtGui.QLabel(WorkFilesForm)
         self.items_title_label_3.setMinimumSize(QtCore.QSize(0, 44))
-        self.items_title_label_3.setStyleSheet("#items_title_label {\n"
-"font-size: 14pt\n"
-"}")
+        self.items_title_label_3.setStyleSheet("")
         self.items_title_label_3.setMargin(4)
         self.items_title_label_3.setObjectName("items_title_label_3")
         self.verticalLayout_6.addWidget(self.items_title_label_3)
@@ -284,13 +280,13 @@ class Ui_WorkFilesForm(object):
 
     def retranslateUi(self, WorkFilesForm):
         WorkFilesForm.setWindowTitle(QtGui.QApplication.translate("WorkFilesForm", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.items_title_label_2.setText(QtGui.QApplication.translate("WorkFilesForm", "Select a Work Area", None, QtGui.QApplication.UnicodeUTF8))
+        self.items_title_label_2.setText(QtGui.QApplication.translate("WorkFilesForm", "<big>Select a Work Area</big>", None, QtGui.QApplication.UnicodeUTF8))
         self.work_area_frame.setToolTip(QtGui.QApplication.translate("WorkFilesForm", "Click to Change Work Area...", None, QtGui.QApplication.UnicodeUTF8))
         self.entity_label.setText(QtGui.QApplication.translate("WorkFilesForm", "Shot:", None, QtGui.QApplication.UnicodeUTF8))
         self.task_label.setText(QtGui.QApplication.translate("WorkFilesForm", "Task:", None, QtGui.QApplication.UnicodeUTF8))
         self.no_task_label.setText(QtGui.QApplication.translate("WorkFilesForm", "Click to Select a Task", None, QtGui.QApplication.UnicodeUTF8))
         self.no_entity_label.setText(QtGui.QApplication.translate("WorkFilesForm", "Click to Select a Work Area", None, QtGui.QApplication.UnicodeUTF8))
-        self.items_title_label_3.setText(QtGui.QApplication.translate("WorkFilesForm", "Choose Which Files to Display", None, QtGui.QApplication.UnicodeUTF8))
+        self.items_title_label_3.setText(QtGui.QApplication.translate("WorkFilesForm", "<big>Choose Which Files to Display</big>", None, QtGui.QApplication.UnicodeUTF8))
         self.show_in_fs_label.setText(QtGui.QApplication.translate("WorkFilesForm", "<html><head/><body><p><span style=\" text-decoration: underline;\">Show in File System</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.new_file_btn.setText(QtGui.QApplication.translate("WorkFilesForm", "New File", None, QtGui.QApplication.UnicodeUTF8))
         self.open_file_btn.setText(QtGui.QApplication.translate("WorkFilesForm", "Open File", None, QtGui.QApplication.UnicodeUTF8))

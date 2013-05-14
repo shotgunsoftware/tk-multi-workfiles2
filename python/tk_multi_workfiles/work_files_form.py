@@ -48,7 +48,7 @@ class WorkFilesForm(QtGui.QWidget):
         
         ss = "{font-size: 14pt; border-style: dashed; border-width: 2px; border-radius: 3px; border-color: %s;}" % rgb_str
         self._ui.no_task_label.setStyleSheet("#no_task_label %s" % ss)
-        self._ui.no_entity_label.setStyleSheet("#no_task_label %s" % ss)
+        self._ui.no_entity_label.setStyleSheet("#no_entity_label %s" % ss)
         
         self._ui.show_in_fs_label.mousePressEvent = self._on_show_in_fs_mouse_press_event
         
@@ -239,17 +239,20 @@ class WorkFilesForm(QtGui.QWidget):
             # work area defined - yay!
             self._ui.entity_pages.setCurrentWidget(self._ui.entity_page)
             
-            # header:
-            entity_type_name = tank.util.get_entity_type_display_name(self._app.tank, ctx.entity.get("type"))
-            self._ui.entity_label.setText("%s: %s" % (entity_type_name, ctx.entity.get("name") or "-"))
-            self._ui.entity_label.setToolTip("%s" % ctx.entity.get("name", ""))
-            
             # get additional details:
             sg_details = {}
             try:
-                sg_details = self._app.shotgun.find_one(ctx.entity["type"], [["project", "is", ctx.project], ["id", "is", ctx.entity["id"]]], ["description", "image"])
+                sg_details = self._app.shotgun.find_one(ctx.entity["type"], 
+                                                        [["project", "is", ctx.project], ["id", "is", ctx.entity["id"]]], 
+                                                        ["description", "image", "code"])
             except:
                 pass
+
+            # header:
+            entity_type_name = tank.util.get_entity_type_display_name(self._app.tank, ctx.entity.get("type"))
+            entity_name = ctx.entity.get("name") or sg_details.get("code")
+            self._ui.entity_label.setText("%s: %s" % (entity_type_name, entity_name or "-"))
+            self._ui.entity_label.setToolTip("%s" % (entity_name or ""))
             
             # thumbnail:
             entity_thumbnail = QtGui.QPixmap()
@@ -267,17 +270,20 @@ class WorkFilesForm(QtGui.QWidget):
             if ctx.task:
                 # have a task - double yay!!
                 self._ui.task_pages.setCurrentWidget(self._ui.task_page)
-                
-                # header:
-                self._ui.task_label.setText("Task: %s" % (ctx.task.get("name") or "-"))
-                self._ui.task_label.setToolTip("%s" % ctx.task.get("name", ""))
-                
+
                 # get additional details:
                 sg_details = {}
                 try:
-                    sg_details = self._app.shotgun.find_one("Task", [["project", "is", ctx.project], ["id", "is", ctx.task["id"]]], ["task_assignees", "sg_status_list"])
+                    sg_details = self._app.shotgun.find_one("Task", 
+                                                            [["project", "is", ctx.project], ["id", "is", ctx.task["id"]]], 
+                                                            ["task_assignees", "sg_status_list", "content"])
                 except Exception, e:
                     pass
+                
+                # header:
+                task_name = ctx.task.get("name") or sg_details.get("content")
+                self._ui.task_label.setText("Task: %s" % (task_name or "-"))
+                self._ui.task_label.setToolTip("%s" % (task_name or ""))
                 
                 # thumbnail:
                 task_thumbnail = QtGui.QPixmap()
