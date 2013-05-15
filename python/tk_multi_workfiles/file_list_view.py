@@ -215,8 +215,12 @@ class FileListView(browser_widget.BrowserWidget):
                     # and add first 20 to context menu:
                     for v in previous_versions[:20]:
                         f = files[v]
-                        
-                        action = QtGui.QAction("Open previous version v%03d" % f.version, item)
+                        msg = ""
+                        if f.is_local:
+                            msg = ("Open Work File Version v%03d" % f.version)
+                        else:
+                            msg = ("Open Published Version v%03d" % f.version)
+                        action = QtGui.QAction(msg, item)
                         action.triggered.connect(lambda f=f: self._on_open_action_triggered(f))
                         item.addAction(action)
                    
