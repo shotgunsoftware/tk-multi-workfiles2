@@ -327,7 +327,7 @@ class WorkFiles(object):
         ctx_entity = ctx.task if ctx.task else ctx.entity
         self._app.tank.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"), engine=self._app.engine.name)
         
-    def _on_open_file(self, file):
+    def _on_open_file(self, file, is_previous_version):
         """
         Main function used to open a file when requested by the UI
         """
@@ -339,94 +339,107 @@ class WorkFiles(object):
         
         src_path = None
         work_path = None
-
-        if file.is_local:
-            # trying to open a work file...
-            work_path = file.path
-
-            try:                
-                fields = self._work_template.get_fields(work_path)
-            except TankError, e:
-                QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to resolve file path", 
-                                       "Failed to resolve file path:\n\n%s\n\nagainst work template:\n\n%s\n\nUnable to open file!" % (work_path, e))
-                return
-            except Exception, e:
-                self._app.log_exception("Failed to resolve file path %s against work template" % work_path)
-                return
-            
-            # check if file is in this users sandbox or another users:
-            user = fields.get("HumanUser")
-            if user:
-                current_user = tank.util.get_shotgun_user(self._app.shotgun)
-                if current_user and current_user["login"] != user:
-                    
-                    fields["HumanUser"] = current_user["login"]
-                    # TODO: do we need to version up as well??
-                    local_path = self._work_template.apply_fields(fields)
-                    
-                    if local_path != work_path:
-                        
-                        # get the actual user:
-                        sg_user = self._get_user_details(user)
-                        if sg_user:
-                            user = sg_user.get("name", user)
-                        
-                        # more than just an open so prompt user to confirm:
-                        #TODO: replace with tank dialog
-                        answer = QtGui.QMessageBox.question(self._workfiles_ui, "Open file from other user?",
-                                                            ("The work file you are opening:\n\n%s\n\n"
-                                                            "is in a user sandbox belonging to %s.  Would "
-                                                            "you like to copy the file to your sandbox and open it?" % (work_path, user)), 
-                                                            QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel)
-                        if answer == QtGui.QMessageBox.Cancel:
-                            return
-
-                        src_path = work_path
-                        work_path = local_path
-
+        
+        if is_previous_version:
+            # if the file is a previous version then we just open it
+            # rather than attempting to copy it
+            if file.is_local:
+                work_path = file.path
+            else:
+                work_path = file.publish_path
+                if not os.path.exists(work_path):
+                    QtGui.QMessageBox.critical(self._workfiles_ui, "File doesn't exist!", "The published file\n\n%s\n\nCould not be found to open!" % work_path)
+                    return 
         else:
-            # trying to open a publish:
-            src_path = file.publish_path
+            # what we do depends on the current location of the file
             
-            if not os.path.exists(src_path):
-                QtGui.QMessageBox.critical(self._workfiles_ui, "File doesn't exist!", "The published file\n\n%s\n\nCould not be found to open!" % src_path)
-                return 
-            
-            new_version = None
-            
-            # get the work path for the publish:
-            try:                
-                fields = self._publish_template.get_fields(src_path)
+            if file.is_local:
+                # trying to open a work file...
+                work_path = file.path
+    
+                try:                
+                    fields = self._work_template.get_fields(work_path)
+                except TankError, e:
+                    QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to resolve file path", 
+                                           "Failed to resolve file path:\n\n%s\n\nagainst work template:\n\n%s\n\nUnable to open file!" % (work_path, e))
+                    return
+                except Exception, e:
+                    self._app.log_exception("Failed to resolve file path %s against work template" % work_path)
+                    return
                 
-                # add additional fields:
-                current_user = tank.util.get_shotgun_user(self._app.shotgun)
-                if current_user:
-                    # populate if current user is defined.
-                    fields["HumanUser"] = current_user.get("login")
-
-                # get next version:                
-                new_version = self._get_next_available_version(fields)
-                fields["version"] = new_version
+                # check if file is in this users sandbox or another users:
+                user = fields.get("HumanUser")
+                if user:
+                    current_user = tank.util.get_shotgun_user(self._app.shotgun)
+                    if current_user and current_user["login"] != user:
+                        
+                        fields["HumanUser"] = current_user["login"]
+                        # TODO: do we need to version up as well??
+                        local_path = self._work_template.apply_fields(fields)
+                        
+                        if local_path != work_path:
+                            
+                            # get the actual user:
+                            sg_user = self._get_user_details(user)
+                            if sg_user:
+                                user = sg_user.get("name", user)
+                            
+                            # more than just an open so prompt user to confirm:
+                            #TODO: replace with tank dialog
+                            answer = QtGui.QMessageBox.question(self._workfiles_ui, "Open file from other user?",
+                                                                ("The work file you are opening:\n\n%s\n\n"
+                                                                "is in a user sandbox belonging to %s.  Would "
+                                                                "you like to copy the file to your sandbox and open it?" % (work_path, user)), 
+                                                                QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel)
+                            if answer == QtGui.QMessageBox.Cancel:
+                                return
+    
+                            src_path = work_path
+                            work_path = local_path
+    
+            else:
+                # trying to open a publish:
+                src_path = file.publish_path
                 
-                # construct work path:
-                work_path = self._work_template.apply_fields(fields)
-            except TankError, e:
-                QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to get work file path", 
-                                       "Failed to resolve work file path from publish path:\n\n%s\n\n%s\n\nUnable to open file!" % (src_path, e))
-                return
-            except Exception, e:
-                self._app.log_exception("Failed to resolve work file path from publish path: %s" % src_path)
-                return
-            
-            # prompt user to confirm:
-            answer = QtGui.QMessageBox.question(self._workfiles_ui, "Open file from publish area?",
-                                                            ("The published file:\n\n%s\n\n"
-                                                            "will be copied to your work area, versioned "
-                                                            "up to v%03d and then opened.\n\n"
-                                                            "Would you like to continue?" % (src_path, new_version)), 
-                                                            QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel)
-            if answer == QtGui.QMessageBox.Cancel:
-                return
+                if not os.path.exists(src_path):
+                    QtGui.QMessageBox.critical(self._workfiles_ui, "File doesn't exist!", "The published file\n\n%s\n\nCould not be found to open!" % src_path)
+                    return 
+                
+                new_version = None
+                
+                # get the work path for the publish:
+                try:                
+                    fields = self._publish_template.get_fields(src_path)
+                    
+                    # add additional fields:
+                    current_user = tank.util.get_shotgun_user(self._app.shotgun)
+                    if current_user:
+                        # populate if current user is defined.
+                        fields["HumanUser"] = current_user.get("login")
+    
+                    # get next version:                
+                    new_version = self._get_next_available_version(fields)
+                    fields["version"] = new_version
+                    
+                    # construct work path:
+                    work_path = self._work_template.apply_fields(fields)
+                except TankError, e:
+                    QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to get work file path", 
+                                           "Failed to resolve work file path from publish path:\n\n%s\n\n%s\n\nUnable to open file!" % (src_path, e))
+                    return
+                except Exception, e:
+                    self._app.log_exception("Failed to resolve work file path from publish path: %s" % src_path)
+                    return
+                
+                # prompt user to confirm:
+                answer = QtGui.QMessageBox.question(self._workfiles_ui, "Open file from publish area?",
+                                                                ("The published file:\n\n%s\n\n"
+                                                                "will be copied to your work area, versioned "
+                                                                "up to v%03d and then opened.\n\n"
+                                                                "Would you like to continue?" % (src_path, new_version)), 
+                                                                QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel)
+                if answer == QtGui.QMessageBox.Cancel:
+                    return
 
         # get best context we can for file:
         ctx_entity = file.task if file.task else file.entity
@@ -436,11 +449,11 @@ class WorkFiles(object):
             # can't do anything!
             return
            
-           
         if new_ctx != self._app.context:
             # ensure folders exist.  This serves the
             # dual purpose of populating the path
-            # cache
+            # cache and ensuring we can copy the file
+            # if we need to
             try:
                 self._create_folders(new_ctx)
             except TankError, e:

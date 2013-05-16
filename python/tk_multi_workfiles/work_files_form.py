@@ -19,7 +19,7 @@ class WorkFilesForm(QtGui.QWidget):
     """
     
     # signals
-    open_file = QtCore.Signal(WorkFile)
+    open_file = QtCore.Signal(WorkFile, bool)
     new_file = QtCore.Signal()
     show_in_fs = QtCore.Signal(bool, dict)
     show_in_shotgun = QtCore.Signal(WorkFile)
@@ -102,10 +102,10 @@ class WorkFilesForm(QtGui.QWidget):
     def _on_open_file(self):
         # get the currently selected work file
         selected_file = self._ui.file_list.selected_file
-        self.open_file.emit(selected_file)
+        self.open_file.emit(selected_file, False)
 
     def _on_open_previous_version(self, file):
-        self.open_file.emit(file)
+        self.open_file.emit(file, True)
 
     def _on_new_file(self):
         self.new_file.emit()
