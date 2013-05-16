@@ -77,6 +77,7 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
                 output["tasks"] = self._app.shotgun.find("Task", 
                                                     [ ["project", "is", self._app.context.project],
                                                       ["entity", "is", data["entity"]], 
+                                                      ["step", "is_not", None],
                                                       ["task_assignees", "is", self._current_user ]], 
                                                     ["content", 
                                                      "task_assignees", 
@@ -86,6 +87,7 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
             # get all tasks
             output["tasks"] = self._app.shotgun.find("Task", 
                                                 [ ["project", "is", self._app.context.project],
+                                                  ["step", "is_not", None],
                                                   ["entity", "is", data["entity"] ] ], 
                                                 ["content", "task_assignees", "image", "sg_status_list", "step.Step.list_order"])
         
