@@ -55,20 +55,44 @@ class SaveAs(object):
         fields = {}
         title = "Tank Save As"
         name = ""
+
         if is_publish:
             fields = self._publish_template.get_fields(current_path)
             title = "Copy to Work Area"
             name = fields.get("name")
-        elif self._work_template.validate(current_path):
-            fields = self._work_template.get_fields(current_path)
-            title = "Tank Save As"
-            name = fields.get("name")
-            # TODO: default to default name from template if there is one, otherwise scene
-            if name:
-                name = "%s2" % name
-        
-        if not name:
-            name = "scene"
+        else:
+            default_name = "scene"
+            fields = {}
+            if self._work_template.validate(current_path):
+                fields = self._work_template.get_fields(current_path)
+                title = "Tank Save As"
+                name = fields.get("name") or default_name
+            else:
+                name = default_name
+                fields = self._app.context.as_template_fields(self._work_template)
+            
+            try:
+                # make sure the work file name doesn't already exist:
+                # note, this could potentially be slow so for now lets
+                # limit it:
+                counter_limit = 10
+                for counter in range(0, counter_limit):
+                    test_name = name
+                    if counter > 0:
+                        test_name = "%s%d" % (name, counter)
+                    
+                    test_fields = fields.copy()
+                    test_fields["name"] = test_name
+                
+                    existing_files = self._app.tank.paths_from_template(self._work_template, test_fields, ["version"])
+                    if not existing_files:
+                        name = test_name
+                        break
+                    
+            except TankError, e:
+                # this shouldn't be fatal so just log a debug message:
+                self._app.log_debug("Warning - failed to find a default name for Tank Save-As: %s" % e)
+                
         
         worker_cb = lambda details, wp=current_path, ip=is_publish: self.generate_new_work_file_path(wp, ip, details.get("name"), details.get("reset_version"))
         with AsyncWorker(worker_cb) as preview_updater:
