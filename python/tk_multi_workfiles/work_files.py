@@ -274,7 +274,7 @@ class WorkFiles(object):
         """
         Use hook to clear the current scene
         """
-        res = self._app.execute_hook("hook_scene_operation", operation="reset", file_path=None)
+        res = self._app.execute_hook("hook_scene_operation", operation="reset", file_path=None, context = self._context)
         if res == None or not isinstance(res, bool):
             raise TankError("Unexpected type returned from 'hook_scene_operation' - expected 'bool' but returned '%s'" % type(res).__name__)
         return res
@@ -284,7 +284,7 @@ class WorkFiles(object):
         Use hook to open the specified file.
         """
         # do open:
-        self._app.execute_hook("hook_scene_operation", operation="open", file_path=path)
+        self._app.execute_hook("hook_scene_operation", operation="open", file_path=path, context = self._context)
         
     def _copy_file(self, source_path, target_path):
         """
@@ -298,7 +298,7 @@ class WorkFiles(object):
         """
         Use hook to save the current file
         """
-        self._app.execute_hook("hook_scene_operation", operation="save", file_path=None)
+        self._app.execute_hook("hook_scene_operation", operation="save", file_path=None, context = self._context)
         
     def _restart_engine(self, ctx):
         """

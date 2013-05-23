@@ -16,7 +16,7 @@ class SceneOperation(Hook):
     current scene
     """
     
-    def execute(self, operation, file_path, **kwargs):
+    def execute(self, operation, file_path, context, **kwargs):
         """
         Main hook entry point
         
@@ -26,6 +26,10 @@ class SceneOperation(Hook):
         :file_path: String
                     File path to use if the operation
                     requires it (e.g. open)
+               
+        :context:   Context
+                    The context the file operation is being
+                    performed in.
                     
         :returns:   Depends on operation:
                     'current_path' - Return the current scene

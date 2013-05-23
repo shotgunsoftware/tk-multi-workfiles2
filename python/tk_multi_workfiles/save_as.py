@@ -153,7 +153,7 @@ class SaveAs(object):
         """
         Use hook to get the current work/scene file path
         """
-        self._app.execute_hook("hook_scene_operation", operation="save_as", file_path=path)
+        self._app.execute_hook("hook_scene_operation", operation="save_as", file_path=path, context = self._app.context)
         
     def generate_new_work_file_path(self, current_path, current_is_publish, new_name, reset_version):
         """
@@ -244,7 +244,7 @@ class SaveAs(object):
         """
         Use hook to get the current work/scene file path
         """
-        return self._app.execute_hook("hook_scene_operation", operation="current_path", file_path="")
+        return self._app.execute_hook("hook_scene_operation", operation="current_path", file_path="", context = self._app.context)
     
     
     

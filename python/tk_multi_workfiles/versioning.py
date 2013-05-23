@@ -181,13 +181,13 @@ class Versioning(object):
         """
         Use hook to get the current work/scene file path
         """
-        self._app.execute_hook("hook_scene_operation", operation="save_as", file_path=path)
+        self._app.execute_hook("hook_scene_operation", operation="save_as", file_path=path, context = self._app.context)
         
     def _get_current_file_path(self):
         """
         Use hook to get the current work/scene file path
         """
-        return self._app.execute_hook("hook_scene_operation", operation="current_path", file_path="")
+        return self._app.execute_hook("hook_scene_operation", operation="current_path", file_path="", context = self._app.context)
         
     def _get_published_file_paths_for_context(self, ctx):
         """
