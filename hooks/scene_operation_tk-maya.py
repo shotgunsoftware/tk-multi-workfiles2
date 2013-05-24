@@ -39,7 +39,6 @@ class SceneOperation(Hook):
                                      state, otherwise False
                     all others     - None
         """
-        
         if operation == "current_path":
             # return the current scene path
             return cmds.file(query=True, sceneName=True)
@@ -52,9 +51,24 @@ class SceneOperation(Hook):
             # save the current scene:
             cmds.file(save=True)
         elif operation == "save_as":
-            # save the scene as file_path:
+            # first rename the scene as file_path:
             cmds.file(rename=file_path)
-            cmds.file(save=True, force=True)
+            
+            # Maya can choose the wrong file type so
+            # we should set it here explicitely based
+            # on the extension
+            maya_file_type = None
+            if file_path.lower().endswith(".ma"):
+                maya_file_type = "mayaAscii"
+            elif file_path.lower().endswith(".mb"):
+                maya_file_type = "mayaBinary"
+            
+            # save the scene:
+            if maya_file_type:
+                cmds.file(save=True, force=True, type=maya_file_type)
+            else:
+                cmds.file(save=True, force=True)
+                
         elif operation == "reset":
             """
             Reset the scene to an empty state
