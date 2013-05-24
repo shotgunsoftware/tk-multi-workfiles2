@@ -165,6 +165,19 @@ class WorkFilesForm(QtGui.QWidget):
         selected_file = self._ui.file_list.selected_file
         self._ui.open_file_btn.setEnabled(selected_file is not None)
             
+    class __FilterObj(object):
+        """
+        Class used to wrap filter object so that it can
+        be safely stored as a combo menu item's data that
+        works in both Pyside & PyQt
+        """
+        def __init__(self, filter=None):
+            self._filter = filter
+            
+        @property
+        def filter(self):
+            return self._filter
+          
     def _update_filter_menu(self):
         """
         Update the list of users to display work files for
@@ -184,12 +197,13 @@ class WorkFilesForm(QtGui.QWidget):
         self._ui.filter_combo.clear()
         
         # add user work files item:
-        self._ui.filter_combo.addItem("Show Files in my Work Area", ({"user":current_user, "show_local":True, "show_publishes":False}, ))
+        self._ui.filter_combo.addItem("Show Files in my Work Area", 
+                                      self.__FilterObj({"user":current_user, "show_local":True, "show_publishes":False}))
         selected_idx = 0
         
         # add publishes item:
         publishes_filter = {"show_local":False, "show_publishes":True}
-        self._ui.filter_combo.addItem("Show Files in the Publish Area", (publishes_filter, ))
+        self._ui.filter_combo.addItem("Show Files in the Publish Area", self.__FilterObj(publishes_filter))
         if filter_compare(previous_filter, publishes_filter):
             selected_idx = 1
         
@@ -208,7 +222,7 @@ class WorkFilesForm(QtGui.QWidget):
                 if filter_compare(previous_filter, filter):
                     selected_idx = self._ui.filter_combo.count()
                 
-                self._ui.filter_combo.addItem("Show Files in %s's Work Area" % user["name"], (filter, ))
+                self._ui.filter_combo.addItem("Show Files in %s's Work Area" % user["name"], self.__FilterObj(filter))
                 
         # set the current index:
         self._ui.filter_combo.setCurrentIndex(selected_idx)
@@ -217,18 +231,19 @@ class WorkFilesForm(QtGui.QWidget):
         """
         Get the current filter
         """
+        
         filter = {}
         idx = self._ui.filter_combo.currentIndex()
         if idx >= 0:
-            filter = self._ui.filter_combo.itemData(idx)
+            filter_obj = self._ui.filter_combo.itemData(idx)
             
             # convert from QVariant object if itemData is returned as such
-            if hasattr(QtCore, "QVariant") and isinstance(filter, QtCore.QVariant):
-                filter = filter.toPyObject()
+            if hasattr(QtCore, "QVariant") and isinstance(filter_obj, QtCore.QVariant):
+                filter_obj = filter_obj.toPyObject()
             
-            # filter is also a tuple ({}, ) to avoid PyQt QString conversion fun!
-            filter = filter[0]
-        
+            if filter_obj:
+                filter = filter_obj.filter
+            
         return filter
         
     def _update_work_area(self, ctx):
