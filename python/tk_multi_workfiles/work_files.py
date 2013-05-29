@@ -247,7 +247,8 @@ class WorkFiles(object):
             return
         
         # construct and open the url:
-        url = "%s/detail/TankPublishedFile/%d" % (self._app.tank.shotgun.base_url, file.published_file_id)
+        published_file_entity_type = tank.util.get_published_file_entity_type(self._app.tank)
+        url = "%s/detail/%s/%d" % (self._app.tank.shotgun.base_url, published_file_entity_type, file.published_file_id)
         QtGui.QDesktopServices.openUrl(QtCore.QUrl(url))
         
     def have_valid_configuration_for_work_area(self):
@@ -670,8 +671,9 @@ class WorkFiles(object):
         if self._context.task:
             filters.append(["task", "is", self._context.task])
         
+        published_file_entity_type = tank.util.get_published_file_entity_type(self._app.tank)
         sg_publish_fields = ["description", "version_number", "image", "created_at", "created_by", "name", "path", "task", "description"]
-        sg_published_files = self._app.shotgun.find("TankPublishedFile", filters, sg_publish_fields)
+        sg_published_files = self._app.shotgun.find(published_file_entity_type, filters, sg_publish_fields)
         
         publish_files = {}
         for sg_file in sg_published_files:

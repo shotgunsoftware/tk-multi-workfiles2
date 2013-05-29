@@ -198,7 +198,8 @@ class Versioning(object):
         if ctx.task:
             filters.append(["task", "is", ctx.task])
         
-        sg_result = self._app.shotgun.find("TankPublishedFile", filters, ["path"])
+        published_file_entity_type = tank.util.get_published_file_entity_type(self._app.tank)
+        sg_result = self._app.shotgun.find(published_file_entity_type, filters, ["path"])
         publish_paths = [r.get("path").get("local_path") for r in sg_result]
  
         return publish_paths          

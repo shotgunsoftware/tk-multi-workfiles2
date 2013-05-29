@@ -67,7 +67,7 @@ description: "Using this app you can change the current work area and
               
 # Required minimum versions for this item to run
 requires_shotgun_version:
-requires_core_version: "v0.12.26"
+requires_core_version: "v0.13.22"
 requires_engine_version: 
 
 # the engines that this app can operate in:
