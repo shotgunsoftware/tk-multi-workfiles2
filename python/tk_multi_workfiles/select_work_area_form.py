@@ -160,9 +160,12 @@ class SelectWorkAreaForm(QtGui.QWidget):
         """
         Called when mine-only checkbox is toggled
         """
-        # remember setting:
-        settings_val = self._ui.mine_only_cb.isChecked()
-        self._settings.setValue("show_mine_only", settings_val)
+        # remember setting - save value as an int as this
+        # reliably works across all operating systems!
+        # - on Windows, boolean settings are returned as
+        # strings when queried!
+        show_mine_only = self._ui.mine_only_cb.isChecked()
+        self._settings.setValue("show_mine_only", int(show_mine_only))
         
         # reload entity list:
         self._reload_entities()
