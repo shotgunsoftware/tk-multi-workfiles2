@@ -35,7 +35,7 @@ class EntityBrowserWidget(browser_widget.BrowserWidget):
         types_to_load = self._app.get_setting("sg_entity_types", [])
             
         if not self._current_user_loaded:
-            self._current_user = tank.util.get_shotgun_user(self._app.shotgun)
+            self._current_user = tank.util.get_current_user(self._app.tank)
             self._current_user_loaded = True
         
         sg_data = []

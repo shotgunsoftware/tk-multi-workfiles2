@@ -184,7 +184,7 @@ class WorkFilesForm(QtGui.QWidget):
         """
         users = self._handler.get_usersandbox_users()
                 
-        current_user = tank.util.get_shotgun_user(self._app.shotgun)
+        current_user = tank.util.get_current_user(self._app.tank)
         
         # get selected filter:
         previous_filter = self._get_current_filter()

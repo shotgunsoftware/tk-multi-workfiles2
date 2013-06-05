@@ -56,7 +56,7 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
         self._current_data = data
         
         if not self._current_user_loaded:
-            self._current_user = tank.util.get_shotgun_user(self._app.shotgun)
+            self._current_user = tank.util.get_current_user(self._app.tank)
             self._current_user_loaded = True
         
         

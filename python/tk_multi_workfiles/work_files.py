@@ -67,7 +67,7 @@ class WorkFiles(object):
         if not self._work_template or not self._publish_template:
             return []
         
-        current_user = tank.util.get_shotgun_user(self._app.shotgun)
+        current_user = tank.util.get_current_user(self._app.tank)
         if current_user and user and user["id"] == current_user["id"]:
             # user is current user. Set to none not to override.
             user = None
@@ -371,7 +371,7 @@ class WorkFiles(object):
                 # check if file is in this users sandbox or another users:
                 user = fields.get("HumanUser")
                 if user:
-                    current_user = tank.util.get_shotgun_user(self._app.shotgun)
+                    current_user = tank.util.get_current_user(self._app.tank)
                     if current_user and current_user["login"] != user:
                         
                         fields["HumanUser"] = current_user["login"]
@@ -413,7 +413,7 @@ class WorkFiles(object):
                     fields = self._publish_template.get_fields(src_path)
                     
                     # add additional fields:
-                    current_user = tank.util.get_shotgun_user(self._app.shotgun)
+                    current_user = tank.util.get_current_user(self._app.tank)
                     if current_user:
                         # populate if current user is defined.
                         fields["HumanUser"] = current_user.get("login")
