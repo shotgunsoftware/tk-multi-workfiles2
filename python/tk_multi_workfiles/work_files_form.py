@@ -183,15 +183,26 @@ class WorkFilesForm(QtGui.QWidget):
         Update the list of users to display work files for
         """
         users = self._handler.get_usersandbox_users()
-        
+                
         current_user = tank.util.get_shotgun_user(self._app.shotgun)
         
         # get selected filter:
         previous_filter = self._get_current_filter()
         
-        filter_compare = lambda f1, f2: (f1.get("user", {}).get("id") == f2.get("user", {}).get("id")
-                            and f1.get("show_local", False) == f2.get("show_local", False)
-                            and f1.get("show_publishes", False) == f2.get("show_publishes", False))
+        def filter_compare(f1, f2):
+            """
+            Compare two filters to determine if they are the same or not
+            """
+            user_1 = f1.get("user")
+            user_2 = f2.get("user")
+            if user_1 == None or user_2 == None:
+                if user_1 != user_2:
+                    return False
+            else:
+                if user_1.get("id") != user_2.get("id"):
+                    return False
+            return (f1.get("show_local", False) == f2.get("show_local", False)
+                and f1.get("show_publishes", False) == f2.get("show_publishes", False))
         
         # clear menu:
         self._ui.filter_combo.clear()
