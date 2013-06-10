@@ -83,8 +83,7 @@ class EntityBrowserWidget(browser_widget.BrowserWidget):
             for et in types_to_load:
                 # get entities from shotgun:
                 entities = self._app.shotgun.find(et, 
-                                                  [ ["project", "is", self._app.context.project],
-                                                    ["sg_status_list", "is_not", "fin" ] ], 
+                                                  [ ["project", "is", self._app.context.project] ], 
                                                   ["code", "description", "image"])
                 
                 # sort by name (code)
