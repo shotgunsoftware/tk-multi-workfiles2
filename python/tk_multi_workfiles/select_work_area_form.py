@@ -70,7 +70,9 @@ class SelectWorkAreaForm(QtGui.QWidget):
         self._ui.mine_only_cb.toggled.connect(self._on_mine_only_cb_toggled)
         try:
             # this qsettings stuff seems super flaky on different platforms
-            show_mine_only = bool(self._settings.value("show_mine_only", True))
+            # - although setting is saved as an int, it can get loaded as either an 
+            # int or a string, hence the double casting to int and then bool.
+            show_mine_only = bool(int(self._settings.value("show_mine_only", True)))
             self._ui.mine_only_cb.setChecked(show_mine_only)
         except Exception, e:
             self._app.log_warning("Cannot restore state of 'Only Show My Tasks' checkbox: %s" % e)
@@ -137,9 +139,9 @@ class SelectWorkAreaForm(QtGui.QWidget):
         Called when mine-only checkbox is toggled
         """
         # remember setting - save value as an int as this
-        # reliably works across all operating systems!
-        # - on Windows, boolean settings are returned as
-        # strings when queried!
+        # can be handled across all operating systems!
+        # - on Windows & Linux, boolean & int settings are 
+        # returned as strings when queried!
         show_mine_only = self._ui.mine_only_cb.isChecked()
         self._settings.setValue("show_mine_only", int(show_mine_only))
         
