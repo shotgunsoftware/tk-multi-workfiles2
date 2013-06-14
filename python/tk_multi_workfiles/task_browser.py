@@ -135,7 +135,6 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
                 i.set_details("<br>".join(details))
                 
                 i.sg_data = d
-                i.setToolTip("Double click to set context.")
                 
                 # add a grab task action
                 if self._current_user: # not None
