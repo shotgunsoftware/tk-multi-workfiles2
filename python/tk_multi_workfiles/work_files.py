@@ -89,7 +89,10 @@ class WorkFiles(object):
                 task = publish_details.get("task")
                 if not task:
                     continue
-                
+
+                # the key for the path-task map is the 'version zero' work file that 
+                # matches this publish path.  This is constructed from the publish
+                # fields together with any additional fields from the context etc.
                 publish_fields = self._publish_template.get_fields(publish_path)
                 publish_fields["version"] = 0
                 work_path_key = self._work_template.apply_fields(dict(chain(work_fields.iteritems(), publish_fields.iteritems())))
