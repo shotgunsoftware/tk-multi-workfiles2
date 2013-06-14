@@ -114,16 +114,6 @@ class SaveAs(object):
                         # something went wrong!
                         QtGui.QMessageBox.information(None, "Unable to Save", "Unable to Save!\n\n%s" % msg)
                         continue
-                    
-                    """
-                    if msg:
-                        msg = "<b>%s<b><br><br>Are you sure you want to save?" % msg
-                        res = QtGui.QMessageBox.question(None, "Confirm", msg, QtGui.QMessageBox.Cancel | QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
-                        if res == QtGui.QMessageBox.No:
-                            continue
-                        elif res == QtGui.QMessageBox.Cancel:
-                            break
-                    """
                      
                     # ok, so do save-as:
                     try:
@@ -173,19 +163,23 @@ class SaveAs(object):
             msg = "Your filename contains illegal characters!"
             return {"message":msg}
 
-        # get fields from current path:
+        # build fields dictionary to use for the new path:
         fields = {}
+
+        # start with fields from context:
+        fields = self._app.context.as_template_fields(self._work_template)
+        
+        # add in any additional fields from current path:
         base_template = self._publish_template if current_is_publish else self._work_template
         if base_template.validate(current_path):
-            fields = base_template.get_fields(current_path)
+            template_fields = base_template.get_fields(current_path)
+            fields = dict(chain(template_fields.iteritems(), fields.iteritems()))
         else:
+            # just make sure there is a version
             fields["version"] = 1
             
         current_version = fields.get("version")
         current_name = fields.get("name")
-
-        # add in fields from context:
-        fields = dict(chain(self._app.context.as_template_fields(self._work_template).iteritems(), fields.iteritems()))
 
         # update name field:
         fields["name"] = new_name
@@ -233,10 +227,6 @@ class SaveAs(object):
             fields["version"] = new_version
         new_work_path = self._work_template.apply_fields(fields)
         
-        # check to see if a work file of that version exists:
-        #if os.path.exists(new_work_path):
-        #    msg = "File already exists!"
-
         return {"path":new_work_path, "message":msg, "can_reset_version":can_reset_version}
             
         
