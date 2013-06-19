@@ -308,7 +308,7 @@ class WorkFilesForm(QtGui.QWidget):
                 try:
                     sg_details = self._app.shotgun.find_one("Task", 
                                                             [["project", "is", ctx.project], ["id", "is", ctx.task["id"]]], 
-                                                            ["task_assignees", "sg_status_list", "content"])
+                                                            ["task_assignees", "step.Step.code", "content"])
                 except Exception, e:
                     pass
                 
@@ -343,7 +343,11 @@ class WorkFilesForm(QtGui.QWidget):
                     name = assignee.get("name")
                     if name:
                         assignees.append(name)
-                self._ui.task_details.setText("Status: %s<br>Assigned to: %s" % (sg_details.get("sg_status_list"), ", ".join(assignees) if assignees else "-"))
+                assignees_str = ", ".join(assignees) if assignees else "-"
+                step_str = sg_details.get("step.Step.code")
+                if step_str is None:
+                    step_str = "-"
+                self._ui.task_details.setText("Assigned to: %s<br>Pipeline Step: %s" % (assignees_str, step_str))
                 
             else:
                 # task not chosen
