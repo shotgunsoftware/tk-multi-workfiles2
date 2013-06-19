@@ -20,6 +20,7 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
         # only load this once!
         self._current_user = None
         self._current_user_loaded = False
+        self._status_name_lookup = None
         
     @property
     def selected_task(self):
@@ -59,6 +60,12 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
             self._current_user = tank.util.get_current_user(self._app.tank)
             self._current_user_loaded = True
         
+        # first get a list of all statuses if we haven't already!
+        # make a dictionary keyed by short status code with values of long status codes.
+        if self._status_name_lookup is None:
+            self._status_name_lookup = {}
+            for x in self._app.shotgun.find("Status", [], ["code", "name"]):
+                self._status_name_lookup[ x.get("code") ] = x.get("name")
         
         # start building output data structure        
         output = {}
@@ -126,7 +133,11 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
                 details = []
                 details.append("<b>Task: %s</b>" % d.get("content", ""))
                 
-                details.append("Status: %s" % d.get("sg_status_list"))
+                # now try to look up the proper status name
+                status_short_name = d.get("sg_status_list")
+                # get the long name, fall back on short name if not found
+                status_name = self._status_name_lookup.get(status_short_name, status_short_name)
+                details.append("Status: %s" % status_name)
                 
                 names = [ x.get("name", "Unknown") for x in d.get("task_assignees", []) ]
                 names_str = ", ".join(names)
