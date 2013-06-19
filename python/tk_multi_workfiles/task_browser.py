@@ -123,7 +123,13 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
         
         entity_str = "%s %s" % (entity_data.get("type", "Unknown"), entity_data.get("code", "Unknown"))
 
-        if tasks:
+        if len(tasks) == 0:
+            self.set_message("No Tasks found! You can create tasks by navigating to %s "
+                             "inside of Shotgun, selecting the tasks tab and then clicking "
+                             "the plus button." % entity_str)
+            
+        else:
+
             current_task = result.get("current_task")
             item_to_select = None        
             
@@ -146,6 +152,7 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
                 i.set_details("<br>".join(details))
                 
                 i.sg_data = d
+                i.setToolTip("Double click to set context.")
                 
                 # add a grab task action
                 if self._current_user: # not None
@@ -179,16 +186,4 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
             if item_to_select:
                 self.select(item_to_select)
                 
-    def _on_item_clicked(self, item):
-        
-        if item.supports_selection() == False:
-            # not all items are selectable
-            return
-
-        # implement single togglable selection     
-        select = not item.is_selected()
-        self.clear_selection()
-        item.set_selected(select)
-            
-        self.selection_changed.emit()
         

@@ -52,7 +52,7 @@ class SelectWorkAreaForm(QtGui.QWidget):
         # set up the task browser:
         self._ui.task_browser.set_app(self._app)
         self._ui.task_browser.selection_changed.connect(self._on_task_selected)
-        #self._ui.task_browser.action_requested.connect(self._on_context_selected)
+        self._ui.task_browser.action_requested.connect(self._on_context_selected)
         self._ui.task_browser.set_label("Tasks")
         
         # connect the buttons:
