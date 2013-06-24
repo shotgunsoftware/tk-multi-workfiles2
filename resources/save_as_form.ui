@@ -103,7 +103,7 @@ border-color: rgb(32,32,32);
         <item>
          <widget class="QLabel" name="header_label">
           <property name="text">
-           <string>Type in a name below and Tank will save the current scene</string>
+           <string>Type in a name below and Shotgun will save the current scene</string>
           </property>
           <property name="wordWrap">
            <bool>true</bool>

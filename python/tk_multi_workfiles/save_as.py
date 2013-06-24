@@ -53,7 +53,7 @@ class SaveAs(object):
         # determine if this is a publish path or not:
         is_publish = self._publish_template.validate(current_path)
         fields = {}
-        title = "Tank Save As"
+        title = "Shotgun Save As"
         name = ""
 
         if is_publish:
@@ -65,7 +65,7 @@ class SaveAs(object):
             fields = {}
             if self._work_template.validate(current_path):
                 fields = self._work_template.get_fields(current_path)
-                title = "Tank Save As"
+                title = "Shotgun Save As"
                 name = fields.get("name") or default_name
             else:
                 name = default_name
@@ -91,7 +91,7 @@ class SaveAs(object):
                     
             except TankError, e:
                 # this shouldn't be fatal so just log a debug message:
-                self._app.log_debug("Warning - failed to find a default name for Tank Save-As: %s" % e)
+                self._app.log_debug("Warning - failed to find a default name for Shotgun Save-As: %s" % e)
                 
         
         worker_cb = lambda details, wp=current_path, ip=is_publish: self.generate_new_work_file_path(wp, ip, details.get("name"), details.get("reset_version"))

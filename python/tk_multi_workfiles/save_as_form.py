@@ -143,7 +143,7 @@ class SaveAsForm(QtGui.QWidget):
                               "By clicking continue, the file will be copied into your work area and "
                               "you can continue your work there.")
             else:
-                header_txt = ("Type in a name below and Tank will save the current scene")
+                header_txt = ("Type in a name below and Shotgun will save the current scene")
         self._ui.header_label.setText(header_txt)
             
         # update reset version check box:

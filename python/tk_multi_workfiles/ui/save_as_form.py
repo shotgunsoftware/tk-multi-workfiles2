@@ -143,7 +143,7 @@ class Ui_SaveAsForm(object):
 
     def retranslateUi(self, SaveAsForm):
         SaveAsForm.setWindowTitle(QtGui.QApplication.translate("SaveAsForm", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.header_label.setText(QtGui.QApplication.translate("SaveAsForm", "Type in a name below and Tank will save the current scene", None, QtGui.QApplication.UnicodeUTF8))
+        self.header_label.setText(QtGui.QApplication.translate("SaveAsForm", "Type in a name below and Shotgun will save the current scene", None, QtGui.QApplication.UnicodeUTF8))
         self.reset_version_cb.setText(QtGui.QApplication.translate("SaveAsForm", "Reset Version No.?", None, QtGui.QApplication.UnicodeUTF8))
         self.label_5.setText(QtGui.QApplication.translate("SaveAsForm", "<html><head/><body><p><span style=\" font-weight:600;\">Name:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.filename_preview_label.setText(QtGui.QApplication.translate("SaveAsForm", "name.v001.ma", None, QtGui.QApplication.UnicodeUTF8))

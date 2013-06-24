@@ -46,7 +46,7 @@ class WorkFiles(object):
         """
         
         from .work_files_form import WorkFilesForm
-        self._workfiles_ui = self._app.engine.show_dialog("Tank File Manager", self._app, WorkFilesForm, self._app, self)
+        self._workfiles_ui = self._app.engine.show_dialog("Shotgun File Manager", self._app, WorkFilesForm, self._app, self)
 
         # hook up signals:
         self._workfiles_ui.open_file.connect(self._on_open_file)

@@ -21,12 +21,12 @@ class MultiWorkFiles(tank.platform.Application):
 
         # register commands:
         self._work_files_handler = tk_multi_workfiles.WorkFiles(self)
-        self.engine.register_command("Tank File Manager...", self._work_files_handler.show_dlg)
+        self.engine.register_command("Shotgun File Manager...", self._work_files_handler.show_dlg)
 
         # other commands are only valid if we have valid work and publish templates:
         if self.get_template("template_work") and self.get_template("template_publish"):
             cmd = lambda app=self: tk_multi_workfiles.SaveAs.show_save_as_dlg(app)
-            self.engine.register_command("Tank Save As...", cmd)
+            self.engine.register_command("Shotgun Save As...", cmd)
             
             cmd = lambda app=self: tk_multi_workfiles.Versioning.show_change_version_dlg(app)
             self.engine.register_command("Version up Current Scene...", cmd)

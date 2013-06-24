@@ -151,7 +151,7 @@ class FileListView(browser_widget.BrowserWidget):
             if not result["have_valid_workarea"]:
                 msg = "Please select a Work Area to begin..."
             elif not result["have_valid_configuration"]:
-                msg = ("Tank File Manager has not been configured for the environment "
+                msg = ("Shotgun File Manager has not been configured for the environment "
                        "being used by the selected Work Area!\n"
                        "Please choose a different Work Area to continue.")
             elif not result["can_do_new_file"]:
