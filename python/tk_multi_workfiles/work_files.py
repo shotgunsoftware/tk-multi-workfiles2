@@ -77,7 +77,7 @@ class WorkFiles(object):
         publish_file_details = self._get_published_file_details()
 
         # construct a new context to use for the search overriding the user if required:
-        find_ctx = self._context if not user else self._app.tank.context_from_context(self._context, user=user)
+        find_ctx = self._context if not user else self._context.create_copy_for_user(user)
         
         # find work files that match the current work template:
         work_fields = find_ctx.as_template_fields(self._work_template)
@@ -205,7 +205,7 @@ class WorkFiles(object):
                 return
             
             # construct a new context to use for the search overriding the user if required:
-            work_area_ctx = self._context if not user else self._app.tank.context_from_context(self._context, user=user)
+            work_area_ctx = self._context if not user else self._context.create_copy_for_user(user)
             
             # now build fields to construct path with:
             fields = work_area_ctx.as_template_fields(template)
@@ -378,7 +378,7 @@ class WorkFiles(object):
                             fields = self._work_template.get_fields(work_path)
                             
                             # add in the fields from the context with the current user:
-                            local_ctx = self._app.tank.context_from_context(wp_ctx, user=current_user)
+                            local_ctx = wp_ctx.create_copy_for_user(current_user)
                             ctx_fields = local_ctx.as_template_fields(self._work_template)
                             fields.update(ctx_fields)
                             
@@ -427,7 +427,7 @@ class WorkFiles(object):
                     # if current user is defined, update fields to use this:
                     current_user = tank.util.get_current_user(self._app.tank)
                     if current_user and sp_ctx.user and sp_ctx.user["id"] != current_user["id"]:
-                        sp_ctx = self._app.tank.context_from_context(sp_ctx, user=current_user)
+                        sp_ctx = sp_ctx.create_copy_for_user(current_user)
                         
                     # finally, use context to populate additional fields:
                     ctx_fields = sp_ctx.as_template_fields(self._work_template)
