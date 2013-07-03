@@ -23,7 +23,8 @@ class WorkFiles(object):
         self._app = app
         self._workfiles_ui = None
         
-        self._user_details_cache = {}
+        self._user_details_by_id = {}
+        self._user_details_by_login = {}
         
         # set up the work area from the app:
         self._context = None
@@ -58,8 +59,8 @@ class WorkFiles(object):
         """
         Find files using the current context, work and publish templates
         
-        If user is specified then HumanUser should be overriden to be this
-        user when resolving paths.
+        If user is specified then the context user will be overriden to 
+        be this user when resolving paths.
         
         Will return a WorkFile instance for every file found in both
         work and publish areas
@@ -75,16 +76,17 @@ class WorkFiles(object):
         # find all published files that match the current template:
         publish_file_details = self._get_published_file_details()
 
+        # construct a new context to use for the search overriding the user if required:
+        find_ctx = self._context if not user else self._app.tank.context_from_context(self._context, user=user)
+        
         # find work files that match the current work template:
-        work_fields = self._context.as_template_fields(self._work_template)
-        if user:
-            work_fields["HumanUser"] = user["login"]
+        work_fields = find_ctx.as_template_fields(self._work_template)
         work_file_paths = self._app.tank.paths_from_template(self._work_template, work_fields, ["version"])
         
         # build an index of the published file tasks to use if we don't have a task in the context:
         publish_task_map = {}
         task_id_to_task_map = {}
-        if not self._context.task:
+        if not find_ctx.task:
             for publish_path, publish_details in publish_file_details.iteritems():
                 task = publish_details.get("task")
                 if not task:
@@ -120,7 +122,7 @@ class WorkFiles(object):
                 details["name"] = fields["name"]
 
             # entity is always the context entity:
-            details["entity"] = self._context.entity
+            details["entity"] = find_ctx.entity
             
             if publish_details:
                 # add other info from publish:
@@ -131,13 +133,13 @@ class WorkFiles(object):
                 details["publish_description"] = publish_details.get("description")
                 details["published_file_id"] = publish_details.get("published_file_id")
             else:
-                if self._context.task:
+                if find_ctx.task:
                     # can use the task form the context
-                    details["task"] = self._context.task
+                    details["task"] = find_ctx.task
                 else:
                     task = None
                     # try to create a context from the path and see if that contains a task:
-                    wf_ctx = self._app.tank.context_from_path(work_path, self._context)
+                    wf_ctx = self._app.tank.context_from_path(work_path, find_ctx)
                     task = wf_ctx.task
                     if not task:
                         # try creating a versionless version and see if there is a match in the
@@ -178,7 +180,7 @@ class WorkFiles(object):
             if "name" in publish_fields:
                 details["name"] = publish_fields["name"]
 
-            details["entity"] = self._context.entity
+            details["entity"] = find_ctx.entity
                 
             # add additional details from publish record:
             details["task"] = publish_details.get("task")
@@ -202,10 +204,11 @@ class WorkFiles(object):
             if not self._context or not template:
                 return
             
+            # construct a new context to use for the search overriding the user if required:
+            work_area_ctx = self._context if not user else self._app.tank.context_from_context(self._context, user=user)
+            
             # now build fields to construct path with:
-            fields = self._context.as_template_fields(template)
-            if user:
-                fields["HumanUser"] = user["login"]
+            fields = work_area_ctx.as_template_fields(template)
                 
             # try to build a path from the template with these fields:
             while template and template.missing_keys(fields):
@@ -360,47 +363,49 @@ class WorkFiles(object):
             if file.is_local:
                 # trying to open a work file...
                 work_path = file.path
-    
-                try:                
-                    fields = self._work_template.get_fields(work_path)
-                except TankError, e:
-                    QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to resolve file path", 
-                                           "Failed to resolve file path:\n\n%s\n\nagainst work template:\n\n%s\n\nUnable to open file!" % (work_path, e))
-                    return
-                except Exception, e:
-                    self._app.log_exception("Failed to resolve file path %s against work template" % work_path)
-                    return
                 
-                # check if file is in this users sandbox or another users:
-                user = fields.get("HumanUser")
-                if user:
+                # construct a context for this path to determine if it's in
+                # a user sandbox or not:
+                wp_ctx = self._app.tank.context_from_path(work_path)
+                if wp_ctx.user:
                     current_user = tank.util.get_current_user(self._app.tank)
-                    if current_user and current_user["login"] != user:
+                    if current_user and current_user["id"] != wp_ctx.user["id"]:
                         
-                        fields["HumanUser"] = current_user["login"]
-                        # TODO: do we need to version up as well??
-                        local_path = self._work_template.apply_fields(fields)
-                        
+                        # file is in a user sandbox - construct path
+                        # for the current user's sandbox:
+                        try:                
+                            # get fields from work path:
+                            fields = self._work_template.get_fields(work_path)
+                            
+                            # add in the fields from the context with the current user:
+                            local_ctx = self._app.tank.context_from_context(wp_ctx, user=current_user)
+                            ctx_fields = local_ctx.as_template_fields(self._work_template)
+                            fields.update(ctx_fields)
+                            
+                            # construct the local path from these fields:
+                            local_path = self._work_template.apply_fields(fields)                     
+                        except TankError, e:
+                            QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to resolve file path", 
+                                                   "Failed to resolve the user sandbox file path:\n\n%s\n\nto the local path:\n\n%s\n\nUnable to open file!" % (work_path, e))
+                            return
+                        except Exception, e:
+                            self._app.log_exception("Failed to resolve user sandbox file path %s" % work_path)
+                            return
+                
                         if local_path != work_path:
-                            
-                            # get the actual user:
-                            sg_user = self._get_user_details(user)
-                            if sg_user:
-                                user = sg_user.get("name", user)
-                            
                             # more than just an open so prompt user to confirm:
                             #TODO: replace with tank dialog
-                            answer = QtGui.QMessageBox.question(self._workfiles_ui, "Open file from other user?",
+                            answer = QtGui.QMessageBox.question(self._workfiles_ui, "Open file from another user?",
                                                                 ("The work file you are opening:\n\n%s\n\n"
                                                                 "is in a user sandbox belonging to %s.  Would "
-                                                                "you like to copy the file to your sandbox and open it?" % (work_path, user)), 
+                                                                "you like to copy the file to your sandbox and open it?" % (work_path, wp_ctx.user["name"])), 
                                                                 QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel)
                             if answer == QtGui.QMessageBox.Cancel:
                                 return
     
                             src_path = work_path
-                            work_path = local_path
-    
+                            work_path = local_path        
+
             else:
                 # trying to open a publish:
                 src_path = file.publish_path
@@ -412,16 +417,23 @@ class WorkFiles(object):
                 new_version = None
                 
                 # get the work path for the publish:
-                try:                
+                try:
+                    # get fields for the path:                
                     fields = self._publish_template.get_fields(src_path)
-                    
-                    # add additional fields:
+
+                    # construct a context for the path:
+                    sp_ctx = self._app.tank.context_from_path(src_path)
+
+                    # if current user is defined, update fields to use this:
                     current_user = tank.util.get_current_user(self._app.tank)
-                    if current_user:
-                        # populate if current user is defined.
-                        fields["HumanUser"] = current_user.get("login")
-    
-                    # get next version:                
+                    if current_user and sp_ctx.user and sp_ctx.user["id"] != current_user["id"]:
+                        sp_ctx = self._app.tank.context_from_context(sp_ctx, user=current_user)
+                        
+                    # finally, use context to populate additional fields:
+                    ctx_fields = sp_ctx.as_template_fields(self._work_template)
+                    fields.update(ctx_fields)
+                
+                    # add next version to fields:                
                     new_version = self._get_next_available_version(fields)
                     fields["version"] = new_version
                     
@@ -631,15 +643,18 @@ class WorkFiles(object):
         """
         Get the shotgun HumanUser entry:
         """
-        sg_user = self._user_details_cache.get(login_name)
+        # first look to see if we've already found it:
+        sg_user = self._user_details_by_login.get(login_name)
         if not sg_user:
             try:
                 filter = ["login", "is", login_name]
                 fields = ["id", "type", "email", "login", "name", "image"]
                 sg_user = self._app.shotgun.find_one("HumanUser", [filter], fields)
             except:
-                pass
-            self._user_details_cache[login_name] = sg_user
+                sg_user = {}
+            self._user_details_by_login[login_name] = sg_user
+            if sg_user:
+                self._user_details_by_id[sg_user["id"]] = sg_user
         return sg_user
         
     def _get_file_last_modified_user(self, path):
@@ -703,50 +718,60 @@ class WorkFiles(object):
         if not self._work_area_template:
             return
         
+        # find 'user' keys to skip when looking for sandboxes:
+        user_keys = ["HumanUser"]
+        for key in self._work_area_template.keys.values():
+            if key.shotgun_entity_type == "HumanUser":
+                user_keys.append(key.name)
+        
         # use the fields for the current context to get a list of work area paths:
+        self._app.log_debug("Searching for user sandbox paths skipping keys: %s" % user_keys)
         fields = self._context.as_template_fields(self._work_area_template)
-        work_area_paths = self._app.tank.paths_from_template(self._work_area_template, fields, ["HumanUser"])
+        work_area_paths = self._app.tank.paths_from_template(self._work_area_template, fields, user_keys)
         
         # from paths, find a unique list of user's:
-        users = set()
+        user_ids = set()
         for path in work_area_paths:
-            
-            fields = self._work_area_template.get_fields(path)
-            user = fields.get("HumanUser")
+            # to find the user, we have to construct a context
+            # from the path and then inspect the user from this
+            path_ctx = self._app.tank.context_from_path(path)
+            user = path_ctx.user
             if user: 
-                users.add(user)
+                user_ids.add(user["id"])
         
-        # first look for details in cache:
+        # now look for user details in cache:
         user_details = []
         users_to_fetch = []
-        for user in users:
-            details = self._user_details_cache.get(user)
+        for user_id in user_ids:
+            details = self._user_details_by_id.get(user_id)
             if details is None:
-                users_to_fetch.append(user)
+                users_to_fetch.append(user_id)
             else:
                 if details:
                     user_details.append(details)
-                
+             
         if users_to_fetch:
             # get remaining details from shotgun:
-            filter = ["login", "in"] + list(users_to_fetch)
+            filter = ["id", "in"] + list(users_to_fetch)
             search_fields = ["id", "type", "email", "login", "name", "image"]
             sg_users = self._app.shotgun.find("HumanUser", [filter], search_fields)
 
             users_found = set()
             for sg_user in sg_users:
-                login = sg_user.get("login")
-                if login not in users_to_fetch:
+                user_id = sg_user.get("id")
+                if user_id not in users_to_fetch:
                     continue
                 
-                self._user_details_cache[login] = sg_user
+                # add to cache:
+                self._user_details_by_id[user_id] = sg_user
+                self._user_details_by_login[sg_user["login"]] = sg_user
                 user_details.append(sg_user)
-                users_found.add(login)
+                users_found.add(user_id)
             
             # and fill in any blanks so we don't bother searching again:
             for user in users_to_fetch:
-                if user not in users_found:
-                    self._user_details_cache[user] = {}
+                if user_id not in users_found:
+                    self._user_details_by_id[user_id] = {}
                 
         return user_details
         
