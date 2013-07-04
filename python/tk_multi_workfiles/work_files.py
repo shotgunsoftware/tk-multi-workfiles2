@@ -349,7 +349,6 @@ class WorkFiles(object):
         """
         # create folders:
         ctx_entity = ctx.task or ctx.entity or ctx.project
-        print "Context Entity: %s" % ctx_entity
         self._app.tank.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"), engine=self._app.engine.name)
         
     def _on_open_file(self, file, is_previous_version):
