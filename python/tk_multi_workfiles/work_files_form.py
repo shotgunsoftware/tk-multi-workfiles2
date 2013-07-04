@@ -41,28 +41,38 @@ class WorkFilesForm(QtGui.QWidget):
         # patch up the lines to be the same colour as the font:
         clr = QtGui.QApplication.palette().color(QtGui.QPalette.Text)  
         rgb_str = "rgb(%d,%d,%d)" % (clr.red(), clr.green(), clr.blue())
-          
-        self._ui.entity_line.setFrameShadow(QtGui.QFrame.Plain)
-        self._ui.entity_line.setStyleSheet("#entity_line{color: %s;}" % rgb_str)
-        self._ui.task_line.setFrameShadow(QtGui.QFrame.Plain)
-        self._ui.task_line.setStyleSheet("#task_line{color: %s;}" % rgb_str)
-        
+        self._ui.project_line.setStyleSheet("#project_line{background-color: %s;}" % rgb_str)
+        self._ui.entity_line.setStyleSheet("#entity_line{background-color: %s;}" % rgb_str)
+        self._ui.task_line.setStyleSheet("#task_line{background-color: %s;}" % rgb_str)
+       
         ss = "{font-size: 14pt; border-style: dashed; border-width: 2px; border-radius: 3px; border-color: %s;}" % rgb_str
+        self._ui.no_project_label.setStyleSheet("#no_project_label %s" % ss)
         self._ui.no_task_label.setStyleSheet("#no_task_label %s" % ss)
         self._ui.no_entity_label.setStyleSheet("#no_entity_label %s" % ss)
         
-        self._ui.show_in_fs_label.mousePressEvent = self._on_show_in_fs_mouse_press_event
-        
-        # update the style sheet for the work area form so it
-        # becomes highlighted when hovering over it
-        clr = QtGui.QApplication.palette().color(QtGui.QPalette.Window)
-        clr = clr.lighter() if clr.lightness() < 128 else clr.darker()
-        ss = self._ui.work_area_frame.styleSheet()
-        ss = "%s #work_area_frame:hover {background-color: rgb(%d,%d,%d);}" % (ss, clr.red(), clr.green(), clr.blue())
-        self._ui.work_area_frame.setStyleSheet(ss)
+        # set up the work area depending on if it's possible to change it:
+        if self._handler.can_change_work_area():
+            # update the style sheet for the work area form so it
+            # becomes highlighted when hovering over it
+            clr = QtGui.QApplication.palette().color(QtGui.QPalette.Window)
+            clr = clr.lighter() if clr.lightness() < 128 else clr.darker()
+            ss = self._ui.work_area_frame.styleSheet()
+            ss = "%s #work_area_frame:hover {background-color: rgb(%d,%d,%d);}" % (ss, clr.red(), clr.green(), clr.blue())
+            self._ui.work_area_frame.setStyleSheet(ss)
+            
+            self._ui.work_area_frame.setCursor(QtCore.Qt.PointingHandCursor)
+            self._ui.work_area_frame.setToolTip("Click to Change Work Area...")
+            self._ui.no_change_frame.setVisible(False)
+            
+            self._ui.work_area_frame.mousePressEvent = self._on_work_area_mouse_press_event
+        else:
+            self._ui.work_area_frame.setCursor(QtCore.Qt.ArrowCursor)
+            self._ui.work_area_frame.setToolTip("The Work Area is locked and cannot be changed")
+            self._ui.no_change_frame.setVisible(True)
         
         # connect up controls:
-        self._ui.work_area_frame.mousePressEvent = self._on_work_area_mouse_press_event
+        self._ui.show_in_fs_label.mousePressEvent = self._on_show_in_fs_mouse_press_event
+            
         self._ui.filter_combo.currentIndexChanged.connect(self._on_filter_selection_changed)
 
         self._ui.open_file_btn.clicked.connect(self._on_open_file)
@@ -261,100 +271,137 @@ class WorkFilesForm(QtGui.QWidget):
         """
         A lot of this should be done in a worker thread!
         """
-        # load and update entity & task details:
-        task_header = "Task: -"
-        task_details = ""
-        task_thumbnail = QtGui.QPixmap()#":/res/thumb_empty.png")
-                    
-        if ctx and ctx.entity:
-            # work area defined - yay!
-            self._ui.entity_pages.setCurrentWidget(self._ui.entity_page)
-            
+        if ctx and ctx.project:
+            # context has a project - that's something at least!
+            self._ui.project_pages.setCurrentWidget(self._ui.project_page)
+
             # get additional details:
             sg_details = {}
             try:
-                sg_details = self._app.shotgun.find_one(ctx.entity["type"], 
-                                                        [["project", "is", ctx.project], ["id", "is", ctx.entity["id"]]], 
-                                                        ["description", "image", "code"])
+                sg_details = self._app.shotgun.find_one("Project", 
+                                                        [["id", "is", ctx.project["id"]]], 
+                                                        ["description", "image", "code"])# (AD) - TODO - check fields
             except:
                 pass
-
+            
             # header:
-            entity_type_name = tank.util.get_entity_type_display_name(self._app.tank, ctx.entity.get("type"))
-            entity_name = ctx.entity.get("name") or sg_details.get("code")
-            self._ui.entity_label.setText("%s: %s" % (entity_type_name, entity_name or "-"))
-            self._ui.entity_label.setToolTip("%s" % (entity_name or ""))
+            project_name = ctx.project.get("name") or sg_details.get("code")
+            self._ui.project_label.setText("Project: %s" % (project_name or "-"))
+            self._ui.project_frame.setToolTip("%s" % (project_name or ""))
             
             # thumbnail:
-            entity_thumbnail = QtGui.QPixmap()
-            entity_img_url = sg_details.get("image")
-            if entity_img_url:
-                thumbnail_path = self._download_thumbnail(entity_img_url)
+            project_thumbnail = QtGui.QPixmap()
+            project_img_url = sg_details.get("image")
+            if project_img_url:
+                thumbnail_path = self._download_thumbnail(project_img_url)
                 if thumbnail_path:
-                    entity_thumbnail = QtGui.QPixmap(thumbnail_path)
-            self._set_thumbnail(self._ui.entity_thumbnail, entity_thumbnail)
+                    project_thumbnail = QtGui.QPixmap(thumbnail_path)
+            self._set_thumbnail(self._ui.project_thumbnail, project_thumbnail)
                                 
             # description:
-            desc = sg_details.get("description") or ("<i>No description was entered for this %s</i>" % entity_type_name)
-            self._ui.entity_description.setText(desc)
-
-            # task:
-            if ctx.task:
-                # have a task - double yay!!
-                self._ui.task_pages.setCurrentWidget(self._ui.task_page)
-
+            desc = sg_details.get("description") or "<i>No description was entered for this Project</i>"
+            self._ui.project_description.setText(desc)
+                
+            if ctx.entity:
+                # work area defined - yay!
+                self._ui.entity_pages.setCurrentWidget(self._ui.entity_page)
+                self._ui.entity_pages.setVisible(True)
+                
                 # get additional details:
                 sg_details = {}
                 try:
-                    sg_details = self._app.shotgun.find_one("Task", 
-                                                            [["project", "is", ctx.project], ["id", "is", ctx.task["id"]]], 
-                                                            ["task_assignees", "step.Step.code", "content"])
-                except Exception, e:
+                    sg_details = self._app.shotgun.find_one(ctx.entity["type"], 
+                                                            [["project", "is", ctx.project], ["id", "is", ctx.entity["id"]]], 
+                                                            ["description", "image", "code"])
+                except:
                     pass
-                
+    
                 # header:
-                task_name = ctx.task.get("name") or sg_details.get("content")
-                self._ui.task_label.setText("Task: %s" % (task_name or "-"))
-                self._ui.task_label.setToolTip("%s" % (task_name or ""))
+                entity_type_name = tank.util.get_entity_type_display_name(self._app.tank, ctx.entity.get("type"))
+                entity_name = ctx.entity.get("name") or sg_details.get("code")
+                self._ui.entity_label.setText("%s: %s" % (entity_type_name, entity_name or "-"))
+                self._ui.entity_frame.setToolTip("%s" % (entity_name or ""))
                 
                 # thumbnail:
-                task_thumbnail = QtGui.QPixmap()
-                task_assignees = sg_details.get("task_assignees", [])
-                if len(task_assignees) > 0:
-                    user_id = task_assignees[0]["id"]
-                    
-                    sg_user_details = {}
+                entity_thumbnail = QtGui.QPixmap()
+                entity_img_url = sg_details.get("image")
+                if entity_img_url:
+                    thumbnail_path = self._download_thumbnail(entity_img_url)
+                    if thumbnail_path:
+                        entity_thumbnail = QtGui.QPixmap(thumbnail_path)
+                self._set_thumbnail(self._ui.entity_thumbnail, entity_thumbnail)
+                                    
+                # description:
+                desc = sg_details.get("description") or ("<i>No description was entered for this %s</i>" % entity_type_name)
+                self._ui.entity_description.setText(desc)
+    
+                # task:
+                if ctx.task:
+                    # have a task - double yay!!
+                    self._ui.task_pages.setCurrentWidget(self._ui.task_page)
+                    self._ui.task_pages.setVisible(True)
+    
+                    # get additional details:
+                    sg_details = {}
                     try:
-                        sg_user_details = self._app.shotgun.find_one("HumanUser", [["id", "is", user_id]], ["image"])
+                        sg_details = self._app.shotgun.find_one("Task", 
+                                                                [["project", "is", ctx.project], ["id", "is", ctx.task["id"]]], 
+                                                                ["task_assignees", "step.Step.code", "content"])
                     except Exception, e:
                         pass
                     
-                    img_url = sg_user_details.get("image")
-                    if img_url:
-                        thumbnail_path = self._download_thumbnail(img_url)
-                        if thumbnail_path:
-                            task_thumbnail = QtGui.QPixmap(thumbnail_path)
-                            
-                self._set_thumbnail(self._ui.task_thumbnail, task_thumbnail)
-                
-                # details
-                assignees = []
-                for assignee in sg_details.get("task_assignees", []):
-                    name = assignee.get("name")
-                    if name:
-                        assignees.append(name)
-                assignees_str = ", ".join(assignees) if assignees else "-"
-                step_str = sg_details.get("step.Step.code")
-                if step_str is None:
-                    step_str = "-"
-                self._ui.task_details.setText("Assigned to: %s<br>Pipeline Step: %s" % (assignees_str, step_str))
-                
+                    # header:
+                    task_name = ctx.task.get("name") or sg_details.get("content")
+                    self._ui.task_label.setText("Task: %s" % (task_name or "-"))
+                    self._ui.task_frame.setToolTip("%s" % (task_name or ""))
+                    
+                    # thumbnail:
+                    task_thumbnail = QtGui.QPixmap()
+                    task_assignees = sg_details.get("task_assignees", [])
+                    if len(task_assignees) > 0:
+                        user_id = task_assignees[0]["id"]
+                        
+                        sg_user_details = {}
+                        try:
+                            sg_user_details = self._app.shotgun.find_one("HumanUser", [["id", "is", user_id]], ["image"])
+                        except Exception, e:
+                            pass
+                        
+                        img_url = sg_user_details.get("image")
+                        if img_url:
+                            thumbnail_path = self._download_thumbnail(img_url)
+                            if thumbnail_path:
+                                task_thumbnail = QtGui.QPixmap(thumbnail_path)
+                                
+                    self._set_thumbnail(self._ui.task_thumbnail, task_thumbnail)
+                    
+                    # details
+                    assignees = []
+                    for assignee in sg_details.get("task_assignees", []):
+                        name = assignee.get("name")
+                        if name:
+                            assignees.append(name)
+                    assignees_str = ", ".join(assignees) if assignees else "-"
+                    step_str = sg_details.get("step.Step.code")
+                    if step_str is None:
+                        step_str = "-"
+                    self._ui.task_description.setText("Assigned to: %s<br>Pipeline Step: %s" % (assignees_str, step_str))
+                    
+                else:
+                    # task not chosen
+                    if not self._handler.can_change_work_area():
+                        self._ui.task_pages.setVisible(False)
+                    else:
+                        self._ui.task_pages.setCurrentWidget(self._ui.no_task_page)
             else:
-                # task not chosen
-                self._ui.task_pages.setCurrentWidget(self._ui.no_task_page)         
+                # no entity defined!
+                if not self._handler.can_change_work_area():
+                    self._ui.entity_pages.setVisible(False)
+                else:
+                    self._ui.entity_pages.setCurrentWidget(self._ui.no_entity_page)
         else:
-            # no work area defined!
-            self._ui.entity_pages.setCurrentWidget(self._ui.no_entity_page)
+            # no project defined!
+            self._ui.project_pages.setCurrentWidget(self._ui.no_project_page)
         
     def _set_thumbnail(self, ctrl, pm):
         """

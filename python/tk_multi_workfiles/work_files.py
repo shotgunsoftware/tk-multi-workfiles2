@@ -26,6 +26,8 @@ class WorkFiles(object):
         self._user_details_by_id = {}
         self._user_details_by_login = {}
         
+        self._can_change_workarea = (len(self._app.get_setting("sg_entity_types", [])) > 0)
+        
         # set up the work area from the app:
         self._context = None
         self._configuration_is_valid = False
@@ -45,9 +47,12 @@ class WorkFiles(object):
         """
         Show the main tank file manager dialog 
         """
-        
-        from .work_files_form import WorkFilesForm
-        self._workfiles_ui = self._app.engine.show_dialog("Shotgun File Manager", self._app, WorkFilesForm, self._app, self)
+        try:
+            from .work_files_form import WorkFilesForm
+            self._workfiles_ui = self._app.engine.show_dialog("Shotgun File Manager", self._app, WorkFilesForm, self._app, self)
+        except:
+            self._app.log_exception("Failed to create File Manager dialog!")
+            return
 
         # hook up signals:
         self._workfiles_ui.open_file.connect(self._on_open_file)
@@ -258,16 +263,28 @@ class WorkFiles(object):
         QtGui.QDesktopServices.openUrl(QtCore.QUrl(url))
         
     def have_valid_configuration_for_work_area(self):
+        """
+        Returns True if the configuration for the
+        current work area is valid
+        """
         return self._configuration_is_valid
+        
+    def can_change_work_area(self):
+        """
+        Returns True if the work area can 
+        be changed        
+        """
+        return self._can_change_workarea
         
     def can_do_new_file(self):
         """
         Do some validation to see if it's possible to
         start a new file with the selected context.
         """
-        if (not self._context
-            or not self._context.entity 
-            or not self._work_area_template):
+        can_do_new = (self._context != None 
+                      and (self._context.entity or self._context.project)
+                      and self._work_area_template != None)
+        if not can_do_new:
             return False
         
         # ensure that context contains everything required by the work area template:
@@ -331,7 +348,8 @@ class WorkFiles(object):
         Create folders for specified context
         """
         # create folders:
-        ctx_entity = ctx.task if ctx.task else ctx.entity
+        ctx_entity = ctx.task or ctx.entity or ctx.project
+        print "Context Entity: %s" % ctx_entity
         self._app.tank.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"), engine=self._app.engine.name)
         
     def _on_open_file(self, file, is_previous_version):
@@ -458,7 +476,7 @@ class WorkFiles(object):
                     return
 
         # get best context we can for file:
-        ctx_entity = file.task if file.task else file.entity
+        ctx_entity = file.task or file.entity or self._context.project
         new_ctx = self._app.tank.context_from_entity(ctx_entity.get("type"), ctx_entity.get("id"))
 
         if not work_path or not new_ctx:
@@ -685,7 +703,7 @@ class WorkFiles(object):
         """
         
         # get list of published files for entity:
-        filters = [["entity", "is", self._context.entity]]
+        filters = [["entity", "is", self._context.entity or self._context.project]]
         if self._context.task:
             filters.append(["task", "is", self._context.task])
         

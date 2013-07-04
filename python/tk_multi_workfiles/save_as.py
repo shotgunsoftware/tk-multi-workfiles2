@@ -131,10 +131,10 @@ class SaveAs(object):
         path - assumes all validity checking has already
         been done
         """
-        
         # always try to create folders:
-        ctx_entity = self._app.context.task if self._app.context.task else self._app.context.entity
-        self._app.tank.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"))
+        ctx_entity = self._app.context.task or self._app.context.entity or self._app.context.project
+        if ctx_entity:
+            self._app.tank.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"))
         
         # and save the current file as the new path:
         self._save_current_file_as(new_path)

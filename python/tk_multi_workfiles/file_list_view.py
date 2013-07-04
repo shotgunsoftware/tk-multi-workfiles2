@@ -19,6 +19,8 @@ class FileListView(browser_widget.BrowserWidget):
     open_previous_version = QtCore.Signal(WorkFile)
     view_in_shotgun = QtCore.Signal(WorkFile)
     
+    NO_TASK_NAME = "No Task"
+    
     def __init__(self, parent=None):
         """
         Construction
@@ -45,16 +47,17 @@ class FileListView(browser_widget.BrowserWidget):
         
         handler = data["handler"]
         user = data.get("user")
-        show_local = data.get("show_local")
-        show_publishes = data.get("show_publishes")
+        show_local = data.get("show_local", False)
+        show_publishes = data.get("show_publishes", False)
 
         # get some additional info from the handler:
         ctx = handler.get_current_work_area()
         
         result["can_do_new_file"] = handler.can_do_new_file()
-        result["have_valid_workarea"] = (ctx and ctx.entity)
+        result["have_valid_workarea"] = (ctx and (ctx.entity or ctx.project))
         result["have_valid_configuration"] = handler.have_valid_configuration_for_work_area()
         result["current_task_name"] = ctx.task.get("name") if ctx and ctx.task else None
+        result["can_change_work_area"] = handler.can_change_work_area()
         
         if result["have_valid_workarea"] and result["have_valid_configuration"]:
         
@@ -69,7 +72,7 @@ class FileListView(browser_widget.BrowserWidget):
             task_groups = {}
             for file in files:
                 # first level is task group
-                task_name = file.task.get("name") if file.task else "No Task"
+                task_name = file.task.get("name") if file.task else FileListView.NO_TASK_NAME
                 task_group = task_groups.setdefault(task_name, dict())
                 
                 # next level is name:
@@ -148,23 +151,36 @@ class FileListView(browser_widget.BrowserWidget):
         if not task_groups:
             # build a useful error message using the info we have available:
             msg = ""
-            if not result["have_valid_workarea"]:
-                msg = "Please select a Work Area to begin..."
-            elif not result["have_valid_configuration"]:
-                msg = ("Shotgun File Manager has not been configured for the environment "
-                       "being used by the selected Work Area!\n"
-                       "Please choose a different Work Area to continue.")
-            elif not result["can_do_new_file"]:
-                msg = "Couldn't find any files in this Work Area!\nTry selecting a different Work Area."
+            if not result["can_change_work_area"]:
+                if not result["have_valid_workarea"]:
+                    msg = "The current Work Area is not valid!"
+                elif not result["have_valid_configuration"]:
+                    msg = ("Shotgun File Manager has not been configured for the environment "
+                           "being used by the selected Work Area!")
+                elif not result["can_do_new_file"]:
+                    msg = "Couldn't find any files in this Work Area!"
+                else:
+                    msg = "Couldn't find any files!\nClick the New file button to start work."
             else:
-                msg = "Couldn't find any files!\nClick the New file button to start work."
-            
+                if not result["have_valid_workarea"]:
+                    msg = "The current Work Area is not valid!"
+                elif not result["have_valid_configuration"]:
+                    msg = ("Shotgun File Manager has not been configured for the environment "
+                           "being used by the selected Work Area!\n"
+                           "Please choose a different Work Area to continue.")
+                elif not result["can_do_new_file"]:
+                    msg = "Couldn't find any files in this Work Area!\nTry selecting a different Work Area."
+                else:
+                    msg = "Couldn't find any files!\nClick the New file button to start work."
             self.set_message(msg)
             return
         
         for task_name, name_groups in task_groups.iteritems():
         
-            if len(task_groups) > 1 or task_name != current_task_name:
+            if (len(task_groups) > 1 
+                or (task_name != current_task_name
+                    and task_name != FileListView.NO_TASK_NAME 
+                    and current_task_name == None)):
                 # add header for task:
                 h = self.add_item(browser_widget.ListHeader)
                 h.set_title("%s" % (task_name))

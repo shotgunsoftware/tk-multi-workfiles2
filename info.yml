@@ -39,6 +39,7 @@ configuration:
         default_value: [Shot, Asset]
         values:
             type: shotgun_entity_type
+        allows_empty: True
            
     hook_scene_operation:
         type: hook
