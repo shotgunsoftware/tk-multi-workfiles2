@@ -94,7 +94,5 @@ class SceneOperation(Hook):
             # do new file:    
             cmds.file(newFile=True, force=True)
             return True
-        else:
-            raise TankError("Don't know how to perform scene operation '%s'" % operation)
 
 

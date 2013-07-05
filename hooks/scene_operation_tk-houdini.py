@@ -52,5 +52,3 @@ class SceneOperation(Hook):
         elif operation == "reset":
             hou.hipFile.clear()
             return True
-        else:
-            raise TankError("Don't know how to perform scene operation '%s'" % operation)

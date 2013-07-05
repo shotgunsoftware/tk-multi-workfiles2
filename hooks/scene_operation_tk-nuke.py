@@ -98,8 +98,6 @@ class SceneOperation(Hook):
             nuke.scriptClear()
             
             return True
-        else:
-            raise TankError("Don't know how to perform scene operation '%s'" % operation)
         
         
     def _reset_write_node_render_paths(self):

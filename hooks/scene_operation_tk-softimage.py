@@ -74,5 +74,3 @@ class SceneOperation(Hook):
                 return False
             else:
                 return True
-        else:
-            raise TankError("Don't know how to perform scene operation '%s'" % operation)

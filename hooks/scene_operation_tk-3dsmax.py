@@ -67,7 +67,5 @@ class SceneOperation(Hook):
             mxs.resetMAXFile(mxs.pyhelper.namify("noPrompt"))
             
             return True
-        else:
-            raise TankError("Don't know how to perform scene operation '%s'" % operation)
 
 
