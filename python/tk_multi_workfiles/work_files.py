@@ -718,7 +718,9 @@ class WorkFiles(object):
         
         publish_files = {}
         for sg_file in sg_published_files:
-
+            if not sg_file.get("path"):
+                continue
+            
             path = sg_file.get("path").get("local_path")
 
             # make sure path matches publish template:            
