@@ -88,10 +88,8 @@ class Versioning(object):
                     # ok, so change version:
                     try:
                         self.change_work_file_version(work_path, new_version)
-                    except TankError, e:
-                        QtGui.QMessageBox.critical(None, "Failure", "Version up of scene failed!\n\n%s" % e)
-                        continue
                     except Exception, e:
+                        QtGui.QMessageBox.critical(None, "Failure", "Version up of scene failed!\n\n%s" % e)
                         self._app.log_exception("Something went wrong while changing the version!")
                         continue
 
@@ -177,17 +175,38 @@ class Versioning(object):
         # do save-as:
         self._save_current_file_as(new_work_file)
         
+    def _do_scene_operation(self, operation, path=None, result_type=None):
+        """
+        Do the specified scene operation with the specified args
+        """
+        result = None
+        try:
+            result = self._app.execute_hook("hook_scene_operation", operation=operation, file_path=path, context=self._app.context)     
+        except TankError, e:
+            # deliberately filter out exception that used to be thrown 
+            # from the scene operation hook but has since been removed
+            if not str(e).startswith("Don't know how to perform scene operation '"):
+                # just re-raise the exception:
+                raise
+            
+        # validate the result if needed:
+        if result_type and (result == None or not isinstance(result, result_type)):
+            raise TankError("Unexpected type returned from 'hook_scene_operation' for operation '%s' - expected '%s' but returned '%s'" 
+                            % (operation, result_type.__name__, type(result).__name__))
+        
+        return result
+        
     def _save_current_file_as(self, path):
         """
         Use hook to get the current work/scene file path
         """
-        self._app.execute_hook("hook_scene_operation", operation="save_as", file_path=path, context = self._app.context)
+        self._do_scene_operation("save_as", path)
         
     def _get_current_file_path(self):
         """
         Use hook to get the current work/scene file path
         """
-        return self._app.execute_hook("hook_scene_operation", operation="current_path", file_path="", context = self._app.context)
+        return self._do_scene_operation("current_path", result_type=basestring)
         
     def _get_published_file_paths_for_context(self, ctx):
         """

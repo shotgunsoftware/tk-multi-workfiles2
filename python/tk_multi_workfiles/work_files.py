@@ -294,36 +294,65 @@ class WorkFiles(object):
         
         return True
         
+    def _do_scene_operation(self, operation, path=None, result_type=None):
+        """
+        Do the specified scene operation with the specified args
+        """
+        result = None
+        try:
+            result = self._app.execute_hook("hook_scene_operation", operation=operation, file_path=path, context=self._context)     
+        except TankError, e:
+            # deliberately filter out exception that used to be thrown 
+            # from the scene operation hook but has since been removed
+            if not str(e).startswith("Don't know how to perform scene operation '"):
+                # just re-raise the exception:
+                raise
+            
+        # validate the result if needed:
+        if result_type and (result == None or not isinstance(result, result_type)):
+            raise TankError("Unexpected type returned from 'hook_scene_operation' for operation '%s' - expected '%s' but returned '%s'" 
+                            % (operation, result_type.__name__, type(result).__name__))
+        
+        return result
+        
     def _reset_current_scene(self):
         """
         Use hook to clear the current scene
         """
-        res = self._app.execute_hook("hook_scene_operation", operation="reset", file_path=None, context = self._context)
-        if res == None or not isinstance(res, bool):
-            raise TankError("Unexpected type returned from 'hook_scene_operation' - expected 'bool' but returned '%s'" % type(res).__name__)
-        return res
-    
+        self._app.log_debug("Resetting the current scene via hook")
+        return self._do_scene_operation("reset", result_type=bool)
+        
+    def _prepare_new_scene(self):
+        """
+        Use the hook to do any preperation for
+        the new scene
+        """
+        self._app.log_debug("Preparing the new scene via hook")
+        return self._do_scene_operation("prepare_new")
+        
     def _open_file(self, path):
         """
         Use hook to open the specified file.
         """
         # do open:
-        self._app.execute_hook("hook_scene_operation", operation="open", file_path=path, context = self._context)
-        
-    def _copy_file(self, source_path, target_path):
-        """
-        Use hook to copy a file from source to target path
-        """
-        self._app.execute_hook("hook_copy_file", 
-                               source_path=source_path, 
-                               target_path=target_path)
+        self._app.log_debug("Opening file '%s' via hook" % path)
+        self._do_scene_operation("open", path)
         
     def _save_file(self):
         """
         Use hook to save the current file
         """
-        self._app.log_debug("Saving the current file...")
-        self._app.execute_hook("hook_scene_operation", operation="save", file_path=None, context = self._context)
+        self._app.log_debug("Saving the current file with hook")
+        self._do_scene_operation("save")        
+        
+    def _copy_file(self, source_path, target_path):
+        """
+        Use hook to copy a file from source to target path
+        """
+        self._app.log_debug("Copying file '%s' to '%s' via hook" % (source_path, target_path))
+        self._app.execute_hook("hook_copy_file", 
+                               source_path=source_path, 
+                               target_path=target_path)
         
     def _restart_engine(self, ctx):
         """
@@ -406,11 +435,9 @@ class WorkFiles(object):
                             
                             # construct the local path from these fields:
                             local_path = self._work_template.apply_fields(fields)                     
-                        except TankError, e:
+                        except Exception, e:
                             QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to resolve file path", 
                                                    "Failed to resolve the user sandbox file path:\n\n%s\n\nto the local path:\n\n%s\n\nUnable to open file!" % (work_path, e))
-                            return
-                        except Exception, e:
                             self._app.log_exception("Failed to resolve user sandbox file path %s" % work_path)
                             return
                 
@@ -461,11 +488,9 @@ class WorkFiles(object):
                     
                     # construct work path:
                     work_path = self._work_template.apply_fields(fields)
-                except TankError, e:
+                except Exception, e:
                     QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to get work file path", 
                                            "Failed to resolve work file path from publish path:\n\n%s\n\n%s\n\nUnable to open file!" % (src_path, e))
-                    return
-                except Exception, e:
                     self._app.log_exception("Failed to resolve work file path from publish path: %s" % src_path)
                     return
                 
@@ -494,11 +519,9 @@ class WorkFiles(object):
             # if we need to
             try:
                 self._create_folders(new_ctx)
-            except TankError, e:
+            except Exception, e:
                 QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to create folders!", 
                                            "Failed to create folders:\n\n%s!" % e)
-                return
-            except Exception, e:
                 self._app.log_exception("Failed to create folders")
                 return
         
@@ -516,11 +539,9 @@ class WorkFiles(object):
             try:
                 # copy file:
                 self._copy_file(src_path, work_path)
-            except TankError, e:
+            except Exception, e:
                 QtGui.QMessageBox.critical(self._workfiles_ui, "Copy file failed!", 
                                            "Copy of file failed!\n\n%s!" % e)
-                return
-            except Exception, e:
                 self._app.log_exception("Copy file failed")
                 return            
                     
@@ -534,23 +555,19 @@ class WorkFiles(object):
             if not new_ctx == self._app.context:
                 # restart the engine with the new context
                 self._restart_engine(new_ctx)
-        except TankError, e:
+        except Exception, e:
             QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to change work area", 
                                        "Failed to change the work area to '%s':\n\n%s\n\nUnable to continue!" % (new_ctx, e))
-            return
-        except Exception, e:
             self._app.log_exception("Failed to set work area to %s!" % new_ctx)
             return
 
         # open file
         try:
             self._open_file(work_path)
-        except TankError, e:
+        except Exception, e:
             QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to open file", 
                                        "Failed to open file\n\n%s\n\n%s" % (work_path, e))
-            return
-        except Exception, e:
-            self._app.log_exception("Failed to open file %s!" % work_path)
+            self._app.log_exception("Failed to open file %s!" % work_path)    
             return
         
         # close work files UI as it will no longer
@@ -581,16 +598,17 @@ class WorkFiles(object):
             if not self._reset_current_scene():
                 self._app.log_debug("Unable to perform New Scene operation after failing to reset scene!")
                 return
+            
+            # prepare the new scene:
+            self._prepare_new_scene()
 
             if not self._context == self._app.context:            
                 # restart the engine with the new context
                 self._restart_engine(self._context)
-        except TankError, e:
-            QtGui.QMessageBox.information(self._workfiles_ui, "Something went wrong!", 
-                                       "Something went wrong:\n\n%s!" % e)
-            return
         except Exception, e:
-            self._app.log_exception("Failed to do new file")
+            QtGui.QMessageBox.information(self._workfiles_ui, "Failed to complete new file operation!", 
+                                       "Failed to complete new file operation:\n\n%s!" % e)
+            self._app.log_exception("Failed to complete new file operation")
             return
 
         # close work files UI:
