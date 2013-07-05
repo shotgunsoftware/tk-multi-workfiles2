@@ -46,7 +46,7 @@ class SceneOperation(Hook):
 
         elif operation == "open":
             # open the specified script
-            hiero.core.openProject(file_path)
+            hiero.core.openProject(file_path.replace(os.path.sep, "/"))
         
         elif operation == "save":
             # save the current script:
@@ -55,7 +55,7 @@ class SceneOperation(Hook):
         
         elif operation == "save_as":
             project = self._get_current_project()
-            project.saveAs(file_path)
+            project.saveAs(file_path.replace(os.path.sep, "/"))
 
         elif operation == "reset":
             # do nothing and indicate scene was reset to empty
