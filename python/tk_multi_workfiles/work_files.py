@@ -487,7 +487,7 @@ class WorkFiles(object):
             # can't do anything!
             return
            
-        if new_ctx != self._app.context:
+        if not new_ctx == self._app.context:
             # ensure folders exist.  This serves the
             # dual purpose of populating the path
             # cache and ensuring we can copy the file
@@ -531,7 +531,7 @@ class WorkFiles(object):
                 self._app.log_debug("Unable to perform New Scene operation after failing to reset scene!")
                 return
             
-            if new_ctx != self._app.context:
+            if not new_ctx == self._app.context:
                 # restart the engine with the new context
                 self._restart_engine(new_ctx)
         except TankError, e:
@@ -573,7 +573,7 @@ class WorkFiles(object):
         """
         # switch context
         try:
-            if self._context != self._app.context:
+            if not self._context == self._app.context:
                 # ensure folders exist:
                 self._create_folders(self._context)
 
@@ -582,7 +582,7 @@ class WorkFiles(object):
                 self._app.log_debug("Unable to perform New Scene operation after failing to reset scene!")
                 return
 
-            if self._context != self._app.context:            
+            if not self._context == self._app.context:            
                 # restart the engine with the new context
                 self._restart_engine(self._context)
         except TankError, e:
