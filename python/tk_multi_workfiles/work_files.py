@@ -37,7 +37,7 @@ class WorkFiles(object):
         self._publish_area_template = None
         
         initial_ctx = self._app.context
-        if not initial_ctx or not initial_ctx:
+        if not initial_ctx:
             # TODO: load from setting
             pass
         
@@ -322,6 +322,7 @@ class WorkFiles(object):
         """
         Use hook to save the current file
         """
+        self._app.log_debug("Saving the current file...")
         self._app.execute_hook("hook_scene_operation", operation="save", file_path=None, context = self._context)
         
     def _restart_engine(self, ctx):
@@ -330,6 +331,8 @@ class WorkFiles(object):
         clear the current scene and restart the
         current engine with the specified context
         """
+        self._app.log_debug("Restarting the engine...")
+        
         # restart engine:        
         try:
             current_engine_name = self._app.engine.name
@@ -347,6 +350,8 @@ class WorkFiles(object):
         """
         Create folders for specified context
         """
+        self._app.log_debug("Creating folders for context %s" % ctx)
+        
         # create folders:
         ctx_entity = ctx.task or ctx.entity or ctx.project
         self._app.tank.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"), engine=self._app.engine.name)
@@ -630,30 +635,31 @@ class WorkFiles(object):
         """
         Update the current work area being used
         """
-        if self._context != ctx:
+        if ctx == self._context:
+            return
             
-            # update templates for the new context:
-            templates = {}
-            try:
-                templates = self._get_templates_for_context(ctx, ["template_work", 
-                                                                  "template_work_area", 
-                                                                  "template_publish",
-                                                                  "template_publish_area"])
-            except TankError, e:
-                # had problems getting the work file settings for the specified context!
-                self._app.log_debug(e)
-                self._configuration_is_valid = False
-            else:
-                self._configuration_is_valid = True
-            
-            #if templates is not None:
-            self._work_template = templates.get("template_work")
-            self._work_area_template = templates.get("template_work_area")
-            self._publish_template = templates.get("template_publish")
-            self._publish_area_template = templates.get("template_publish_area")
-            self._context = ctx
+        # update templates for the new context:
+        templates = {}
+        try:
+            templates = self._get_templates_for_context(ctx, ["template_work", 
+                                                              "template_work_area", 
+                                                              "template_publish",
+                                                              "template_publish_area"])
+        except TankError, e:
+            # had problems getting the work file settings for the specified context!
+            self._app.log_debug(e)
+            self._configuration_is_valid = False
+        else:
+            self._configuration_is_valid = True
+        
+        #if templates is not None:
+        self._work_template = templates.get("template_work")
+        self._work_area_template = templates.get("template_work_area")
+        self._publish_template = templates.get("template_publish")
+        self._publish_area_template = templates.get("template_publish_area")
+        self._context = ctx
                     
-            # TODO: validate templates?
+        # TODO: validate templates?
     
         
     def _get_user_details(self, login_name):
