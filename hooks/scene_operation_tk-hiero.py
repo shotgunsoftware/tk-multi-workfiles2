@@ -7,7 +7,7 @@ import os
 import hiero.core
 
 from tank import Hook
-
+from tank import TankError
 
 class SceneOperation(Hook):
     """
@@ -75,14 +75,14 @@ class SceneOperation(Hook):
         selection = self.parent.engine.get_menu_selection()
 
         if len(selection) != 1:
-            raise Exception("Please select a single Project!")
+            raise TankError("Please select a single Project!")
         
         if not isinstance(selection[0] , hiero.core.Bin):
-            raise Exception("Please select a Hiero Project!")
+            raise TankError("Please select a Hiero Project!")
             
         project = selection[0].project()
         if project is None:
             # apparently bins can be without projects (child bins I think)
-            raise Exception("Please select a Hiero Project!")
+            raise TankError("Please select a Hiero Project!")
          
         return project
