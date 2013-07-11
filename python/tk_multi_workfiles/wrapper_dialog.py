@@ -8,6 +8,15 @@ import tank
 from tank.platform.qt import QtCore, QtGui 
 
 class WrapperDialog(QtGui.QDialog):
+
+    @staticmethod
+    def show_modal(widget, title=None, fixed_size=None, parent=None):
+        dlg = WrapperDialog(widget, title, fixed_size, parent)
+        try:
+            return dlg.exec_()
+        finally:
+            dlg.clean_up()
+    
     def __init__(self, widget, title=None, fixed_size=None, parent=None):
         QtGui.QDialog.__init__(self, parent)
         
@@ -24,13 +33,17 @@ class WrapperDialog(QtGui.QDialog):
         if fixed_size:
             self.setFixedSize(fixed_size)
     
+    def clean_up(self):
+        # ensure that dialog is safey cleaned up when running nuke on a Mac
+        if sys.platform == "darwin" and tank.platform.current_engine().name == "tk-nuke":
+            self.deleteLater()
+    
     def __enter__(self):
         return self
         
     def __exit__(self, type, value, traceback):
-        # ensure that dialog is safey cleaned up when running nuke on a Mac
-        if sys.platform == "darwin" and tank.platform.current_engine().name == "tk-nuke":
-            self.deleteLater() 
+        self.clean_up()
+         
     
     def _handle_widget_close(self, event, default_handler):
         """

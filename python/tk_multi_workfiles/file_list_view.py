@@ -16,10 +16,12 @@ from .work_file import WorkFile
 class FileListView(browser_widget.BrowserWidget):
     
     # signals
-    open_previous_version = QtCore.Signal(WorkFile)
+    open_previous_workfile = QtCore.Signal(WorkFile)
+    open_previous_publish = QtCore.Signal(WorkFile)
     view_in_shotgun = QtCore.Signal(WorkFile)
     
     NO_TASK_NAME = "No Task"
+    [WORKFILES_MODE, PUBLISHES_MODE] = range(2)
     
     def __init__(self, parent=None):
         """
@@ -27,16 +29,31 @@ class FileListView(browser_widget.BrowserWidget):
         """
         browser_widget.BrowserWidget.__init__(self, parent)
         
+        self._current_mode = FileListView.WORKFILES_MODE
+        
         # tweak style
         self.title_style = "none"
-        self.set_label("Available Files:")
         
+        self._update_title()  
+    
     @property
-    def selected_file(self):
+    def selected_published_file(self):
         selected_item = self.get_selected_item()
         if selected_item:
-            return selected_item.file
+            return selected_item.published_file
         return None
+
+    @property
+    def selected_work_file(self):
+        selected_item = self.get_selected_item()
+        if selected_item:
+            return selected_item.work_file
+        return None
+    
+    @property
+    def mode(self):
+        return self._current_mode
+    
 
     def get_data(self, data):
         """
@@ -47,9 +64,8 @@ class FileListView(browser_widget.BrowserWidget):
         
         handler = data["handler"]
         user = data.get("user")
-        show_local = data.get("show_local", False)
-        show_publishes = data.get("show_publishes", False)
-
+        mode = data.get("mode", FileListView.WORKFILES_MODE)
+        
         # get some additional info from the handler:
         ctx = handler.get_current_work_area()
         
@@ -58,6 +74,7 @@ class FileListView(browser_widget.BrowserWidget):
         result["have_valid_configuration"] = handler.have_valid_configuration_for_work_area()
         result["current_task_name"] = ctx.task.get("name") if ctx and ctx.task else None
         result["can_change_work_area"] = handler.can_change_work_area()
+        result["mode"] = mode
         
         if result["have_valid_workarea"] and result["have_valid_configuration"]:
         
@@ -65,10 +82,10 @@ class FileListView(browser_widget.BrowserWidget):
             files = handler.find_files(user)
             
             # re-pivot this list of files ready to display:
-            """
-            builds the following structure
-            { task_name : { (file)name : { "files" : { 1:file,2:file, ... }, "thumbnail" : path, ... } } }
-            """            
+            # 
+            # builds the following structure
+            # { task_name : { (file)name : { "files" : { 1:file,2:file, ... }, "thumbnail" : path, ... } } }
+                        
             task_groups = {}
             for file in files:
                 # first level is task group
@@ -96,34 +113,56 @@ class FileListView(browser_widget.BrowserWidget):
                     
                     # find highest version info:
                     local_versions = [f.version for f in files_versions.values() if f.is_local]
-                    if not local_versions and not show_publishes:
+                    if mode == FileListView.WORKFILES_MODE and not local_versions:
+                        # don't have a version of this file to display!
                         continue
                     
                     publish_versions = [f.version for f in files_versions.values() if f.is_published]
-                    if not publish_versions and not show_local:
+                    if mode == FileListView.PUBLISHES_MODE and not publish_versions:
+                        # don't have a version of this file to display!
                         continue
                     
-                    highest_local_version = max(local_versions) if local_versions else -1
-                    highest_publish_version = max(publish_versions) if publish_versions else -1
-                    highest_version = max(highest_local_version, highest_publish_version)
-                    highest_file = files_versions[highest_version]
-                    
-                    details["highest_local_file"] = files_versions[highest_local_version] if highest_local_version >= 0 else None
-                    details["highest_publish_file"] = files_versions[highest_publish_version] if highest_publish_version >= 0 else None
+                    highest_local_version = -1
+                    if local_versions:
+                        highest_local_version = max(local_versions)
+                        details["highest_local_file"] = files_versions[highest_local_version]
+                        
+                    highest_publish_version = -1
+                    if publish_versions:
+                        highest_publish_version = max(publish_versions)
+                        details["highest_publish_file"] = files_versions[highest_publish_version]
                     
                     # find thumbnail to use:
                     sorted_versions = sorted(files_versions.keys(), reverse=True)
                     thumbnail = None
                     for version in sorted_versions:
+                        # skip any versions that are greater than the one we are looking for
+                        # Note: we shouldn't choose a thumbnail for versions that aren't
+                        # going to be displayed so filter these out
+                        if ((mode == FileListView.WORKFILES_MODE and version > highest_local_version)
+                            or (mode == FileListView.PUBLISHES_MODE and version > highest_publish_version)):
+                            continue
                         thumbnail = files_versions[version].thumbnail
                         if thumbnail:
+                            # special case - update the thumbnail!
+                            if mode == FileListView.WORKFILES_MODE and version < highest_local_version:
+                                files_versions[highest_local_version].set_thumbnail(thumbnail)
                             break
                     details["thumbnail"] = thumbnail
                     
-                    # get file modified time so we can order names:
-                    name_modified_pairs.append((name, highest_file.last_modified_time))
-                    
+                    # update group with details:
                     filtered_name_groups[name] = details
+
+                    # determine when this file was last updated (modified or published)
+                    # this is used to sort the files in the list:
+                    last_updated = None
+                    if mode == FileListView.WORKFILES_MODE and highest_local_version >= 0:
+                        last_updated = files_versions[highest_local_version].modified_at
+                    if highest_publish_version >= 0:
+                        published_at = files_versions[highest_publish_version].published_at
+                        last_updated = max(last_updated, published_at) if last_updated else published_at
+                    
+                    name_modified_pairs.append((name, last_updated))
     
                 if not filtered_name_groups:
                     # everything in this group was filtered out!
@@ -147,7 +186,10 @@ class FileListView(browser_widget.BrowserWidget):
         task_groups = result["task_groups"]
         task_name_order = result["task_name_order"]
         current_task_name = result["current_task_name"]
-
+        self._current_mode = result["mode"]
+        
+        self._update_title()
+        
         if not task_groups:
             # build a useful error message using the info we have available:
             msg = ""
@@ -190,27 +232,18 @@ class FileListView(browser_widget.BrowserWidget):
                 details = name_groups[name]
                 
                 files = details["files"]
-                highest_local_file = details["highest_local_file"]
-                highest_publish_file = details["highest_publish_file"]
+                highest_local_file = details.get("highest_local_file")
+                highest_publish_file = details.get("highest_publish_file")
                 thumbnail = details["thumbnail"]
                 
-                # get the primary file to use for this item - this is always the file 
-                # with the highest version from those available and is the one that will
-                # be opened:
-                highest_publish_version = highest_publish_file.version if highest_publish_file else 0
-                highest_local_version = highest_local_file.version if highest_local_file else 0
-                highest_version = max(highest_publish_version, highest_local_version)
-                primary_file = files[highest_version]
-
                 # add new item to list:
-                item = self._add_file_item(primary_file, highest_publish_file, highest_local_file)
+                item = self._add_file_item(highest_publish_file, highest_local_file)
                 if not item:
                     continue
                 
                 # set thumbnail if have one:
                 if thumbnail:
                     item.set_thumbnail(thumbnail)
-
                 
                 # add context menu:
                 item.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
@@ -220,129 +253,146 @@ class FileListView(browser_widget.BrowserWidget):
                     action = QtGui.QAction("View in Shotgun", item)
                     action.triggered.connect(lambda f=highest_publish_file: self._on_show_in_shotgun_action_triggered(f))
                     item.addAction(action)
-                
-                # if have other publish versions then add them to context menu
-                previous_versions = [f.version for f in files.values() if f.version != highest_version]
-                if previous_versions:
 
-                    # sort versions into reverse order:
-                    previous_versions.sort(reverse=True)
+                # build context menu for all publish versions:                
+                published_versions = [f.version for f in files.values() if f.is_published]
+                if published_versions:
                     
-                    # and add first 20 to context menu:
-                    for v in previous_versions[:20]:
+                    published_versions.sort(reverse=True)
+                    
+                    publishes_action = QtGui.QAction("Open Publish Read-Only", item)
+                    publishes_sm = QtGui.QMenu(item)
+                    publishes_action.setMenu(publishes_sm)
+                    item.addAction(publishes_action)    
+                     
+                    for v in published_versions[:20]:
                         f = files[v]
-                        msg = ""
-                        if f.is_local:
-                            msg = ("Open Work File Version v%03d" % f.version)
-                        else:
-                            msg = ("Open Published Version v%03d" % f.version)
-                        action = QtGui.QAction(msg, item)
-                        action.triggered.connect(lambda f=f: self._on_open_action_triggered(f))
-                        item.addAction(action)
-                   
-    def _add_file_item(self, file, highest_publish_file, highest_local_file):
+                        msg = ("v%03d" % f.version)
+                        action = QtGui.QAction(msg, publishes_sm)
+                        action.triggered.connect(lambda f=f: self._on_open_publish_action_triggered(f))
+                        publishes_sm.addAction(action)
+                     
+                # build context menu for all work files:
+                wf_versions = [f.version for f in files.values() if f.is_local]
+                if wf_versions:
+                    
+                    wf_versions.sort(reverse=True)
+                    
+                    wf_action = QtGui.QAction("Open Work File", item)
+                    wf_sm = QtGui.QMenu(item)
+                    wf_action.setMenu(wf_sm)
+                    item.addAction(wf_action)    
+                     
+                    for v in wf_versions[:20]:
+                        f = files[v]
+                        msg = ("v%03d" % f.version)
+                        action = QtGui.QAction(msg, wf_sm)
+                        action.triggered.connect(lambda f=f: self._on_open_workfile_action_triggered(f))
+                        wf_sm.addAction(action)                
+
+    def _update_title(self):
+        """
+        Update the list title depending on the mode
+        """
+        if self._current_mode == FileListView.WORKFILES_MODE:
+            self.set_label("Available Work Files")
+        else:
+            self.set_label("Available Publishes")
+                               
+    def _add_file_item(self, latest_published_file, latest_work_file):
         """
         """
-        colour_str = None
-        lines = []
-        tool_tip = ""
+        details = ""
+        tooltip = ""
                    
-        # work out colour:
+        # colours for item titles:
         red = "rgb(200, 84, 74)"
         green = "rgb(145, 206, 95)"
         
-        if highest_publish_file:
+        file = None
+        if self._current_mode == FileListView.WORKFILES_MODE:
+            file = latest_work_file
             
-            tool_tip = highest_publish_file.publish_description
-            if tool_tip:
-                tool_tip = "<b>Description</b>:<br>%s" % tool_tip
-            else:
-                tool_tip = "<i>No description was entered for this publish</i>" 
-            
-            highest_pub_version = highest_publish_file.version if highest_publish_file else -1
-            highest_local_version = highest_local_file.version if highest_local_file else -1
-            
-            local_is_latest = False
-            
-            if highest_local_version > highest_pub_version:
-                if highest_local_file.last_modified_time and highest_publish_file.last_modified_time:
-                    # check file modification time - we only consider a local version to be 'latest' 
-                    # if it has a more recent modification time than the published file (with 2mins
-                    # tollerance)
-                    if highest_local_file.last_modified_time > highest_publish_file.last_modified_time:
-                        local_is_latest = True
-                    else:
-                        diff = highest_publish_file.last_modified_time - highest_local_file.last_modified_time
-                        if diff.seconds < 120:
-                            local_is_latest = True
+            title_colour = None
+            if latest_published_file:
+                if file.is_more_recent_than_publish(latest_published_file):
+                    # work file is most recent
+                    title_colour = green
+                    tooltip += "This is the latest version of this file"
                 else:
-                    # can't compare times so assume local is more recent than publish:
-                    local_is_latest = True
-            
-            if local_is_latest:
-                colour_str = green
-                tool_tip = "%s<br>- You have the latest version in your work area" % tool_tip
+                    # published file is most recent
+                    title_colour = red
+                    tooltip += "<b>A more recent published version of this file is available:</b>"
+                    tooltip += "<br>"
+                    tooltip += ("<br><b>Version v%03d</b>" % latest_published_file.version)
+                    tooltip += "<br>" + latest_published_file.format_published_by_details()
+                    tooltip += "<br>"
+                    tooltip += "<br><b>Description:</b>"
+                    tooltip += "<br>" + latest_published_file.format_publish_description()
             else:
-                colour_str = red
+                tooltip += "This file has never been published"
+
+            details = "<b>%s, v%03d</b>" % (file.name, file.version)
+            if title_colour:    
+                details = "<span style='color:%s'>%s</span>" % (title_colour, details)
+            details += "<br>" + file.format_modified_by_details()
+
+        else: # self._current_mode == FileListView.PUBLISHES_MODE
+            file = latest_published_file
             
+            title_colour = None
+            tooltip += "<b>Description:</b>"
+            tooltip += "<br>" + file.format_publish_description()
+            
+            tooltip += "<hr>"
+            if latest_work_file:
+                if not latest_work_file.is_more_recent_than_publish(file):
+                    # published file is most recent
+                    title_colour = green
+                    tooltip += "This is the latest version of this file"
+                else:
+                    # work file is most recent
+                    #title_colour = red
+                    tooltip += "<b>A more recent version of this file was found in your work area:</b>"
+                    tooltip += "<br>"
+                    #tooltip += "<br><b>Details:</b>"
+                    tooltip += ("<br><b>Version v%03d</b>" % latest_work_file.version)
+                    
+                    tooltip += "<br>" + latest_work_file.format_modified_by_details()
+            else:
+                title_colour = green
+                tooltip += "This is the latest version of this file"
+            
+            details = "<b>%s, v%03d</b>" % (file.name, file.version)
+            if title_colour:    
+                details = "<span style='color:%s'>%s</span>" % (title_colour, details)
+            
+            details += "<br>" + file.format_published_by_details()
+        
         # add item:
         item = self.add_item(browser_widget.ListItem)
-        item.file = file
+        item.published_file = latest_published_file
+        item.work_file = latest_work_file
 
         # set tool tip
-        if tool_tip:
-            item.setToolTip(tool_tip)
-        
-        # name & version:
-        title_str = "<b>%s, v%03d</b>" % (file.name, file.version)
-        if colour_str:    
-            title_str = "<span style='color:%s'>%s</span>" % (colour_str, title_str)
-        lines.append(title_str)
-                
-        # last modified date:
-        date_str = ""                
-        if file.last_modified_time:
-            modified_date = file.last_modified_time.date()
-            date_str = ""
-            time_diff = datetime.now().date() - modified_date
-            if time_diff < timedelta(days=1):
-                date_str = "Today"
-            elif time_diff < timedelta(days=2):
-                date_str = "Yesterday"
-            else:
-                date_str = "on %d%s %s" % (modified_date.day, 
-                                        self._day_suffix(modified_date.day), 
-                                        modified_date.strftime("%B %Y"))
-                
-            if not file.is_published:
-                lines.append("Last Updated %s" % date_str)
-            else:
-                lines.append("Published %s" % date_str)
-
-        # last modified by
-        if file.modified_by is not None and "name" in file.modified_by:
-            last_changed_by_str = "%s" % file.modified_by["name"]
-            if not file.is_published:
-                lines.append("Updated by %s" % last_changed_by_str)
-            else:
-                lines.append("Published by %s" % last_changed_by_str)
+        item.setToolTip(tooltip)
         
         # build and set details string:
-        item.set_details("<br>".join(lines))
+        item.set_details(details)
         
         return item
-                    
-    def _day_suffix(self, day):
-        """
-        Return the suffix for the day of the month
-        """
-        return ["th", "st", "nd", "rd"][day%10 if not 11<=day<=13 and day%10 < 4 else 0]
-              
-    def _on_open_action_triggered(self, file):
+                   
+    def _on_open_workfile_action_triggered(self, file):
         """
         Open action triggered from context menu
         """
-        self.open_previous_version.emit(file)
+        self.open_previous_workfile.emit(file)
+
+    def _on_open_publish_action_triggered(self, file):
+        """
+        Open action triggered from context menu
+        """
+        self.open_previous_publish.emit(file)
 
     def _on_show_in_shotgun_action_triggered(self, file):
         """

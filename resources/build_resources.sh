@@ -33,6 +33,7 @@ build_ui select_work_area_form
 build_ui work_files_form
 build_ui change_version_form
 build_ui save_as_form
+build_ui open_file_form
 
 # build resources
 echo "building resources..."

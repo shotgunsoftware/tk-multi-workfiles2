@@ -12,6 +12,7 @@ import tank
 from tank.platform.qt import QtCore, QtGui
 
 from .work_file import WorkFile
+from .file_list_view import FileListView
 
 class WorkFilesForm(QtGui.QWidget):
     """
@@ -19,7 +20,11 @@ class WorkFilesForm(QtGui.QWidget):
     """
     
     # signals
-    open_file = QtCore.Signal(WorkFile, bool)
+    open_publish = QtCore.Signal(WorkFile, WorkFile, bool)
+    open_workfile = QtCore.Signal(WorkFile, WorkFile, bool)
+    open_previous_publish = QtCore.Signal(WorkFile)
+    open_previous_workfile = QtCore.Signal(WorkFile)
+    
     new_file = QtCore.Signal()
     show_in_fs = QtCore.Signal(bool, dict)
     show_in_shotgun = QtCore.Signal(WorkFile)
@@ -82,7 +87,8 @@ class WorkFilesForm(QtGui.QWidget):
         self._ui.file_list.selection_changed.connect(self._on_file_selection_changed)
 
         self._ui.file_list.set_app(self._app)
-        self._ui.file_list.open_previous_version.connect(self._on_open_previous_version)
+        self._ui.file_list.open_previous_workfile.connect(self._on_open_previous_workfile)
+        self._ui.file_list.open_previous_publish.connect(self._on_open_previous_publish)
         self._ui.file_list.view_in_shotgun.connect(self._on_view_in_shotgun)
 
         # set up the work area:
@@ -99,7 +105,8 @@ class WorkFilesForm(QtGui.QWidget):
         
         """
         current_filter = self._get_current_filter()
-        self.show_in_fs.emit(current_filter.get("show_local", False), current_filter.get("user"))
+        show_local = (current_filter.get("mode") == FileListView.WORKFILES_MODE) 
+        self.show_in_fs.emit(show_local, current_filter.get("user"))
         
     def closeEvent(self, e):
         """
@@ -111,12 +118,23 @@ class WorkFilesForm(QtGui.QWidget):
         
     def _on_open_file(self):
         # get the currently selected work file
-        selected_file = self._ui.file_list.selected_file
-        self.open_file.emit(selected_file, False)
+        
+        work_file = self._ui.file_list.selected_work_file
+        published_file = self._ui.file_list.selected_published_file
+        mode = self._ui.file_list.mode
+        
+        if mode == FileListView.WORKFILES_MODE:
+            self.open_workfile.emit(work_file, published_file, False)            
+        else: # mode == FileListView.PUBLISHES_MODE:
+            self.open_publish.emit(published_file, work_file, False)
 
-    def _on_open_previous_version(self, file):
-        self.open_file.emit(file, True)
+    def _on_open_previous_workfile(self, file):
+        self.open_previous_workfile.emit(file)
 
+    def _on_open_previous_publish(self, file):
+        self.open_previous_publish.emit(file)
+
+        
     def _on_new_file(self):
         self.new_file.emit()
         
@@ -157,8 +175,7 @@ class WorkFilesForm(QtGui.QWidget):
         self._ui.file_list.clear()
         self._ui.file_list.load({"handler":self._handler, 
                                 "user":filter.get("user"), 
-                                "show_local":filter.get("show_local", False),
-                                "show_publishes":filter.get("show_publishes", False)})
+                                "mode":filter.get("mode", FileListView.WORKFILES_MODE)})
         
         self._on_file_selection_changed()
         
@@ -172,8 +189,9 @@ class WorkFilesForm(QtGui.QWidget):
         """
         
         """
-        selected_file = self._ui.file_list.selected_file
-        self._ui.open_file_btn.setEnabled(selected_file is not None)
+        something_selected = (self._ui.file_list.selected_published_file is not None 
+                              or self._ui.file_list.selected_work_file is not None) 
+        self._ui.open_file_btn.setEnabled(something_selected)
             
     class __FilterObj(object):
         """
@@ -211,19 +229,19 @@ class WorkFilesForm(QtGui.QWidget):
             else:
                 if user_1.get("id") != user_2.get("id"):
                     return False
-            return (f1.get("show_local", False) == f2.get("show_local", False)
-                and f1.get("show_publishes", False) == f2.get("show_publishes", False))
+                
+            return (f1.get("mode") == f2.get("mode"))
         
         # clear menu:
         self._ui.filter_combo.clear()
         
         # add user work files item:
         self._ui.filter_combo.addItem("Show Files in my Work Area", 
-                                      self.__FilterObj({"user":current_user, "show_local":True, "show_publishes":False}))
+                                      self.__FilterObj({"mode":FileListView.WORKFILES_MODE, "user":current_user}))
         selected_idx = 0
         
         # add publishes item:
-        publishes_filter = {"show_local":False, "show_publishes":True}
+        publishes_filter = {"mode":FileListView.PUBLISHES_MODE}
         self._ui.filter_combo.addItem("Show Files in the Publish Area", self.__FilterObj(publishes_filter))
         if filter_compare(previous_filter, publishes_filter):
             selected_idx = 1
@@ -238,7 +256,7 @@ class WorkFilesForm(QtGui.QWidget):
                     # already added
                     continue
             
-                filter = {"user":user, "show_local":True, "show_publishes":False}
+                filter = {"mode":FileListView.WORKFILES_MODE, "user":user}
             
                 if filter_compare(previous_filter, filter):
                     selected_idx = self._ui.filter_combo.count()

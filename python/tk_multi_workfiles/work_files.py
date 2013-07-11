@@ -13,6 +13,7 @@ from tank import TankError
 from tank_vendor.shotgun_api3 import sg_timezone
 
 from .work_file import WorkFile
+from .wrapper_dialog import WrapperDialog
 
 class WorkFiles(object):
     
@@ -55,7 +56,11 @@ class WorkFiles(object):
             return
 
         # hook up signals:
-        self._workfiles_ui.open_file.connect(self._on_open_file)
+        self._workfiles_ui.open_publish.connect(self._on_open_publish)
+        self._workfiles_ui.open_workfile.connect(self._on_open_workfile)
+        self._workfiles_ui.open_previous_publish.connect(self._on_open_previous_publish)
+        self._workfiles_ui.open_previous_workfile.connect(self._on_open_previous_workfile)
+        
         self._workfiles_ui.new_file.connect(self._on_new_file)
         self._workfiles_ui.show_in_fs.connect(self._on_show_in_file_system)
         self._workfiles_ui.show_in_shotgun.connect(self._on_show_in_shotgun)
@@ -133,13 +138,13 @@ class WorkFiles(object):
                 # add other info from publish:
                 details["task"] = publish_details.get("task")
                 details["thumbnail"] = publish_details.get("image")
-                details["modified_time"] = publish_details.get("created_at")
-                details["modified_by"] = publish_details.get("created_by", {})
+                details["published_at"] = publish_details.get("created_at")
+                details["published_by"] = publish_details.get("created_by", {})
                 details["publish_description"] = publish_details.get("description")
                 details["published_file_id"] = publish_details.get("published_file_id")
             else:
                 if find_ctx.task:
-                    # can use the task form the context
+                    # can use the task from the context
                     details["task"] = find_ctx.task
                 else:
                     task = None
@@ -159,12 +164,9 @@ class WorkFiles(object):
                             
                     details["task"] = task
 
-                # get the local file modified time - ensure it has a time-zone set:
-                details["modified_time"] = datetime.fromtimestamp(os.path.getmtime(work_path), tz=sg_timezone.local)
-                
-                # get the last modified by:
-                last_user = self._get_file_last_modified_user(work_path)
-                details["modified_by"] = last_user
+            # get the local file modified details:
+            details["modified_at"] = datetime.fromtimestamp(os.path.getmtime(work_path), tz=sg_timezone.local)
+            details["modified_by"] = self._get_file_last_modified_user(work_path)
 
             file_details.append(WorkFile(work_path, publish_path, True, publish_details != None, details))
          
@@ -190,10 +192,18 @@ class WorkFiles(object):
             # add additional details from publish record:
             details["task"] = publish_details.get("task")
             details["thumbnail"] = publish_details.get("image")
-            details["modified_time"] = publish_details.get("created_at")
-            details["modified_by"] = publish_details.get("created_by", {})
+            details["published_at"] = publish_details.get("created_at")
+            details["published_by"] = publish_details.get("created_by", {})
             details["publish_description"] = publish_details.get("description")
             details["published_file_id"] = publish_details.get("published_file_id")
+                
+            # get the local file modified details:
+            if os.path.exists(publish_path):
+                details["modified_at"] = datetime.fromtimestamp(os.path.getmtime(publish_path), tz=sg_timezone.local)
+                details["modified_by"] = self._get_file_last_modified_user(publish_path)
+            else:
+                details["modified_at"] = details["published_at"]
+                details["modified_by"] = details["published_by"]
                 
             file_details.append(WorkFile(work_path, publish_path, is_work_file, True, details))            
 
@@ -385,132 +395,242 @@ class WorkFiles(object):
         ctx_entity = ctx.task or ctx.entity or ctx.project
         self._app.tank.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"), engine=self._app.engine.name)
         
-    def _on_open_file(self, file, is_previous_version):
+    def _on_open_publish(self, publish_file, work_file):
         """
-        Main function used to open a file when requested by the UI
+        Function called when user clicks Open for a file
+        in the Publish Area
         """
-        if not file:
+        if not publish_file:
             return
-
-        # get the path of the file to open.  Handle
-        # other user sandboxes and publishes if need to
         
-        src_path = None
-        work_path = None
+        fields = self._publish_template.get_fields(publish_file.publish_path)
+        next_version = self._get_next_available_version(fields)
         
-        if is_previous_version:
-            # if the file is a previous version then we just open it
-            # rather than attempting to copy it
-            if file.is_local:
-                work_path = file.path
-            else:
-                work_path = file.publish_path
-                if not os.path.exists(work_path):
-                    QtGui.QMessageBox.critical(self._workfiles_ui, "File doesn't exist!", "The published file\n\n%s\n\nCould not be found to open!" % work_path)
-                    return 
+        # different options depending if the work file is more 
+        # recent or not:
+        from .open_file_form import OpenFileForm
+        open_mode = OpenFileForm.OPEN_PUBLISH
+        
+        dlg_title = ""
+        if work_file and work_file.is_more_recent_than_publish(publish_file):
+            dlg_title = "Found a More Recent Work File!"
         else:
-            # what we do depends on the current location of the file
+            dlg_title = "Open Publish"    
+            work_file = None
             
-            if file.is_local:
-                # trying to open a work file...
-                work_path = file.path
-                
-                # construct a context for this path to determine if it's in
-                # a user sandbox or not:
-                wp_ctx = self._app.tank.context_from_path(work_path)
-                if wp_ctx.user:
-                    current_user = tank.util.get_current_user(self._app.tank)
-                    if current_user and current_user["id"] != wp_ctx.user["id"]:
-                        
-                        # file is in a user sandbox - construct path
-                        # for the current user's sandbox:
-                        try:                
-                            # get fields from work path:
-                            fields = self._work_template.get_fields(work_path)
-                            
-                            # add in the fields from the context with the current user:
-                            local_ctx = wp_ctx.create_copy_for_user(current_user)
-                            ctx_fields = local_ctx.as_template_fields(self._work_template)
-                            fields.update(ctx_fields)
-                            
-                            # construct the local path from these fields:
-                            local_path = self._work_template.apply_fields(fields)                     
-                        except Exception, e:
-                            QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to resolve file path", 
-                                                   "Failed to resolve the user sandbox file path:\n\n%s\n\nto the local path:\n\n%s\n\nUnable to open file!" % (work_path, e))
-                            self._app.log_exception("Failed to resolve user sandbox file path %s" % work_path)
-                            return
-                
-                        if local_path != work_path:
-                            # more than just an open so prompt user to confirm:
-                            #TODO: replace with tank dialog
-                            answer = QtGui.QMessageBox.question(self._workfiles_ui, "Open file from another user?",
-                                                                ("The work file you are opening:\n\n%s\n\n"
-                                                                "is in a user sandbox belonging to %s.  Would "
-                                                                "you like to copy the file to your sandbox and open it?" % (work_path, wp_ctx.user["name"])), 
-                                                                QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel)
-                            if answer == QtGui.QMessageBox.Cancel:
-                                return
+        form = OpenFileForm(self._app, work_file, publish_file, OpenFileForm.OPEN_PUBLISH_MODE, next_version)
+        open_mode = WrapperDialog.show_modal(form, dlg_title, parent=self._workfiles_ui)
+            
+        if open_mode == OpenFileForm.OPEN_WORKFILE:
+            # open the work file:
+            if not self._do_open_workfile(work_file):
+                return
+        elif open_mode == OpenFileForm.OPEN_PUBLISH:
+            # open the published file instead:
+            if not self._do_open_publish_as_workfile(publish_file, next_version):
+                return
+        elif open_mode == OpenFileForm.OPEN_PUBLISH_READONLY:
+            # open the published file read-only instead:
+            if not self._do_open_publish_read_only(publish_file):
+                return
+        else:
+            return
+        
+        # close work files UI:
+        self._workfiles_ui.close()
+        
+    def _on_open_workfile(self, work_file, publish_file):
+        """
+        Function called when user clicks Open for a file
+        in the Work Area
+        """
+        if not work_file:
+            return
+        
+        next_version = 0
+        
+        # different options depending if the publish file is more 
+        # recent or not:
+        from .open_file_form import OpenFileForm        
+        open_mode = OpenFileForm.OPEN_WORKFILE
+        if publish_file and not work_file.is_more_recent_than_publish(publish_file):
+            
+            fields = self._publish_template.get_fields(publish_file.publish_path)
+            next_version = self._get_next_available_version(fields)
+            
+            form = OpenFileForm(self._app, work_file, publish_file, OpenFileForm.OPEN_WORKFILE_MODE, next_version)
+            open_mode = WrapperDialog.show_modal(form, "Found a More Recent Publish!", parent=self._workfiles_ui)
+            
+        if open_mode == OpenFileForm.OPEN_WORKFILE:
+            # open the work file:
+            if not self._do_open_workfile(work_file):
+                return
+        elif open_mode == OpenFileForm.OPEN_PUBLISH:
+            # open the published file instead:
+            if not self._do_open_publish_as_workfile(publish_file, next_version):
+                return
+        else:
+            return
+        
+        # close work files UI:
+        self._workfiles_ui.close()
+        
+    def _on_open_previous_publish(self, file):
+        """
+        Open a previous version of a publish file
+        """
+        if self._do_open_publish_read_only(file):
+            # close work files UI:
+            self._workfiles_ui.close()
     
-                            src_path = work_path
-                            work_path = local_path        
+    def _on_open_previous_workfile(self, file):
+        """
+        Open a previous version of a work file - this just opens
+        it directly without any file copying or validation
+        """
+        # get best context we can for file:
+        ctx_entity = file.task or file.entity or self._context.project
+        new_ctx = self._app.tank.context_from_entity(ctx_entity.get("type"), ctx_entity.get("id"))  
 
-            else:
-                # trying to open a publish:
-                src_path = file.publish_path
+        if self._do_copy_and_open(None, file.path, new_ctx):
+            # close work files UI:
+            self._workfiles_ui.close()
+        
+    def _do_open_workfile(self, file):
+        """
+        Handles opening a work file - this checks to see if the file
+        is in another users sandbox before opening        
+        """
+        if not file or not file.is_local:
+            return False
+        
+        # trying to open a work file...
+        src_path = None
+        work_path = file.path
+        
+        # construct a context for this path to determine if it's in
+        # a user sandbox or not:
+        wp_ctx = self._app.tank.context_from_path(work_path)
+        if wp_ctx.user:
+            current_user = tank.util.get_current_user(self._app.tank)
+            if current_user and current_user["id"] != wp_ctx.user["id"]:
                 
-                if not os.path.exists(src_path):
-                    QtGui.QMessageBox.critical(self._workfiles_ui, "File doesn't exist!", "The published file\n\n%s\n\nCould not be found to open!" % src_path)
-                    return 
-                
-                new_version = None
-                
-                # get the work path for the publish:
-                try:
-                    # get fields for the path:                
-                    fields = self._publish_template.get_fields(src_path)
-
-                    # construct a context for the path:
-                    sp_ctx = self._app.tank.context_from_path(src_path)
-
-                    # if current user is defined, update fields to use this:
-                    current_user = tank.util.get_current_user(self._app.tank)
-                    if current_user and sp_ctx.user and sp_ctx.user["id"] != current_user["id"]:
-                        sp_ctx = sp_ctx.create_copy_for_user(current_user)
-                        
-                    # finally, use context to populate additional fields:
-                    ctx_fields = sp_ctx.as_template_fields(self._work_template)
-                    fields.update(ctx_fields)
-                
-                    # add next version to fields:                
-                    new_version = self._get_next_available_version(fields)
-                    fields["version"] = new_version
+                # file is in a user sandbox - construct path
+                # for the current user's sandbox:
+                try:                
+                    # get fields from work path:
+                    fields = self._work_template.get_fields(work_path)
                     
-                    # construct work path:
-                    work_path = self._work_template.apply_fields(fields)
+                    # add in the fields from the context with the current user:
+                    local_ctx = wp_ctx.create_copy_for_user(current_user)
+                    ctx_fields = local_ctx.as_template_fields(self._work_template)
+                    fields.update(ctx_fields)
+                    
+                    # construct the local path from these fields:
+                    local_path = self._work_template.apply_fields(fields)                     
                 except Exception, e:
-                    QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to get work file path", 
-                                           "Failed to resolve work file path from publish path:\n\n%s\n\n%s\n\nUnable to open file!" % (src_path, e))
-                    self._app.log_exception("Failed to resolve work file path from publish path: %s" % src_path)
-                    return
-                
-                # prompt user to confirm:
-                answer = QtGui.QMessageBox.question(self._workfiles_ui, "Open file from publish area?",
-                                                                ("The published file:\n\n%s\n\n"
-                                                                "will be copied to your work area, versioned "
-                                                                "up to v%03d and then opened.\n\n"
-                                                                "Would you like to continue?" % (src_path, new_version)), 
-                                                                QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel)
-                if answer == QtGui.QMessageBox.Cancel:
-                    return
+                    QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to resolve file path", 
+                                           "Failed to resolve the user sandbox file path:\n\n%s\n\nto the local path:\n\n%s\n\nUnable to open file!" % (work_path, e))
+                    self._app.log_exception("Failed to resolve user sandbox file path %s" % work_path)
+                    return False
+        
+                if local_path != work_path:
+                    # more than just an open so prompt user to confirm:
+                    #TODO: replace with tank dialog
+                    answer = QtGui.QMessageBox.question(self._workfiles_ui, "Open file from another user?",
+                                                        ("The work file you are opening:\n\n%s\n\n"
+                                                        "is in a user sandbox belonging to %s.  Would "
+                                                        "you like to copy the file to your sandbox and open it?" % (work_path, wp_ctx.user["name"])), 
+                                                        QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel)
+                    if answer == QtGui.QMessageBox.Cancel:
+                        return False
 
+                    src_path = work_path
+                    work_path = local_path      
+                    
+        # get best context we can for file:
+        ctx_entity = file.task or file.entity or self._context.project
+        new_ctx = self._app.tank.context_from_entity(ctx_entity.get("type"), ctx_entity.get("id"))  
+
+        return self._do_copy_and_open(src_path, work_path, new_ctx)
+        
+        
+    def _do_open_publish_as_workfile(self, file, new_version):
+        """
+        Open the published file - this will construct a new work path from the 
+        work template and the publish fields before copying it and opening it 
+        as a new work file
+        """
+        if not file or not file.is_published:
+            return False
+        
+        # trying to open a publish:
+        work_path = None
+        src_path = file.publish_path
+        
+        if not os.path.exists(src_path):
+            QtGui.QMessageBox.critical(self._workfiles_ui, "File doesn't exist!", "The published file\n\n%s\n\nCould not be found to open!" % src_path)
+            return False 
+        
+        # get the work path for the publish:
+        try:
+            # get fields for the path:                
+            fields = self._publish_template.get_fields(src_path)
+
+            # construct a context for the path:
+            sp_ctx = self._app.tank.context_from_path(src_path)
+
+            # if current user is defined, update fields to use this:
+            current_user = tank.util.get_current_user(self._app.tank)
+            if current_user and sp_ctx.user and sp_ctx.user["id"] != current_user["id"]:
+                sp_ctx = sp_ctx.create_copy_for_user(current_user)
+                
+            # finally, use context to populate additional fields:
+            ctx_fields = sp_ctx.as_template_fields(self._work_template)
+            fields.update(ctx_fields)
+        
+            # add next version to fields:                
+            #new_version = self._get_next_available_version(fields)
+            fields["version"] = new_version
+            
+            # construct work path:
+            work_path = self._work_template.apply_fields(fields)
+        except Exception, e:
+            QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to get work file path", 
+                                   "Failed to resolve work file path from publish path:\n\n%s\n\n%s\n\nUnable to open file!" % (src_path, e))
+            self._app.log_exception("Failed to resolve work file path from publish path: %s" % src_path)
+            return False
+        
         # get best context we can for file:
         ctx_entity = file.task or file.entity or self._context.project
         new_ctx = self._app.tank.context_from_entity(ctx_entity.get("type"), ctx_entity.get("id"))
+        
+        return self._do_copy_and_open(src_path, work_path, new_ctx)
+        
+    def _do_open_publish_read_only(self, file):
+        """
+        Open a previous version of a publish file from the publish 
+        area - this just opens it directly without any file copying 
+        or validation
+        """
+        # get best context we can for file:
+        ctx_entity = file.task or file.entity or self._context.project
+        new_ctx = self._app.tank.context_from_entity(ctx_entity.get("type"), ctx_entity.get("id"))  
 
+        if not os.path.exists(file.publish_path):
+            QtGui.QMessageBox.critical(self._workfiles_ui, "File doesn't exist!", "The published file\n\n%s\n\nCould not be found to open!" % file.publish_path)
+            return False
+
+        return self._do_copy_and_open(None, file.publish_path, new_ctx)
+        
+    def _do_copy_and_open(self, src_path, work_path, new_ctx):
+        """
+        Copies src_path to work_path, creates folders, restarts
+        the engine and then opens the file from work_path        
+        """
         if not work_path or not new_ctx:
             # can't do anything!
-            return
+            return False
            
         if not new_ctx == self._app.context:
             # ensure folders exist.  This serves the
@@ -523,7 +643,7 @@ class WorkFiles(object):
                 QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to create folders!", 
                                            "Failed to create folders:\n\n%s!" % e)
                 self._app.log_exception("Failed to create folders")
-                return
+                return False
         
         # if need to, copy file
         if src_path:
@@ -534,7 +654,7 @@ class WorkFiles(object):
                                                 "The file\n\n%s\n\nalready exists.  Would you like to overwrite it?" % (work_path), 
                                                 QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel)
                 if answer == QtGui.QMessageBox.Cancel:
-                    return
+                    return False
                 
             try:
                 # copy file:
@@ -543,14 +663,14 @@ class WorkFiles(object):
                 QtGui.QMessageBox.critical(self._workfiles_ui, "Copy file failed!", 
                                            "Copy of file failed!\n\n%s!" % e)
                 self._app.log_exception("Copy file failed")
-                return            
+                return False            
                     
         # switch context (including do new file):
         try:
             # reset the current scene:
             if not self._reset_current_scene():
                 self._app.log_debug("Unable to perform New Scene operation after failing to reset scene!")
-                return
+                return False
             
             if not new_ctx == self._app.context:
                 # restart the engine with the new context
@@ -559,7 +679,7 @@ class WorkFiles(object):
             QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to change work area", 
                                        "Failed to change the work area to '%s':\n\n%s\n\nUnable to continue!" % (new_ctx, e))
             self._app.log_exception("Failed to set work area to %s!" % new_ctx)
-            return
+            return False
 
         # open file
         try:
@@ -568,12 +688,9 @@ class WorkFiles(object):
             QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to open file", 
                                        "Failed to open file\n\n%s\n\n%s" % (work_path, e))
             self._app.log_exception("Failed to open file %s!" % work_path)    
-            return
+            return False
         
-        # close work files UI as it will no longer
-        # be valid anyway as the context has changed
-        self._workfiles_ui.close()
-
+        return True
 
     def _get_next_available_version(self, fields):
         """
