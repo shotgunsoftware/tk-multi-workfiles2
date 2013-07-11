@@ -152,8 +152,8 @@ class OpenFileForm(QtGui.QWidget):
         publish_details += "<br><b>Description:</b>"
         publish_details += "<br>" + self._publish_file.format_publish_description()
         self._ui.publish_details.setText(publish_details)
-        self._ui.publish_note.setText("<span style=\" font-size:9pt;\">(Note: The published file will be copied to "
-                                      "your work area as version v%03d and then opened)</span>" % self._next_version)
+        self._ui.publish_note.setText("<small>(Note: The published file will be copied to "
+                                      "your work area as version v%03d and then opened)</small>" % self._next_version)
         
         if self._publish_file.thumbnail:
             thumbnail_path = self._download_thumbnail(self._publish_file.thumbnail)

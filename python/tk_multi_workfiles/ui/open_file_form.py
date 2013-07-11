@@ -11,7 +11,7 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_OpenFileForm(object):
     def setupUi(self, OpenFileForm):
         OpenFileForm.setObjectName("OpenFileForm")
-        OpenFileForm.resize(566, 771)
+        OpenFileForm.resize(514, 666)
         self.verticalLayout_3 = QtGui.QVBoxLayout(OpenFileForm)
         self.verticalLayout_3.setSpacing(0)
         self.verticalLayout_3.setContentsMargins(0, 0, 0, 0)
@@ -244,7 +244,7 @@ class Ui_OpenFileForm(object):
         self.publish_frame.setToolTip(QtGui.QApplication.translate("OpenFileForm", "Click to open the newer Published File", None, QtGui.QApplication.UnicodeUTF8))
         self.publish_title_label.setText(QtGui.QApplication.translate("OpenFileForm", "<big>Would you like to continue your work from the latest Publish?</big>", None, QtGui.QApplication.UnicodeUTF8))
         self.publish_details.setText(QtGui.QApplication.translate("OpenFileForm", "<html><head/><body><p>Version v000<br/>Published on...<br/>Published by...<br/>Description:<br/><span style=\" font-style:italic;\">No description was entered for this publish</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
-        self.publish_note.setText(QtGui.QApplication.translate("OpenFileForm", "<html><head/><body><p><span style=\" font-size:9pt;\">(Note: The published file will be copied to your work area as version v000 and then opened)</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
+        self.publish_note.setText(QtGui.QApplication.translate("OpenFileForm", "<html><head/><body><p><small>(Note: The published file will be copied to your work area as version v000 and then opened)</small></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.or_label_a.setText(QtGui.QApplication.translate("OpenFileForm", "<big><b>OR</b></big>", None, QtGui.QApplication.UnicodeUTF8))
         self.work_file_frame.setToolTip(QtGui.QApplication.translate("OpenFileForm", "Click to open the older Work File", None, QtGui.QApplication.UnicodeUTF8))
         self.work_file_title_label.setText(QtGui.QApplication.translate("OpenFileForm", "<big>Would you prefer to open the older Work File instead?</big>", None, QtGui.QApplication.UnicodeUTF8))
