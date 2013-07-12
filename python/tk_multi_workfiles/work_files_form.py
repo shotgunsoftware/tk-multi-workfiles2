@@ -298,7 +298,7 @@ class WorkFilesForm(QtGui.QWidget):
             try:
                 sg_details = self._app.shotgun.find_one("Project", 
                                                         [["id", "is", ctx.project["id"]]], 
-                                                        ["description", "image", "code"])# (AD) - TODO - check fields
+                                                        ["sg_description", "image", "code"])
             except:
                 pass
             
@@ -317,7 +317,7 @@ class WorkFilesForm(QtGui.QWidget):
             self._set_thumbnail(self._ui.project_thumbnail, project_thumbnail)
                                 
             # description:
-            desc = sg_details.get("description") or "<i>No description was entered for this Project</i>"
+            desc = sg_details.get("sg_description") or "<i>No description was entered for this Project</i>"
             self._ui.project_description.setText(desc)
                 
             if ctx.entity:
