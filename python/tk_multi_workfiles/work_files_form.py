@@ -19,15 +19,17 @@ class WorkFilesForm(QtGui.QWidget):
     Primary work area UI
     """
     
-    # signals
-    open_publish = QtCore.Signal(WorkFile, WorkFile, bool)
-    open_workfile = QtCore.Signal(WorkFile, WorkFile, bool)
-    open_previous_publish = QtCore.Signal(WorkFile)
-    open_previous_workfile = QtCore.Signal(WorkFile)
+    # signals - note, 'object' is used to avoid 
+    # issues with PyQt when None is passed
+    open_publish = QtCore.Signal(object, object, bool)#WorkFile, WorkFile, bool
+    open_workfile = QtCore.Signal(object, object, bool)#WorkFile, WorkFile, bool
+    open_previous_publish = QtCore.Signal(object)#WorkFile
+    open_previous_workfile = QtCore.Signal(object)#WorkFile
     
     new_file = QtCore.Signal()
-    show_in_fs = QtCore.Signal(bool, dict)
-    show_in_shotgun = QtCore.Signal(WorkFile)
+    
+    show_in_fs = QtCore.Signal(bool, dict)#bool, dict
+    show_in_shotgun = QtCore.Signal(object)#WorkFile
     
     def __init__(self, app, handler, parent = None):
         """

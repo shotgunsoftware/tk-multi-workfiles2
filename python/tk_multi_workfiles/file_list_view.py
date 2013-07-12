@@ -15,10 +15,11 @@ from .work_file import WorkFile
 
 class FileListView(browser_widget.BrowserWidget):
     
-    # signals
-    open_previous_workfile = QtCore.Signal(WorkFile)
-    open_previous_publish = QtCore.Signal(WorkFile)
-    view_in_shotgun = QtCore.Signal(WorkFile)
+    # signals - note, 'object' is used to avoid 
+    # issues with PyQt when None is passed
+    open_previous_workfile = QtCore.Signal(object)#WorkFile
+    open_previous_publish = QtCore.Signal(object)#WorkFile
+    view_in_shotgun = QtCore.Signal(object)#WorkFile
     
     NO_TASK_NAME = "No Task"
     [WORKFILES_MODE, PUBLISHES_MODE] = range(2)
