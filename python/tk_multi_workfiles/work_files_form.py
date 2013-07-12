@@ -144,18 +144,26 @@ class WorkFilesForm(QtGui.QWidget):
         """
         Set the current work area to the specified context.
         """
+        
+        self._app.log_debug("Setting the work area in the File Manager UI")# to %s..." % ctx)
+        
         # update work area info:
+        self._app.log_debug(" - Updating Work Area")
         self._update_work_area(ctx)
         
         # update the filter menu:
+        self._app.log_debug(" - Updating Filter menu")
         self._update_filter_menu()
         
         # finally, update file list:
+        self._app.log_debug(" - Refreshing File List")
         self._refresh_file_list()
         
         # update new button enabled state
         can_do_new = self._handler.can_do_new_file()
         self._ui.new_file_btn.setEnabled(can_do_new)
+        
+        self._app.log_debug("Finished setting the work area in the File Manager UI!")
         
     def _on_work_area_mouse_press_event(self, event):
         """

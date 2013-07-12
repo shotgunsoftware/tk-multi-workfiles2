@@ -770,21 +770,26 @@ class WorkFiles(object):
         """
         Update the current work area being used
         """
+        self._app.log_debug("Updating the current work area for context")#: %s..." % ctx)
+        
         if ctx == self._context:
+            self._app.log_debug("Context hasn't changed so nothing to do!")    
             return
             
         # update templates for the new context:
         templates = {}
         try:
+            self._app.log_debug("Retrieving configuration for context")# %s..." % ctx)
             templates = self._get_templates_for_context(ctx, ["template_work", 
                                                               "template_work_area", 
                                                               "template_publish",
                                                               "template_publish_area"])
         except TankError, e:
             # had problems getting the work file settings for the specified context!
-            self._app.log_debug(e)
+            self._app.log_debug("Failed to rerieve configuration: %s" % e)
             self._configuration_is_valid = False
         else:
+            self._app.log_debug("Successfully retrieved configuration")
             self._configuration_is_valid = True
         
         #if templates is not None:
