@@ -15,6 +15,8 @@ from tank_vendor.shotgun_api3 import sg_timezone
 from .work_file import WorkFile
 from .wrapper_dialog import WrapperDialog
 
+from .scene_operation import *
+
 class WorkFiles(object):
     
     def __init__(self, app):
@@ -303,57 +305,6 @@ class WorkFiles(object):
             return False
         
         return True
-        
-    def _do_scene_operation(self, operation, path=None, result_type=None):
-        """
-        Do the specified scene operation with the specified args
-        """
-        result = None
-        try:
-            result = self._app.execute_hook("hook_scene_operation", operation=operation, file_path=path, context=self._context)     
-        except TankError, e:
-            # deliberately filter out exception that used to be thrown 
-            # from the scene operation hook but has since been removed
-            if not str(e).startswith("Don't know how to perform scene operation '"):
-                # just re-raise the exception:
-                raise
-            
-        # validate the result if needed:
-        if result_type and (result == None or not isinstance(result, result_type)):
-            raise TankError("Unexpected type returned from 'hook_scene_operation' for operation '%s' - expected '%s' but returned '%s'" 
-                            % (operation, result_type.__name__, type(result).__name__))
-        
-        return result
-        
-    def _reset_current_scene(self):
-        """
-        Use hook to clear the current scene
-        """
-        self._app.log_debug("Resetting the current scene via hook")
-        return self._do_scene_operation("reset", result_type=bool)
-        
-    def _prepare_new_scene(self):
-        """
-        Use the hook to do any preperation for
-        the new scene
-        """
-        self._app.log_debug("Preparing the new scene via hook")
-        return self._do_scene_operation("prepare_new")
-        
-    def _open_file(self, path):
-        """
-        Use hook to open the specified file.
-        """
-        # do open:
-        self._app.log_debug("Opening file '%s' via hook" % path)
-        self._do_scene_operation("open", path)
-        
-    def _save_file(self):
-        """
-        Use hook to save the current file
-        """
-        self._app.log_debug("Saving the current file with hook")
-        self._do_scene_operation("save")        
         
     def _copy_file(self, source_path, target_path):
         """
@@ -645,7 +596,18 @@ class WorkFiles(object):
                 self._app.log_exception("Failed to create folders")
                 return False
         
-        # if need to, copy file
+        # reset the current scene:
+        try:
+            if not reset_current_scene(self._app, OPEN_FILE_ACTION, self._context):
+                self._app.log_debug("Failed to reset the current scene!")
+                return False
+        except Exception, e:
+            QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to reset the scene", 
+                                       "Failed to reset the scene:\n\n%s\n\nUnable to continue!" % e)
+            self._app.log_exception("Failed to reset the scene!")
+            return False
+    
+        # if need to, copy the file
         if src_path:
             # check that local path doesn't already exist:
             if os.path.exists(work_path):
@@ -665,25 +627,20 @@ class WorkFiles(object):
                 self._app.log_exception("Copy file failed")
                 return False            
                     
-        # switch context (including do new file):
-        try:
-            # reset the current scene:
-            if not self._reset_current_scene():
-                self._app.log_debug("Unable to perform New Scene operation after failing to reset scene!")
-                return False
-            
-            if not new_ctx == self._app.context:
+        # switch context:
+        if not new_ctx == self._app.context:
+            try:
                 # restart the engine with the new context
                 self._restart_engine(new_ctx)
-        except Exception, e:
-            QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to change work area", 
-                                       "Failed to change the work area to '%s':\n\n%s\n\nUnable to continue!" % (new_ctx, e))
-            self._app.log_exception("Failed to set work area to %s!" % new_ctx)
-            return False
+            except Exception, e:
+                QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to change the work area", 
+                                           "Failed to change the work area to '%s':\n\n%s\n\nUnable to continue!" % (new_ctx, e))
+                self._app.log_exception("Failed to change the work area to %s!" % new_ctx)
+                return False
 
         # open file
         try:
-            self._open_file(work_path)
+            open_file(self._app, OPEN_FILE_ACTION, self._context, work_path)
         except Exception, e:
             QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to open file", 
                                        "Failed to open file\n\n%s\n\n%s" % (work_path, e))
@@ -712,12 +669,12 @@ class WorkFiles(object):
                 self._create_folders(self._context)
 
             # reset the current scene:
-            if not self._reset_current_scene():
+            if not reset_current_scene(self._app, NEW_FILE_ACTION, self._context):
                 self._app.log_debug("Unable to perform New Scene operation after failing to reset scene!")
                 return
             
             # prepare the new scene:
-            self._prepare_new_scene()
+            prepare_new_scene(self._app, NEW_FILE_ACTION, self._context)
 
             if not self._context == self._app.context:            
                 # restart the engine with the new context

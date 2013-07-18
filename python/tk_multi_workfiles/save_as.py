@@ -12,6 +12,7 @@ from tank import TankError
 from pprint import pprint
 
 from .async_worker import AsyncWorker
+from .scene_operation import *
 
 class SaveAs(object):
     """
@@ -42,7 +43,7 @@ class SaveAs(object):
         
         # get the current file path:
         try:
-            current_path = self._get_current_file_path()
+            current_path = get_current_path(self._app, SAVE_FILE_AS_ACTION, self._app.context)
         except Exception, e:
             msg = ("Failed to get the current file path:\n\n"
                   "%s\n\n"
@@ -138,7 +139,7 @@ class SaveAs(object):
             self._app.tank.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"))
         
         # and save the current file as the new path:
-        self._save_current_file_as(new_path)
+        save_file(self._app, SAVE_FILE_AS_ACTION, self._app.context, new_path)
         
     def generate_new_work_file_path(self, current_path, current_is_publish, new_name, reset_version):
         """
@@ -223,40 +224,5 @@ class SaveAs(object):
         new_work_path = self._work_template.apply_fields(fields)
         
         return {"path":new_work_path, "message":msg, "can_reset_version":can_reset_version}
-        
-    def _do_scene_operation(self, operation, path=None, result_type=None):
-        """
-        Do the specified scene operation with the specified args
-        """
-        result = None
-        try:
-            result = self._app.execute_hook("hook_scene_operation", operation=operation, file_path=path, context=self._app.context)     
-        except TankError, e:
-            # deliberately filter out exception that used to be thrown 
-            # from the scene operation hook but has since been removed
-            if not str(e).startswith("Don't know how to perform scene operation '"):
-                # just re-raise the exception:
-                raise
-            
-        # validate the result if needed:
-        if result_type and (result == None or not isinstance(result, result_type)):
-            raise TankError("Unexpected type returned from 'hook_scene_operation' for operation '%s' - expected '%s' but returned '%s'" 
-                            % (operation, result_type.__name__, type(result).__name__))
-        
-        return result
-        
-    def _get_current_file_path(self):
-        """
-        Use hook to get the current work/scene file path
-        """
-        self._app.log_debug("Retrieving current scene path...")
-        return self._do_scene_operation("current_path", result_type=basestring)
-    
-    def _save_current_file_as(self, path):
-        """
-        Use hook to get the current work/scene file path
-        """
-        self._app.log_debug("Saving current file as '%s'" % path)
-        self._do_scene_operation("save_as", path)    
-    
+
     
