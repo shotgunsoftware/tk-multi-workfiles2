@@ -462,7 +462,7 @@ class WorkFilesForm(QtGui.QWidget):
         try:
             (temp_file, stuff) = urllib.urlretrieve(url)
         except Exception, e:
-            print "Could not download data from the url '%s'. Error: %s" % (url, e)
+            self._app.log_info("Could not download data from the url '%s'. Error: %s" % (url, e))
             return None
 
         # now try to cache it
@@ -474,7 +474,7 @@ class WorkFilesForm(QtGui.QWidget):
             os.chmod(path_to_cached_thumb, 0666)
            
         except Exception, e:
-            print "Could not cache thumbnail %s in %s. Error: %s" % (url, path_to_cached_thumb, e)
+            self._app.log_info("Could not cache thumbnail %s in %s. Error: %s" % (url, path_to_cached_thumb, e))
             return temp_file
 
         return path_to_cached_thumb
