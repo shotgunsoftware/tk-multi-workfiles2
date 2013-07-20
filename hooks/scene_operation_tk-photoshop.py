@@ -47,11 +47,10 @@ class SceneOperation(Hook):
 
         if operation == "current_path":
             # return the current script path
-            doc = photoshop.app.activeDocument
+            doc = self._get_active_document()
 
-            if doc is None:
-                path = ""
-            elif doc.fullName is None:
+            if doc.fullName is None:
+                # new file?
                 path = ""
             else:
                 path = doc.fullName.nativePath
@@ -65,25 +64,31 @@ class SceneOperation(Hook):
         
         elif operation == "save":
             # save the current script:
-            doc = photoshop.app.activeDocument
-
-            if doc:
-                photoshop.app.activeDocument.save()
+            doc = self._get_active_document()
+            doc.save()
         
         elif operation == "save_as":
-            doc = photoshop.app.activeDocument
-            if doc:            
-                new_file_name = photoshop.RemoteObject('flash.filesystem::File', file_path)
-                # no options and do not save as a copy
-                # http://cssdk.host.adobe.com/sdk/1.5/docs/WebHelp/references/csawlib/com/adobe/photoshop/Document.html#saveAs()
-                doc.saveAs(new_file_name, None, False)
+            doc = self._get_active_document()
+            new_file_name = photoshop.RemoteObject('flash.filesystem::File', file_path)
+            # no options and do not save as a copy
+            # http://cssdk.host.adobe.com/sdk/1.5/docs/WebHelp/references/csawlib/com/adobe/photoshop/Document.html#saveAs()
+            doc.saveAs(new_file_name, None, False)
 
         elif operation == "reset":
             # do nothing and indicate scene was reset to empty
             return True
         
         elif operation == "prepare_new":
-            # file->new
+            # file->new. Not sure how to pop up the actual file->new UI,
+            # this command will create a document with default properties
             photoshop.app.documents.add()
         
-
+    def _get_active_document(self):
+        """
+        Returns the currently open document in Photoshop.
+        Raises an exeption if no document is active.
+        """
+        doc = photoshop.app.activeDocument
+        if doc is None:
+            raise TankError("There is no currently active document!")
+        return doc
