@@ -467,7 +467,7 @@ class WorkFiles(object):
         
         # construct a context for this path to determine if it's in
         # a user sandbox or not:
-        wp_ctx = self._app.tank.context_from_path(work_path)
+        wp_ctx = self._app.tank.context_from_path(work_path, self._context)
         if wp_ctx.user:
             current_user = tank.util.get_current_user(self._app.tank)
             if current_user and current_user["id"] != wp_ctx.user["id"]:
@@ -535,7 +535,7 @@ class WorkFiles(object):
             fields = self._publish_template.get_fields(src_path)
 
             # construct a context for the path:
-            sp_ctx = self._app.tank.context_from_path(src_path)
+            sp_ctx = self._app.tank.context_from_path(src_path, self._context)
 
             # if current user is defined, update fields to use this:
             current_user = tank.util.get_current_user(self._app.tank)
