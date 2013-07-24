@@ -207,7 +207,16 @@ class WorkFiles(object):
             if wf:
                 # start with the details from the work file:
                 details = wf.details
-            else:
+                
+            # add publish details from publish record:
+            details["task"] = publish_details.get("task")
+            details["thumbnail"] = publish_details.get("image")
+            details["published_at"] = publish_details.get("created_at")
+            details["published_by"] = publish_details.get("created_by", {})
+            details["publish_description"] = publish_details.get("description")
+            details["published_file_id"] = publish_details.get("published_file_id")         
+                
+            if not wf:
                 # no work file!
                 
                 # fill in general details for the publish:
@@ -225,14 +234,6 @@ class WorkFiles(object):
                 else:
                     details["modified_at"] = details["published_at"]
                     details["modified_by"] = details["published_by"]
-                            
-            # add additional details from publish record:
-            details["task"] = publish_details.get("task")
-            details["thumbnail"] = publish_details.get("image")
-            details["published_at"] = publish_details.get("created_at")
-            details["published_by"] = publish_details.get("created_by", {})
-            details["publish_description"] = publish_details.get("description")
-            details["published_file_id"] = publish_details.get("published_file_id")
 
             pf = WorkFile(work_path, publish_path, bool(wf), True, details)                
             if wf:
