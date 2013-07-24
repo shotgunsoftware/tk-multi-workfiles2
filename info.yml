@@ -14,8 +14,7 @@
 configuration:
     template_work:
         type: template
-        required_fields: [version]
-        optional_fields: [name]
+        fields: context, version, *
         description: A reference to a template which locates a work file on disk.
         allows_empty: True
 
@@ -27,8 +26,7 @@ configuration:
 
     template_publish:
         type: template
-        required_fields: [version]
-        optional_fields: [name]
+        fields: context, version, *
         description: A reference to a template which locates a publish file on disk.
         allows_empty: True
            
@@ -74,7 +72,7 @@ description: "Using this app you can change the current work area and
               
 # Required minimum versions for this item to run
 requires_shotgun_version:
-requires_core_version: "v0.13.27"
+requires_core_version: "v0.14.11"
 requires_engine_version: 
 
 # the engines that this app can operate in:

@@ -56,6 +56,9 @@ class WorkFiles(object):
         """
         Show the main tank file manager dialog 
         """
+        #print self.find_files(None)
+        #return
+        
         try:
             from .work_files_form import WorkFilesForm
             self._workfiles_ui = self._app.engine.show_dialog("Shotgun File Manager", self._app, WorkFilesForm, self._app, self)
@@ -123,14 +126,22 @@ class WorkFiles(object):
         # add entries for work files:
         file_details = []
         handled_publish_files = set()
+        work_file_map = {}
         
         for work_path in work_file_paths:
             # resolve the publish path:
             fields = self._work_template.get_fields(work_path)
-            publish_path = self._publish_template.apply_fields(fields)
-            
-            handled_publish_files.add(publish_path)
-            publish_details = publish_file_details.get(publish_path)
+
+            publish_path = None
+            publish_details = None
+            try:
+                publish_path = self._publish_template.apply_fields(fields)
+            except:
+                # failed to convert from work path to publish path!
+                pass
+            else:
+                handled_publish_files.add(publish_path)
+                publish_details = publish_file_details.get(publish_path)
                 
             # create file entry:
             details = {}
@@ -176,7 +187,9 @@ class WorkFiles(object):
             details["modified_at"] = datetime.fromtimestamp(os.path.getmtime(work_path), tz=sg_timezone.local)
             details["modified_by"] = self._get_file_last_modified_user(work_path)
 
-            file_details.append(WorkFile(work_path, publish_path, True, publish_details != None, details))
+            wf = WorkFile(work_path, publish_path, True, publish_details != None, details)
+            file_details.append(wf)
+            work_file_map[work_path] = wf 
          
         # add entries for any publish files that don't have a work file
         for publish_path, publish_details in publish_file_details.iteritems():
@@ -187,16 +200,32 @@ class WorkFiles(object):
             publish_fields = self._publish_template.get_fields(publish_path)
             work_path = self._work_template.apply_fields(dict(chain(work_fields.iteritems(), publish_fields.iteritems())))
 
-            # create file entry:
-            is_work_file = (work_path in work_file_paths)
-            details = {}            
-            if "version" in publish_fields:
-                details["version"] = publish_fields["version"]
-            if "name" in publish_fields:
-                details["name"] = publish_fields["name"]
-
-            details["entity"] = find_ctx.entity
+            details = {}
+            
+            # check to see if we have this workfile:
+            wf = work_file_map.get(work_path)
+            if wf:
+                # start with the details from the work file:
+                details = wf.details
+            else:
+                # no work file!
                 
+                # fill in general details for the publish:
+                if "version" in publish_fields:
+                    details["version"] = publish_fields["version"]
+                if "name" in publish_fields:
+                    details["name"] = publish_fields["name"]
+    
+                details["entity"] = find_ctx.entity
+
+                # get the local file modified details:
+                if os.path.exists(publish_path):
+                    details["modified_at"] = datetime.fromtimestamp(os.path.getmtime(publish_path), tz=sg_timezone.local)
+                    details["modified_by"] = self._get_file_last_modified_user(publish_path)
+                else:
+                    details["modified_at"] = details["published_at"]
+                    details["modified_by"] = details["published_by"]
+                            
             # add additional details from publish record:
             details["task"] = publish_details.get("task")
             details["thumbnail"] = publish_details.get("image")
@@ -204,16 +233,12 @@ class WorkFiles(object):
             details["published_by"] = publish_details.get("created_by", {})
             details["publish_description"] = publish_details.get("description")
             details["published_file_id"] = publish_details.get("published_file_id")
-                
-            # get the local file modified details:
-            if os.path.exists(publish_path):
-                details["modified_at"] = datetime.fromtimestamp(os.path.getmtime(publish_path), tz=sg_timezone.local)
-                details["modified_by"] = self._get_file_last_modified_user(publish_path)
-            else:
-                details["modified_at"] = details["published_at"]
-                details["modified_by"] = details["published_by"]
-                
-            file_details.append(WorkFile(work_path, publish_path, is_work_file, True, details))            
+
+            pf = WorkFile(work_path, publish_path, bool(wf), True, details)                
+            if wf:
+                file_details.remove(wf)
+            file_details.append(pf)
+                        
 
         return file_details
         
@@ -817,6 +842,7 @@ class WorkFiles(object):
         
         published_file_entity_type = tank.util.get_published_file_entity_type(self._app.tank)
         sg_publish_fields = ["description", "version_number", "image", "created_at", "created_by", "name", "path", "task", "description"]
+        
         sg_published_files = self._app.shotgun.find(published_file_entity_type, filters, sg_publish_fields)
         
         publish_files = {}

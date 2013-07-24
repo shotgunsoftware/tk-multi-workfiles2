@@ -29,6 +29,10 @@ class WorkFile(object):
     General details
     """
     @property
+    def details(self):
+        return self._details
+    
+    @property
     def name(self):
         n = self._details.get("name")
         if not n and self._path:
