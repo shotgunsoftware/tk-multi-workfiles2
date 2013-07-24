@@ -61,6 +61,14 @@ configuration:
         description: Specify a hook that will be used to copy the file 'source_path' 
                      to 'target_path'.
            
+#add filter extension         
+    file_extensions:
+        type: list
+        description: "List of file extensions shown in the work files view."
+        values:
+            {type: str}
+        allows_empty: True   
+#add filter extension  
             
 # the Shotgun fields that this app needs in order to operate correctly
 requires_shotgun_fields:

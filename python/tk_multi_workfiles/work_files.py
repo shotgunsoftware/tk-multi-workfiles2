@@ -829,6 +829,13 @@ class WorkFiles(object):
             # make sure path matches publish template:            
             if not self._publish_template.validate(path):
                 continue
+
+#add filter extension"""                
+            self._file_extensions = self._app.get_setting("file_extensions", [])
+            if self._file_extensions:
+                if not path.split(".")[-1] in self._file_extensions:
+                    continue
+#end add filter extension"""
                 
             details = sg_file.copy()
             details["path"] = path
