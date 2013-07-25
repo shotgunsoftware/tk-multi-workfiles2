@@ -108,6 +108,8 @@ class FileListView(browser_widget.BrowserWidget):
             # do some pre-processing of file groups:
             filtered_task_groups = {}
             
+            task_order = {}
+            task_modified_pairs = []
             task_name_order = {}
             for task, name_groups in task_groups.iteritems():
                 name_modified_pairs = []
@@ -179,9 +181,16 @@ class FileListView(browser_widget.BrowserWidget):
                 # sort names in reverse order of modified date:
                 name_modified_pairs.sort(key=itemgetter(1), reverse=True)
                 task_name_order[task] = [n for (n, _) in name_modified_pairs]
+                
+                task_modified_pairs.append((task, max([m for (_, m) in name_modified_pairs])))
+        
+            # sort tasks in reverse order of modified date:
+            task_modified_pairs.sort(key=itemgetter(1), reverse=True)
+            task_order = [n for (n, _) in task_modified_pairs]
         
             result["task_groups"] = filtered_task_groups
             result["task_name_order"] = task_name_order
+            result["task_order"] = task_order
         
         return result
     
@@ -191,6 +200,7 @@ class FileListView(browser_widget.BrowserWidget):
         """
         task_groups = result["task_groups"]
         task_name_order = result["task_name_order"]
+        task_order = result["task_order"]
         current_task_name = result["current_task_name"]
         self._current_mode = result["mode"]
         
@@ -223,7 +233,8 @@ class FileListView(browser_widget.BrowserWidget):
             self.set_message(msg)
             return
         
-        for task_name, name_groups in task_groups.iteritems():
+        for task_name in task_order:
+            name_groups = task_groups[task_name]
         
             if (len(task_groups) > 1 
                 or (task_name != current_task_name

@@ -124,10 +124,9 @@ class WorkFiles(object):
                 publish_task_map.setdefault(work_path_key, set()).add(task["id"])
          
         # add entries for work files:
-        file_details = []
+        file_details = {}
         handled_publish_files = set()
-        work_file_map = {}
-        
+
         for work_path in work_file_paths:
             # resolve the publish path:
             fields = self._work_template.get_fields(work_path)
@@ -187,9 +186,7 @@ class WorkFiles(object):
             details["modified_at"] = datetime.fromtimestamp(os.path.getmtime(work_path), tz=sg_timezone.local)
             details["modified_by"] = self._get_file_last_modified_user(work_path)
 
-            wf = WorkFile(work_path, publish_path, True, publish_details != None, details)
-            file_details.append(wf)
-            work_file_map[work_path] = wf 
+            file_details[work_path] = WorkFile(work_path, publish_path, True, publish_details != None, details)
          
         # add entries for any publish files that don't have a work file
         for publish_path, publish_details in publish_file_details.iteritems():
@@ -203,7 +200,7 @@ class WorkFiles(object):
             details = {}
             
             # check to see if we have this workfile:
-            wf = work_file_map.get(work_path)
+            wf = file_details.get(work_path)
             if wf:
                 # start with the details from the work file:
                 details = wf.details
@@ -235,13 +232,9 @@ class WorkFiles(object):
                     details["modified_at"] = details["published_at"]
                     details["modified_by"] = details["published_by"]
 
-            pf = WorkFile(work_path, publish_path, bool(wf), True, details)                
-            if wf:
-                file_details.remove(wf)
-            file_details.append(pf)
+            file_details[work_path] = WorkFile(work_path, publish_path, bool(wf), True, details) 
                         
-
-        return file_details
+        return file_details.values()
         
     def _on_show_in_file_system(self, work_area, user):
         """

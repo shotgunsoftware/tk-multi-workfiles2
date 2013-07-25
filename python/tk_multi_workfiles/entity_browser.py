@@ -126,7 +126,9 @@ class EntityBrowserWidget(browser_widget.BrowserWidget):
                 if d.get("image"):
                     i.set_thumbnail(d.get("image"))
                     
-                if d and current_entity and d["id"] == current_entity.get("id"):
+                if (d and current_entity 
+                    and d["id"] == current_entity.get("id") 
+                    and d.get("type") == current_entity.get("type")):
                     item_to_select = i
             
             if item_to_select:
