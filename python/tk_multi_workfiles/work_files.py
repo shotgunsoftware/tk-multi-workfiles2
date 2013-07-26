@@ -324,10 +324,14 @@ class WorkFiles(object):
         if not can_do_new:
             return False
         
-        # ensure that context contains everything required by the work area template:
-        ctx_fields = self._context.as_template_fields(self._work_area_template)
-        if self._work_area_template.missing_keys(ctx_fields):
-            return False
+        # (AD) - this used to check that the context contained everything
+        # required by the work area template.  However, this meant that it
+        # wasn't possible to start a new file from an entity that didn't
+        # exist in the path cache!  This has now been changed so that it's
+        # possible to start a new file as long as a work area has been 
+        # selected - it's then up to the apps in the new environment to
+        # decide what to do if there isn't enough information available in
+        # the context.
         
         return True
         
@@ -687,12 +691,26 @@ class WorkFiles(object):
         Perform a new-scene operation initialized with
         the current context
         """
+        if not self.can_do_new_file():
+            # should never get here as the new button in the UI should
+            # be disabled!
+            return
+        
         # switch context
         try:
-            if not self._context == self._app.context:
+            create_folders = not (self._context == self._app.context)
+            if not create_folders:
+                # see if we have all fields for the work area:
+                ctx_fields = self._context.as_template_fields(self._work_area_template)
+                if self._work_area_template.missing_keys(ctx_fields):
+                    # missing fields might be because the path cache isn't populated
+                    # so lets create folders anyway to populate it!
+                    create_folders = True
+            
+            if create_folders:
                 # ensure folders exist:
                 self._create_folders(self._context)
-
+                
             # reset the current scene:
             if not reset_current_scene(self._app, NEW_FILE_ACTION, self._context):
                 self._app.log_debug("Unable to perform New Scene operation after failing to reset scene!")
