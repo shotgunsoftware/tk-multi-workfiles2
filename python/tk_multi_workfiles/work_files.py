@@ -124,10 +124,9 @@ class WorkFiles(object):
                 publish_task_map.setdefault(work_path_key, set()).add(task["id"])
          
         # add entries for work files:
-        file_details = []
+        file_details = {}
         handled_publish_files = set()
-        work_file_map = {}
-        
+
         for work_path in work_file_paths:
             # resolve the publish path:
             fields = self._work_template.get_fields(work_path)
@@ -187,9 +186,7 @@ class WorkFiles(object):
             details["modified_at"] = datetime.fromtimestamp(os.path.getmtime(work_path), tz=sg_timezone.local)
             details["modified_by"] = self._get_file_last_modified_user(work_path)
 
-            wf = WorkFile(work_path, publish_path, True, publish_details != None, details)
-            file_details.append(wf)
-            work_file_map[work_path] = wf 
+            file_details[work_path] = WorkFile(work_path, publish_path, True, publish_details != None, details)
          
         # add entries for any publish files that don't have a work file
         for publish_path, publish_details in publish_file_details.iteritems():
@@ -203,11 +200,20 @@ class WorkFiles(object):
             details = {}
             
             # check to see if we have this workfile:
-            wf = work_file_map.get(work_path)
+            wf = file_details.get(work_path)
             if wf:
                 # start with the details from the work file:
                 details = wf.details
-            else:
+                
+            # add publish details from publish record:
+            details["task"] = publish_details.get("task")
+            details["thumbnail"] = publish_details.get("image")
+            details["published_at"] = publish_details.get("created_at")
+            details["published_by"] = publish_details.get("created_by", {})
+            details["publish_description"] = publish_details.get("description")
+            details["published_file_id"] = publish_details.get("published_file_id")         
+                
+            if not wf:
                 # no work file!
                 
                 # fill in general details for the publish:
@@ -225,22 +231,10 @@ class WorkFiles(object):
                 else:
                     details["modified_at"] = details["published_at"]
                     details["modified_by"] = details["published_by"]
-                            
-            # add additional details from publish record:
-            details["task"] = publish_details.get("task")
-            details["thumbnail"] = publish_details.get("image")
-            details["published_at"] = publish_details.get("created_at")
-            details["published_by"] = publish_details.get("created_by", {})
-            details["publish_description"] = publish_details.get("description")
-            details["published_file_id"] = publish_details.get("published_file_id")
 
-            pf = WorkFile(work_path, publish_path, bool(wf), True, details)                
-            if wf:
-                file_details.remove(wf)
-            file_details.append(pf)
+            file_details[work_path] = WorkFile(work_path, publish_path, bool(wf), True, details) 
                         
-
-        return file_details
+        return file_details.values()
         
     def _on_show_in_file_system(self, work_area, user):
         """
@@ -330,10 +324,14 @@ class WorkFiles(object):
         if not can_do_new:
             return False
         
-        # ensure that context contains everything required by the work area template:
-        ctx_fields = self._context.as_template_fields(self._work_area_template)
-        if self._work_area_template.missing_keys(ctx_fields):
-            return False
+        # (AD) - this used to check that the context contained everything
+        # required by the work area template.  However, this meant that it
+        # wasn't possible to start a new file from an entity that didn't
+        # exist in the path cache!  This has now been changed so that it's
+        # possible to start a new file as long as a work area has been 
+        # selected - it's then up to the apps in the new environment to
+        # decide what to do if there isn't enough information available in
+        # the context.
         
         return True
         
@@ -693,12 +691,26 @@ class WorkFiles(object):
         Perform a new-scene operation initialized with
         the current context
         """
+        if not self.can_do_new_file():
+            # should never get here as the new button in the UI should
+            # be disabled!
+            return
+        
         # switch context
         try:
-            if not self._context == self._app.context:
+            create_folders = not (self._context == self._app.context)
+            if not create_folders:
+                # see if we have all fields for the work area:
+                ctx_fields = self._context.as_template_fields(self._work_area_template)
+                if self._work_area_template.missing_keys(ctx_fields):
+                    # missing fields might be because the path cache isn't populated
+                    # so lets create folders anyway to populate it!
+                    create_folders = True
+            
+            if create_folders:
                 # ensure folders exist:
                 self._create_folders(self._context)
-
+                
             # reset the current scene:
             if not reset_current_scene(self._app, NEW_FILE_ACTION, self._context):
                 self._app.log_debug("Unable to perform New Scene operation after failing to reset scene!")
