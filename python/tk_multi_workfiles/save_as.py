@@ -140,14 +140,9 @@ class SaveAs(object):
         been done
         """
         # always try to create folders:
-        folder = os.path.dirname(new_path)
         ctx_entity = self._app.context.task or self._app.context.entity or self._app.context.project
         if ctx_entity:
             self._app.tank.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"))
-            folders = self._app.tank.preview_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"))
-            #this always takes long it is strange why it wont work in our config but this way the folders will get created
-        if folder not in folders:
-            self._app.ensure_folder_exists(folder)
         
         # and save the current file as the new path:
         save_file(self._app, SAVE_FILE_AS_ACTION, self._app.context, new_path)

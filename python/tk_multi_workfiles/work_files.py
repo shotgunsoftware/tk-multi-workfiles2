@@ -36,6 +36,7 @@ class WorkFiles(object):
         self._user_details_by_login = {}
         
         self._can_change_workarea = (len(self._app.get_setting("sg_entity_types", [])) > 0)
+        self._visible_file_extensions = [".%s" % ext if not ext.startswith(".") else ext for ext in self._app.get_setting("file_extensions", [])]
         
         # set up the work area from the app:
         self._context = None
@@ -128,6 +129,11 @@ class WorkFiles(object):
         handled_publish_files = set()
 
         for work_path in work_file_paths:
+            
+            # check if this path should be ignored:
+            if self._ignore_file_path(work_path):
+                continue
+            
             # resolve the publish path:
             fields = self._work_template.get_fields(work_path)
 
@@ -863,17 +869,14 @@ class WorkFiles(object):
                 continue
             
             path = sg_file.get("path").get("local_path")
+            
+            # check if this path should be ignored:
+            if self._ignore_file_path(path):
+                continue
 
             # make sure path matches publish template:            
             if not self._publish_template.validate(path):
                 continue
-
-#add filter extension"""                
-            self._file_extensions = self._app.get_setting("file_extensions", [])
-            if self._file_extensions:
-                if not path.split(".")[-1] in self._file_extensions:
-                    continue
-#end add filter extension"""
                 
             details = sg_file.copy()
             details["path"] = path
@@ -1003,9 +1006,16 @@ class WorkFiles(object):
             for settings in engine_settings:
                 if settings.get("app_instance") == app_instance_name:
                     return settings.get("settings")
-        
 
-    
-    
-    
-    
+    def _ignore_file_path(self, path):
+        """
+        Return True if this file should be ignored
+        completely!
+        """
+        if self._visible_file_extensions:
+            _, ext = os.path.splitext(path)
+            if ext and ext not in self._visible_file_extensions:
+                # we want to ignore this file!
+                return True
+            
+        return False
