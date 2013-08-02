@@ -68,6 +68,19 @@ configuration:
         allows_empty: True
         default_value: []   
   
+    saveas_default_name:
+      type: str
+      description: The default name that gets used by when saving a work file using the
+                   save-as command
+      default_value: scene
+
+    saveas_prefer_version_up:
+      type: bool
+      description: Control how the save-as command determines the inital name to be used.  If 
+                   set to True then the name from the current scene will be used and the version 
+                   incremented.  If False then a new unique name will be used and the version 
+                   reset
+      default: False
             
 # the Shotgun fields that this app needs in order to operate correctly
 requires_shotgun_fields:

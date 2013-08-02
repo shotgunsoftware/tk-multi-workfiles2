@@ -69,7 +69,8 @@ class SaveAs(object):
             title = "Copy to Work Area"
             name = fields.get("name")
         else:
-            default_name = "scene"
+            # get the default name from settings:
+            default_name = self._app.get_setting("saveas_default_name")
             fields = {}
             if self._work_template.validate(current_path):
                 fields = self._work_template.get_fields(current_path)
@@ -78,28 +79,41 @@ class SaveAs(object):
             else:
                 name = default_name
                 fields = self._app.context.as_template_fields(self._work_template)
-            
-            try:
-                # make sure the work file name doesn't already exist:
-                # note, this could potentially be slow so for now lets
-                # limit it:
-                counter_limit = 10
-                for counter in range(0, counter_limit):
-                    test_name = name
-                    if counter > 0:
-                        test_name = "%s%d" % (name, counter)
-                    
-                    test_fields = fields.copy()
-                    test_fields["name"] = test_name
                 
-                    existing_files = self._app.tank.paths_from_template(self._work_template, test_fields, ["version"])
-                    if not existing_files:
-                        name = test_name
-                        break
+            if not self._app.get_setting("saveas_prefer_version_up"):
+                # default is to not version-up so lets make sure we
+                # at least start with a unique name!
+                try:
+                    # make sure the work file name doesn't already exist:
+                    # note, this could potentially be slow so for now lets
+                    # limit it:
+
+                    # split name into alpha and numeric parts so that we can 
+                    # increment the numeric part in order to find a unique name
+                    name_alpha = name.strip("0123456789")
+                    name_num_str = name[len(name_alpha):] or "0"
+                    name_num = int(name_num_str)
+                    name_format_str = "%s%%0%dd" % (name_alpha, len(name_num_str))
                     
-            except TankError, e:
-                # this shouldn't be fatal so just log a debug message:
-                self._app.log_debug("Warning - failed to find a default name for Shotgun Save-As: %s" % e)
+                    counter_limit = 10
+                    for counter in range(0, counter_limit):
+                        test_name = name
+                        if counter > 0:
+                            # build new name
+                            test_name = name_format_str % (name_num+counter)
+                        
+                        test_fields = fields.copy()
+                        test_fields["name"] = test_name
+                    
+                        existing_files = self._app.tank.paths_from_template(self._work_template, test_fields, ["version"])
+                        if not existing_files:
+                            name = test_name
+                            break
+                        
+                except TankError, e:
+                    print e
+                    # this shouldn't be fatal so just log a debug message:
+                    self._app.log_debug("Warning - failed to find a default name for Shotgun Save-As: %s" % e)
                 
         
         worker_cb = lambda details, wp=current_path, ip=is_publish: self.generate_new_work_file_path(wp, ip, details.get("name"), details.get("reset_version"))
