@@ -65,7 +65,7 @@ class SaveAs(object):
         name_is_used = "name" in self._work_template.keys
         
         # update some initial info:        
-        title = "Copy to Work Area" if is_publish else "Shotgun Save As"
+        title = "Save to Work Area" if is_publish else "Shotgun Save As"
         name = ""
         if name_is_used:
             if is_publish:
@@ -218,7 +218,7 @@ class SaveAs(object):
         # now depending on what the source was 
         # and if the name has been changed:
         new_version = None
-        if current_is_publish and new_name == current_name:
+        if current_is_publish and ((not has_name_field) or new_name == current_name):
             # we're ok to just copy publish across and version up
             can_reset_version = False
             new_version = max_version + 1

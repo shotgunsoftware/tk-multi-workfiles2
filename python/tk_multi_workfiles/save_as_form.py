@@ -156,8 +156,8 @@ class SaveAsForm(QtGui.QWidget):
         else:
             if self._launched_from_publish:
                 header_txt = ("You are currently working on a file that has already been published!  "
-                              "By clicking continue, the file will be copied into your work area and "
-                              "you can continue your work there.")
+                              "By clicking 'Save', the file will be copied into your work area as the "
+                              "latest version and you can continue your work there.")
             else:
                 if self._name_is_used:
                     header_txt = ("Type in a name below and Shotgun will save the current scene")
