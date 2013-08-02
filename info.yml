@@ -80,7 +80,7 @@ configuration:
                    set to True then the name from the current scene will be used and the version 
                    incremented.  If False then a new unique name will be used and the version 
                    reset
-      default_Value: False
+      default_value: False
             
 # the Shotgun fields that this app needs in order to operate correctly
 requires_shotgun_fields:
