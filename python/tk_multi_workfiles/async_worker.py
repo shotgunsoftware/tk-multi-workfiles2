@@ -86,7 +86,7 @@ class AsyncWorker(QtCore.QThread):
                 # TODO: throwing an exception here will kill the thread
                 # which isn't what we want - however, ignoring errors
                 # isn't great either!
-                print "%s" % e
+                print "Unhandled exception in worker thread: %s" % e
                 pass
             
             

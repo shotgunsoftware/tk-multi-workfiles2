@@ -22,7 +22,7 @@ class SaveAsForm(QtGui.QWidget):
     def exit_code(self):
         return self._exit_code
     
-    def __init__(self, preview_updater, is_publish, name, parent = None):
+    def __init__(self, preview_updater, is_publish, name_is_used, name, parent = None):
         """
         Construction
         """
@@ -34,6 +34,7 @@ class SaveAsForm(QtGui.QWidget):
         
         self._reset_version = False
         self._launched_from_publish = is_publish
+        self._name_is_used = name_is_used
         
         # set up the UI
         from .ui.save_as_form import Ui_SaveAsForm
@@ -47,7 +48,13 @@ class SaveAsForm(QtGui.QWidget):
         self._ui.reset_version_cb.stateChanged.connect(self._on_reset_version_changed)
 
         self._ui.name_edit.setText(name)
-        if not self._launched_from_publish:
+        
+        if not self._name_is_used:
+            self._ui.name_label.hide()
+            self._ui.name_edit.hide()
+            self._ui.reset_version_cb.hide()
+            
+        if self._name_is_used and not self._launched_from_publish:
             # make sure text in name edit is selected ready to edit:
             self._ui.name_edit.setFocus()
             self._ui.name_edit.selectAll()
@@ -142,14 +149,20 @@ class SaveAsForm(QtGui.QWidget):
         # update header:
         header_txt = ""
         if msg:
-            header_txt = "<p style='color:rgb(226, 146, 0)'>Warning: %s</p>" % msg
+            if self._name_is_used:
+                header_txt = "<p style='color:rgb(226, 146, 0)'>Warning: %s</p>" % msg
+            else:
+                header_txt = msg
         else:
             if self._launched_from_publish:
                 header_txt = ("You are currently working on a file that has already been published!  "
                               "By clicking continue, the file will be copied into your work area and "
                               "you can continue your work there.")
             else:
-                header_txt = ("Type in a name below and Shotgun will save the current scene")
+                if self._name_is_used:
+                    header_txt = ("Type in a name below and Shotgun will save the current scene")
+                else:
+                    header_txt = ("Would you like Shotgun to save the current scene in your work area?")
         self._ui.header_label.setText(header_txt)
             
         # update reset version check box:

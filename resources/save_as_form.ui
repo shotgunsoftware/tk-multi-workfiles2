@@ -114,7 +114,7 @@ border-color: rgb(32,32,32);
       </widget>
      </item>
      <item>
-      <layout class="QGridLayout" name="gridLayout" columnstretch="0,0">
+      <layout class="QGridLayout" name="gridLayout" columnstretch="0,1">
        <property name="horizontalSpacing">
         <number>16</number>
        </property>
@@ -122,7 +122,7 @@ border-color: rgb(32,32,32);
         <number>10</number>
        </property>
        <item row="0" column="1">
-        <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <layout class="QHBoxLayout" name="name_layout">
          <property name="leftMargin">
           <number>4</number>
          </property>
@@ -149,7 +149,7 @@ border-color: rgb(32,32,32);
         </layout>
        </item>
        <item row="0" column="0">
-        <widget class="QLabel" name="label_5">
+        <widget class="QLabel" name="name_label">
          <property name="minimumSize">
           <size>
            <width>0</width>
@@ -242,7 +242,7 @@ p, li { white-space: pre-wrap; }
         </widget>
        </item>
        <item row="1" column="0">
-        <widget class="QLabel" name="label_4">
+        <widget class="QLabel" name="preview_label">
          <property name="text">
           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Preview:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>

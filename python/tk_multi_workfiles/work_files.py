@@ -152,8 +152,7 @@ class WorkFiles(object):
             details = {}
             if "version" in fields:
                 details["version"] = fields["version"]
-            if "name" in fields:
-                details["name"] = fields["name"]
+            details["name"] = self._get_workfile_display_name(work_path, self._work_template, fields)
 
             # entity is always the context entity:
             details["entity"] = find_ctx.entity
@@ -241,6 +240,52 @@ class WorkFiles(object):
             file_details[work_path] = WorkFile(work_path, publish_path, bool(wf), True, details) 
                         
         return file_details.values()
+        
+    def _get_workfile_display_name(self, path, template, fields=None):
+        """
+        Return the 'name' to be used for the file - if possible
+        this will return a 'versionless' name
+        """
+        # first, extract the fields from the path using the template:
+        fields = fields or template.get_fields(path)
+        if "name" in fields:
+            # well, that was easy!
+            return fields["name"]
+        
+        # find out if version is used in the file name:
+        template_name, _ = os.path.splitext(os.path.basename(template.definition))
+        version_in_name = "{version}" in template_name
+    
+        # build the path:
+        name, _ = os.path.splitext(os.path.basename(path))
+        if not version_in_name:
+            # ok, we can just use the file name
+            return name
+
+        # looks like version is part of the file name so we        
+        # need to isolate it so that we can remove it safely.  
+        # First, find a dummy version whose string representation
+        # doesn't exist in the name string
+        version_key = template.keys["version"]
+        dummy_version = 9876
+        while True:
+            test_str = version_key.str_from_value(dummy_version)
+            if test_str not in name:
+                break
+            dummy_version += 1
+        
+        # now use this dummy version and rebuild the path
+        fields["version"] = dummy_version
+        path = template.apply_fields(fields)
+        name, _ = os.path.splitext(os.path.basename(path))
+        
+        # now replace the dummy version with #'s:
+        dummy_version_str = version_key.str_from_value(dummy_version)
+        zero_version_str = version_key.str_from_value(0)        
+        new_version_str = "#" * len(zero_version_str)
+        name = name.replace(dummy_version_str, new_version_str)
+        
+        return name 
         
     def _on_show_in_file_system(self, work_area, user):
         """

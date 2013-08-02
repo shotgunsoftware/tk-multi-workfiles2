@@ -47,7 +47,7 @@ configuration:
            
     hook_scene_operation:
         type: hook
-        parameters: [operation, file_path]
+        parameters: [operation, file_path, context, parent_action]
         default_value: "scene_operation_{engine_name}"
         description: All the application specific scene operations (open, save etc) that 
                      the app needs to carry out are collected together in this hook.

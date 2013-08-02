@@ -60,68 +60,71 @@ class SaveAs(object):
         
         # determine if this is a publish path or not:
         is_publish = self._publish_template.validate(current_path)
-        fields = {}
+        
+        # see if name is used in the work template:
+        name_is_used = "name" in self._work_template.keys
+        
+        # update some initial info:        
         title = "Shotgun Save As"
         name = ""
-
         if is_publish:
-            fields = self._publish_template.get_fields(current_path)
             title = "Copy to Work Area"
-            name = fields.get("name")
+            if name_is_used:
+                fields = self._publish_template.get_fields(current_path)
+                name = fields.get("name")
         else:
-            # get the default name from settings:
-            default_name = self._app.get_setting("saveas_default_name")
-            fields = {}
-            if self._work_template.validate(current_path):
-                fields = self._work_template.get_fields(current_path)
-                title = "Shotgun Save As"
-                name = fields.get("name") or default_name
-            else:
-                name = default_name
-                fields = self._app.context.as_template_fields(self._work_template)
+            if name_is_used:
+                # get the default name from settings:
+                default_name = self._app.get_setting("saveas_default_name")
+                fields = {}
+                if self._work_template.validate(current_path):
+                    fields = self._work_template.get_fields(current_path)
+                    name = fields.get("name") or default_name
+                else:
+                    name = default_name
+                    fields = self._app.context.as_template_fields(self._work_template)
                 
-            if not self._app.get_setting("saveas_prefer_version_up"):
-                # default is to not version-up so lets make sure we
-                # at least start with a unique name!
-                try:
-                    # make sure the work file name doesn't already exist:
-                    # note, this could potentially be slow so for now lets
-                    # limit it:
+                if not self._app.get_setting("saveas_prefer_version_up"):
+                    # default is to not version-up so lets make sure we
+                    # at least start with a unique name!
 
-                    # split name into alpha and numeric parts so that we can 
-                    # increment the numeric part in order to find a unique name
-                    name_alpha = name.strip("0123456789")
-                    name_num_str = name[len(name_alpha):] or "0"
-                    name_num = int(name_num_str)
-                    name_format_str = "%s%%0%dd" % (name_alpha, len(name_num_str))
+                    try:
+                        # make sure the work file name doesn't already exist:
+                        # note, this could potentially be slow so for now lets
+                        # limit it:
+
+                        # split name into alpha and numeric parts so that we can 
+                        # increment the numeric part in order to find a unique name
+                        name_alpha = name.strip("0123456789")
+                        name_num_str = name[len(name_alpha):] or "0"
+                        name_num = int(name_num_str)
+                        name_format_str = "%s%%0%dd" % (name_alpha, len(name_num_str))
                     
-                    counter_limit = 10
-                    for counter in range(0, counter_limit):
-                        test_name = name
-                        if counter > 0:
-                            # build new name
-                            test_name = name_format_str % (name_num+counter)
+                        counter_limit = 10
+                        for counter in range(0, counter_limit):
+                            test_name = name
+                            if counter > 0:
+                                # build new name
+                                test_name = name_format_str % (name_num+counter)
                         
-                        test_fields = fields.copy()
-                        test_fields["name"] = test_name
-                    
-                        existing_files = self._app.tank.paths_from_template(self._work_template, test_fields, ["version"])
-                        if not existing_files:
-                            name = test_name
-                            break
+                            test_fields = fields.copy()
+                            test_fields["name"] = test_name
                         
-                except TankError, e:
-                    print e
-                    # this shouldn't be fatal so just log a debug message:
-                    self._app.log_debug("Warning - failed to find a default name for Shotgun Save-As: %s" % e)
+                            existing_files = self._app.tank.paths_from_template(self._work_template, test_fields, ["version"])
+                            if not existing_files:
+                                name = test_name
+                                break
+                        
+                    except TankError, e:
+                        # this shouldn't be fatal so just log a debug message:
+                        self._app.log_debug("Warning - failed to find a default name for Shotgun Save-As: %s" % e)
                 
-        
         worker_cb = lambda details, wp=current_path, ip=is_publish: self.generate_new_work_file_path(wp, ip, details.get("name"), details.get("reset_version"))
         with AsyncWorker(worker_cb) as preview_updater:
             while True:
                 # show modal dialog:
                 from .save_as_form import SaveAsForm
-                (res, form) = self._app.engine.show_modal(title, self._app, SaveAsForm, preview_updater, is_publish, name)
+                (res, form) = self._app.engine.show_modal(title, self._app, SaveAsForm, preview_updater, is_publish, name_is_used, name)
                 
                 if res == QtGui.QDialog.Accepted:
                     # get details from UI:
@@ -170,14 +173,17 @@ class SaveAs(object):
         msg = None
         can_reset_version = False
 
+        has_name_field = "name" in self._work_template.keys 
+
         # validate name:
-        if not new_name:
-            msg = "You must enter a name!"
-            return {"message":msg}
-        
-        if not self._work_template.keys["name"].validate(new_name):
-            msg = "Your filename contains illegal characters!"
-            return {"message":msg}
+        if has_name_field:
+            if not self._work_template.is_optional("name") and not new_name:
+                msg = "You must enter a name!"
+                return {"message":msg}
+
+            if new_name and not self._work_template.keys["name"].validate(new_name):
+                msg = "Your filename contains illegal characters!"
+                return {"message":msg}
 
         # build fields dictionary to use for the new path:
         fields = {}
@@ -198,8 +204,13 @@ class SaveAs(object):
         current_name = fields.get("name")
 
         # update name field:
-        fields["name"] = new_name
-
+        if new_name:
+            fields["name"] = new_name
+        else:
+            # clear the current name:
+            if "name" in fields:
+                del fields["name"]
+                
         # find the current max work file and publish versions:
         from .versioning import Versioning
         versioning = Versioning(self._app)
@@ -227,9 +238,16 @@ class SaveAs(object):
                 new_version = max_version + 1
                 
                 if max_version == max_work_version:
-                    msg = "A work file with this name already exists.  If you proceed, your file will use the next available version number."
+                    if has_name_field:
+                        msg = "A work file with this name already exists.  If you proceed, your file will use the next available version number."
+                    else:
+                        msg = "A previous version of this work file already exists.  If you proceed, your file will use the next available version number."
+
                 else:
-                    msg = "A publish file with this name already exists.  If you proceed, your file will use the next available version number."
+                    if has_name_field:
+                        msg = "A publish file with this name already exists.  If you proceed, your file will use the next available version number."
+                    else:
+                        msg = "A previous version of this published file already exists.  If you proceed, your file will use the next available version number."
                     
             else:
                 # don't have an existing version
