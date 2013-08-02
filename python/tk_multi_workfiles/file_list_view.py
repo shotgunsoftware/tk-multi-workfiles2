@@ -81,6 +81,7 @@ class FileListView(browser_widget.BrowserWidget):
         result["current_task_name"] = ctx.task.get("name") if ctx and ctx.task else None
         result["can_change_work_area"] = handler.can_change_work_area()
         result["mode"] = mode
+        result["task_order"] = []
         
         if result["have_valid_workarea"] and result["have_valid_configuration"]:
         
@@ -108,7 +109,6 @@ class FileListView(browser_widget.BrowserWidget):
             # do some pre-processing of file groups:
             filtered_task_groups = {}
             
-            task_order = {}
             task_modified_pairs = []
             task_name_order = {}
             for task, name_groups in task_groups.iteritems():
