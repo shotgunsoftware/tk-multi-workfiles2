@@ -65,23 +65,20 @@ class SaveAs(object):
         name_is_used = "name" in self._work_template.keys
         
         # update some initial info:        
-        title = "Shotgun Save As"
+        title = "Copy to Work Area" if is_publish else "Shotgun Save As"
         name = ""
-        if is_publish:
-            title = "Copy to Work Area"
-            if name_is_used:
+        if name_is_used:
+            if is_publish:
                 fields = self._publish_template.get_fields(current_path)
                 name = fields.get("name")
-        else:
-            if name_is_used:
+            else:
                 # get the default name from settings:
-                default_name = self._app.get_setting("saveas_default_name")
+                name = self._app.get_setting("saveas_default_name")
                 fields = {}
                 if self._work_template.validate(current_path):
                     fields = self._work_template.get_fields(current_path)
-                    name = fields.get("name") or default_name
+                    name = fields.get("name") or name
                 else:
-                    name = default_name
                     fields = self._app.context.as_template_fields(self._work_template)
                 
                 if not self._app.get_setting("saveas_prefer_version_up"):
