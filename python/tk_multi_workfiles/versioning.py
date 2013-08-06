@@ -118,6 +118,7 @@ class Versioning(object):
         is generated using the current work template and the
         specified fields
         """
+        # find max workfile version that exactly matches all other fields:
         work_area_paths = self._app.tank.paths_from_template(self._work_template, fields, ["version"])
         existing_work_versions = [self._work_template.get_fields(p).get("version") for p in work_area_paths]
         max_work_version = max(existing_work_versions) if existing_work_versions else None
@@ -128,26 +129,54 @@ class Versioning(object):
         Get the current highest publish version using the current
         context and the specified 'name' field.
         """
+        # first, get paths and versions of all publishes for context:
         paths_and_versions = self._get_published_paths_and_versions_for_context(self._context)
+        
+        # now filter this list to find publishes that match the fields
+        # passed in
         existing_publish_versions = []
         for p, pv in paths_and_versions:
             if not self._publish_template.validate(p):
+                # path isn't valid for the template!
                 continue
 
             # want to make sure that all fields from the publish
-            # path match those passed in (except version!)
+            # path match those passed in (ignoring version!)
             publish_fields = self._publish_template.get_fields(p)
-            v = None
-            for key, value in publish_fields.iteritems():
+            
+            for key in self._publish_template.keys:
+                # enumerate through keys as we need to check for optional
+                # keys which may be missing in one set of keys!
+                in_fields = key in fields
+                in_publish_fields = key in publish_fields
+                
+                if self._publish_template.is_optional(key):
+                    if in_fields != in_publish_fields:
+                        # optional field in one set but not the other so not
+                        # a valid match!
+                        v = None
+                        break
+                    elif not in_fields:
+                        # optional key isn't in either sets of fields
+                        # so this is a match!
+                        continue
+                else:
+                    if not in_fields:
+                        # required key not in fields so definitely 
+                        # not a match!
+                        v=None
+                        break
+                
                 if key == "version":
-                    v = value
+                    # we want to keep track of versions:
+                    v = publish_fields[key]
                     continue
-                
-                if key in fields and value != fields[key]:
-                    # this path doesn't match!
-                    v = None
-                    break
-                
+                else:
+                    if fields[key] != publish_fields[key]:
+                        # ok, this path doesn't match!
+                        v = None
+                        break
+                        
             if v == None:
                 # not a match!
                 continue
