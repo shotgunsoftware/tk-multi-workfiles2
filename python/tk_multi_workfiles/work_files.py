@@ -97,17 +97,18 @@ class WorkFiles(object):
 
         # find all published files that match the current template:
         publish_file_details = self._get_published_file_details()
-
+        
         # construct a new context to use for the search overriding the user if required:
         find_ctx = self._context if not user else self._context.create_copy_for_user(user)
         
         # find work files that match the current work template:
         work_fields = find_ctx.as_template_fields(self._work_template)
         work_file_paths = self._app.tank.paths_from_template(self._work_template, work_fields, ["version"])
-        
+            
         # build an index of the published file tasks to use if we don't have a task in the context:
         publish_task_map = {}
         task_id_to_task_map = {}
+        publish_file_keys = {}
         if not find_ctx.task:
             for publish_path, publish_details in publish_file_details.iteritems():
                 task = publish_details.get("task")
@@ -119,14 +120,17 @@ class WorkFiles(object):
                 # fields together with any additional fields from the context etc.
                 publish_fields = self._publish_template.get_fields(publish_path)
                 publish_fields["version"] = 0
-                work_path_key = self._work_template.apply_fields(dict(chain(work_fields.iteritems(), publish_fields.iteritems())))
-                
+                key = self._work_template.apply_fields(dict(chain(work_fields.iteritems(), publish_fields.iteritems())))
+
                 task_id_to_task_map[task["id"]] = task
-                publish_task_map.setdefault(work_path_key, set()).add(task["id"])
+                publish_task_map.setdefault(key, set()).add(task["id"])
+                publish_file_keys[publish_path] = key
          
         # add entries for work files:
         file_details = {}
         handled_publish_files = set()
+        
+        key_to_name_map = {}
 
         for work_path in work_file_paths:
             
@@ -152,7 +156,7 @@ class WorkFiles(object):
             details = {}
             if "version" in fields:
                 details["version"] = fields["version"]
-            details["name"] = self._get_workfile_display_name(work_path, self._work_template, fields)
+            details["name"] = self._get_file_display_name(work_path, self._work_template, fields)
 
             # entity is always the context entity:
             details["entity"] = find_ctx.entity
@@ -191,6 +195,18 @@ class WorkFiles(object):
             details["modified_at"] = datetime.fromtimestamp(os.path.getmtime(work_path), tz=sg_timezone.local)
             details["modified_by"] = self._get_file_last_modified_user(work_path)
 
+            # construct a unique 'key' for this file - this is the versionless path
+            # and is used to match up versions across work and published files
+            # This can't be 'name' as there may not be a name field!
+            fields["version"] = 0
+            key = self._work_template.apply_fields(fields)
+            
+            # ensure that onle one name is used for all versions of a file:
+            if key in key_to_name_map:
+                details["name"] = key_to_name_map[key]
+            else:
+                key_to_name_map[key] = details["name"] 
+
             file_details[work_path] = WorkFile(work_path, publish_path, True, publish_details != None, details)
          
         # add entries for any publish files that don't have a work file
@@ -219,16 +235,19 @@ class WorkFiles(object):
             details["published_file_id"] = publish_details.get("published_file_id")         
                 
             if not wf:
-                # no work file!
+                # no work file found!
                 
                 # fill in general details for the publish:
-                if "version" in publish_fields:
-                    details["version"] = publish_fields["version"]
-                if "name" in publish_fields:
-                    details["name"] = publish_fields["name"]
-    
                 details["entity"] = find_ctx.entity
-
+                
+                # version - prefer version from Shotgun over fields
+                # (although they should be the same!)
+                details["version"] = publish_details.get("version_number") or publish_fields.get("version")
+                
+                # name - prefer name from Shotgun over fields - this
+                # only gets used if there is no work file though!
+                details["name"] = publish_details.get("name") or self._get_file_display_name(publish_path, self._publish_template, publish_fields)
+    
                 # get the local file modified details:
                 if os.path.exists(publish_path):
                     details["modified_at"] = datetime.fromtimestamp(os.path.getmtime(publish_path), tz=sg_timezone.local)
@@ -237,17 +256,31 @@ class WorkFiles(object):
                     details["modified_at"] = details["published_at"]
                     details["modified_by"] = details["published_by"]
 
+            key = publish_file_keys.get(publish_path)
+            if not key:
+                # construct a unique 'key' for this file - this is the versionless work 
+                # file path and is used to match up versions across work and published 
+                # files.  This can't be 'name' as there may not be a name field!
+                publish_fields["version"] = 0
+                key = self._work_template.apply_fields(dict(chain(work_fields.iteritems(), publish_fields.iteritems())))
+
+            # ensure that onle one name is used for all versions of a file:
+            if key in key_to_name_map:
+                details["name"] = key_to_name_map[key]
+            else:
+                key_to_name_map[key] = details["name"] 
+
             file_details[work_path] = WorkFile(work_path, publish_path, bool(wf), True, details) 
                         
         return file_details.values()
         
-    def _get_workfile_display_name(self, path, template, fields=None):
+    def _get_file_display_name(self, path, template, fields=None):
         """
         Return the 'name' to be used for the file - if possible
         this will return a 'versionless' name
         """
         # first, extract the fields from the path using the template:
-        fields = fields or template.get_fields(path)
+        fields = fields.copy() if fields else template.get_fields(path)
         if "name" in fields:
             # well, that was easy!
             return fields["name"]
@@ -256,34 +289,43 @@ class WorkFiles(object):
         template_name, _ = os.path.splitext(os.path.basename(template.definition))
         version_in_name = "{version}" in template_name
     
-        # build the path:
+        # extract the file name from the path:
         name, _ = os.path.splitext(os.path.basename(path))
-        if not version_in_name:
-            # ok, we can just use the file name
-            return name
-
-        # looks like version is part of the file name so we        
-        # need to isolate it so that we can remove it safely.  
-        # First, find a dummy version whose string representation
-        # doesn't exist in the name string
-        version_key = template.keys["version"]
-        dummy_version = 9876
-        while True:
-            test_str = version_key.str_from_value(dummy_version)
-            if test_str not in name:
-                break
-            dummy_version += 1
-        
-        # now use this dummy version and rebuild the path
-        fields["version"] = dummy_version
-        path = template.apply_fields(fields)
-        name, _ = os.path.splitext(os.path.basename(path))
-        
-        # now replace the dummy version with #'s:
-        dummy_version_str = version_key.str_from_value(dummy_version)
-        zero_version_str = version_key.str_from_value(0)        
-        new_version_str = "#" * len(zero_version_str)
-        name = name.replace(dummy_version_str, new_version_str)
+        delims_str = "_-. "
+        if version_in_name:
+            # looks like version is part of the file name so we        
+            # need to isolate it so that we can remove it safely.  
+            # First, find a dummy version whose string representation
+            # doesn't exist in the name string
+            version_key = template.keys["version"]
+            dummy_version = 9876
+            while True:
+                test_str = version_key.str_from_value(dummy_version)
+                if test_str not in name:
+                    break
+                dummy_version += 1
+            
+            # now use this dummy version and rebuild the path
+            fields["version"] = dummy_version
+            path = template.apply_fields(fields)
+            name, _ = os.path.splitext(os.path.basename(path))
+            
+            # we can now locate the version in the name and remove it
+            dummy_version_str = version_key.str_from_value(dummy_version)
+            
+            v_pos = name.find(dummy_version_str)
+            pre_v_str = name[:v_pos].rstrip("v").strip(delims_str)
+            post_v_str = name[v_pos + len(dummy_version_str):].strip(delims_str)
+            versionless_name = " ".join([s for s in [pre_v_str, post_v_str] if s])
+            if versionless_name:
+                # great - lets use this!
+                name = versionless_name
+            else: 
+                # likely that version is only thing in the name so 
+                # instead, replace the dummy version with #'s:
+                zero_version_str = version_key.str_from_value(0)        
+                new_version_str = "#" * len(zero_version_str)
+                name = name.replace(dummy_version_str, new_version_str)
         
         return name 
         

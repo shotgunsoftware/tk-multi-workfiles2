@@ -267,7 +267,7 @@ class FileListView(browser_widget.BrowserWidget):
 
                 # if it's a publish then add 'View In Shotgun' item:
                 if highest_publish_file:
-                    action = QtGui.QAction("View in Shotgun", item)
+                    action = QtGui.QAction("View latest Publish in Shotgun", item)
                     action.triggered.connect(lambda f=highest_publish_file: self._on_show_in_shotgun_action_triggered(f))
                     item.addAction(action)
 

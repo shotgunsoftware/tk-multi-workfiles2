@@ -212,7 +212,7 @@ class SaveAs(object):
         from .versioning import Versioning
         versioning = Versioning(self._app)
         max_work_version = versioning.get_max_workfile_version(fields)
-        max_publish_version = versioning.get_max_publish_version(new_name)
+        max_publish_version = versioning.get_max_publish_version(fields)
         max_version = max(max_work_version, max_publish_version)
         
         # now depending on what the source was 
@@ -221,7 +221,7 @@ class SaveAs(object):
         if current_is_publish and ((not has_name_field) or new_name == current_name):
             # we're ok to just copy publish across and version up
             can_reset_version = False
-            new_version = max_version + 1
+            new_version = max_version + 1 if max_version else 1
             
             if new_version != current_version+1:
                 #(AD) - do we need a warning here?

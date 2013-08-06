@@ -109,7 +109,7 @@ class Versioning(object):
         Get the next available version
         """
         max_work_version = self.get_max_workfile_version(fields)
-        max_publish_version = self.get_max_publish_version(fields.get("name"))
+        max_publish_version = self.get_max_publish_version(fields)
         return max(max_work_version, max_publish_version) + 1
             
     def get_max_workfile_version(self, fields):
@@ -123,25 +123,40 @@ class Versioning(object):
         max_work_version = max(existing_work_versions) if existing_work_versions else None
         return max_work_version
     
-    def get_max_publish_version(self, name):
+    def get_max_publish_version(self, fields):
         """
         Get the current highest publish version using the current
         context and the specified 'name' field.
         """
-        # TODO - change this to do a simpler query as it only needs to return a
-        # version number!
-        
-        publish_paths = self._get_published_file_paths_for_context(self._context)
+        paths_and_versions = self._get_published_paths_and_versions_for_context(self._context)
         existing_publish_versions = []
-        for p in publish_paths:
+        for p, pv in paths_and_versions:
             if not self._publish_template.validate(p):
                 continue
 
-            # only care about published files that match 
-            # the template and have the new name
+            # want to make sure that all fields from the publish
+            # path match those passed in (except version!)
             publish_fields = self._publish_template.get_fields(p)
-            if publish_fields.get("name") == name:
-                existing_publish_versions.append(publish_fields.get("version"))
+            v = None
+            for key, value in publish_fields.iteritems():
+                if key == "version":
+                    v = value
+                    continue
+                
+                if key in fields and value != fields[key]:
+                    # this path doesn't match!
+                    v = None
+                    break
+                
+            if v == None:
+                # not a match!
+                continue
+            
+            existing_publish_versions.append(v)
+            if pv != None and v != pv:
+                # this is a discrepancy in the data but can handle it by adding 
+                # the version returned from Shotgun to the list as well! 
+                existing_publish_versions.append(pv)
 
         max_publish_version = max(existing_publish_versions) if existing_publish_versions else None
         return max_publish_version
@@ -182,20 +197,20 @@ class Versioning(object):
         # do save-as:
         save_file(self._app, VERSION_UP_FILE_ACTION, self._app.context, new_work_file)
         
-    def _get_published_file_paths_for_context(self, ctx):
+    def _get_published_paths_and_versions_for_context(self, ctx):
         """
-        Get list of published files for the current context
+        Get list of published files for the current 
+        context together with their version numbers
         """
-        
         filters = [["entity", "is", ctx.entity]]
         if ctx.task:
             filters.append(["task", "is", ctx.task])
         
         published_file_entity_type = tank.util.get_published_file_entity_type(self._app.tank)
-        sg_result = self._app.shotgun.find(published_file_entity_type, filters, ["path"])
-        publish_paths = [r.get("path").get("local_path") for r in sg_result if r.get("path")]
+        sg_result = self._app.shotgun.find(published_file_entity_type, filters, ["path", "version_number"])
+        paths_and_versions = [(r.get("path").get("local_path"), r.get("version_number")) for r in sg_result if r.get("path")]
  
-        return publish_paths          
+        return paths_and_versions          
         
         
         
