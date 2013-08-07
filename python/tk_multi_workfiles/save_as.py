@@ -74,7 +74,7 @@ class SaveAs(object):
                 name = fields.get("name")
             else:
                 # get the default name from settings:
-                default_name = self._app.get_setting("saveas_default_name")
+                default_name = self._app.get_setting("saveas_default_name") or "scene"
                 prefer_version_up = self._app.get_setting("saveas_prefer_version_up")
                 
                 fields = {}

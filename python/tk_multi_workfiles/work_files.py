@@ -103,7 +103,8 @@ class WorkFiles(object):
         
         # find work files that match the current work template:
         work_fields = find_ctx.as_template_fields(self._work_template)
-        work_file_paths = self._app.tank.paths_from_template(self._work_template, work_fields, ["version"])
+        
+        work_file_paths = self._app.tank.paths_from_template(self._work_template, work_fields, ["version"], skip_missing_optional_keys=True)
             
         # build an index of the published file tasks to use if we don't have a task in the context:
         publish_task_map = {}
