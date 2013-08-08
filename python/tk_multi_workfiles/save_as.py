@@ -74,20 +74,23 @@ class SaveAs(object):
                 name = fields.get("name")
             else:
                 # get the default name from settings:
-                default_name = self._app.get_setting("saveas_default_name") or "scene"
+                default_name = self._app.get_setting("saveas_default_name")
+                if not default_name and not name_is_optional:
+                    # name isn't optional so we should use something:
+                    default_name = "scene"
                 prefer_version_up = self._app.get_setting("saveas_prefer_version_up")
                 
                 fields = {}
                 if self._work_template.validate(current_path):
                     fields = self._work_template.get_fields(current_path)
                     name = fields.get("name")
-                    if not name and (not name_is_optional or not prefer_version_up):
+                    if not name and not name_is_optional:
                         name = default_name
                 else:
                     fields = self._app.context.as_template_fields(self._work_template)
                     name = default_name
                 
-                if not prefer_version_up:
+                if name and not prefer_version_up:
                     # default is to not version-up so lets make sure we
                     # at least start with a unique name!
 
