@@ -101,6 +101,10 @@ class WorkFiles(object):
         # construct a new context to use for the search overriding the user if required:
         find_ctx = self._context if not user else self._context.create_copy_for_user(user)
         
+        # if this context does not have any folders created on disk, exit early!
+        if len(find_ctx.entity_locations) == 0:
+            return []
+
         # find work files that match the current work template:
         work_fields = find_ctx.as_template_fields(self._work_template)
         
@@ -1000,8 +1004,12 @@ class WorkFiles(object):
         
         # use the fields for the current context to get a list of work area paths:
         self._app.log_debug("Searching for user sandbox paths skipping keys: %s" % user_keys)
-        fields = self._context.as_template_fields(self._work_area_template)
-        work_area_paths = self._app.tank.paths_from_template(self._work_area_template, fields, user_keys)
+        if len(self._context.entity_locations) == 0:
+            # no folders on disk for this context yet!
+            work_area_paths = []
+        else:
+            fields = self._context.as_template_fields(self._work_area_template)
+            work_area_paths = self._app.tank.paths_from_template(self._work_area_template, fields, user_keys)
         
         # from paths, find a unique list of user's:
         user_ids = set()
