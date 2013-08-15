@@ -101,12 +101,15 @@ class WorkFiles(object):
         # construct a new context to use for the search overriding the user if required:
         find_ctx = self._context if not user else self._context.create_copy_for_user(user)
         
-        # if this context does not have any folders created on disk, exit early!
-        if len(find_ctx.entity_locations) == 0:
-            return []
-
         # find work files that match the current work template:
-        work_fields = find_ctx.as_template_fields(self._work_template)
+        try:
+            work_fields = find_ctx.as_template_fields(self._work_template)
+        except TankError:
+            # could not resolve fields from this context. This typically happens
+            # when the context object does not have any corresponding objects on 
+            # disk / in the path cache. In this case, we cannot continue with any
+            # file system resolution, so basically just exit early insted.
+            return []
         
         work_file_paths = self._app.tank.paths_from_template(self._work_template, work_fields, ["version"], skip_missing_optional_keys=True)
             
@@ -1004,11 +1007,17 @@ class WorkFiles(object):
         
         # use the fields for the current context to get a list of work area paths:
         self._app.log_debug("Searching for user sandbox paths skipping keys: %s" % user_keys)
-        if len(self._context.entity_locations) == 0:
-            # no folders on disk for this context yet!
+
+        
+        try:
+            fields = self._context.as_template_fields(self._work_area_template)
+        except TankError:
+            # fields could not be resolved from the context! This can happen because
+            # the context does not have any structure on disk / path cache but is a 
+            # "shotgun-only" context which was created from for example a task.
             work_area_paths = []
         else:
-            fields = self._context.as_template_fields(self._work_area_template)
+            # got our fields. Now get the paths.
             work_area_paths = self._app.tank.paths_from_template(self._work_area_template, fields, user_keys)
         
         # from paths, find a unique list of user's:
