@@ -39,6 +39,8 @@ class EntityBrowserWidget(browser_widget.BrowserWidget):
             
             
         types_to_load = self._app.get_setting("sg_entity_types", [])
+        
+        entity_cfg = self._app.get_setting("sg_entity_type_filters", {})
             
         if not self._current_user_loaded:
             self._current_user = tank.util.get_current_user(self._app.tank)
@@ -87,10 +89,15 @@ class EntityBrowserWidget(browser_widget.BrowserWidget):
         else:
             # load all entities
             for et in types_to_load:
+                
+                sg_filters = [ ["project", "is", self._app.context.project] ]
+                
+                if et in entity_cfg:
+                    # have a custom filter specified in the settings!
+                    sg_filters.extend( entity_cfg[et] )
+                
                 # get entities from shotgun:
-                entities = self._app.shotgun.find(et, 
-                                                  [ ["project", "is", self._app.context.project] ], 
-                                                  ["code", "description", "image"])
+                entities = self._app.shotgun.find(et, sg_filters, ["code", "description", "image"])
                 
                 # sort by name (code)
                 entities.sort(key=lambda v:v.get("code", "").lower())

@@ -45,6 +45,18 @@ configuration:
             type: shotgun_entity_type
         allows_empty: True
            
+    sg_entity_type_filters:
+        type: dict
+        description: "Allows you to filter the entity types specified in the sg_entity_types 
+                      setting. Uses shotgun API query syntax. For example, if you have specified
+                      Shot as an entity type you wish to display in the sg_entity_types setting,
+                      but you only want to show shots that are in progress in the task selector
+                      UI, you can set this up by specifying a filter. Like this:
+                      sg_entity_type_filters: {'Shot': [['sg_status_list', 'is', 'ip']]} "
+                      
+        default_value: {}
+           
+           
     hook_scene_operation:
         type: hook
         parameters: [operation, file_path, context, parent_action]
