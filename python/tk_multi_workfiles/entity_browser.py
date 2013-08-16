@@ -79,11 +79,9 @@ class EntityBrowserWidget(browser_widget.BrowserWidget):
                     filter.extend(entities_to_load[et])
                     entities = self._app.shotgun.find(et, 
                                                       [ filter ], 
-                                                      ["code", "description", "image"])
-                    
-                    # sort by name (code)
-                    entities.sort(key=lambda v:v.get("code", "").lower())
-                    
+                                                      ["code", "description", "image"], 
+                                                      [{"field_name": "code", "direction": "asc"}])
+                                        
                     # append to results:
                     sg_data.append({"type":et, "data":entities})
         else:
@@ -97,11 +95,11 @@ class EntityBrowserWidget(browser_widget.BrowserWidget):
                     sg_filters.extend( entity_cfg[et] )
                 
                 # get entities from shotgun:
-                entities = self._app.shotgun.find(et, sg_filters, ["code", "description", "image"])
-                
-                # sort by name (code)
-                entities.sort(key=lambda v:v.get("code", "").lower())
-                
+                entities = self._app.shotgun.find(et, 
+                                                  sg_filters, 
+                                                  ["code", "description", "image"],
+                                                  [{"field_name": "code", "direction": "asc"}])
+                                
                 # append to results:
                 sg_data.append({"type":et, "data":entities})
         
@@ -124,9 +122,13 @@ class EntityBrowserWidget(browser_widget.BrowserWidget):
             for d in item["data"]:
                 i = self.add_item(browser_widget.ListItem)
                 
+                desc = d.get("description")
+                if desc is None:
+                    desc = "No description"
+                
                 details = "<b>%s %s</b><br>%s" % (tank.util.get_entity_type_display_name(self._app.tank, d.get("type")), 
                                                   d.get("code"), 
-                                                  d.get("description"))
+                                                  desc)
                 
                 i.set_details(details)
                 i.sg_data = d
