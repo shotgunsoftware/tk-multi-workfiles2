@@ -1110,13 +1110,13 @@ class WorkFiles(object):
         # lets try to find an app with the same instance
         # name:
         app_instance_name = None
-        for instance_name, engine_app in self._app.engine.apps.iteritems:
-            if engine_app == app:
+        for instance_name, engine_app in self._app.engine.apps.iteritems():
+            if engine_app == self._app:
                 app_instance_name = instance_name
                 break
         if not app_instance_name:
             return
-    
+
         for engine_name, engine_settings in settings_by_engine.iteritems():
             for settings in engine_settings:
                 if settings.get("app_instance") == app_instance_name:
