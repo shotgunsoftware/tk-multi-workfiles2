@@ -43,6 +43,11 @@ class ChangeVersionForm(QtGui.QWidget):
         
         self._ui.new_version_edit.selectAll()
 
+        # initialize line to be plain and the same colour as the text:        
+        self._ui.break_line.setFrameShadow(QtGui.QFrame.Plain)
+        clr = QtGui.QApplication.palette().text().color()
+        self._ui.break_line.setStyleSheet("#break_line{color: rgb(%d,%d,%d);}" % (clr.red() * 0.75, clr.green() * 0.75, clr.blue() * 0.75))
+
         self.setFocusProxy(self._ui.new_version_edit)
         
     @property
