@@ -57,6 +57,11 @@ configuration:
         default_value: {}
            
            
+    allow_task_creation:
+        type: bool
+        description: "Controls whether new tasks can be created from the app."
+        default_value: True
+
     hook_scene_operation:
         type: hook
         parameters: [operation, file_path, context, parent_action]

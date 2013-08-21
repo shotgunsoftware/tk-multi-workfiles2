@@ -16,6 +16,7 @@ import tank
 from tank.platform.qt import QtCore, QtGui
 
 from .task_browser import TaskBrowserWidget
+from .new_task import NewTaskDialog
 
 class SelectWorkAreaForm(QtGui.QWidget):
     
@@ -66,7 +67,7 @@ class SelectWorkAreaForm(QtGui.QWidget):
         self._ui.cancel_btn.clicked.connect(self._on_cancel)
         
         #TODO: implement task creation!
-        can_create_tasks = False#self._app.get_setting("allow_task_creation")        
+        can_create_tasks = self._app.get_setting("allow_task_creation")
         if can_create_tasks:
             self._ui.new_task_btn.clicked.connect( self._on_create_new_task )
         else:
@@ -117,8 +118,42 @@ class SelectWorkAreaForm(QtGui.QWidget):
         """
         Called when create task button is clicked
         """
-        # run new task:
-        self._handler.create_new_task()
+        
+        # get the current entity:
+        current_entity = self._ui.entity_browser.selected_entity
+        if current_entity is None:
+            QtGui.QMessageBox.warning(self,
+                                      "Please select an Entity!",
+                                      "Please select an Entity that you want to add a Task to.")
+            return
+
+        # get the current user:
+        current_user = tank.util.get_current_user(self._app.tank)
+
+        # show new task dialog:
+        from .wrapper_dialog import WrapperDialog
+        from .new_task_form import NewTaskForm
+        form = NewTaskForm(self._app, current_entity, current_user)
+        
+        res = WrapperDialog.show_modal(form, "Create New Task", parent=self)
+        if res == QtGui.QDialog.Accepted:
+            # get details from form:
+            entity = form.entity
+            assigned_to = form.assigned_to
+            pipeline_step = form.pipeline_step
+            task_name = form.task_name
+            
+            new_task = None
+            try:
+                new_task = self._handler.create_new_task(task_name, pipeline_step, entity, assigned_to)
+            except TankError, e:
+                QtGui.QMessageBox.warning(self,
+                                      "Failed to create new task!",
+                                      ("Failed to create a new task '%s' for pipeline step '%s' on entity '%s %s':\n\n%s" 
+                                       % (task_name, pipeline_step.get("code"), entity["type"], entity["code"], e)))
+            else:
+                # reload tasks, selecting the new task:
+                self._reload_tasks(new_task)
 
     def _get_context(self):
         """
@@ -185,7 +220,7 @@ class SelectWorkAreaForm(QtGui.QWidget):
         d["entity"] = entity_to_select
         self._ui.entity_browser.load(d)
         
-    def _reload_tasks(self):
+    def _reload_tasks(self, selected_task = None):
         """
         Called to reload the list of tasks based on the 
         currently selected entity
@@ -198,7 +233,7 @@ class SelectWorkAreaForm(QtGui.QWidget):
             self._update_ui()
             return
 
-        task_to_select = self._ui.task_browser.selected_task
+        task_to_select = selected_task or self._ui.task_browser.selected_task
         if not task_to_select:
             task_to_select = self._initial_task_to_select
         
@@ -219,3 +254,5 @@ class SelectWorkAreaForm(QtGui.QWidget):
         """
         current_entity = self._ui.entity_browser.selected_entity
         self._ui.select_btn.setEnabled(current_entity is not None)
+        self._ui.new_task_btn.setEnabled(current_entity is not None)
+        

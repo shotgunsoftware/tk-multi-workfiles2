@@ -870,12 +870,33 @@ class WorkFiles(object):
 
         return None
         
-    def create_new_task(self):
+    def create_new_task(self, name, pipeline_step, entity, assigned_to=None):
         """
-        Called when user clicks the new task button 
-        on the select work area form
+        Create a new task with the specified information
+        :return: Returns the newly created task
         """
-        raise NotImplementedError     
+        # construct the data for the new Task entity:
+        data = {
+                "step":pipeline_step,
+                "project":self._app.context.project,
+                "entity":entity,
+                "content":name
+        }
+        if assigned_to:
+            data["task_assignees"] = [assigned_to]
+        
+        # create the task:
+        sg_result = self._app.shotgun.create("Task", data)
+        if not sg_result:
+            raise TankError("Failed to create new task - reason unknown!") 
+        
+        # try to set it to IP - not all studios use IP so be careful!
+        try:
+            self._app.shotgun.update("Task", sg_result["id"], {"sg_status_list": "ip"})
+        except:
+            pass
+        
+        return sg_result
     
     def _update_current_work_area(self, ctx):
         """
