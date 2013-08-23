@@ -77,6 +77,7 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
         output = {}
         output["associated_entity"] = data["entity"]
         output["current_task"] = data.get("task")
+        output["can_create_tasks"] = data.get("can_create_tasks", False)
 
         if data["own_tasks_only"]:
             
@@ -126,13 +127,19 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
         
         entity_data = result["associated_entity"]
         tasks = result["tasks"]
+        can_create_tasks = result["can_create_tasks"]
         
         entity_str = "%s %s" % (entity_data.get("type", "Unknown"), entity_data.get("code", "Unknown"))
 
         if len(tasks) == 0:
-            self.set_message("No Tasks found! You can create tasks by navigating to %s "
-                             "inside of Shotgun, selecting the tasks tab and then clicking "
-                             "the plus button." % entity_str)
+            msg = ""
+            if can_create_tasks:
+                msg = "No Tasks found!\nClick the 'New Task' button below to create a Task."
+            else:
+                msg = ("No Tasks found!\nYou can create tasks by navigating to '%s' "
+                       "inside of Shotgun, selecting the tasks tab and then clicking "
+                       "the + button." % entity_str)
+            self.set_message(msg)
             
         else:
 

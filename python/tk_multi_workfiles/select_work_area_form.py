@@ -66,9 +66,8 @@ class SelectWorkAreaForm(QtGui.QWidget):
         self._ui.select_btn.clicked.connect(self._on_context_selected)
         self._ui.cancel_btn.clicked.connect(self._on_cancel)
         
-        #TODO: implement task creation!
-        can_create_tasks = self._app.get_setting("allow_task_creation")
-        if can_create_tasks:
+        self._can_create_tasks = self._app.get_setting("allow_task_creation")
+        if self._can_create_tasks:
             self._ui.new_task_btn.clicked.connect( self._on_create_new_task )
         else:
             self._ui.new_task_btn.setVisible(False)
@@ -242,6 +241,7 @@ class SelectWorkAreaForm(QtGui.QWidget):
         d["own_tasks_only"] = self._ui.mine_only_cb.isChecked()
         d["entity"] = curr_selection.sg_data
         d["task"] = task_to_select
+        d["can_create_tasks"] = self._can_create_tasks
         
         # pass in the sg data dump for the entity to the task loader code
         self._ui.task_browser.load(d)
