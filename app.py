@@ -29,6 +29,7 @@ class MultiWorkFiles(tank.platform.Application):
         # register commands:
         self._work_files_handler = tk_multi_workfiles.WorkFiles(self)
         self.engine.register_command("Shotgun File Manager...", self._work_files_handler.show_dlg)
+        self.engine.register_command("Change Work Area...", self.change_work_area, {"type": "context_menu"})
 
         # other commands are only valid if we have valid work and publish templates:
         if self.get_template("template_work") and self.get_template("template_publish"):
@@ -38,9 +39,22 @@ class MultiWorkFiles(tank.platform.Application):
             cmd = lambda app=self: tk_multi_workfiles.Versioning.show_change_version_dlg(app)
             self.engine.register_command("Version up Current Scene...", cmd)
         
+        # only launch the dialog once at startup - use the tank object 
+        # to store this flag
+        if self.get_setting('launch_change_work_area_at_startup'):
+            if not hasattr(tank, '_tk_multi_workfiles_change_work_area_shown'):
+                # this is the very first time we run this app
+                tank._tk_multi_workfiles_change_work_area_shown = True
+                # show the UI at startup - but only if the engine supports a UI
+                if self.engine.has_ui:
+                    self.change_work_area(False)
+
     def destroy_app(self):
         self.log_debug("Destroying tk-multi-workfiles")
         self._work_files_handler = None
+        
+    def change_work_area(self, ask_about_new=True):
+        self._work_files_handler.change_work_area(ask_about_new)
         
     @property
     def shotgun(self):

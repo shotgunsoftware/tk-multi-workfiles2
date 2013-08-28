@@ -59,8 +59,14 @@ configuration:
            
     allow_task_creation:
         type: bool
-        description: "Controls whether new tasks can be created from the app."
+        description: Controls whether new tasks can be created from the app.
         default_value: True
+
+    launch_change_work_area_at_startup:
+        type: bool
+        description: A flag whether to launch a dialog at startup for the user to select 
+                     the work area.
+        default_value: False
 
     hook_scene_operation:
         type: hook

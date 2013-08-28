@@ -20,7 +20,8 @@ from tank_vendor.shotgun_api3 import sg_timezone
 
 from .work_file import WorkFile
 from .wrapper_dialog import WrapperDialog
-
+from .select_work_area_form import SelectWorkAreaForm
+            
 from .scene_operation import *
 
 class WorkFiles(object):
@@ -848,27 +849,50 @@ class WorkFiles(object):
         """
         return self._context
         
-    def change_work_area(self):
+    def select_work_area(self, mode=SelectWorkAreaForm.SELECT_WORK_AREA):
         """
         Show a ui for the user to select a new work area/context
+        :return: Returns the selected context or None if the user cancels
         """
-        from .select_work_area_form import SelectWorkAreaForm
-        (res, widget) = self._app.engine.show_modal("Pick a Work Area", self._app, SelectWorkAreaForm, self._app, self)
-        
-        # make sure to explicitly call close so 
-        # that browser threads are cleaned up
-        # correctly
-        widget.close()
+        try:
+            title="Pick a Work Area" if mode == SelectWorkAreaForm.SELECT_WORK_AREA else "Change the Current Work Area"
+            (res, widget) = self._app.engine.show_modal(title, self._app, SelectWorkAreaForm, self._app, self, mode)
+        finally:
+            # make sure to explicitly call close so 
+            # that browser threads are cleaned up
+            # correctly
+            widget.close()
         
         if res == QtGui.QDialog.Accepted:
-            
-            # update the current work area:
+
+            do_new = widget.do_new_scene
+
+            # update the current work area in the app:
             self._update_current_work_area(widget.context)
             
             # and return it:
-            return self._context
-
+            return (self._context, do_new)
+        
         return None
+
+    def change_work_area(self, ask_about_new=True):
+        """
+        Show a ui for the user to select a new work area/context
+        and then switch to the new context:
+        """     
+        if not self.can_change_work_area():
+            return
+        
+        while True:
+            context_and_flags = self.select_work_area(SelectWorkAreaForm.CHANGE_WORK_AREA)
+            if not context_and_flags:
+                # user cancelled!
+                break
+            
+            if self._do_change_work_area(context_and_flags[1]):
+                break
+            
+        
         
     def create_new_task(self, name, pipeline_step, entity, assigned_to=None):
         """
@@ -933,6 +957,61 @@ class WorkFiles(object):
                     
         # TODO: validate templates?
     
+    def _do_change_work_area(self, do_new=False):
+        """
+        Set context based on selected task
+        :return: True if the action was succesful of the user cancelled it, False
+        otherwise
+        """
+        # only change if we have a valid context:
+        if not self._context or (self._context == self._app.context and not do_new):
+            return True
+
+        # validate that we can change the work area - ideally these
+        # checks would be in the UI but they take a little time and
+        # the UI feels sluggish so lets do the checks here instead!
+        have_valid_config = self.have_valid_configuration_for_work_area()
+        can_do_new_file = not do_new or self.can_do_new_file()
+        if not have_valid_config or not can_do_new_file:
+            msg = ("Unable to change the Work Area to:\n\n"
+                   "    %s\n\n" % self._context)
+            if not have_valid_config:
+                msg += ("Shotgun File Manager has not been configured for the environment "
+                        "being used by the selected Work Area!  Please choose a different "
+                        "Work Area to continue.\n\n"
+                        "(Note: A common reason for this error is if you are using a Task based "
+                        "workflow but have not selected a Task in the Work Area.)")
+            elif not can_do_new_file:
+                msg += ("Shotgun File Manager is not able able to start a new file with the "
+                        "selected Work Area.  Please try selecting a more specific Work Area.")
+                
+            QtGui.QMessageBox.information(self._workfiles_ui, "Shotgun: Unable to change Work Area", msg)
+            return False
+
+        if do_new:
+            # use the scene operation hook to reset the scene:
+            try:
+                if not reset_current_scene(self._app, NEW_FILE_ACTION, self._context):
+                    self._app.log_debug("Unable to change the current Work Area after failing to reset the scene!")
+                    return True
+            except Exception, e:
+                QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to reset the scene", 
+                                       "Failed to reset the scene:\n\n%s\n\nUnable to continue!" % e)
+                self._app.log_exception("Failed to reset the scene!")
+                return False
+
+        # create folders and restart engine:
+        try:
+            self._create_folders(self._context)
+            self._restart_engine(self._context)
+        except Exception, e:
+            QtGui.QMessageBox.critical(self,
+                                       "Could not Change Work Area!",
+                                       "Could not change work area and start a new "
+                                       "engine. This may be because the task doesn't "
+                                       "have a step. Details: %s" % e)
+            return False
+        return True
         
     def _get_user_details(self, login_name):
         """

@@ -20,7 +20,9 @@ from .new_task import NewTaskDialog
 
 class SelectWorkAreaForm(QtGui.QWidget):
     
-    def __init__(self, app, handler, parent=None):
+    [SELECT_WORK_AREA, CHANGE_WORK_AREA] = range(2)
+    
+    def __init__(self, app, handler, mode=SELECT_WORK_AREA, parent=None):
         """
         Construction
         """
@@ -28,6 +30,8 @@ class SelectWorkAreaForm(QtGui.QWidget):
         
         self._app = app
         self._handler = handler
+        self._mode = mode
+        self._do_new_scene = False
         
         self._exit_code = QtGui.QDialog.Rejected
         self._settings = QtCore.QSettings("Shotgun Software", "tk-multi-workfiles")
@@ -62,10 +66,16 @@ class SelectWorkAreaForm(QtGui.QWidget):
         self._ui.task_browser.action_requested.connect(self._on_context_selected)
         self._ui.task_browser.set_label("Tasks")
         
-        # connect the buttons:
-        self._ui.select_btn.clicked.connect(self._on_context_selected)
-        self._ui.cancel_btn.clicked.connect(self._on_cancel)
+        # mode specific:
+        self._ui.select_new_btn.setVisible(self._mode == SelectWorkAreaForm.CHANGE_WORK_AREA)
+        self._ui.select_btn.setText("Change Work Area" if self._mode == SelectWorkAreaForm.CHANGE_WORK_AREA else "Select")
         
+        # connect the buttons:
+        self._ui.cancel_btn.clicked.connect(self._on_cancel)
+        self._ui.select_btn.clicked.connect(self._on_context_selected)
+        self._ui.select_new_btn.clicked.connect(self._on_select_and_new)
+       
+       # enable/disable task creation 
         self._can_create_tasks = self._app.get_setting("allow_task_creation")
         if self._can_create_tasks:
             self._ui.new_task_btn.clicked.connect( self._on_create_new_task )
@@ -95,6 +105,10 @@ class SelectWorkAreaForm(QtGui.QWidget):
     @property
     def context(self):
         return self._get_context()
+    
+    @property
+    def do_new_scene(self):
+        return self._do_new_scene
         
     def closeEvent(self, event):
         """
@@ -110,6 +124,11 @@ class SelectWorkAreaForm(QtGui.QWidget):
         self.close()    
         
     def _on_context_selected(self):
+        self._exit_code = QtGui.QDialog.Accepted
+        self.close()
+        
+    def _on_select_and_new(self):
+        self._do_new_scene = True
         self._exit_code = QtGui.QDialog.Accepted
         self.close()
         
@@ -255,4 +274,6 @@ class SelectWorkAreaForm(QtGui.QWidget):
         current_entity = self._ui.entity_browser.selected_entity
         self._ui.select_btn.setEnabled(current_entity is not None)
         self._ui.new_task_btn.setEnabled(current_entity is not None)
+        
+        
         

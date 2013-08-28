@@ -175,9 +175,9 @@ class WorkFilesForm(QtGui.QWidget):
         Event triggered when mouse is pressed in the work area
         form
         """
-        new_ctx = self._handler.change_work_area()
+        new_ctx = self._handler.select_work_area()
         if new_ctx:
-            self._set_work_area(new_ctx)
+            self._set_work_area(new_ctx[0])
         
     def _refresh_file_list(self):
         """
