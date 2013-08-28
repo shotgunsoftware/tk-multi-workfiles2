@@ -27,9 +27,11 @@ class MultiWorkFiles(tank.platform.Application):
         tk_multi_workfiles = self.import_module("tk_multi_workfiles")
 
         # register commands:
-        self._work_files_handler = tk_multi_workfiles.WorkFiles(self)
-        self.engine.register_command("Shotgun File Manager...", self._work_files_handler.show_dlg)
-        self.engine.register_command("Change Work Area...", self.change_work_area, {"type": "context_menu"})
+        cmd = lambda app=self: tk_multi_workfiles.WorkFiles.show_file_manager_dlg(app)
+        self.engine.register_command("Shotgun File Manager...", cmd)
+        
+        cmd = lambda app=self: tk_multi_workfiles.WorkFiles.show_change_work_area_dlg(app)
+        self.engine.register_command("Change Work Area...", cmd, {"type": "context_menu"})
 
         # other commands are only valid if we have valid work and publish templates:
         if self.get_template("template_work") and self.get_template("template_publish"):
@@ -47,14 +49,17 @@ class MultiWorkFiles(tank.platform.Application):
                 tank._tk_multi_workfiles_change_work_area_shown = True
                 # show the UI at startup - but only if the engine supports a UI
                 if self.engine.has_ui:
-                    self.change_work_area(False)
+                    tk_multi_workfiles.WorkFiles.show_change_work_area_dlg(self)
 
     def destroy_app(self):
         self.log_debug("Destroying tk-multi-workfiles")
-        self._work_files_handler = None
         
-    def change_work_area(self, ask_about_new=True):
-        self._work_files_handler.change_work_area(ask_about_new)
+    def change_work_area(self):
+        """
+        Show a dialog for the user to change the current Work Area
+        """
+        tk_multi_workfiles = self.import_module("tk_multi_workfiles")
+        tk_multi_workfiles.WorkFiles.show_change_work_area_dlg(self)
         
     @property
     def shotgun(self):

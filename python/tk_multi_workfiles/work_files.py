@@ -26,6 +26,23 @@ from .scene_operation import *
 
 class WorkFiles(object):
     
+    @staticmethod
+    def show_file_manager_dlg(app):
+        """
+        Static method to show the WorkFiles dialog
+        """
+        handler = WorkFiles(app)
+        handler.show_dlg()
+        
+    @staticmethod
+    def show_change_work_area_dlg(app):
+        """
+        Static method to show the WorkFiles Change 
+        Work Area dialog
+        """
+        handler = WorkFiles(app)
+        handler.change_work_area()    
+    
     def __init__(self, app):
         """
         Construction
@@ -875,7 +892,7 @@ class WorkFiles(object):
         
         return None
 
-    def change_work_area(self, ask_about_new=True):
+    def change_work_area(self):
         """
         Show a ui for the user to select a new work area/context
         and then switch to the new context:
