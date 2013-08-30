@@ -16,11 +16,10 @@ import tank
 from tank.platform.qt import QtCore, QtGui
 
 from .task_browser import TaskBrowserWidget
-from .new_task import NewTaskDialog
 
 class SelectWorkAreaForm(QtGui.QWidget):
     
-    [SELECT_WORK_AREA, CHANGE_WORK_AREA] = range(2)
+    [SELECT_WORK_AREA, CHANGE_WORK_AREA, CHANGE_WORK_AREA_NO_NEW] = range(3)
     
     def __init__(self, app, handler, mode=SELECT_WORK_AREA, parent=None):
         """
@@ -68,7 +67,7 @@ class SelectWorkAreaForm(QtGui.QWidget):
         
         # mode specific:
         self._ui.select_new_btn.setVisible(self._mode == SelectWorkAreaForm.CHANGE_WORK_AREA)
-        self._ui.select_btn.setText("Change Work Area" if self._mode == SelectWorkAreaForm.CHANGE_WORK_AREA else "Select")
+        self._ui.select_btn.setText("Change Work Area" if self._mode != SelectWorkAreaForm.SELECT_WORK_AREA else "Select")
         
         # connect the buttons:
         self._ui.cancel_btn.clicked.connect(self._on_cancel)

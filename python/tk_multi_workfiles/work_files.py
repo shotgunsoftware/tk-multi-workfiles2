@@ -35,13 +35,13 @@ class WorkFiles(object):
         handler.show_dlg()
         
     @staticmethod
-    def show_change_work_area_dlg(app):
+    def show_change_work_area_dlg(app, enable_start_new=True):
         """
         Static method to show the WorkFiles Change 
         Work Area dialog
         """
         handler = WorkFiles(app)
-        handler.change_work_area()    
+        handler.change_work_area(enable_start_new)    
     
     def __init__(self, app):
         """
@@ -892,7 +892,7 @@ class WorkFiles(object):
         
         return None
 
-    def change_work_area(self):
+    def change_work_area(self, enable_start_new=True):
         """
         Show a ui for the user to select a new work area/context
         and then switch to the new context:
@@ -901,7 +901,7 @@ class WorkFiles(object):
             return
         
         while True:
-            context_and_flags = self.select_work_area(SelectWorkAreaForm.CHANGE_WORK_AREA)
+            context_and_flags = self.select_work_area(SelectWorkAreaForm.CHANGE_WORK_AREA if enable_start_new else SelectWorkAreaForm.CHANGE_WORK_AREA_NO_NEW)
             if not context_and_flags:
                 # user cancelled!
                 break

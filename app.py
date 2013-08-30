@@ -49,7 +49,7 @@ class MultiWorkFiles(tank.platform.Application):
                 tank._tk_multi_workfiles_change_work_area_shown = True
                 # show the UI at startup - but only if the engine supports a UI
                 if self.engine.has_ui:
-                    tk_multi_workfiles.WorkFiles.show_change_work_area_dlg(self)
+                    tk_multi_workfiles.WorkFiles.show_change_work_area_dlg(self, False)
 
     def destroy_app(self):
         self.log_debug("Destroying tk-multi-workfiles")
