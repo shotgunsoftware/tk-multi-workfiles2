@@ -23,23 +23,18 @@ class MultiWorkFiles(tank.platform.Application):
         """
         Called as the application is being initialized
         """
-        
-        tk_multi_workfiles = self.import_module("tk_multi_workfiles")
 
         # register commands:
-        cmd = lambda app=self: tk_multi_workfiles.WorkFiles.show_file_manager_dlg(app)
-        self.engine.register_command("Shotgun File Manager...", cmd)
+        self.engine.register_command("Shotgun File Manager...", self.show_file_manager_dlg)
         
-        cmd = lambda app=self: tk_multi_workfiles.WorkFiles.show_change_work_area_dlg(app)
+        cmd = lambda enable_start_new=True: self.show_change_work_area_dlg(enable_start_new)
         self.engine.register_command("Change Work Area...", cmd, {"type": "context_menu"})
 
         # other commands are only valid if we have valid work and publish templates:
-        if self.get_template("template_work") and self.get_template("template_publish"):
-            cmd = lambda app=self: tk_multi_workfiles.SaveAs.show_save_as_dlg(app)
-            self.engine.register_command("Shotgun Save As...", cmd)
-            
-            cmd = lambda app=self: tk_multi_workfiles.Versioning.show_change_version_dlg(app)
-            self.engine.register_command("Version up Current Scene...", cmd)
+        self._can_save_as = (self.get_template("template_work") and self.get_template("template_publish"))
+        if self._can_save_as:
+            self.engine.register_command("Shotgun Save As...", self.show_save_as_dlg)
+            self.engine.register_command("Version up Current Scene...", self.show_change_version_dlg)
         
         # only launch the dialog once at startup - use the tank object 
         # to store this flag
@@ -49,17 +44,50 @@ class MultiWorkFiles(tank.platform.Application):
                 tank._tk_multi_workfiles_change_work_area_shown = True
                 # show the UI at startup - but only if the engine supports a UI
                 if self.engine.has_ui:
-                    tk_multi_workfiles.WorkFiles.show_change_work_area_dlg(self, False)
+                    self.show_change_work_area_dlg(False)
 
     def destroy_app(self):
         self.log_debug("Destroying tk-multi-workfiles")
         
-    def change_work_area(self):
+    def show_file_manager_dlg(self):
+        """
+        Show the file manager dialog
+        """
+        tk_multi_workfiles = self.import_module("tk_multi_workfiles")
+        tk_multi_workfiles.WorkFiles.show_file_manager_dlg(self)
+        
+    def show_change_work_area_dlg(self, enable_start_new=True):
         """
         Show a dialog for the user to change the current Work Area
         """
         tk_multi_workfiles = self.import_module("tk_multi_workfiles")
-        tk_multi_workfiles.WorkFiles.show_change_work_area_dlg(self)
+        tk_multi_workfiles.WorkFiles.show_change_work_area_dlg(self, enable_start_new)
+
+    def show_save_as_dlg(self):
+        """
+        If save as is available, show the save as dialog.
+        """
+        if self._can_save_as:
+            tk_multi_workfiles = self.import_module("tk_multi_workfiles")
+            return tk_multi_workfiles.SaveAs.show_save_as_dlg(self)
+        else:
+            return False
+
+    def show_change_version_dlg(self):
+        """
+        If save as is available, show the change version dialog.
+        """
+        if self._can_save_as:
+            tk_multi_workfiles = self.import_module("tk_multi_workfiles")
+            return tk_multi_workfiles.Versioning.show_change_version_dlg(self)
+        else:
+            return False
+
+    def can_save_as(self):
+        """
+        Returns True if save-as is available, False otherwise.
+        """
+        return self._can_save_as
         
     @property
     def shotgun(self):
