@@ -43,15 +43,16 @@ class WorkFiles(object):
         handler = WorkFiles(app)
         handler.change_work_area(enable_start_new)    
     
+    # cached user details:
+    _user_details_by_id = {}
+    _user_details_by_login = {}
+    
     def __init__(self, app):
         """
         Construction
         """
         self._app = app
         self._workfiles_ui = None
-        
-        self._user_details_by_id = {}
-        self._user_details_by_login = {}
         
         self._can_change_workarea = (len(self._app.get_setting("sg_entity_types", [])) > 0)
         self._visible_file_extensions = [".%s" % ext if not ext.startswith(".") else ext for ext in self._app.get_setting("file_extensions", [])]
@@ -1035,7 +1036,7 @@ class WorkFiles(object):
         Get the shotgun HumanUser entry:
         """
         # first look to see if we've already found it:
-        sg_user = self._user_details_by_login.get(login_name)
+        sg_user = WorkFiles._user_details_by_login.get(login_name)
         if not sg_user:
             try:
                 filter = ["login", "is", login_name]
@@ -1043,9 +1044,9 @@ class WorkFiles(object):
                 sg_user = self._app.shotgun.find_one("HumanUser", [filter], fields)
             except:
                 sg_user = {}
-            self._user_details_by_login[login_name] = sg_user
+            WorkFiles._user_details_by_login[login_name] = sg_user
             if sg_user:
-                self._user_details_by_id[sg_user["id"]] = sg_user
+                WorkFiles._user_details_by_id[sg_user["id"]] = sg_user
         return sg_user
         
     def _get_file_last_modified_user(self, path):
@@ -1151,7 +1152,7 @@ class WorkFiles(object):
         user_details = []
         users_to_fetch = []
         for user_id in user_ids:
-            details = self._user_details_by_id.get(user_id)
+            details = WorkFiles._user_details_by_id.get(user_id)
             if details is None:
                 users_to_fetch.append(user_id)
             else:
@@ -1171,15 +1172,15 @@ class WorkFiles(object):
                     continue
                 
                 # add to cache:
-                self._user_details_by_id[user_id] = sg_user
-                self._user_details_by_login[sg_user["login"]] = sg_user
+                WorkFiles._user_details_by_id[user_id] = sg_user
+                WorkFiles._user_details_by_login[sg_user["login"]] = sg_user
                 user_details.append(sg_user)
                 users_found.add(user_id)
             
             # and fill in any blanks so we don't bother searching again:
             for user in users_to_fetch:
                 if user_id not in users_found:
-                    self._user_details_by_id[user_id] = {}
+                    WorkFiles._user_details_by_id[user_id] = {}
                 
         return user_details
         
