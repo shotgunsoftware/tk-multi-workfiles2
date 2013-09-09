@@ -872,6 +872,7 @@ class WorkFiles(object):
         Show a ui for the user to select a new work area/context
         :return: Returns the selected context or None if the user cancels
         """
+        widget = None
         try:
             title="Pick a Work Area" if mode == SelectWorkAreaForm.SELECT_WORK_AREA else "Change the Current Work Area"
             (res, widget) = self._app.engine.show_modal(title, self._app, SelectWorkAreaForm, self._app, self, mode)
@@ -879,7 +880,8 @@ class WorkFiles(object):
             # make sure to explicitly call close so 
             # that browser threads are cleaned up
             # correctly
-            widget.close()
+            if widget:
+                widget.close()
         
         if res == QtGui.QDialog.Accepted:
 

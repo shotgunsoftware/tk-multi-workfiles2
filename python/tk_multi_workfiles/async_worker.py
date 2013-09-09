@@ -43,10 +43,14 @@ class AsyncWorker(QtCore.QThread):
             self._data = data
             self._wait_condition.wakeAll()
         
-    def stop(self):
+    def stop(self, wait_for_completion=True):
         with QtCore.QMutexLocker(self._mutex):
             self._stop_work = True
             self._wait_condition.wakeAll()
+            
+        # wait for completion..
+        if wait_for_completion:
+            self.wait()
             
     def __enter__(self):
         self.start()
@@ -88,8 +92,3 @@ class AsyncWorker(QtCore.QThread):
                 # isn't great either!
                 print "Unhandled exception in worker thread: %s" % e
                 pass
-            
-            
-            
-            
-            
