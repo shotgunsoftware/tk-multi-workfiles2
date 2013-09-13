@@ -17,6 +17,13 @@ class AsyncWorker(QtCore.QThread):
     in a separate thread when requested.
     """
 
+    # Indicates that this worker class has been fixed to stop 
+    # gc of QThread from resulting in a crash.  This happens 
+    # when the mutex object had been gc'd but the thread is 
+    # still trying to acces it - the fix is to wait for the 
+    # thread to terminate before returning from 'stop()'
+    _SGTK_IMPLEMENTS_QTHREAD_CRASH_FIX_=True
+
     # signal emitted when some work has been done.
     # arguments are (data, result)
     work_done = QtCore.Signal(object, object)
