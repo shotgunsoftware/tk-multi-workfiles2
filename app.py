@@ -36,12 +36,19 @@ class MultiWorkFiles(tank.platform.Application):
             self.engine.register_command("Shotgun Save As...", self.show_save_as_dlg)
             self.engine.register_command("Version up Current Scene...", self.show_change_version_dlg)
         
-        # only launch the dialog once at startup - use the tank object 
-        # to store this flag
-        if self.get_setting('launch_change_work_area_at_startup'):
-            if not hasattr(tank, '_tk_multi_workfiles_change_work_area_shown'):
+        # process auto startup options
+        if self.get_setting('launch_at_startup'):
+            if not hasattr(tank, '_tk_multi_workfiles_launch_at_startup'):
                 # this is the very first time we run this app
-                tank._tk_multi_workfiles_change_work_area_shown = True
+                tank._tk_multi_workfiles_launch_at_startup = True
+                # show the UI at startup - but only if the engine supports a UI
+                if self.engine.has_ui:
+                    self.show_file_manager_dlg()
+                            
+        elif self.get_setting('launch_change_work_area_at_startup'):
+            if not hasattr(tank, '_tk_multi_workfiles_launch_at_startup'):
+                # this is the very first time we run this app
+                tank._tk_multi_workfiles_launch_at_startup = True
                 # show the UI at startup - but only if the engine supports a UI
                 if self.engine.has_ui:
                     self.show_change_work_area_dlg(False)
@@ -117,6 +124,12 @@ class DebugWrapperShotgun(object):
         self._log_fn("SG API find_one start: %s %s" % (args, kwargs))
         data = self._sg.find_one(*args, **kwargs)
         self._log_fn("SG API find_one end")
+        return data
+
+    def create(self, *args, **kwargs):
+        self._log_fn("SG API create start: %s %s" % (args, kwargs))
+        data = self._sg.create(*args, **kwargs)
+        self._log_fn("SG API create end")
         return data
 
     def update(self, *args, **kwargs):

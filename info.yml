@@ -68,6 +68,12 @@ configuration:
                      the work area.
         default_value: False
 
+    launch_at_startup:
+        type: bool
+        description: A flag whether to launch the UI at application startup.
+                     This setting is experimental and may not work on all engines.  
+        default_value: False
+
     hook_scene_operation:
         type: hook
         parameters: [operation, file_path, context, parent_action]

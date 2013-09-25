@@ -13,6 +13,7 @@ import sys
 import threading
 
 import tank
+from tank import TankError
 from tank.platform.qt import QtCore, QtGui
 
 from .task_browser import TaskBrowserWidget
