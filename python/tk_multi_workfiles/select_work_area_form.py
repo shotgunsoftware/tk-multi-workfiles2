@@ -33,6 +33,11 @@ class SelectWorkAreaForm(QtGui.QWidget):
         self._mode = mode
         self._do_new_scene = False
         
+        # get the current work area's entity and task
+        ctx = self._handler.get_current_work_area()
+        self._current_context_task = ctx.task if ctx else None
+        self._current_context_entity = ctx.entity if ctx else None        
+        
         self._exit_code = QtGui.QDialog.Rejected
         self._settings = QtCore.QSettings("Shotgun Software", "tk-multi-workfiles")
 
@@ -89,25 +94,46 @@ class SelectWorkAreaForm(QtGui.QWidget):
             # - although setting is saved as an int, it can get loaded as either an 
             # int or a string, hence the double casting to int and then bool.
             show_mine_only = bool(int(self._settings.value("show_mine_only", True)))
-            self._ui.mine_only_cb.setChecked(show_mine_only)
+            self._ui.mine_only_cb.setChecked(show_mine_only)    
         except Exception, e:
             self._app.log_warning("Cannot restore state of 'Only Show My Tasks' checkbox: %s" % e)
-        
+
         # reload:
-        ctx = self._handler.get_current_work_area()
-        self._initial_task_to_select = ctx.task if ctx else None
-        self._reload_entities(ctx.entity if ctx else None)
+        self._reload_entities()
         
     @property
     def exit_code(self):
+        """
+        The exit code of the dialog. Not really relevant to call until after the dialog has closed.
+        """
         return self._exit_code
         
     @property
     def context(self):
-        return self._get_context()
-    
+        """
+        A context object representing the current selection
+        """
+        
+        # get the selected task:
+        task = self._ui.task_browser.selected_task
+        
+        # try to create a context:
+        ctx = None
+        if task:
+            ctx = self._app.tank.context_from_entity("Task", task.get("id"))
+        else:
+            # no task selected so use entity instead:
+            entity = self._ui.entity_browser.selected_entity
+            if entity:
+                ctx = self._app.tank.context_from_entity(entity.get("type"), entity.get("id"))
+                
+        return ctx        
+
     @property
     def do_new_scene(self):
+        """
+        Indicating that the user exited the dialog with a desire to have the current scene reset.
+        """
         return self._do_new_scene
         
     def closeEvent(self, event):
@@ -120,14 +146,23 @@ class SelectWorkAreaForm(QtGui.QWidget):
         event.accept()
     
     def _on_cancel(self):
+        """
+        The cancelled
+        """
         self._exit_code = QtGui.QDialog.Rejected
         self.close()    
         
     def _on_context_selected(self):
+        """
+        The user pressed the change context button
+        """
         self._exit_code = QtGui.QDialog.Accepted
         self.close()
         
     def _on_select_and_new(self):
+        """
+        The user pressed the new scene button 
+        """
         self._do_new_scene = True
         self._exit_code = QtGui.QDialog.Accepted
         self.close()
@@ -173,29 +208,9 @@ class SelectWorkAreaForm(QtGui.QWidget):
                 # reload tasks, selecting the new task:
                 self._reload_tasks(new_task)
 
-    def _get_context(self):
-        """
-        Return a context for the current selection
-        """
-        
-        # get the selected task:
-        task = self._ui.task_browser.selected_task
-        
-        # try to create a context:
-        ctx = None
-        if task:
-            ctx = self._app.tank.context_from_entity("Task", task.get("id"))
-        else:
-            # no task selected so use entity instead:
-            entity = self._ui.entity_browser.selected_entity
-            if entity:
-                ctx = self._app.tank.context_from_entity(entity.get("type"), entity.get("id"))
-                
-        return ctx
-         
     def _on_mine_only_cb_toggled(self):
         """
-        Called when mine-only checkbox is toggled
+        Called when my tasks only checkbox is toggled
         """
         # remember setting - save value as an int as this
         # can be handled across all operating systems!
@@ -220,22 +235,29 @@ class SelectWorkAreaForm(QtGui.QWidget):
         """
         self._update_ui()
         
-    def _reload_entities(self, entity_to_select = None):
+    def _reload_entities(self):
         """
         Called to reload the list of entities
         """
-        if not entity_to_select:
-            entity_to_select = self._ui.entity_browser.selected_entity
-            self._initial_task_to_select = None
         
+        # preserve selection.
+        currently_selected_entity = self._ui.entity_browser.selected_entity
+                    
         # clear both entity and task lists:
         self._ui.entity_browser.clear()
         self._ui.task_browser.clear()
         
-        # reload entities:
+        # reload entities
         d = {}
         d["own_tasks_only"] = self._ui.mine_only_cb.isChecked()
-        d["entity"] = entity_to_select
+        
+        if currently_selected_entity:
+            # re-select previous selection
+            d["entity"] = currently_selected_entity
+        else:
+            # select the current context entity 
+            d["entity"] = self._current_context_entity
+            
         self._ui.entity_browser.load(d)
         
     def _reload_tasks(self, selected_task = None):
@@ -243,6 +265,8 @@ class SelectWorkAreaForm(QtGui.QWidget):
         Called to reload the list of tasks based on the 
         currently selected entity
         """
+        
+        # reset task widget completely
         self._ui.task_browser.clear()
         
         curr_selection = self._ui.entity_browser.get_selected_item()
@@ -251,16 +275,24 @@ class SelectWorkAreaForm(QtGui.QWidget):
             self._update_ui()
             return
 
-        task_to_select = selected_task or self._ui.task_browser.selected_task
-        if not task_to_select:
-            task_to_select = self._initial_task_to_select
-        
         # pass in data to task retreiver
         d = {}
         d["own_tasks_only"] = self._ui.mine_only_cb.isChecked()
         d["entity"] = curr_selection.sg_data
-        d["task"] = task_to_select
         d["can_create_tasks"] = self._can_create_tasks
+        
+        # now figure out which item to select
+        if selected_task:
+            # select specifically requested item
+            d["task"] = selected_task
+        
+        else:
+            # the currently selected entity represents the current context.
+            # in this case, hint by defaulting to the task that represents the context
+            #
+            # note that this task that we hint may not be in the list of loaded tasks
+            # in that case, nothing is selected
+            d["task"] = self._current_context_task
         
         # pass in the sg data dump for the entity to the task loader code
         self._ui.task_browser.load(d)
