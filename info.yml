@@ -71,7 +71,7 @@ configuration:
     launch_at_startup:
         type: bool
         description: A flag whether to launch the UI at application startup.
-                     This setting is experimental and may not work on all engines.  
+                     This setting is experimental and is not supported on all engines.  
         default_value: False
 
     hook_scene_operation:
