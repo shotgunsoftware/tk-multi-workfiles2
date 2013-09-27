@@ -36,22 +36,45 @@ class MultiWorkFiles(tank.platform.Application):
             self.engine.register_command("Shotgun Save As...", self.show_save_as_dlg)
             self.engine.register_command("Version up Current Scene...", self.show_change_version_dlg)
         
-        # process auto startup options
+        # process auto startup options - but only on certain supported platforms
+        # because of the way QT inits and connects to different host applications
+        # differently, in conjunction with the 'boot' process in different tools,
+        # the behaviour can be very different.  
+        
+        # currently, we have done basic QA on nuke and maya so we limit these options to 
+        # those two engines for now. 
+        
+        SUPPORTED_ENGINES = ["tk-nuke", "tk-maya"]
+        
         if self.get_setting('launch_at_startup'):
-            if not hasattr(tank, '_tk_multi_workfiles_launch_at_startup'):
-                # this is the very first time we run this app
-                tank._tk_multi_workfiles_launch_at_startup = True
-                # show the UI at startup - but only if the engine supports a UI
-                if self.engine.has_ui:
-                    self.show_file_manager_dlg()
+            
+            if self.engine.name in SUPPORTED_ENGINES:            
+                if not hasattr(tank, '_tk_multi_workfiles_launch_at_startup'):
+                    # this is the very first time we run this app
+                    tank._tk_multi_workfiles_launch_at_startup = True
+                    # show the UI at startup - but only if the engine supports a UI
+                    if self.engine.has_ui:
+                        self.show_file_manager_dlg()
+            
+            else:
+                self.log_warning("Sorry, the launch at startup option is currently not supported "
+                                 "in this engine! You can currently only use it with the following "
+                                 "engines: %s" % ", ".join(SUPPORTED_ENGINES))
                             
         elif self.get_setting('launch_change_work_area_at_startup'):
-            if not hasattr(tank, '_tk_multi_workfiles_launch_at_startup'):
-                # this is the very first time we run this app
-                tank._tk_multi_workfiles_launch_at_startup = True
-                # show the UI at startup - but only if the engine supports a UI
-                if self.engine.has_ui:
-                    self.show_change_work_area_dlg(False)
+            
+            if self.engine.name in SUPPORTED_ENGINES:            
+                if not hasattr(tank, '_tk_multi_workfiles_launch_at_startup'):
+                    # this is the very first time we run this app
+                    tank._tk_multi_workfiles_launch_at_startup = True
+                    # show the UI at startup - but only if the engine supports a UI
+                    if self.engine.has_ui:
+                        self.show_change_work_area_dlg(False)
+
+            else:
+                self.log_warning("Sorry, the launch at startup option is currently not supported "
+                                 "in this engine! You can currently only use it with the following "
+                                 "engines: %s" % ", ".join(SUPPORTED_ENGINES))
 
     def destroy_app(self):
         self.log_debug("Destroying tk-multi-workfiles")
