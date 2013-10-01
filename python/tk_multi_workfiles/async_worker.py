@@ -46,14 +46,20 @@ class AsyncWorker(QtCore.QThread):
         """
         Call to do some work using the data provided
         """
-        with QtCore.QMutexLocker(self._mutex):
+        try:
+            self._mutex.lock()
             self._data = data
             self._wait_condition.wakeAll()
+        finally:
+            self._mutex.unlock()
         
     def stop(self, wait_for_completion=True):
-        with QtCore.QMutexLocker(self._mutex):
+        try:
+            self._mutex.lock()
             self._stop_work = True
             self._wait_condition.wakeAll()
+        finally:
+            self._mutex.unlock()
             
         # wait for completion..
         if wait_for_completion:
@@ -73,7 +79,8 @@ class AsyncWorker(QtCore.QThread):
         while True:
             
             data = None
-            with QtCore.QMutexLocker(self._mutex):
+            try:
+                self._mutex.lock()
                 if self._stop_work:
                     break
                 
@@ -86,6 +93,8 @@ class AsyncWorker(QtCore.QThread):
                 
                 data = self._data
                 self._data = None
+            finally:
+                self._mutex.unlock()
                 
             # do the work:
             try:

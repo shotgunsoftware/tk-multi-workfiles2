@@ -22,7 +22,7 @@ from .work_file import WorkFile
 from .wrapper_dialog import WrapperDialog
 from .select_work_area_form import SelectWorkAreaForm
             
-from .scene_operation import *
+from .scene_operation import reset_current_scene, prepare_new_scene, open_file, OPEN_FILE_ACTION, NEW_FILE_ACTION
 
 class WorkFiles(object):
     

@@ -18,7 +18,8 @@ from tank import TankError
 from pprint import pprint
 
 from .async_worker import AsyncWorker
-from .scene_operation import *
+from .scene_operation import get_current_path, save_file, SAVE_FILE_AS_ACTION
+
 
 class SaveAs(object):
     """
@@ -126,7 +127,9 @@ class SaveAs(object):
                         self._app.log_debug("Warning - failed to find a default name for Shotgun Save-As: %s" % e)
                 
         worker_cb = lambda details, wp=current_path, ip=is_publish: self.generate_new_work_file_path(wp, ip, details.get("name"), details.get("reset_version"))
-        with AsyncWorker(worker_cb) as preview_updater:
+        try:
+            preview_updater = AsyncWorker(worker_cb)
+            preview_updater.start()
             while True:
                 # show modal dialog:
                 from .save_as_form import SaveAsForm
@@ -155,6 +158,8 @@ class SaveAs(object):
                 
                 # ok, all done or cancelled        
                 break
+        finally:
+            preview_updater.stop()
         
     def save_as(self, new_path):
         """

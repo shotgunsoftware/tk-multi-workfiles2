@@ -15,7 +15,8 @@ from tank import TankError
 from tank.platform.qt import QtCore, QtGui 
 
 from .wrapper_dialog import WrapperDialog
-from .scene_operation import *
+from .scene_operation import get_current_path, save_file, VERSION_UP_FILE_ACTION
+
 
 class Versioning(object):
     """
@@ -69,7 +70,8 @@ class Versioning(object):
             # show modal dialog:
             from .change_version_form import ChangeVersionForm
             form = ChangeVersionForm(current_version, new_version)
-            with WrapperDialog(form, "Change Version", form.geometry().size()) as dlg:
+            try:
+                dlg = WrapperDialog(form, "Change Version", form.geometry().size())
                 res = dlg.exec_()
                 
                 if res == QtGui.QDialog.Accepted:
@@ -103,6 +105,8 @@ class Versioning(object):
                     break
                 else:                 
                     break
+            finally:
+                dlg.clean_up()
             
     def get_next_available_version(self, fields):
         """
