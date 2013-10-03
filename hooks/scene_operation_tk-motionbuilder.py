@@ -51,25 +51,49 @@ class SceneOperation(Hook):
                                          state, otherwise False
                         all others     - None
         """
-        lApplication = FBApplication()
+        fb_app = FBApplication()
 
         if operation == "current_path":
             # return the current scene path
-            return lApplication.FBXFileName
+            return fb_app.FBXFileName
         elif operation == "open":
             # do new scene as Maya doesn't like opening
             # the scene it currently has open!
-            lApplication.FileOpen( file_path )
+            fb_app.FileOpen( file_path )
         elif operation == "save":
             # save the current scene:
-            lApplication.FileSave( lApplication.FBXFileName )
+            # Note - have to pass the current scene name to
+            # avoid showing the save-as dialog
+            fb_app.FileSave(fb_app.FBXFileName)
         elif operation == "save_as":
-            lApplication.FileSave( file_path )
+            fb_app.FileSave( file_path )
         elif operation == "reset":
             """
             Reset the scene to an empty state
             """
-            ## TODO - Check if scene changes need to be saved
-            ## FileNew will force a new scene without asking user.
-            lApplication.FileNew()
+            
+            while True:
+                # Note, there doesn't appear to be any way to query if
+                # there are unsaved changes through the MotionBuilder
+                # Python API.  Therefore we just assume there are and
+                # prompt the user anyway!            
+                res = QtGui.QMessageBox.question(None,
+                                     "Save your scene?",
+                                     "Your scene has unsaved changes. Save before proceeding?",
+                                     QtGui.QMessageBox.Yes|QtGui.QMessageBox.No|QtGui.QMessageBox.Cancel)
+                
+                if res == QtGui.QMessageBox.Cancel:
+                    # stop now!
+                    return False
+                elif res == QtGui.QMessageBox.No:
+                    break
+                else:
+                    # save the file first
+                    # Note - have to pass the current scene name to
+                    # avoid showing the save-as dialog
+                    if fb_app.FileSave(fb_app.FBXFileName):
+                        break
+                
+            # perform file-new
+            fb_app.FileNew()
             return True
