@@ -65,11 +65,13 @@ class EntityBrowserWidget(browser_widget.BrowserWidget):
                 # we are interested in.
                 entities_to_load = {}
                 for x in tasks:
-                    task_et_type = x["entity"]["type"]
-                    if task_et_type in types_to_load:
-                        if task_et_type not in entities_to_load:
-                            entities_to_load[task_et_type] = []
-                        entities_to_load[task_et_type].append(x["entity"]["id"])
+                    if x["entity"]:
+                        # task linked to an entity. Get the type of entity and process
+                        task_et_type = x["entity"]["type"]
+                        if task_et_type in types_to_load:
+                            if task_et_type not in entities_to_load:
+                                entities_to_load[task_et_type] = []
+                            entities_to_load[task_et_type].append(x["entity"]["id"])
 
                 # now load data for those
                 for et in entities_to_load:
