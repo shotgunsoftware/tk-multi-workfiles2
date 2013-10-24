@@ -400,11 +400,12 @@ class WorkFilesForm(QtGui.QWidget):
                         except Exception, e:
                             pass
                         
-                        img_url = sg_user_details.get("image")
-                        if img_url:
-                            thumbnail_path = self._download_thumbnail(img_url)
-                            if thumbnail_path:
-                                task_thumbnail = QtGui.QPixmap(thumbnail_path)
+                        if sg_user_details:
+                            img_url = sg_user_details.get("image")
+                            if img_url:
+                                thumbnail_path = self._download_thumbnail(img_url)
+                                if thumbnail_path:
+                                    task_thumbnail = QtGui.QPixmap(thumbnail_path)
                                 
                     self._set_thumbnail(self._ui.task_thumbnail, task_thumbnail)
                     
