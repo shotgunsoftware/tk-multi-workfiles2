@@ -90,13 +90,43 @@ class NewTaskForm(QtGui.QWidget):
     
     @property
     def pipeline_step(self):
+        """
+        Return the selected pipeline step:
+        """
         step_id = self._ui.pipeline_step.itemData(self._ui.pipeline_step.currentIndex())
+
+        # convert from QVariant object if itemData is returned as such
+        if hasattr(QtCore, "QVariant") and isinstance(step_id, QtCore.QVariant):
+            step_id = step_id.toPyObject()
+        
         return self._pipeline_step_dict[step_id]
     
     @property
     def task_name(self):
-        return self._ui.task_name.text()
+        return self._safe_to_string(self._ui.task_name.text())
 
     def _on_create_btn_clicked(self):
         self._exit_code = QtGui.QDialog.Accepted
         self.close()
+
+    def _safe_to_string(self, value):
+        """
+        Safely convert the value to a string - handles
+        QtCore.QString if usign PyQt
+        """
+        #
+        if isinstance(value, basestring):
+            # it's a string anyway so just return
+            return value
+        
+        if hasattr(QtCore, "QString"):
+            # running PyQt!
+            if isinstance(value, QtCore.QString):
+                # QtCore.QString inherits from str but supports 
+                # unicode, go figure!  Lets play safe and return
+                # a utf-8 string
+                return str(value.toUtf8())
+        
+        # For everything else, just return as string
+        return str(value)
+
