@@ -268,7 +268,13 @@ class FileListView(browser_widget.BrowserWidget):
                 # if it's a publish then add 'View In Shotgun' item:
                 if highest_publish_file:
                     action = QtGui.QAction("View latest Publish in Shotgun", item)
-                    action.triggered.connect(lambda f=highest_publish_file: self._on_show_in_shotgun_action_triggered(f))
+                    # (AD) - the '[()]' syntax in action.triggered[()].connect looks weird right!
+                    # 'triggered' is a QtCore.SignalInstance which actually defines multiple
+                    # signals: triggered() & triggered(bool).  PySide will correctly determine which
+                    # one to use but PyQt gets confused and calls the (bool) version instead which
+                    # causes problems for us...  Luckily, Qt lets us use the argument list () to 
+                    # index into the SignalInstance object to force the use of the non-bool version - yay!
+                    action.triggered[()].connect(lambda f=highest_publish_file: self._on_show_in_shotgun_action_triggered(f))
                     item.addAction(action)
 
                 # build context menu for all publish versions:                
@@ -286,7 +292,8 @@ class FileListView(browser_widget.BrowserWidget):
                         f = files[v]
                         msg = ("v%03d" % f.version)
                         action = QtGui.QAction(msg, publishes_sm)
-                        action.triggered.connect(lambda f=f: self._on_open_publish_action_triggered(f))
+                        # see above for explanation of [()] syntax in action.triggered[()].connect...
+                        action.triggered[()].connect(lambda f=f: self._on_open_publish_action_triggered(f))
                         publishes_sm.addAction(action)
                      
                 # build context menu for all work files:
@@ -304,7 +311,8 @@ class FileListView(browser_widget.BrowserWidget):
                         f = files[v]
                         msg = ("v%03d" % f.version)
                         action = QtGui.QAction(msg, wf_sm)
-                        action.triggered.connect(lambda f=f: self._on_open_workfile_action_triggered(f))
+                        # see above for explanation of [()] syntax in action.triggered[()].connect...
+                        action.triggered[()].connect(lambda f=f: self._on_open_workfile_action_triggered(f))
                         wf_sm.addAction(action)                
 
     def _update_title(self):
