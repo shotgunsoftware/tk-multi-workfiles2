@@ -25,10 +25,17 @@ class MultiWorkFiles(tank.platform.Application):
         """
 
         # register commands:
-        self.engine.register_command("Shotgun File Manager...", self.show_file_manager_dlg)
+        #
         
-        cmd = lambda enable_start_new=True: self.show_change_work_area_dlg(enable_start_new)
-        self.engine.register_command("Change Work Area...", cmd, {"type": "context_menu"})
+        # Shotgun file manager is always available
+        self.engine.register_command("Shotgun File Manager...", self.show_file_manager_dlg)
+
+        # change work area is only available if one or more entity types have been set 
+        # in the configuration: 
+        can_change_work_area = (len(self.get_setting("sg_entity_types", [])) > 0)
+        if can_change_work_area:
+            cmd = lambda enable_start_new=True: self.show_change_work_area_dlg(enable_start_new)
+            self.engine.register_command("Change Work Area...", cmd, {"type": "context_menu"})
 
         # other commands are only valid if we have valid work and publish templates:
         self._can_save_as = (self.get_template("template_work") and self.get_template("template_publish"))
@@ -46,35 +53,28 @@ class MultiWorkFiles(tank.platform.Application):
         
         SUPPORTED_ENGINES = ["tk-nuke", "tk-maya"]
         
-        if self.get_setting('launch_at_startup'):
-            
-            if self.engine.name in SUPPORTED_ENGINES:            
-                if not hasattr(tank, '_tk_multi_workfiles_launch_at_startup'):
-                    # this is the very first time we run this app
-                    tank._tk_multi_workfiles_launch_at_startup = True
-                    # show the UI at startup - but only if the engine supports a UI
-                    if self.engine.has_ui:
-                        self.show_file_manager_dlg()
-            
-            else:
-                self.log_warning("Sorry, the launch at startup option is currently not supported "
-                                 "in this engine! You can currently only use it with the following "
-                                 "engines: %s" % ", ".join(SUPPORTED_ENGINES))
-                            
-        elif self.get_setting('launch_change_work_area_at_startup'):
-            
-            if self.engine.name in SUPPORTED_ENGINES:            
-                if not hasattr(tank, '_tk_multi_workfiles_launch_at_startup'):
-                    # this is the very first time we run this app
-                    tank._tk_multi_workfiles_launch_at_startup = True
-                    # show the UI at startup - but only if the engine supports a UI
-                    if self.engine.has_ui:
-                        self.show_change_work_area_dlg(False)
+        if self.engine.has_ui and not hasattr(tank, '_tk_multi_workfiles_launch_at_startup'):
 
-            else:
-                self.log_warning("Sorry, the launch at startup option is currently not supported "
-                                 "in this engine! You can currently only use it with the following "
-                                 "engines: %s" % ", ".join(SUPPORTED_ENGINES))
+            # this is the very first time we run this app
+            tank._tk_multi_workfiles_launch_at_startup = True
+
+            if self.get_setting('launch_at_startup'):
+                # show the file manager UI
+                if self.engine.name in SUPPORTED_ENGINES:            
+                    self.show_file_manager_dlg()
+                else:
+                    self.log_warning("Sorry, the launch at startup option is currently not supported "
+                                     "in this engine! You can currently only use it with the following "
+                                     "engines: %s" % ", ".join(SUPPORTED_ENGINES))
+                            
+            elif self.get_setting('launch_change_work_area_at_startup') and can_change_work_area:
+                # show the change work area UI
+                if self.engine.name in SUPPORTED_ENGINES:
+                    self.show_change_work_area_dlg(False)
+                else:
+                    self.log_warning("Sorry, the launch at startup option is currently not supported "
+                                     "in this engine! You can currently only use it with the following "
+                                     "engines: %s" % ", ".join(SUPPORTED_ENGINES))
 
     def destroy_app(self):
         self.log_debug("Destroying tk-multi-workfiles")
