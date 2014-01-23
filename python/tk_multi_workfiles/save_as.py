@@ -102,7 +102,7 @@ class SaveAs(object):
 
                         # split name into alpha and numeric parts so that we can 
                         # increment the numeric part in order to find a unique name
-                        name_alpha = name.strip("0123456789")
+                        name_alpha = name.rstrip("0123456789")
                         name_num_str = name[len(name_alpha):] or "0"
                         name_num = int(name_num_str)
                         name_format_str = "%s%%0%dd" % (name_alpha, len(name_num_str))
