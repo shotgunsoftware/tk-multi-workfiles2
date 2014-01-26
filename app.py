@@ -136,6 +136,7 @@ class DebugWrapperShotgun(object):
     def __init__(self, sg_instance, log_fn):
         self._sg = sg_instance
         self._log_fn = log_fn
+        self.config = sg_instance.config
         
     def find(self, *args, **kwargs):
         self._log_fn("SG API find start: %s %s" % (args, kwargs))
