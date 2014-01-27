@@ -77,10 +77,10 @@ class SceneOperation(Hook):
             try:
                 # rename script:
                 nuke.root()["name"].setValue(file_path)
-                        
+                
                 # reset all write nodes:
                 self._reset_write_node_render_paths()
-                    
+                        
                 # save script:
                 nuke.scriptSaveAs(file_path, -1)    
             except Exception, e:
@@ -111,7 +111,6 @@ class SceneOperation(Hook):
             
             return True
         
-        
     def _reset_write_node_render_paths(self):
         """
         Use the tk-nuke-writenode app interface to find and reset
@@ -119,12 +118,18 @@ class SceneOperation(Hook):
         """
         write_node_app = self.parent.engine.apps.get("tk-nuke-writenode")
         if not write_node_app:
-            return
+            return False
+
+        # only need to forceably reset the write node render paths if the app version
+        # is less than or equal to v0.1.11
+        from distutils.version import LooseVersion
+        if (write_node_app.version == "Undefined" 
+            or LooseVersion(write_node_app.version) > LooseVersion("v0.1.11")):
+            return False
         
         write_nodes = write_node_app.get_write_nodes()
         for write_node in write_nodes:
             write_node_app.reset_node_render_path(write_node)
             
-        return len(write_nodes) > 0
-        
+        return len(write_nodes) > 0      
         
