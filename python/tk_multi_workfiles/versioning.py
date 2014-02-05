@@ -241,7 +241,12 @@ class Versioning(object):
         
         published_file_entity_type = tank.util.get_published_file_entity_type(self._app.tank)
         sg_result = self._app.shotgun.find(published_file_entity_type, filters, ["path", "version_number"])
-        paths_and_versions = [(r.get("path").get("local_path"), r.get("version_number")) for r in sg_result if r.get("path")]
+        
+        paths_and_versions = []
+        for res in sg_result:
+            path = res.get("path", {}).get("local_path")
+            if path:
+                paths_and_versions.append((path, res.get("version_number")))
  
         return paths_and_versions          
         

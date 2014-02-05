@@ -1090,10 +1090,10 @@ class WorkFiles(object):
         
         publish_files = {}
         for sg_file in sg_published_files:
-            if not sg_file.get("path"):
-                continue
             
-            path = sg_file.get("path").get("local_path")
+            path = sg_file.get("path", {}).get("local_path")
+            if not path:
+                continue
             
             # check if this path should be ignored:
             if self._ignore_file_path(path):
