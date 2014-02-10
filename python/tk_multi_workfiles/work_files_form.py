@@ -66,11 +66,13 @@ class WorkFilesForm(QtGui.QWidget):
         if self._handler.can_change_work_area():
             # update the style sheet for the work area form so it
             # becomes highlighted when hovering over it
-            clr = QtGui.QApplication.palette().color(QtGui.QPalette.Window)
-            clr = clr.lighter() if clr.lightness() < 128 else clr.darker()
-            ss = self._ui.work_area_frame.styleSheet()
-            ss = "%s #work_area_frame:hover {background-color: rgb(%d,%d,%d);}" % (ss, clr.red(), clr.green(), clr.blue())
-            self._ui.work_area_frame.setStyleSheet(ss)
+            # test for lightness ahead of use to stay compatible with Qt 4.6.2
+            if hasattr(clr, 'lightness'):
+                clr = QtGui.QApplication.palette().color(QtGui.QPalette.Window)
+                clr = clr.lighter() if clr.lightness() < 128 else clr.darker()
+                ss = self._ui.work_area_frame.styleSheet()
+                ss = "%s #work_area_frame:hover {background-color: rgb(%d,%d,%d);}" % (ss, clr.red(), clr.green(), clr.blue())
+                self._ui.work_area_frame.setStyleSheet(ss)
             
             self._ui.work_area_frame.setCursor(QtCore.Qt.PointingHandCursor)
             self._ui.work_area_frame.setToolTip("Click to Change Work Area...")
