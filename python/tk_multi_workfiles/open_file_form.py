@@ -21,14 +21,14 @@ class OpenFileForm(QtGui.QWidget):
     UI for changing the version of the current work file
     """
     
-    [OPEN_WORKFILE_MODE, OPEN_PUBLISH_MODE] = range(0,2)
+    [OPEN_WORKFILE_MODE, OPEN_PUBLISH_MODE, OPEN_PUBLISH_NORO_MODE] = range(0,3)
     [OPEN_PUBLISH, OPEN_PUBLISH_READONLY, OPEN_WORKFILE] = range(2,5)
     
     @property
     def exit_code(self):
         return self._exit_code    
     
-    def __init__(self, app, work_file, publish_file, mode, next_version, parent=None):
+    def __init__(self, app, work_file, publish_file, mode, next_version, publish_requires_copy=True, parent=None):
         """
         Construction
         """
@@ -40,6 +40,7 @@ class OpenFileForm(QtGui.QWidget):
         self._exit_code = QtGui.QDialog.Rejected
         self._mode = mode
         self._next_version = next_version
+        self._publish_requires_copy = publish_requires_copy
         
         # set up the UI
         from .ui.open_file_form import Ui_OpenFileForm
@@ -158,8 +159,12 @@ class OpenFileForm(QtGui.QWidget):
         publish_details += "<br><b>Description:</b>"
         publish_details += "<br>" + self._publish_file.format_publish_description()
         self._ui.publish_details.setText(publish_details)
-        self._ui.publish_note.setText("<small>(Note: The published file will be copied to "
-                                      "your work area as version v%03d and then opened)</small>" % self._next_version)
+        
+        if self._publish_requires_copy:
+            self._ui.publish_note.setText("<small>(Note: The published file will be copied to "
+                                          "your work area as version v%03d and then opened)</small>" % self._next_version)
+        else:
+            self._ui.publish_note.setText("")
         
         if self._publish_file.thumbnail:
             thumbnail_path = self._download_thumbnail(self._publish_file.thumbnail)
@@ -184,6 +189,20 @@ class OpenFileForm(QtGui.QWidget):
                     
                 QtGui.QWidget.setTabOrder(self._ui.work_file_frame, self._ui.publish_frame)
                 QtGui.QWidget.setTabOrder(self._ui.publish_frame, self._ui.publish_ro_frame)
+            elif self._mode == OpenFileForm.OPEN_PUBLISH_NORO_MODE:
+                ordered_widgets = [self._ui.work_file_frame,
+                                   self._ui.or_label_a,
+                                   self._ui.publish_frame,
+                                   self._ui.or_label_b,
+                                   self._ui.publish_ro_frame]
+                    
+                self._ui.work_file_frame.setVisible(self._work_file is not None)
+                self._ui.or_label_a.setVisible(self._work_file is not None)
+                self._ui.or_label_b.setVisible(False)         
+                self._ui.publish_ro_frame.setVisible(False)
+                    
+                QtGui.QWidget.setTabOrder(self._ui.work_file_frame, self._ui.publish_frame)
+                QtGui.QWidget.setTabOrder(self._ui.publish_frame, self._ui.publish_ro_frame)                
             else:
                 ordered_widgets = [self._ui.publish_frame,
                                    self._ui.or_label_a,

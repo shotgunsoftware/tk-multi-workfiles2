@@ -2,5 +2,6 @@
   <qresource prefix="res">
     <file>save_as_icon.png</file>
     <file>thumb_empty.png</file>
+    <file>padlock.png</file>
   </qresource>
 </RCC>

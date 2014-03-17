@@ -11,7 +11,7 @@
 import os
 from datetime import datetime, timedelta
 
-class WorkFile(object):
+class FileItem(object):
     """
     Encapsulate details about a work file
     """
@@ -24,6 +24,9 @@ class WorkFile(object):
         self._is_local = is_local
         self._is_published = is_published
         self._details = details
+
+    def __repr__(self):
+        return "%s (v%d), is_local:%s, is_publish: %s" % (self.name, self.version, self.is_local, self.is_published)
 
     """
     General details
@@ -73,6 +76,14 @@ class WorkFile(object):
     @property
     def modified_by(self):
         return self._details.get("modified_by")
+    
+    @property
+    def editable(self):
+        return self._details.get("editable", True)
+    
+    @property
+    def not_editable_reason(self):
+        return self._details.get("editable_reason", "")
     
     """
     Published file details
@@ -149,27 +160,41 @@ class WorkFile(object):
         """
         Determine if this (local) file is more recent than
         the specified published file
+        
+        :returns int:    -1 if work file is older than publish
+                         0 if work file is exactly the same time as publish
+                         1 if work file is more recent than publish
         """
         if not self.is_local or not published_file.is_published:
-            return False
+            return -1
         
-        local_is_latest = False
-        if self.version >= published_file.version:
-            if self.modified_at and published_file.published_at:
-                # check file modification time - we only consider a local version to be 'latest' 
-                # if it has a more recent modification time than the published file (with 2mins
-                # tollerance)
-                if self.modified_at > published_file.published_at:
-                    local_is_latest = True
-                else:
-                    diff = published_file.published_at - self.modified_at
-                    if diff.seconds < 120:
-                        local_is_latest = True
+        if self.version > published_file.version:
+            return 1
+        elif self.version < published_file.version:
+            return -1
+        else:
+            if self.path == published_file.publish_path:
+                # they are the same file!
+                return 0
             else:
-                # can't compare times so assume local is more recent than publish:
-                local_is_latest = True
-                
-        return local_is_latest
+                # use fuzzy compare when files have different paths - note that this will never
+                # return '0' as the files could still have different contents - in this case, the
+                # work file is favoured over the publish!
+                local_is_latest = False                
+                if self.modified_at and published_file.published_at:
+                    # check file modification time - we only consider a local version to be 'latest' 
+                    # if it has a more recent modification time than the published file (with 2mins
+                    # tollerance)
+                    if self.modified_at > published_file.published_at:
+                        local_is_latest = True
+                    else:
+                        diff = published_file.published_at - self.modified_at
+                        if diff.seconds < 120:
+                            local_is_latest = True
+                else:
+                    # can't compare times so assume local is more recent than publish:
+                    local_is_latest = True
+                return 1 if local_is_latest else 0
     
     def _format_modified_date_time_str(self, date_time):
         """

@@ -22,7 +22,7 @@ class SaveAsForm(QtGui.QWidget):
     def exit_code(self):
         return self._exit_code
     
-    def __init__(self, preview_updater, is_publish, name_is_used, name, parent = None):
+    def __init__(self, preview_updater, is_publish, name_is_used, name, version_is_used, parent = None):
         """
         Construction
         """
@@ -35,6 +35,7 @@ class SaveAsForm(QtGui.QWidget):
         self._reset_version = False
         self._launched_from_publish = is_publish
         self._name_is_used = name_is_used
+        self._version_is_used = version_is_used
         
         # set up the UI
         from .ui.save_as_form import Ui_SaveAsForm
@@ -52,6 +53,8 @@ class SaveAsForm(QtGui.QWidget):
         if not self._name_is_used:
             self._ui.name_label.hide()
             self._ui.name_edit.hide()
+            
+        if not self._name_is_used or not self._version_is_used:
             self._ui.reset_version_cb.hide()
             
         if self._name_is_used and not self._launched_from_publish:
