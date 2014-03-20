@@ -79,6 +79,11 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
         output["current_task"] = data.get("task")
         output["can_create_tasks"] = data.get("can_create_tasks", False)
 
+        # gather all the fields to pull
+        fields = ["content", "task_assignees", "image", "sg_status_list", "step.Step.list_order"]
+        extra_fields = self._app.get_setting("task_extra_display_fields", [])
+        fields.extend(extra_fields)
+
         if data["own_tasks_only"]:
             
             if self._current_user is None:
@@ -93,17 +98,14 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
                                                       ["entity", "is", data["entity"]], 
                                                       ["step", "is_not", None],
                                                       ["task_assignees", "is", self._current_user ]], 
-                                                    ["content", 
-                                                     "task_assignees", 
-                                                     "image", 
-                                                     "sg_status_list", "step.Step.list_order"])
+                                                    fields)
         else:
             # get all tasks
             output["tasks"] = self._app.shotgun.find("Task", 
                                                 [ ["project", "is", self._app.context.project],
                                                   ["step", "is_not", None],
                                                   ["entity", "is", data["entity"] ] ], 
-                                                ["content", "task_assignees", "image", "sg_status_list", "step.Step.list_order"])
+                                                fields)
         
             # get all the users where tasks are assigned.
             user_ids = []
@@ -150,8 +152,16 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
                 i = self.add_item(browser_widget.ListItem)
                 
                 details = []
-                details.append("<b>Task: %s</b>" % d.get("content", ""))
-                
+
+                # figure out the name to display for the task
+                task_name = "<b>Task: %s</b>" % d.get("content", "")
+                extra_fields = self._app.get_setting("task_extra_display_fields", [])
+                name_extension = ", ".join([d.get(f) for f in extra_fields])
+                if name_extension:
+                    task_name = task_name + " (%s)" % name_extension
+
+                details.append(task_name)
+
                 # now try to look up the proper status name
                 status_short_name = d.get("sg_status_list")
                 # get the long name, fall back on short name if not found
