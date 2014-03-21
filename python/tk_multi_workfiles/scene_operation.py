@@ -13,7 +13,7 @@ from tank import TankError
 
 [OPEN_FILE_ACTION, SAVE_FILE_AS_ACTION, NEW_FILE_ACTION, VERSION_UP_FILE_ACTION] = range(4)
 
-def _do_scene_operation(app, action, context, operation, path=None, result_type=None):
+def _do_scene_operation(app, action, context, operation, path=None, version=0, read_only=False, result_type=None):
     """
     Do the specified scene operation with the specified args
     """
@@ -32,7 +32,13 @@ def _do_scene_operation(app, action, context, operation, path=None, result_type=
     
     result = None
     try:
-        result = app.execute_hook("hook_scene_operation", operation=operation, file_path=path, context=context, parent_action=action_str)     
+        result = app.execute_hook("hook_scene_operation", 
+                                  operation=operation, 
+                                  file_path=path, 
+                                  context=context, 
+                                  parent_action=action_str, 
+                                  file_version=version, 
+                                  read_only=read_only)     
     except TankError, e:
         # deliberately filter out exception that used to be thrown 
         # from the scene operation hook but has since been removed
@@ -80,13 +86,13 @@ def save_file(app, action, context, path=None):
         app.log_debug("Saving the current file with hook")
         _do_scene_operation(app, action, context, "save")
 
-def open_file(app, action, context, path):
+def open_file(app, action, context, path, version, read_only):
     """
     Use hook to open the specified file.
     """
     # do open:
     app.log_debug("Opening file '%s' via hook" % path)
-    _do_scene_operation(app, action, context, "open", path)    
+    _do_scene_operation(app, action, context, "open", path, version, read_only)    
     
 
      

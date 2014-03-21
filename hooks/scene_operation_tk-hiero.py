@@ -20,7 +20,7 @@ class SceneOperation(Hook):
     current scene
     """
     
-    def execute(self, operation, file_path, context, parent_action, **kwargs):
+    def execute(self, operation, file_path, context, parent_action, file_version, read_only, **kwargs):
         """
         Main hook entry point
         
@@ -41,6 +41,11 @@ class SceneOperation(Hook):
                         - new_file
                         - save_file_as 
                         - version_up
+                        
+        :file_version:  The version/revision of the file to be opened.  If this is 'None'
+                        then the latest version should be opened.
+        
+        :read_only:     Specifies if the file should be opened read-only or not
                             
         :returns:       Depends on operation:
                         'current_path' - Return the current scene

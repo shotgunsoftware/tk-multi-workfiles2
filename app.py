@@ -37,10 +37,14 @@ class MultiWorkFiles(tank.platform.Application):
             cmd = lambda enable_start_new=True: self.show_change_work_area_dlg(enable_start_new)
             self.engine.register_command("Change Work Area...", cmd, {"type": "context_menu"})
 
-        # other commands are only valid if we have valid work and publish templates:
-        self._can_save_as = (self.get_template("template_work") and self.get_template("template_publish"))
+        # other commands are only valid if we have at least a valid work template.  Version
+        # up the current scene is only available of the work template also has a version key
+        template_work = self.get_template("template_work")
+        self._can_save_as = template_work is not None 
+        self._can_change_version = self._can_save_as and ("version" in template_work.keys)
         if self._can_save_as:
             self.engine.register_command("Shotgun Save As...", self.show_save_as_dlg)
+        if self._can_change_version:
             self.engine.register_command("Version up Current Scene...", self.show_change_version_dlg)
         
         # process auto startup options - but only on certain supported platforms
@@ -107,7 +111,7 @@ class MultiWorkFiles(tank.platform.Application):
         """
         If save as is available, show the change version dialog.
         """
-        if self._can_save_as:
+        if self._can_change_version:
             tk_multi_workfiles = self.import_module("tk_multi_workfiles")
             return tk_multi_workfiles.Versioning.show_change_version_dlg(self)
         else:

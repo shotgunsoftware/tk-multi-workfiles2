@@ -15,19 +15,20 @@ from pprint import pprint
 import tank
 from tank.platform.qt import QtCore, QtGui
 browser_widget = tank.platform.import_framework("tk-framework-widget", "browser_widget")
+from .file_item_form import FileItemForm
 
-from .work_file import WorkFile
+from .file_item import FileItem
+from .file_filter import FileFilter
 
 class FileListView(browser_widget.BrowserWidget):
     
     # signals - note, 'object' is used to avoid 
     # issues with PyQt when None is passed
-    open_previous_workfile = QtCore.Signal(object)#WorkFile
-    open_previous_publish = QtCore.Signal(object)#WorkFile
-    view_in_shotgun = QtCore.Signal(object)#WorkFile
+    open_previous_workfile = QtCore.Signal(object)#FileItem
+    open_previous_publish = QtCore.Signal(object)#FileItem
+    view_in_shotgun = QtCore.Signal(object)#FileItem
     
     NO_TASK_NAME = "No Task"
-    [WORKFILES_MODE, PUBLISHES_MODE] = range(2)
     
     def __init__(self, parent=None):
         """
@@ -35,7 +36,7 @@ class FileListView(browser_widget.BrowserWidget):
         """
         browser_widget.BrowserWidget.__init__(self, parent)
         
-        self._current_mode = FileListView.WORKFILES_MODE
+        self._current_filter = {}
         
         # tweak style
         self.title_style = "none"
@@ -56,21 +57,32 @@ class FileListView(browser_widget.BrowserWidget):
             return selected_item.work_file
         return None
     
-    @property
-    def mode(self):
-        return self._current_mode
+    # Enable to force all work to be done in the main thread
+    # which can help when debugging
+    # IMPORTANT - set this to False before releasing!!!
+    DEBUG_GET_DATA_IN_MAIN_THREAD=False
     
-
     def get_data(self, data):
         """
         Called by browser widget in worker thread to query the list
         of files to display for the specified context
         """
+        if FileListView.DEBUG_GET_DATA_IN_MAIN_THREAD:
+            # debug only - _get_data will be called first in
+            # process_result which runs in the main thread
+            return data
+        else:
+            return self._get_data(data)
+        
+    def _get_data(self, data):
+        """
+        Retrieve the list of files to display
+        """
         result = {"task_groups":{}, "task_name_order":{}}
         
         handler = data["handler"]
-        user = data.get("user")
-        mode = data.get("mode", FileListView.WORKFILES_MODE)
+        filter = data.get("filter")
+        mode = filter.mode
         
         # get some additional info from the handler:
         ctx = handler.get_current_work_area()
@@ -80,13 +92,13 @@ class FileListView(browser_widget.BrowserWidget):
         result["have_valid_configuration"] = handler.have_valid_configuration_for_work_area()
         result["current_task_name"] = ctx.task.get("name") if ctx and ctx.task else None
         result["can_change_work_area"] = handler.can_change_work_area()
-        result["mode"] = mode
+        result["filter"] = filter
         result["task_order"] = []
         
         if result["have_valid_workarea"] and result["have_valid_configuration"]:
         
             # get the list of files from the handler:
-            files = handler.find_files(user)
+            files = handler.find_files(filter)
             
             # re-pivot this list of files ready to display:
             # 
@@ -121,12 +133,12 @@ class FileListView(browser_widget.BrowserWidget):
                     
                     # find highest version info:
                     local_versions = [f.version for f in files_versions.values() if f.is_local]
-                    if mode == FileListView.WORKFILES_MODE and not local_versions:
+                    if mode == FileFilter.WORKFILES_MODE and not local_versions:
                         # don't have a version of this file to display!
                         continue
                     
                     publish_versions = [f.version for f in files_versions.values() if f.is_published]
-                    if mode == FileListView.PUBLISHES_MODE and not publish_versions:
+                    if mode == FileFilter.PUBLISHES_MODE and not publish_versions:
                         # don't have a version of this file to display!
                         continue
                     
@@ -147,13 +159,13 @@ class FileListView(browser_widget.BrowserWidget):
                         # skip any versions that are greater than the one we are looking for
                         # Note: we shouldn't choose a thumbnail for versions that aren't
                         # going to be displayed so filter these out
-                        if ((mode == FileListView.WORKFILES_MODE and version > highest_local_version)
-                            or (mode == FileListView.PUBLISHES_MODE and version > highest_publish_version)):
+                        if ((mode == FileFilter.WORKFILES_MODE and version > highest_local_version)
+                            or (mode == FileFilter.PUBLISHES_MODE and version > highest_publish_version)):
                             continue
                         thumbnail = files_versions[version].thumbnail
                         if thumbnail:
                             # special case - update the thumbnail!
-                            if mode == FileListView.WORKFILES_MODE and version < highest_local_version:
+                            if mode == FileFilter.WORKFILES_MODE and version < highest_local_version:
                                 files_versions[highest_local_version].set_thumbnail(thumbnail)
                             break
                     details["thumbnail"] = thumbnail
@@ -164,7 +176,7 @@ class FileListView(browser_widget.BrowserWidget):
                     # determine when this file was last updated (modified or published)
                     # this is used to sort the files in the list:
                     last_updated = None
-                    if mode == FileListView.WORKFILES_MODE and highest_local_version >= 0:
+                    if mode == FileFilter.WORKFILES_MODE and highest_local_version >= 0:
                         last_updated = files_versions[highest_local_version].modified_at
                     if highest_publish_version >= 0:
                         published_at = files_versions[highest_publish_version].published_at
@@ -198,11 +210,14 @@ class FileListView(browser_widget.BrowserWidget):
         """
         Process list of tasks retrieved by get_data on the main thread
         """
+        if FileListView.DEBUG_GET_DATA_IN_MAIN_THREAD:
+            result = self._get_data(result)
+        
         task_groups = result["task_groups"]
         task_name_order = result["task_name_order"]
         task_order = result["task_order"]
         current_task_name = result["current_task_name"]
-        self._current_mode = result["mode"]
+        self._current_filter = result["filter"]
         
         self._update_title()
         
@@ -278,7 +293,7 @@ class FileListView(browser_widget.BrowserWidget):
                     item.addAction(action)
 
                 # build context menu for all publish versions:                
-                published_versions = [f.version for f in files.values() if f.is_published]
+                published_versions = [f.version for f in files.values() if f.is_published and isinstance(f.version, int)]
                 if published_versions:
                     
                     published_versions.sort(reverse=True)
@@ -297,7 +312,7 @@ class FileListView(browser_widget.BrowserWidget):
                         publishes_sm.addAction(action)
                      
                 # build context menu for all work files:
-                wf_versions = [f.version for f in files.values() if f.is_local]
+                wf_versions = [f.version for f in files.values() if f.is_local and isinstance(f.version, int)]
                 if wf_versions:
                     
                     wf_versions.sort(reverse=True)
@@ -319,10 +334,9 @@ class FileListView(browser_widget.BrowserWidget):
         """
         Update the list title depending on the mode
         """
-        if self._current_mode == FileListView.WORKFILES_MODE:
-            self.set_label("Available Work Files")
-        else:
-            self.set_label("Available Publishes")
+        if not self._current_filter:
+            return
+        self.set_label(self._current_filter.list_title)
                                
     def _add_file_item(self, latest_published_file, latest_work_file):
         """
@@ -334,13 +348,17 @@ class FileListView(browser_widget.BrowserWidget):
         red = "rgb(200, 84, 74)"
         green = "rgb(145, 206, 95)"
         
+        current_mode = self._current_filter.mode
+        
         file = None
-        if self._current_mode == FileListView.WORKFILES_MODE:
+        editable = True
+        not_editable_reason = ""
+        if current_mode == FileFilter.WORKFILES_MODE:
             file = latest_work_file
             
             title_colour = None
             if latest_published_file:
-                if file.is_more_recent_than_publish(latest_published_file):
+                if file.is_more_recent_than_publish(latest_published_file) >= 0:
                     # work file is most recent
                     title_colour = green
                     tooltip += "This is the latest version of this file"
@@ -357,12 +375,18 @@ class FileListView(browser_widget.BrowserWidget):
             else:
                 tooltip += "This file has never been published"
 
-            details = "<b>%s, v%03d</b>" % (file.name, file.version)
+            if file.version is not None:
+                details = "<b>%s, v%03d</b>" % (file.name, file.version)
+            else:
+                details = "<b>%s</b>" % (file.name)
             if title_colour:    
                 details = "<span style='color:%s'>%s</span>" % (title_colour, details)
             details += "<br>" + file.format_modified_by_details()
-
-        else: # self._current_mode == FileListView.PUBLISHES_MODE
+            
+            editable = file.editable
+            not_editable_reason = file.not_editable_reason
+                
+        else: # current_mode == FileFilter.PUBLISHES_MODE
             file = latest_published_file
             
             title_colour = None
@@ -371,7 +395,7 @@ class FileListView(browser_widget.BrowserWidget):
             
             tooltip += "<hr>"
             if latest_work_file:
-                if not latest_work_file.is_more_recent_than_publish(file):
+                if latest_work_file.is_more_recent_than_publish(file) <= 0:
                     # published file is most recent
                     title_colour = green
                     tooltip += "This is the latest version of this file"
@@ -393,9 +417,17 @@ class FileListView(browser_widget.BrowserWidget):
                 details = "<span style='color:%s'>%s</span>" % (title_colour, details)
             
             details += "<br>" + file.format_published_by_details()
+            
+            editable = file.editable
+            not_editable_reason = file.not_editable_reason
+            
+        # update editable info on the tooltip
+        if not editable:
+            tooltip += "<hr>"   
+            tooltip += "Read-only: " + not_editable_reason
         
         # add item:
-        item = self.add_item(browser_widget.ListItem)
+        item = self.add_item(FileItemForm)
         item.published_file = latest_published_file
         item.work_file = latest_work_file
 
@@ -404,6 +436,8 @@ class FileListView(browser_widget.BrowserWidget):
         
         # build and set details string:
         item.set_details(details)
+        
+        item.set_is_editable(editable, not_editable_reason)
         
         return item
                    

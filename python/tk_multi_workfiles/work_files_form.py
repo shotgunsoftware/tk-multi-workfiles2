@@ -16,8 +16,9 @@ import urllib
 import tank
 from tank.platform.qt import QtCore, QtGui
 
-from .work_file import WorkFile
 from .file_list_view import FileListView
+from .file_filter import FileFilter
+
 
 class WorkFilesForm(QtGui.QWidget):
     """
@@ -26,15 +27,15 @@ class WorkFilesForm(QtGui.QWidget):
     
     # signals - note, 'object' is used to avoid 
     # issues with PyQt when None is passed
-    open_publish = QtCore.Signal(object, object, bool)#WorkFile, WorkFile, bool
-    open_workfile = QtCore.Signal(object, object, bool)#WorkFile, WorkFile, bool
-    open_previous_publish = QtCore.Signal(object)#WorkFile
-    open_previous_workfile = QtCore.Signal(object)#WorkFile
+    open_publish = QtCore.Signal(object, object, bool)#FileItem, FileItem, bool
+    open_workfile = QtCore.Signal(object, object, bool)#FileItem, FileItem, bool
+    open_previous_publish = QtCore.Signal(object)#FileItem
+    open_previous_workfile = QtCore.Signal(object)#FileItem
     
     new_file = QtCore.Signal()
     
-    show_in_fs = QtCore.Signal(bool, dict)#bool, dict
-    show_in_shotgun = QtCore.Signal(object)#WorkFile
+    show_in_fs = QtCore.Signal()
+    show_in_shotgun = QtCore.Signal(object)#FileItem
     
     def __init__(self, app, handler, parent = None):
         """
@@ -106,16 +107,18 @@ class WorkFilesForm(QtGui.QWidget):
         
         self._on_file_selection_changed()
         
+    @property
+    def filter(self):
+        return self._get_current_filter()
+        
     def _on_view_in_shotgun(self, file):
         self.show_in_shotgun.emit(file)
         
     def _on_show_in_fs_mouse_press_event(self, event):
         """
-        
+        Emit event when the user clicks the show in file system link:
         """
-        current_filter = self._get_current_filter()
-        show_local = (current_filter.get("mode") == FileListView.WORKFILES_MODE) 
-        self.show_in_fs.emit(show_local, current_filter.get("user"))
+        self.show_in_fs.emit()
         
     def closeEvent(self, e):
         """
@@ -126,25 +129,35 @@ class WorkFilesForm(QtGui.QWidget):
         return QtGui.QWidget.closeEvent(self, e)
         
     def _on_open_file(self):
+        """
+        """
         # get the currently selected work file
         
         work_file = self._ui.file_list.selected_work_file
         published_file = self._ui.file_list.selected_published_file
-        mode = self._ui.file_list.mode
+                
+        current_filter = self._get_current_filter()
+        if not current_filter:
+            return
         
-        if mode == FileListView.WORKFILES_MODE:
+        if current_filter.mode == FileFilter.WORKFILES_MODE:
             self.open_workfile.emit(work_file, published_file, False)            
-        else: # mode == FileListView.PUBLISHES_MODE:
+        else: # current_filter.mode == FileFilter.PUBLISHES_MODE:
             self.open_publish.emit(published_file, work_file, False)
 
     def _on_open_previous_workfile(self, file):
+        """
+        """
         self.open_previous_workfile.emit(file)
 
     def _on_open_previous_publish(self, file):
+        """
+        """
         self.open_previous_publish.emit(file)
 
-        
     def _on_new_file(self):
+        """
+        """
         self.new_file.emit()
         
     def _set_work_area(self, ctx):
@@ -187,12 +200,15 @@ class WorkFilesForm(QtGui.QWidget):
         """
         # get the file filter:
         filter = self._get_current_filter()
+        if not filter:
+            return
+        
+        # hide/show the show-in-filesystem link:
+        self._ui.show_in_fs_label.setVisible(filter.show_in_file_system)
         
         # clear and reload list:
         self._ui.file_list.clear()
-        self._ui.file_list.load({"handler":self._handler, 
-                                "user":filter.get("user"), 
-                                "mode":filter.get("mode", FileListView.WORKFILES_MODE)})
+        self._ui.file_list.load({"handler":self._handler, "filter":filter})
         
         self._on_file_selection_changed()
         
@@ -210,76 +226,47 @@ class WorkFilesForm(QtGui.QWidget):
                               or self._ui.file_list.selected_work_file is not None) 
         self._ui.open_file_btn.setEnabled(something_selected)
             
-    class __FilterObj(object):
-        """
-        Class used to wrap filter object so that it can
-        be safely stored as a combo menu item's data that
-        works in both Pyside & PyQt
-        """
-        def __init__(self, filter=None):
-            self._filter = filter
-            
-        @property
-        def filter(self):
-            return self._filter
-          
     def _update_filter_menu(self):
         """
         Update the list of users to display work files for
         """
-        users = self._handler.get_usersandbox_users()
-                
-        current_user = tank.util.get_current_user(self._app.tank)
+        # get list of filters from handler:
+        filters = self._handler.get_file_filters()
         
         # get selected filter:
         previous_filter = self._get_current_filter()
         
-        def filter_compare(f1, f2):
-            """
-            Compare two filters to determine if they are the same or not
-            """
-            user_1 = f1.get("user")
-            user_2 = f2.get("user")
-            if user_1 == None or user_2 == None:
-                if user_1 != user_2:
-                    return False
-            else:
-                if user_1.get("id") != user_2.get("id"):
-                    return False
-                
-            return (f1.get("mode") == f2.get("mode"))
-        
         # clear menu:
         self._ui.filter_combo.clear()
         
-        # add user work files item:
-        self._ui.filter_combo.addItem("Show Files in my Work Area", 
-                                      self.__FilterObj({"mode":FileListView.WORKFILES_MODE, "user":current_user}))
+        # add back in filters:
         selected_idx = 0
-        
-        # add publishes item:
-        publishes_filter = {"mode":FileListView.PUBLISHES_MODE}
-        self._ui.filter_combo.addItem("Show Files in the Publish Area", self.__FilterObj(publishes_filter))
-        if filter_compare(previous_filter, publishes_filter):
-            selected_idx = 1
-        
-        # add rest of users
-        if users:
-            # add some separators!
-            self._ui.filter_combo.insertSeparator(2)
-        
-            for user in users:
-                if current_user is not None and user["id"] == current_user["id"]:
-                    # already added
-                    continue
+        separator_count = 0
+        for filter in filters:
             
-                filter = {"mode":FileListView.WORKFILES_MODE, "user":user}
+            if filter == "separator":
+                # special 'filter' signifying a separator should be added
+                # - don't add it yet though in case there aren't any more
+                # non separator items following!
+                separator_count += 1
+                continue
             
-                if filter_compare(previous_filter, filter):
-                    selected_idx = self._ui.filter_combo.count()
+            if not filter.menu_label:
+                # filter doesn't have a menu label - bad!
+                continue
+
+            # add any separators:
+            while separator_count > 0:
+                separator_count -= 1
+                self._ui.filter_combo.insertSeparator(self._ui.filter_combo.count())
                 
-                self._ui.filter_combo.addItem("Show Files in %s's Work Area" % user["name"], self.__FilterObj(filter))
-                
+            # see if this is the previously selected filter:
+            if filter == previous_filter:
+                selected_idx = self._ui.filter_combo.count()
+
+            # add filter:            
+            self._ui.filter_combo.addItem(filter.menu_label, filter)
+
         # set the current index:
         self._ui.filter_combo.setCurrentIndex(selected_idx)
         
@@ -287,18 +274,15 @@ class WorkFilesForm(QtGui.QWidget):
         """
         Get the current filter
         """
-        
-        filter = {}
+        filter = None
         idx = self._ui.filter_combo.currentIndex()
+
         if idx >= 0:
-            filter_obj = self._ui.filter_combo.itemData(idx)
+            filter = self._ui.filter_combo.itemData(idx)
             
             # convert from QVariant object if itemData is returned as such
-            if hasattr(QtCore, "QVariant") and isinstance(filter_obj, QtCore.QVariant):
-                filter_obj = filter_obj.toPyObject()
-            
-            if filter_obj:
-                filter = filter_obj.filter
+            if hasattr(QtCore, "QVariant") and isinstance(filter, QtCore.QVariant):
+                filter = filter.toPyObject()
             
         return filter
         
