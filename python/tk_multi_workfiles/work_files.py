@@ -492,6 +492,8 @@ class WorkFiles(object):
 
         # calculate the next version:
         fields = self._publish_template.get_fields(publish_file.publish_path)
+        ctx_fields = self._context.as_template_fields(self._work_template)
+        fields.update(ctx_fields)
         next_version = self._get_next_available_version(fields)
         
         # options are different if the publish and work files are the same path as there
@@ -563,8 +565,9 @@ class WorkFiles(object):
             if self._publish_template == self._work_template:
                 if "version" not in self._publish_template.keys:
                     publish_requires_copy = False
-            
-            fields = self._publish_template.get_fields(publish_file.publish_path)
+
+            # extract the fields from the work template:       
+            fields = self._work_template.get_fields(work_file.path)
             next_version = self._get_next_available_version(fields)
             
             form = OpenFileForm(self._app, work_file, publish_file, OpenFileForm.OPEN_WORKFILE_MODE, next_version, publish_requires_copy)
