@@ -156,7 +156,7 @@ class WorkFiles(object):
                     file_details["task"] = find_ctx.task
                 else:
                     # try to create a context from the path and see if that contains a task:
-                    wf_ctx = self.parent.sgtk.context_from_path(work_path, find_ctx)
+                    wf_ctx = self._app.sgtk.context_from_path(work_path, find_ctx)
                     if wf_ctx and wf_ctx.task:
                         file_details["task"] = wf_ctx.task 
             
