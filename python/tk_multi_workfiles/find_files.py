@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import sgtk
+from tank import TankError
 
 def find_all_files(app, work_template, publish_template, context):
     """
