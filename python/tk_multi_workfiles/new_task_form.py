@@ -57,14 +57,14 @@ class NewTaskForm(QtGui.QWidget):
         
         # try to figure out a default pipeline step and task name
         if self._app.context.step:
-            # update menu:
+            # update menu to show the same step as the current app context:
             step_id = self._app.context.step["id"]
             idx = self._ui.pipeline_step.findData(step_id)
             if idx != -1:
                 self._ui.pipeline_step.setCurrentIndex(idx)
             
-            # update task name text edit
-            step_name = self._pipeline_step_dict[step_id].get("code", "")
+            # update task name text edit to be the same as the step name if we have one:
+            step_name = self._pipeline_step_dict.get(step_id, {}).get("code", "")
             self._ui.task_name.setText(step_name)
             
         # Select the task name text as the user will probably
