@@ -19,6 +19,7 @@ from tank.platform.qt import QtCore, QtGui
 from .file_list_view import FileListView
 from .file_filter import FileFilter
 
+shotgun_data = tank.platform.import_framework("tk-framework-shotgunutils", "shotgun_data")
 
 class WorkFilesForm(QtGui.QWidget):
     """
@@ -432,41 +433,12 @@ class WorkFilesForm(QtGui.QWidget):
         ctrl.setPixmap(scaled_pm)
 
     def _download_thumbnail(self, url):
-        """
-        Copied from browser widget...
-        """
-        # first check in our thumbnail cache
-        url_obj = urlparse.urlparse(url)
-        url_path = url_obj.path
-        path_chunks = url_path.split("/")
-        
-        path_chunks.insert(0, self._app.cache_location)
-        # now have something like ["/studio/proj/tank/cache/tk-framework-widget", "", "thumbs", "1", "2", "2.jpg"]
-        
-        # treat the list of path chunks as an arg list
-        path_to_cached_thumb = os.path.join(*path_chunks)
-        
-        if os.path.exists(path_to_cached_thumb):
-            # cached! sweet!
-            return path_to_cached_thumb
-        
-        # ok so the thumbnail was not in the cache. Get it.
-        try:
-            (temp_file, stuff) = urllib.urlretrieve(url)
-        except Exception, e:
-            self._app.log_info("Could not download data from the url '%s'. Error: %s" % (url, e))
-            return None
 
-        # now try to cache it
         try:
-            self._app.ensure_folder_exists(os.path.dirname(path_to_cached_thumb))
-            shutil.copy(temp_file, path_to_cached_thumb)
-            # as a tmp file downloaded by urlretrieve, permissions are super strict
-            # modify the permissions of the file so it's writeable by others
-            os.chmod(path_to_cached_thumb, 0666)
-           
+            path_to_cached_thumb = shotgun_data.ShotgunDataRetriever.download_thumbnail(url, self._app)
         except Exception, e:
-            self._app.log_info("Could not cache thumbnail %s in %s. Error: %s" % (url, path_to_cached_thumb, e))
-            return temp_file
-
+            print "Could not get thumbnail for url '%s'. Error: %s" % (url, e)
+            path_to_cached_thumb = None
+        
         return path_to_cached_thumb
+        
