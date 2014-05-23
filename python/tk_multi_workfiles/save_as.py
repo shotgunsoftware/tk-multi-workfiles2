@@ -169,13 +169,22 @@ class SaveAs(object):
         
     def save_as(self, new_path):
         """
-        Do actual save-as of the current scene as the new
-        path - assumes all validity checking has already
+        Do actual save-as of the current scene as the new path - assumes all validity checking has already
         been done
+        
+        :param new_path:    The new path to save the current script/scene to
         """
-        # always try to create folders:
-        ctx_entity = self._app.context.task or self._app.context.entity or self._app.context.project
-        if ctx_entity:
+        # we used to always create folders but this seems unnecessary as the folders should have been
+        # created when the work area was set - either as part of the launch process or when switching
+        # work area within the app.
+        # To be on the safe side though, we'll check if the directory that the file is being saved in
+        # to exists and run create folders if it doesn't - this covers any potential edge cases where
+        # the Work area has been set without folder creation being run correctly.
+        dir = os.path.dirname(new_path)
+        if not dir or not os.path.exists(dir):
+            # work files always operates in some sort of context, either project, entity or task
+            ctx_entity = self._app.context.task or self._app.context.entity or self._app.context.project
+            self._app.log_debug("Creating folders for context %s" % self._app.context)
             self._app.tank.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"))
         
         # and save the current file as the new path:
