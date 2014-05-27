@@ -1051,7 +1051,7 @@ class WorkFiles(object):
             self._create_folders(self._context)
             self._restart_engine(self._context)
         except Exception, e:
-            QtGui.QMessageBox.critical(self,
+            QtGui.QMessageBox.critical(self._workfiles_ui,
                                        "Could not Change Work Area!",
                                        "Could not change work area and start a new "
                                        "engine. This may be because the task doesn't "
