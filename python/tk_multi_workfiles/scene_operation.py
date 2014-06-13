@@ -11,11 +11,22 @@
 import tank
 from tank import TankError
 
-[OPEN_FILE_ACTION, SAVE_FILE_AS_ACTION, NEW_FILE_ACTION, VERSION_UP_FILE_ACTION] = range(4)
+OPEN_FILE_ACTION, SAVE_FILE_AS_ACTION, NEW_FILE_ACTION, VERSION_UP_FILE_ACTION = range(4)
 
 def _do_scene_operation(app, action, context, operation, path=None, version=0, read_only=False, result_type=None):
     """
-    Do the specified scene operation with the specified args
+    Do the specified scene operation with the specified args by executing the scene operation hook
+    
+    :param app:         The App bundle that is running this code
+    :param action:      The parent action that this scene operation is part of
+    :param context:     The context that this operation is being run for
+    :param operation:   The scene operation to perform
+    :param path:        If the scene operation requires a file path then this is it
+    :param version:     The version of the file that should be opened (for open operation only)
+    :param read_only:   True if the file should be opened read-only (for open operation only)
+    :param result_type: The type of the result expected from the hook execution - this will be used to validate
+                        that the result is the correct type
+    :returns:           Varies depending on the hook operation
     """
     # determine action string for action:
     action_str = ""
@@ -48,7 +59,8 @@ def _do_scene_operation(app, action, context, operation, path=None, version=0, r
         
     # validate the result if needed:
     if result_type and (result == None or not isinstance(result, result_type)):
-        raise TankError("Unexpected type returned from 'hook_scene_operation' for operation '%s' - expected '%s' but returned '%s'" 
+        raise TankError(("Unexpected type returned from 'hook_scene_operation' "
+                        "for operation '%s' - expected '%s' but returned '%s'") 
                         % (operation, result_type.__name__, type(result).__name__))
     
     return result

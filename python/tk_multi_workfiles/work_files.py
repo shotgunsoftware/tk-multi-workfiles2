@@ -27,6 +27,8 @@ from .scene_operation import reset_current_scene, prepare_new_scene, open_file, 
 
 from .file_list_view import FileListView
 from .file_filter import FileFilter
+from .find_files import FileFinder
+from .users import UserCache
 
 class WorkFiles(object):
     
@@ -47,19 +49,18 @@ class WorkFiles(object):
         handler = WorkFiles(app)
         handler.change_work_area(enable_start_new)    
     
-    # cached user details:
-    _user_details_by_id = {}
-    _user_details_by_login = {}
-    
     def __init__(self, app):
         """
         Construction
         """
         self._app = app
         self._workfiles_ui = None
+
+        # user cache used to cache Shotgun user details:
+        self._user_cache = UserCache(self._app)
         
+        # determine if changing work area should be available based on the sg_entity_types setting:
         self._can_change_workarea = (len(self._app.get_setting("sg_entity_types", [])) > 0)
-        self._visible_file_extensions = [".%s" % ext if not ext.startswith(".") else ext for ext in self._app.get_setting("file_extensions", [])]
         
         # set up the work area from the app:
         self._context = None
@@ -82,7 +83,8 @@ class WorkFiles(object):
         """
         try:
             from .work_files_form import WorkFilesForm
-            self._workfiles_ui = self._app.engine.show_dialog("Shotgun File Manager", self._app, WorkFilesForm, self._app, self)
+            self._workfiles_ui = self._app.engine.show_dialog("Shotgun File Manager", self._app, 
+                                                              WorkFilesForm, self._app, self)
         except:
             self._app.log_exception("Failed to create File Manager dialog!")
             return
@@ -101,241 +103,24 @@ class WorkFiles(object):
         """
         Find files using the current context, work and publish templates
         
-        If user is specified then the context user will be overriden to 
-        be this user when resolving paths.
+        :param filter:  The filter to use when finding files.  If the filter specifies a user 
+                        then the context will be overriden to be this user when resolving paths.
         
-        Will return a FileItem instance for every file found in both
-        work and publish areas
+        :returns:       A list of FileItem instances for every file found in either the work or 
+                        publish areas
         """
-        user = filter.user if filter else tank.util.get_current_user(self._app.tank)
+        find_ctx = self._context
+    
+        # check to see if the user is overriden by the filter:
+        filter_user = filter.user if filter else None
+        if filter_user:
+            current_user = tank.util.get_current_user(self._app.tank)
+            if current_user and filter_user["id"] != current_user["id"]:
+                # create a context for the specific filter user:
+                find_ctx = self._context.create_copy_for_user(filter_user)        
         
-        if not self._work_template:
-            return []
-        
-        current_user = tank.util.get_current_user(self._app.tank)
-        if current_user and user and user["id"] == current_user["id"]:
-            # user is current user. Set to none not to override.
-            user = None
-
-        # construct a new context to use for the search overriding the user if required:
-        find_ctx = self._context if not user else self._context.create_copy_for_user(user)
-
-        # find all work & publish files and filter out any that should be ignored:
-        from .find_files import find_all_files
-        all_files = find_all_files(self._app, self._work_template, self._publish_template, find_ctx)
-
-        published_files = all_files.get("publish", [])
-        published_files = [pf for pf in published_files if not self._ignore_file_path(pf["path"])]
-        work_files = all_files.get("work", [])
-        work_files = [wf for wf in work_files if not self._ignore_file_path(wf["path"])]
-                
-        # now amalgamate the two lists together:
-        files = {}
-        key_to_name_map = {}
-        
-        # first, process work files:
-        for work_file in work_files:
-            
-            # always have the work path:
-            work_path = work_file["path"]
-            
-            # get fields for work file:
-            wf_fields = self._work_template.get_fields(work_path)
-            
-            # copy common fields from work_file:
-            #
-            file_details = dict([(k, v) for k, v in work_file.iteritems() if k != "path"])
-            
-            # get version from fields if not specified in work file:
-            if not file_details["version"]:
-                file_details["version"] = wf_fields.get("version", 0)
-            
-            # if no task try to determine from context or path:
-            if not file_details["task"]:
-                if find_ctx.task:
-                    file_details["task"] = find_ctx.task
-                else:
-                    # try to create a context from the path and see if that contains a task:
-                    wf_ctx = self._app.sgtk.context_from_path(work_path, find_ctx)
-                    if wf_ctx and wf_ctx.task:
-                        file_details["task"] = wf_ctx.task 
-            
-            # add additional fields:
-            #
-
-            # entity:
-            file_details["entity"] = find_ctx.entity
-            
-            # file modified details:
-            if not file_details["modified_at"]:
-                file_details["modified_at"] = datetime.fromtimestamp(os.path.getmtime(work_path), tz=sg_timezone.local)
-            if not file_details["modified_by"]:                
-                file_details["modified_by"] = self._get_file_last_modified_user(work_path)
-                
-            # build unique key for work path (versionless work-file path):
-            #
-            key_fields = wf_fields.copy()
-            key_fields["version"] = 0            
-            file_key = self._work_template.apply_fields(key_fields)      
-            
-            # make sure all files with the same key have the same name:
-            update_name_map = True
-            if file_key in key_to_name_map:
-                # always use the same name
-                update_name_map = False
-                file_details["name"] = key_to_name_map[file_key]
-            elif not file_details["name"]:
-                # ensure we have a name:
-                file_details["name"] = self._get_file_display_name(work_path, self._work_template, wf_fields)
-                
-            # add new file item
-            file_item = FileItem(work_path, None, True, False, file_details)
-            files[(file_key, file_details["version"])] = file_item
-
-            if update_name_map:
-                # update name map with name:
-                key_to_name_map[file_key] = file_item.name
-
-        # and add in publish details:
-        ctx_fields = find_ctx.as_template_fields(self._work_template)
-                    
-        for published_file in published_files:
-            file_details = {}
-
-            # always have a path:
-            publish_path = published_file["path"]
-            
-            # resolve the work path using work ctx fields + publish fields:
-            publish_fields = self._publish_template.get_fields(publish_path)
-            wp_fields = dict(chain(ctx_fields.iteritems(), publish_fields.iteritems()))
-            work_path = self._work_template.apply_fields(wp_fields)
-            
-            # build unique key for publish path (versionless work-file path):
-            key_fields = wp_fields.copy()
-            key_fields["version"] = 0            
-            file_key = self._work_template.apply_fields(key_fields)
-            
-            # copy common fields from published_file:
-            #
-            file_details = dict([(k, v) for k, v in published_file.iteritems() if k != "path"])
-            
-            # get version from fields if not specified in publish file:
-            if file_details["version"] == None:
-                file_details["version"] = publish_fields.get("version", 0)
-            
-            # look to see if we have a matching work file for this published file
-            have_work_file = False
-            existing_file_item = files.get((file_key, file_details["version"]))
-            if existing_file_item and existing_file_item.is_local:
-                # we do so check the paths match:                
-                if existing_file_item.path != work_path:
-                    raise TankError("Work file mismatch when finding files!")
-                
-                # and copy the work file details - giving precedence to the published details:
-                file_details = dict([(k,v) 
-                                     for k, v in chain(existing_file_item.details.iteritems(), file_details.iteritems()) 
-                                        if v != None])
-
-                have_work_file = True
-            else:
-                # no work file so just use publish details:                
-                
-                # entity
-                file_details["entity"] = find_ctx.entity
-            
-                # local file modified details:
-                if os.path.exists(publish_path):
-                    file_details["modified_at"] = datetime.fromtimestamp(os.path.getmtime(publish_path), tz=sg_timezone.local)
-                    file_details["modified_by"] = self._get_file_last_modified_user(publish_path)
-                else:
-                    # just use the publish info
-                    file_details["modified_at"] = published_file.get("published_at")
-                    file_details["modified_by"] = published_file.get("published_by")
-
-            # make sure all files with the same key have the same name:
-            update_name_map = True
-            if file_key in key_to_name_map:
-                # always use the same name
-                update_name_map = False
-                file_details["name"] = key_to_name_map[file_key]
-            elif not file_details["name"]:
-                # ensure we have a name:
-                file_details["name"] = self._get_file_display_name(publish_path, self._publish_template, publish_fields)
-                    
-            # add new file item
-            file_item = FileItem(work_path, publish_path, have_work_file, True, file_details)
-            files[(file_key, file_details["version"])] = file_item
-
-            if update_name_map:
-                # update name map with name:
-                key_to_name_map[file_key] = file_item.name
-                
-        return files.values()
-        
-    def _get_file_display_name(self, path, template, fields=None):
-        """
-        Return the 'name' to be used for the file - if possible
-        this will return a 'versionless' name
-        """
-        # first, extract the fields from the path using the template:
-        fields = fields.copy() if fields else template.get_fields(path)
-        if "name" in fields and fields["name"]:
-            # well, that was easy!
-            name = fields["name"]
-        else:
-            # find out if version is used in the file name:
-            template_name, _ = os.path.splitext(os.path.basename(template.definition))
-            version_in_name = "{version}" in template_name
-        
-            # extract the file name from the path:
-            name, _ = os.path.splitext(os.path.basename(path))
-            delims_str = "_-. "
-            if version_in_name:
-                # looks like version is part of the file name so we        
-                # need to isolate it so that we can remove it safely.  
-                # First, find a dummy version whose string representation
-                # doesn't exist in the name string
-                version_key = template.keys["version"]
-                dummy_version = 9876
-                while True:
-                    test_str = version_key.str_from_value(dummy_version)
-                    if test_str not in name:
-                        break
-                    dummy_version += 1
-                
-                # now use this dummy version and rebuild the path
-                fields["version"] = dummy_version
-                path = template.apply_fields(fields)
-                name, _ = os.path.splitext(os.path.basename(path))
-                
-                # we can now locate the version in the name and remove it
-                dummy_version_str = version_key.str_from_value(dummy_version)
-                
-                v_pos = name.find(dummy_version_str)
-                # remove any preceeding 'v'
-                pre_v_str = name[:v_pos].rstrip("v")
-                post_v_str = name[v_pos + len(dummy_version_str):]
-                
-                if (pre_v_str and post_v_str 
-                    and pre_v_str[-1] in delims_str 
-                    and post_v_str[0] in delims_str):
-                    # only want one delimiter - strip the second one:
-                    post_v_str = post_v_str.lstrip(delims_str)
-
-                versionless_name = pre_v_str + post_v_str
-                versionless_name = versionless_name.strip(delims_str)
-                
-                if versionless_name:
-                    # great - lets use this!
-                    name = versionless_name
-                else: 
-                    # likely that version is only thing in the name so 
-                    # instead, replace the dummy version with #'s:
-                    zero_version_str = version_key.str_from_value(0)        
-                    new_version_str = "#" * len(zero_version_str)
-                    name = name.replace(dummy_version_str, new_version_str)
-        
-        return name 
+        finder = FileFinder(self._app, self._user_cache)
+        return finder.find_files(self._work_template, self._publish_template, find_ctx)        
         
     def _on_show_in_file_system(self):
         """
@@ -354,7 +139,8 @@ class WorkFiles(object):
                 return
             
             # construct a new context to use for the search overriding the user if required:
-            work_area_ctx = self._context if not current_filter.user else self._context.create_copy_for_user(current_filter.user)
+            work_area_ctx = (self._context if not current_filter.user 
+                             else self._context.create_copy_for_user(current_filter.user))
             
             # now build fields to construct path with:
             fields = work_area_ctx.as_template_fields(template)
@@ -480,7 +266,8 @@ class WorkFiles(object):
         
         # create folders:
         ctx_entity = ctx.task or ctx.entity or ctx.project
-        self._app.tank.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"), engine=self._app.engine.name)
+        self._app.tank.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"), 
+                                                   engine=self._app.engine.name)
         
     def _on_open_publish(self, publish_file, work_file):
         """
@@ -491,10 +278,8 @@ class WorkFiles(object):
             return
 
         # calculate the next version:
-        fields = self._publish_template.get_fields(publish_file.publish_path)
-        ctx_fields = self._context.as_template_fields(self._work_template)
-        fields.update(ctx_fields)
-        next_version = self._get_next_available_version(fields)
+        next_version = self._get_next_available_version(work_file.path if work_file else None, 
+                                                        publish_file.publish_path)
         
         # options are different if the publish and work files are the same path as there
         # doesn't need to be the option of opening the publish read-only.
@@ -506,7 +291,7 @@ class WorkFiles(object):
         # different options depending if the work file is more 
         # recent or not:
         dlg_title = ""
-        if work_file and work_file.is_more_recent_than_publish(publish_file) > 0:
+        if work_file and work_file.compare_with_publish(publish_file) > 0:
             dlg_title = "Found a More Recent Work File!"
         else:
             dlg_title = "Open Publish"    
@@ -517,7 +302,7 @@ class WorkFiles(object):
             from .open_file_form import OpenFileForm
             open_mode = OpenFileForm.OPEN_PUBLISH
             
-            mode = OpenFileForm.OPEN_PUBLISH_MODE if publish_requires_copy else OpenFileForm.OPEN_PUBLISH_NORO_MODE 
+            mode = OpenFileForm.OPEN_PUBLISH_MODE if publish_requires_copy else OpenFileForm.OPEN_PUBLISH_NO_READONLY_MODE 
             form = OpenFileForm(self._app, work_file, publish_file, mode, next_version, publish_requires_copy)
             open_mode = WrapperDialog.show_modal(form, dlg_title, parent=self._workfiles_ui)
                 
@@ -557,7 +342,7 @@ class WorkFiles(object):
         # recent or not:
         from .open_file_form import OpenFileForm        
         open_mode = OpenFileForm.OPEN_WORKFILE
-        if publish_file and work_file.is_more_recent_than_publish(publish_file) < 0:
+        if publish_file and work_file.compare_with_publish(publish_file) < 0:
 
             # options are different if the publish and work files are the same path as there
             # doesn't need to be the option of opening the publish read-only.
@@ -565,12 +350,11 @@ class WorkFiles(object):
             if self._publish_template == self._work_template:
                 if "version" not in self._publish_template.keys:
                     publish_requires_copy = False
-
-            # extract the fields from the work template:       
-            fields = self._work_template.get_fields(work_file.path)
-            next_version = self._get_next_available_version(fields)
             
-            form = OpenFileForm(self._app, work_file, publish_file, OpenFileForm.OPEN_WORKFILE_MODE, next_version, publish_requires_copy)
+            next_version = self._get_next_available_version(work_file.path, publish_file.publish_path)
+            
+            form = OpenFileForm(self._app, work_file, publish_file, OpenFileForm.OPEN_WORKFILE_MODE, 
+                                next_version, publish_requires_copy)
             open_mode = WrapperDialog.show_modal(form, "Found a More Recent Publish!", parent=self._workfiles_ui)
             
         if open_mode == OpenFileForm.OPEN_WORKFILE:
@@ -651,7 +435,8 @@ class WorkFiles(object):
                     local_path = self._work_template.apply_fields(fields)                     
                 except Exception, e:
                     QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to resolve file path", 
-                                           "Failed to resolve the user sandbox file path:\n\n%s\n\nto the local path:\n\n%s\n\nUnable to open file!" % (work_path, e))
+                                           ("Failed to resolve the user sandbox file path:\n\n%s\n\nto the local "
+                                           "path:\n\n%s\n\nUnable to open file!" % (work_path, e)))
                     self._app.log_exception("Failed to resolve user sandbox file path %s" % work_path)
                     return False
         
@@ -661,7 +446,8 @@ class WorkFiles(object):
                     answer = QtGui.QMessageBox.question(self._workfiles_ui, "Open file from another user?",
                                                         ("The work file you are opening:\n\n%s\n\n"
                                                         "is in a user sandbox belonging to %s.  Would "
-                                                        "you like to copy the file to your sandbox and open it?" % (work_path, wp_ctx.user["name"])), 
+                                                        "you like to copy the file to your sandbox and open it?" 
+                                                        % (work_path, wp_ctx.user["name"])), 
                                                         QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel)
                     if answer == QtGui.QMessageBox.Cancel:
                         return False
@@ -726,7 +512,8 @@ class WorkFiles(object):
                 work_path = self._work_template.apply_fields(fields)
             except Exception, e:
                 QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to get work file path", 
-                                       "Failed to resolve work file path from publish path:\n\n%s\n\n%s\n\nUnable to open file!" % (src_path, e))
+                                       ("Failed to resolve work file path from publish path:\n\n%s\n\n%s\n\n"
+                                       "Unable to open file!" % (src_path, e)))
                 self._app.log_exception("Failed to resolve work file path from publish path: %s" % src_path)
                 return False
 
@@ -750,8 +537,15 @@ class WorkFiles(object):
         
     def _do_copy_and_open(self, src_path, work_path, version, read_only, new_ctx):
         """
-        Copies src_path to work_path, creates folders, restarts
-        the engine and then opens the file from work_path        
+        Copies src_path to work_path, creates folders, restarts the engine and then opens 
+        the file from work_path
+        
+        :param src_path:    The path of the file to copy
+        :param work_path:   The destination work file path
+        :param version:     The version of the work file to be opened
+        :param read_only:   True if the work file should be opened read-only
+        :param new_ctx:     The context that the work file should be opened in
+        :returns:           True of the source file is copied and successfully opened
         """
         if not work_path or not new_ctx:
             # can't do anything!
@@ -760,7 +554,8 @@ class WorkFiles(object):
         if src_path and src_path != work_path:
             # check that the source path exists:        
             if not os.path.exists(src_path):
-                QtGui.QMessageBox.critical(self._workfiles_ui, "File doesn't exist!", "The file\n\n%s\n\nCould not be found to open!" % src_path)
+                QtGui.QMessageBox.critical(self._workfiles_ui, "File doesn't exist!", 
+                                           "The file\n\n%s\n\nCould not be found to open!" % src_path)
                 return False
             
         if not new_ctx == self._app.context:
@@ -793,8 +588,8 @@ class WorkFiles(object):
             if os.path.exists(work_path):
                 #TODO: replace with tank dialog
                 answer = QtGui.QMessageBox.question(self._workfiles_ui, "Overwrite file?",
-                                                "The file\n\n%s\n\nalready exists.  Would you like to overwrite it?" % (work_path), 
-                                                QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel)
+                                "The file\n\n%s\n\nalready exists.  Would you like to overwrite it?" % (work_path), 
+                                QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel)
                 if answer == QtGui.QMessageBox.Cancel:
                     return False
                 
@@ -814,7 +609,7 @@ class WorkFiles(object):
                 self._restart_engine(new_ctx)
             except Exception, e:
                 QtGui.QMessageBox.critical(self._workfiles_ui, "Failed to change the work area", 
-                                           "Failed to change the work area to '%s':\n\n%s\n\nUnable to continue!" % (new_ctx, e))
+                            "Failed to change the work area to '%s':\n\n%s\n\nUnable to continue!" % (new_ctx, e))
                 self._app.log_exception("Failed to change the work area to %s!" % new_ctx)
                 return False
 
@@ -829,18 +624,39 @@ class WorkFiles(object):
         
         return True
 
-    def _get_next_available_version(self, fields):
+    def _get_next_available_version(self, work_path, publish_path):
         """
-        Get the next available version
+        Get the next available version number for the specified work and/or publish
+        paths.  This is the version number that should be used for the next version
+        of the file.
+
+        :param work_path:       The path of the work file to use
+        :param publish_path:    The path of the publish file to use
+        :returns:               The next available version number
         """
-        from .find_files import find_all_files
-        all_files = find_all_files(self._app, self._work_template, self._publish_template, self._context)
+        # First extract a set of fields - prefer work path if we have one:
+        fields = {}
+        if work_path:
+            fields = self._work_template.get_fields(work_path)
+        else:
+            fields = self._publish_template.get_fields(publish_path)
+       
+        # Add in the context fields for the work template - this ensures that the user is correct
+        # if the file is in a user sandbox:
+        ctx_fields = self._context.as_template_fields(self._work_template)
+        fields.update(ctx_fields)
         
-        from .versioning import Versioning
-        versioning = Versioning(self._app, self._work_template, self._publish_template, self._context)
-        max_work_version, max_publish_version = versioning.get_max_version(all_files, fields)
-        max_version = max(max_work_version, max_publish_version) or 0
-        return max_version + 1
+        # build unique key (this is a versionless work-file path):
+        fields["version"] = 0            
+        file_key = self._work_template.apply_fields(fields)
+        
+        # find all files that match the file key:
+        finder = FileFinder(self._app, self._user_cache)
+        found_files = finder.find_files(self._work_template, self._publish_template, self._context, file_key)
+        
+        # find highest file version out of all files returned:
+        versions = [f.version for f in found_files]
+        return (max(versions) if versions else 0) + 1
 
     def _on_new_file(self):
         """
@@ -930,7 +746,8 @@ class WorkFiles(object):
             return
         
         while True:
-            context_and_flags = self.select_work_area(SelectWorkAreaForm.CHANGE_WORK_AREA if enable_start_new else SelectWorkAreaForm.CHANGE_WORK_AREA_NO_NEW)
+            context_and_flags = self.select_work_area(SelectWorkAreaForm.CHANGE_WORK_AREA if enable_start_new 
+                                                      else SelectWorkAreaForm.CHANGE_WORK_AREA_NO_NEW)
             if not context_and_flags:
                 # user cancelled!
                 break
@@ -1001,8 +818,6 @@ class WorkFiles(object):
         self._publish_area_template = templates.get("template_publish_area")
         self._context = ctx
                     
-        # TODO: validate templates?
-    
     def _do_change_work_area(self, do_new=False):
         """
         Set context based on selected task
@@ -1058,45 +873,6 @@ class WorkFiles(object):
                                        "have a step. Details: %s" % e)
             return False
         return True
-        
-    def _get_user_details(self, login_name):
-        """
-        Get the shotgun HumanUser entry:
-        """
-        # first look to see if we've already found it:
-        sg_user = WorkFiles._user_details_by_login.get(login_name)
-        if not sg_user:
-            try:
-                filter = ["login", "is", login_name]
-                fields = ["id", "type", "email", "login", "name", "image"]
-                sg_user = self._app.shotgun.find_one("HumanUser", [filter], fields)
-            except:
-                sg_user = {}
-            WorkFiles._user_details_by_login[login_name] = sg_user
-            if sg_user:
-                WorkFiles._user_details_by_id[sg_user["id"]] = sg_user
-        return sg_user
-        
-    def _get_file_last_modified_user(self, path):
-        """
-        Get the user details of the last person
-        to modify the specified file        
-        """
-        login_name = None
-        if sys.platform == "win32":
-            # TODO: add windows support..
-            pass
-        else:
-            try:
-                from pwd import getpwuid                
-                login_name = getpwuid(os.stat(path).st_uid).pw_name
-            except:
-                pass
-        
-        if login_name:
-            return self._get_user_details(login_name)
-        
-        return None
     
     def get_file_filters(self):
         """
@@ -1136,24 +912,6 @@ class WorkFiles(object):
                                 "user":user,
                                 "mode":FileFilter.WORKFILES_MODE}))
             
-        # and finally, allow hook to define additional filters:
-        #
-        # (AD) - this is currently not enabled but should be simple to implement
-        # if the functionality is ever needed! 
-        #
-        #additional_filters = self._app.execute_hook("hook_additional_filters")
-        #if additional_filters:
-        #    # validate additional filters:
-        #    for filter in additional_filters:
-        #        if filter.get("mode") == "publishes":
-        #            filter["mode"] = FileFilter.PUBLISHES_MODE
-        #        else:
-        #            filter["mode"] = FileFilter.WORKFILES_MODE
-        #    # ...
-        #    
-        #    filters.append("separator")
-        #    filters.extend([FileFilter(filter) for filter in additional_filters])
-        
         return filters
     
     def _get_usersandbox_users(self):
@@ -1172,7 +930,6 @@ class WorkFiles(object):
         
         # use the fields for the current context to get a list of work area paths:
         self._app.log_debug("Searching for user sandbox paths skipping keys: %s" % user_keys)
-
         
         try:
             fields = self._context.as_template_fields(self._work_area_template)
@@ -1185,7 +942,7 @@ class WorkFiles(object):
             # got our fields. Now get the paths.
             work_area_paths = self._app.tank.paths_from_template(self._work_area_template, fields, user_keys)
         
-        # from paths, find a unique list of user's:
+        # from paths, find a unique list of user ids:
         user_ids = set()
         for path in work_area_paths:
             # to find the user, we have to construct a context
@@ -1195,41 +952,11 @@ class WorkFiles(object):
             if user: 
                 user_ids.add(user["id"])
         
-        # now look for user details in cache:
-        user_details = []
-        users_to_fetch = []
-        for user_id in user_ids:
-            details = WorkFiles._user_details_by_id.get(user_id)
-            if details is None:
-                users_to_fetch.append(user_id)
-            else:
-                if details:
-                    user_details.append(details)
-             
-        if users_to_fetch:
-            # get remaining details from shotgun:
-            filter = ["id", "in"] + list(users_to_fetch)
-            search_fields = ["id", "type", "email", "login", "name", "image"]
-            sg_users = self._app.shotgun.find("HumanUser", [filter], search_fields)
-
-            users_found = set()
-            for sg_user in sg_users:
-                user_id = sg_user.get("id")
-                if user_id not in users_to_fetch:
-                    continue
-                
-                # add to cache:
-                WorkFiles._user_details_by_id[user_id] = sg_user
-                WorkFiles._user_details_by_login[sg_user["login"]] = sg_user
-                user_details.append(sg_user)
-                users_found.add(user_id)
-            
-            # and fill in any blanks so we don't bother searching again:
-            for user in users_to_fetch:
-                if user_id not in users_found:
-                    WorkFiles._user_details_by_id[user_id] = {}
-                
-        return user_details
+        # look these up in the user cache:
+        user_details = self._user_cache.get_user_details_for_ids(user_ids)
+        
+        # return all valid user details:
+        return [details for details in user_details.values() if details]
         
     def _get_templates_for_context(self, context, keys):
         """
@@ -1286,16 +1013,3 @@ class WorkFiles(object):
             for settings in engine_settings:
                 if settings.get("app_instance") == app_instance_name:
                     return settings.get("settings")
-
-    def _ignore_file_path(self, path):
-        """
-        Return True if this file should be ignored
-        completely!
-        """
-        if self._visible_file_extensions:
-            _, ext = os.path.splitext(path)
-            if ext and ext not in self._visible_file_extensions:
-                # we want to ignore this file!
-                return True
-            
-        return False

@@ -13,7 +13,7 @@ class FileFilter(object):
     Encapsulate details about a file filter
     """
     
-    [WORKFILES_MODE, PUBLISHES_MODE] = range(2)
+    WORKFILES_MODE, PUBLISHES_MODE = range(2)
     
     def __init__(self, filter_dict):
         """
@@ -25,7 +25,7 @@ class FileFilter(object):
         """
         Override == operator
         """
-        if type(other) is FileFilter:
+        if isinstance(other, FileFilter):
             return self._filter_dict == other._filter_dict
         else:
             return False
@@ -38,7 +38,7 @@ class FileFilter(object):
 
     @property
     def mode(self):
-        # mode determinig filter behaviour
+        # mode determining filter behaviour
         return self._filter_dict.get("mode", FileFilter.WORKFILES_MODE)
         
     @property

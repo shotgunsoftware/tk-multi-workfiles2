@@ -114,7 +114,6 @@ class NewTaskForm(QtGui.QWidget):
         Safely convert the value to a string - handles
         QtCore.QString if usign PyQt
         """
-        #
         if isinstance(value, basestring):
             # it's a string anyway so just return
             return value

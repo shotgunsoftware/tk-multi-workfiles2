@@ -22,8 +22,11 @@ class OpenFileForm(QtGui.QWidget):
     UI for changing the version of the current work file
     """
     
-    [OPEN_WORKFILE_MODE, OPEN_PUBLISH_MODE, OPEN_PUBLISH_NORO_MODE] = range(0,3)
-    [OPEN_PUBLISH, OPEN_PUBLISH_READONLY, OPEN_WORKFILE] = range(2,5)
+    # the mode that the UI should operate in.
+    OPEN_WORKFILE_MODE, OPEN_PUBLISH_MODE, OPEN_PUBLISH_NO_READONLY_MODE = range(3)
+    
+    # the result returned by the dialog (starts from 2 as the regular return codes are 0 or 1)
+    OPEN_PUBLISH, OPEN_PUBLISH_READONLY, OPEN_WORKFILE = range(2,5)
     
     @property
     def exit_code(self):
@@ -32,6 +35,14 @@ class OpenFileForm(QtGui.QWidget):
     def __init__(self, app, work_file, publish_file, mode, next_version, publish_requires_copy=True, parent=None):
         """
         Construction
+
+        :param app:                     The App bundle that this UI belongs to
+        :param work_file:               The work file that can be opened
+        :param publish_file:            The publish file that can be opened
+        :param mode:                    The mode that the UI will be run in
+        :param next_version:            The next available version number for a file being opened
+        :param publish_requires_copy:   True if opening the published file requires copying it to the work area
+        :param parent:                  The parent QWidget for this UI
         """
         QtGui.QWidget.__init__(self, parent)
 
@@ -190,7 +201,7 @@ class OpenFileForm(QtGui.QWidget):
                     
                 QtGui.QWidget.setTabOrder(self._ui.work_file_frame, self._ui.publish_frame)
                 QtGui.QWidget.setTabOrder(self._ui.publish_frame, self._ui.publish_ro_frame)
-            elif self._mode == OpenFileForm.OPEN_PUBLISH_NORO_MODE:
+            elif self._mode == OpenFileForm.OPEN_PUBLISH_NO_READONLY_MODE:
                 ordered_widgets = [self._ui.work_file_frame,
                                    self._ui.or_label_a,
                                    self._ui.publish_frame,
@@ -258,8 +269,6 @@ class OpenFileForm(QtGui.QWidget):
         """
         self._exit(QtGui.QDialog.Rejected)
         
-    # (AD) - thumbnail loading should move to a standard 
-    # control in tk-framework-widget
     def _set_thumbnail(self, ctrl, pm):
         """
         Set thumbnail on control resizing as required. 
@@ -269,11 +278,16 @@ class OpenFileForm(QtGui.QWidget):
         ctrl.setPixmap(scaled_pm)
 
     def _download_thumbnail(self, url):
-
+        """
+        Download a thumbnail from the specified url
+        
+        :param url:    The url of the thumbnail to download
+        :returns:      Path to the downloaded thumbnail on disk
+        """
         try:
             path_to_cached_thumb = shotgun_data.ShotgunDataRetriever.download_thumbnail(url, self._app)
         except Exception, e:
-            print "Could not get thumbnail for url '%s'. Error: %s" % (url, e)
+            self._app.log_info("Could not get thumbnail for url '%s'. Error: %s" % (url, e))
             path_to_cached_thumb = None
         
         return path_to_cached_thumb

@@ -14,7 +14,7 @@
 configuration:
     template_work:
         type: template
-        fields: context, [version], *
+        fields: context, [version], [name], *
         description: A reference to a template which locates a work file on disk.
         allows_empty: True
 
@@ -26,7 +26,7 @@ configuration:
 
     template_publish:
         type: template
-        fields: context, [version], *
+        fields: context, [version], [name], *
         description: A reference to a template which locates a publish file on disk.
         allows_empty: True
            

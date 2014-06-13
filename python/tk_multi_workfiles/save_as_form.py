@@ -25,6 +25,13 @@ class SaveAsForm(QtGui.QWidget):
     def __init__(self, preview_updater, is_publish, name_is_used, name, version_is_used, parent = None):
         """
         Construction
+        
+        :param preview_updater:    Thread used to update the preview fields when something is changed in the UI
+        :param is_publish:         True if the scene being saved is a published file
+        :param name_is_used:       True if the name is used in the work template and needs to be entered
+        :param name:               Initial value for name field
+        :param version_is_used:    True if version is used in the work template and can be set
+        :param parent:             The parent QWisget for this UI
         """
         QtGui.QWidget.__init__(self, parent)
 

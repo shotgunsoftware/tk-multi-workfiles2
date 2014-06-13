@@ -15,7 +15,7 @@ class FileItem(object):
     """
     Encapsulate details about a work file
     """
-    def __init__(self, path, publish_path, is_local, is_published, details):
+    def __init__(self, path, publish_path, is_local, is_published, details, key):
         """
         Construction
         """
@@ -24,6 +24,7 @@ class FileItem(object):
         self._is_local = is_local
         self._is_published = is_published
         self._details = details
+        self._key = key
 
     def __repr__(self):
         return "%s (v%d), is_local:%s, is_publish: %s" % (self.name, self.version, self.is_local, self.is_published)
@@ -57,6 +58,11 @@ class FileItem(object):
     @property
     def thumbnail(self):
         return self._details.get("thumbnail")
+
+    @property
+    def key(self):
+        # a key that matches across all versions of a single file.
+        return self._key
 
     """
     Work file details
@@ -156,14 +162,14 @@ class FileItem(object):
         else:
             return "<i>No description was entered for this publish</i>"
     
-    def is_more_recent_than_publish(self, published_file):
+    def compare_with_publish(self, published_file):
         """
         Determine if this (local) file is more recent than
         the specified published file
         
-        :returns int:    -1 if work file is older than publish
-                         0 if work file is exactly the same time as publish
-                         1 if work file is more recent than publish
+        :returns:    -1 if work file is older than publish
+                      0 if work file is exactly the same time as publish
+                      1 if work file is more recent than publish
         """
         if not self.is_local or not published_file.is_published:
             return -1
@@ -213,7 +219,8 @@ class FileItem(object):
                                     modified_date.strftime("%B %Y"))
 
         modified_time = date_time.time()                
-        date_str += (" at %d:%02d%s" % (modified_time.hour % 12, modified_time.minute, "pm" if modified_time.hour > 12 else "am"))
+        date_str += (" at %d:%02d%s" % (modified_time.hour % 12, modified_time.minute, 
+                                        "pm" if modified_time.hour > 12 else "am"))
         return date_str
     
     def _day_suffix(self, day):

@@ -25,35 +25,35 @@ class SceneOperation(Hook):
         """
         Main hook entry point
         
-        :operation:     String
-                        Scene operation to perform
+        :param operation:       String
+                                Scene operation to perform
         
-        :file_path:     String
-                        File path to use if the operation
-                        requires it (e.g. open)
+        :param file_path:       String
+                                File path to use if the operation
+                                requires it (e.g. open)
                     
-        :context:       Context
-                        The context the file operation is being
-                        performed in.
+        :param context:         Context
+                                The context the file operation is being
+                                performed in.
                     
-        :parent_action: This is the action that this scene operation is
-                        being executed for.  This can be one of: 
-                        - open_file
-                        - new_file
-                        - save_file_as 
-                        - version_up
+        :param parent_action:   This is the action that this scene operation is
+                                being executed for.  This can be one of:
+                                - open_file
+                                - new_file
+                                - save_file_as 
+                                - version_up
                         
-        :file_version:  The version/revision of the file to be opened.  If this is 'None'
-                        then the latest version should be opened.
+        :param file_version:    The version/revision of the file to be opened.  If this is 'None'
+                                then the latest version should be opened.
         
-        :read_only:     Specifies if the file should be opened read-only or not
+        :param read_only:       Specifies if the file should be opened read-only or not
                             
-        :returns:       Depends on operation:
-                        'current_path' - Return the current scene
-                                         file path as a String
-                        'reset'        - True if scene was reset to an empty 
-                                         state, otherwise False
-                        all others     - None
+        :returns:               Depends on operation:
+                                'current_path' - Return the current scene
+                                                 file path as a String
+                                'reset'        - True if scene was reset to an empty 
+                                                 state, otherwise False
+                                all others     - None
         """
         
         if operation == "current_path":

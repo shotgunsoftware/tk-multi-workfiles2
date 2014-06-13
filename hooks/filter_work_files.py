@@ -49,7 +49,7 @@ class FilterWorkFiles(Hook):
                              }
                              
                                                          
-        :return List:        The filtered list of dictionaries of the same form as the input 'work_files' 
+        :returns:            The filtered list of dictionaries of the same form as the input 'work_files' 
                              list
         """
         app = self.parent

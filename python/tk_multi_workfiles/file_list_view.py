@@ -23,7 +23,9 @@ from .file_filter import FileFilter
 class FileListView(browser_widget.BrowserWidget):
     
     # signals - note, 'object' is used to avoid 
-    # issues with PyQt when None is passed
+    # issues with PyQt when None is passed as PyQt 
+    # doesn't allow None to be passed to classes 
+    # other than object (an exception is raised)
     open_previous_workfile = QtCore.Signal(object)#FileItem
     open_previous_publish = QtCore.Signal(object)#FileItem
     view_in_shotgun = QtCore.Signal(object)#FileItem
@@ -76,7 +78,16 @@ class FileListView(browser_widget.BrowserWidget):
         
     def _get_data(self, data):
         """
-        Retrieve the list of files to display
+        Retrieve the list of files to display as well as the various display and grouping options required
+        to build the file list.
+        
+        :param data:    Dictionary containing:
+                        handler - A 'WorkFiles' instance containing the main application business logic
+                        filter - The current 'FileFilter' instance being applied to the list
+                        
+        :returns:       Dictionary containing the various display & grouping options required to build the
+                        file list as well as the list of files organised by task.
+                        
         """
         result = {"task_groups":{}, "task_name_order":{}}
         
@@ -209,8 +220,14 @@ class FileListView(browser_widget.BrowserWidget):
     def process_result(self, result):
         """
         Process list of tasks retrieved by get_data on the main thread
+        
+        :param result:  Dictionary containing the various display & grouping options required to build the
+                        file list as well as the list of files organised by task.        
         """
         if FileListView.DEBUG_GET_DATA_IN_MAIN_THREAD:
+            # gathering of data was not done in the get_data stage so we
+            # should do it here instead - this method gets called in the 
+            # main thread
             result = self._get_data(result)
         
         task_groups = result["task_groups"]
@@ -340,6 +357,10 @@ class FileListView(browser_widget.BrowserWidget):
                                
     def _add_file_item(self, latest_published_file, latest_work_file):
         """
+        Add an item to the file list given the latest publish & work files
+        
+        :param latest_published_file:    The latest published version of the file to be added
+        :param latest_work_file:         The latest work/local version of the file to be added
         """
         details = ""
         tooltip = ""
@@ -358,7 +379,7 @@ class FileListView(browser_widget.BrowserWidget):
             
             title_colour = None
             if latest_published_file:
-                if file.is_more_recent_than_publish(latest_published_file) >= 0:
+                if file.compare_with_publish(latest_published_file) >= 0:
                     # work file is most recent
                     title_colour = green
                     tooltip += "This is the latest version of this file"
@@ -386,7 +407,7 @@ class FileListView(browser_widget.BrowserWidget):
             editable = file.editable
             not_editable_reason = file.not_editable_reason
                 
-        else: # current_mode == FileFilter.PUBLISHES_MODE
+        elif current_mode == FileFilter.PUBLISHES_MODE:
             file = latest_published_file
             
             title_colour = None
@@ -395,7 +416,7 @@ class FileListView(browser_widget.BrowserWidget):
             
             tooltip += "<hr>"
             if latest_work_file:
-                if latest_work_file.is_more_recent_than_publish(file) <= 0:
+                if latest_work_file.compare_with_publish(file) <= 0:
                     # published file is most recent
                     title_colour = green
                     tooltip += "This is the latest version of this file"
@@ -420,6 +441,8 @@ class FileListView(browser_widget.BrowserWidget):
             
             editable = file.editable
             not_editable_reason = file.not_editable_reason
+        else:
+            raise TankError("Display mode is not recognised!")
             
         # update editable info on the tooltip
         if not editable:

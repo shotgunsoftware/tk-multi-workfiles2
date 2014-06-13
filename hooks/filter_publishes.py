@@ -32,7 +32,7 @@ class FilterPublishes(Hook):
                              }
                              
                                                          
-        :return List:        The filtered list of dictionaries of the same form as the input 'publishes' 
+        :returns:            The filtered list of dictionaries of the same form as the input 'publishes' 
                              list
         """
         app = self.parent

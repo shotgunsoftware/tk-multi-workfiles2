@@ -19,16 +19,21 @@ from pprint import pprint
 
 from .async_worker import AsyncWorker
 from .scene_operation import get_current_path, save_file, SAVE_FILE_AS_ACTION
+from .find_files import FileFinder
 
 class SaveAs(object):
     """
-    
+    Functionality for performing Shotgun Save-As operations on the current scene.  This contains
+    commands that will show the Save-As UI as well as the commands that can be used to perform
+    the save operation.    
     """
     
     @staticmethod
     def show_save_as_dlg(app):
         """
+        Show the save-as dialog
         
+        :param app: The instance of the workfiles app that this method is called from/for      
         """
         handler = SaveAs(app)
         handler._show_save_as_dlg()
@@ -82,8 +87,8 @@ class SaveAs(object):
                 if not default_name and not name_is_optional:
                     # name isn't optional so we should use something:
                     default_name = "scene"
-                prefer_version_up = version_is_used and self._app.get_setting("saveas_prefer_version_up")
-                
+
+                # determine the initial name depending on the current path:
                 fields = {}
                 if self._work_template.validate(current_path):
                     fields = self._work_template.get_fields(current_path)
@@ -93,6 +98,11 @@ class SaveAs(object):
                 else:
                     fields = self._app.context.as_template_fields(self._work_template)
                     name = default_name
+                
+                # see if versioning up is preferred - if it is then the version will be incremented instead
+                # of appending/incrementing a number as a suffix on the name if a file with the same name
+                # already exists.
+                prefer_version_up = version_is_used and self._app.get_setting("saveas_prefer_version_up")
                 
                 if name and not prefer_version_up:
                     # default is to not version-up so lets make sure we
@@ -129,7 +139,8 @@ class SaveAs(object):
                         # this shouldn't be fatal so just log a debug message:
                         self._app.log_debug("Warning - failed to find a default name for Shotgun Save-As: %s" % e)
                 
-        worker_cb = lambda details, wp=current_path, ip=is_publish: self.generate_new_work_file_path(wp, ip, details.get("name"), details.get("reset_version"))
+        worker_cb = (lambda details, wp=current_path, ip=is_publish: 
+                            self.generate_new_work_file_path(wp, ip, details.get("name"), details.get("reset_version")))
         try:
             preview_updater = AsyncWorker(worker_cb)
             preview_updater.start()
@@ -139,7 +150,8 @@ class SaveAs(object):
                 
                 # show modal dialog:
                 from .save_as_form import SaveAsForm
-                (res, form) = self._app.engine.show_modal(title, self._app, SaveAsForm, preview_updater, is_publish, name_is_used, name, version_is_used)
+                (res, form) = self._app.engine.show_modal(title, self._app, SaveAsForm, preview_updater, 
+                                                          is_publish, name_is_used, name, version_is_used)
                 
                 if res == QtGui.QDialog.Accepted:
                     # get details from UI:
@@ -241,15 +253,22 @@ class SaveAs(object):
 
         # if we haven't cached the file list already, do it now:
         if not self._cached_files:
-            from .find_files import find_all_files            
-            self._cached_files = find_all_files(self._app, self._work_template, self._publish_template, self._app.context)
+            finder = FileFinder(self._app)
+            self._cached_files = finder.find_files(self._work_template, self._publish_template, self._app.context)
 
-        # find the max work file and publish versions:
-        from .versioning import Versioning
-        versioning = Versioning(self._app)
-        max_work_version, max_publish_version = versioning.get_max_version(self._cached_files, fields)
+        # construct a file key ('0' version work path) that represents 
+        # all versions of this publish/work file:
+        key_fields = fields.copy()
+        key_fields["version"] = 0            
+        file_key = self._work_template.apply_fields(key_fields)
+
+        # find the max work file and publish versions:        
+        work_versions = [f.version for f in self._cached_files if f.is_local and f.key == file_key]
+        max_work_version = max(work_versions) if work_versions else 0
+        publish_versions = [f.version for f in self._cached_files if f.is_published and f.key == file_key]
+        max_publish_version = max(publish_versions) if publish_versions else 0
         max_version = max(max_work_version, max_publish_version)
-                
+        
         if has_version_field:
             # get the current version:
             current_version = fields.get("version")
@@ -261,11 +280,6 @@ class SaveAs(object):
                 # we're ok to just copy publish across and version up
                 can_reset_version = False
                 new_version = max_version + 1 if max_version else 1
-                
-                if new_version != current_version+1:
-                    #(AD) - do we need a warning here?
-                    pass
-                
                 msg = None
             else:
                 if max_version:
@@ -275,15 +289,19 @@ class SaveAs(object):
                     
                     if max_work_version > max_publish_version:
                         if has_name_field:
-                            msg = "A work file with this name already exists.  If you proceed, your file will use the next available version number."
+                            msg = ("A work file with this name already exists.  If you proceed, your file "
+                                   "will use the next available version number.")
                         else:
-                            msg = "A previous version of this work file already exists.  If you proceed, your file will use the next available version number."
+                            msg = ("A previous version of this work file already exists.  If you proceed, "
+                                   "your file will use the next available version number.")
     
                     else:
                         if has_name_field:
-                            msg = "A publish file with this name already exists.  If you proceed, your file will use the next available version number."
+                            msg = ("A publish file with this name already exists.  If you proceed, your file "
+                                   "will use the next available version number.")
                         else:
-                            msg = "A published version of this file already exists.  If you proceed, your file will use the next available version number."
+                            msg = ("A published version of this file already exists.  If you proceed, "
+                                   "your file will use the next available version number.")
                         
                 else:
                     # don't have an existing version

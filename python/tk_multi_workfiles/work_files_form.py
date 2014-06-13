@@ -433,11 +433,16 @@ class WorkFilesForm(QtGui.QWidget):
         ctrl.setPixmap(scaled_pm)
 
     def _download_thumbnail(self, url):
-
+        """
+        Download a thumbnail from the specified url
+        
+        :param url:    The url of the thumbnail to download
+        :returns:      Path to the downloaded thumbnail on disk
+        """
         try:
             path_to_cached_thumb = shotgun_data.ShotgunDataRetriever.download_thumbnail(url, self._app)
         except Exception, e:
-            print "Could not get thumbnail for url '%s'. Error: %s" % (url, e)
+            self._app.log_info("Could not get thumbnail for url '%s'. Error: %s" % (url, e))
             path_to_cached_thumb = None
         
         return path_to_cached_thumb
