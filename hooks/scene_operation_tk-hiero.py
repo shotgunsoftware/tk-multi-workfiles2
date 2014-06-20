@@ -62,6 +62,9 @@ class SceneOperation(Hook):
             return curr_path
 
         elif operation == "open":
+            # manually fire signal since Hiero doesn't fire this when loading 
+            # from the tk file manager
+            hiero.core.events.sendEvent("kBeforeProjectLoad", None)
             # open the specified script
             hiero.core.openProject(file_path.replace(os.path.sep, "/"))
         
