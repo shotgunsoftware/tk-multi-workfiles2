@@ -326,13 +326,17 @@ class WorkFilesForm(QtGui.QWidget):
                 # work area defined - yay!
                 self._ui.entity_pages.setCurrentWidget(self._ui.entity_page)
                 self._ui.entity_pages.setVisible(True)
+
+                # get any extra fields that have been defined for this entity type.  This will be a dictionary
+                # of label:field pairs for the current entity type:      
+                extra_fields = self._app.get_setting("sg_entity_type_extra_display_fields", {}).get(ctx.entity["type"], {})
                 
                 # get additional details:
                 sg_details = {}
                 try:
                     sg_details = self._app.shotgun.find_one(ctx.entity["type"], 
                                                             [["project", "is", ctx.project], ["id", "is", ctx.entity["id"]]], 
-                                                            ["description", "image", "code"])
+                                                            ["description", "image", "code"] + extra_fields.values())
                 except:
                     pass
     
@@ -351,8 +355,13 @@ class WorkFilesForm(QtGui.QWidget):
                         entity_thumbnail = QtGui.QPixmap(thumbnail_path)
                 self._set_thumbnail(self._ui.entity_thumbnail, entity_thumbnail)
                                     
-                # description:
-                desc = sg_details.get("description") or ("<i>No description was entered for this %s</i>" % entity_type_name)
+                # description including the display of extra fields:
+                extra_info = ", ".join(["%s: %s" % (label, str(sg_details.get(field))) 
+                                        for label, field in extra_fields.iteritems()])                
+                desc = ""
+                if extra_info:
+                    desc += "(%s)<br>" % extra_info
+                desc += sg_details.get("description") or ("<i>No description was entered for this %s</i>" % entity_type_name)
                 self._ui.entity_description.setText(desc)
     
                 # task:

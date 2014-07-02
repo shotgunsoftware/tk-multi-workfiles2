@@ -55,7 +55,14 @@ configuration:
                       sg_entity_type_filters: {'Shot': [['sg_status_list', 'is', 'ip']]} "
                       
         default_value: {}
-           
+
+    sg_entity_type_extra_display_fields:
+      type: dict
+      description:  "Specify additional fields to display for each entity type in the task browser. 
+                     Each entry in the dictionary maps an entity type to a dictionary of 'label:field'
+                     name pairs.  For example, to display the name of the sequence that a shot belongs 
+                     to, specify: {Shot:{Sequence: sg_sequence.Sequence.code}}"
+      default_value: {}
            
     allow_task_creation:
         type: bool
