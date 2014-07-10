@@ -315,7 +315,7 @@ class SaveAs(object):
 
         else:
             # handle when version isn't in the work template:
-            if max_work_version != None and max_work_version >= max_publish_version:
+            if max_work_version > 0 and max_work_version >= max_publish_version:
                 msg = "A file with this name already exists.  If you proceed, the existing file will be overwritten."
             elif max_publish_version:
                 msg = "A published version of this file already exists."

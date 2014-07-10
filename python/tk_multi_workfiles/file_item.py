@@ -89,7 +89,10 @@ class FileItem(object):
     
     @property
     def not_editable_reason(self):
-        return self._details.get("editable_reason", "")
+        """
+        Return the reason the file is not editable.
+        """
+        return self._details.get("editable_reason") or ""
     
     """
     Published file details

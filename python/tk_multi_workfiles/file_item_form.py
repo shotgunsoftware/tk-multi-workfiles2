@@ -25,14 +25,14 @@ class FileItemForm(browser_widget.ListItem):
         """
         browser_widget.ListItem.__init__(self, app, worker, parent)
         
-    def set_is_editable(self, editable, not_editable_reason = ""):
+    def set_is_editable(self, editable, not_editable_reason = None):
         """
         Set if the file this item represents is editable - if not editable 
         then an additional padlock icon is shown with it's tooltip indicating 
         the reason why.
         """
         self.ui.locked_label.setVisible(not editable)
-        self.ui.locked_label.setToolTip(not_editable_reason)
+        self.ui.locked_label.setToolTip(not_editable_reason or "")
         
     def _setup_ui(self):
         """

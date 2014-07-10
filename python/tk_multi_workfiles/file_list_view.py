@@ -450,7 +450,7 @@ class FileListView(browser_widget.BrowserWidget):
             tooltip += "Read-only: " + not_editable_reason
         
         # add item:
-        item = self.add_item(FileItemForm)
+        item = self.add_item(FileItemForm) 
         item.published_file = latest_published_file
         item.work_file = latest_work_file
 
