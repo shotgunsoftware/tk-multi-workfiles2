@@ -55,7 +55,7 @@ class MultiWorkFiles(tank.platform.Application):
         # currently, we have done basic QA on nuke and maya so we limit these options to 
         # those two engines for now. 
         
-        SUPPORTED_ENGINES = ["tk-nuke", "tk-maya"]
+        SUPPORTED_ENGINES = ["tk-nuke", "tk-maya", "tk-3dsmax"]
         
         if self.engine.has_ui and not hasattr(tank, '_tk_multi_workfiles_launch_at_startup'):
 
