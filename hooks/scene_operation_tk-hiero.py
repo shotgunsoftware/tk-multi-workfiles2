@@ -62,9 +62,20 @@ class SceneOperation(Hook):
             return curr_path
 
         elif operation == "open":
-            # manually fire signal since Hiero doesn't fire this when loading 
-            # from the tk file manager
+            # Manually fire the kBeforeProjectLoad event in order to work around a bug in Hiero.
+            # The Foundry has logged this bug as:
+            #   Bug 40413 - Python API - kBeforeProjectLoad event type is not triggered 
+            #   when calling hiero.core.openProject() (only triggered through UI)
+            # It exists in all versions of Hiero through (at least) v1.9v1b12. 
+            #
+            # Once this bug is fixed, a version check will need to be added here in order to 
+            # prevent accidentally firing this event twice. The following commented-out code
+            # is just an example, and will need to be updated when the bug is fixed to catch the 
+            # correct versions.
+            # if (hiero.core.env['VersionMajor'] < 1 or 
+            #     hiero.core.env['VersionMajor'] == 1 and hiero.core.env['VersionMinor'] < 10:
             hiero.core.events.sendEvent("kBeforeProjectLoad", None)
+
             # open the specified script
             hiero.core.openProject(file_path.replace(os.path.sep, "/"))
         
