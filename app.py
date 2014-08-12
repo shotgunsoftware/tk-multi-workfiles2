@@ -24,17 +24,23 @@ class MultiWorkFiles(tank.platform.Application):
         Called as the application is being initialized
         """
 
+        application_has_scenes = True
+        if self.engine.name == "tk-mari":
+            # Mari doesn't have the concept of a current scene!
+            application_has_scenes = False
+
         # register commands:
         #
         
-        # Shotgun file manager is always available
-        self.engine.register_command("Shotgun File Manager...", self.show_file_manager_dlg)
+        if application_has_scenes:
+            # Shotgun file manager is available for all engines that have the concept of a scene file:
+            self.engine.register_command("Shotgun File Manager...", self.show_file_manager_dlg)
 
         # change work area is only available if one or more entity types have been set 
         # in the configuration: 
         can_change_work_area = (len(self.get_setting("sg_entity_types", [])) > 0)
         if can_change_work_area:
-            cmd = lambda enable_start_new=True: self.show_change_work_area_dlg(enable_start_new)
+            cmd = lambda enable_start_new=application_has_scenes: self.show_change_work_area_dlg(enable_start_new)
             self.engine.register_command("Change Work Area...", cmd, {"type": "context_menu"})
 
         # other commands are only valid if we have at least a valid work template.  Version
