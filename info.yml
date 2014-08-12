@@ -64,6 +64,18 @@ configuration:
                      to, specify: {Shot:{Sequence: sg_sequence.Sequence.code}}"
       default_value: {}
            
+    sg_task_filters:
+        type: list
+        description: "Allows you to filter the Tasks linked to the entities in the sg_entity_types 
+                      setting. Uses shotgun API query syntax. For example, if you only want to show 
+                      Tasks that are in progress in the task selector UI, you can set this up by 
+                      specifying a filter. Like this:
+                      sg_task_filters: [['sg_status_list', 'is', 'ip']]"            
+        default_value: []
+        values:
+          type: shotgun_filter
+        allows_empty: True
+
     allow_task_creation:
         type: bool
         description: Controls whether new tasks can be created from the app.

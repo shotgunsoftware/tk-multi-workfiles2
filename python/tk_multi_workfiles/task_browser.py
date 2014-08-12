@@ -27,6 +27,8 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
         self._current_user = None
         self._current_user_loaded = False
         self._status_name_lookup = None
+        app = tank.platform.current_bundle()
+        self.__task_filters = app.get_setting("sg_task_filters", [])
         
     @property
     def selected_task(self):
@@ -101,10 +103,13 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
                                                     fields)
         else:
             # get all tasks
+            sg_filters = [ ["project", "is", self._app.context.project],
+                           ["step", "is_not", None],
+                           ["entity", "is", data["entity"] ] ]
+            sg_filters.extend( self.__task_filters )               
+            
             output["tasks"] = self._app.shotgun.find("Task", 
-                                                [ ["project", "is", self._app.context.project],
-                                                  ["step", "is_not", None],
-                                                  ["entity", "is", data["entity"] ] ], 
+                                                sg_filters, 
                                                 fields)
         
             # get all the users where tasks are assigned.
