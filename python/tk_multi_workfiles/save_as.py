@@ -198,6 +198,9 @@ class SaveAs(object):
             ctx_entity = self._app.context.task or self._app.context.entity or self._app.context.project
             self._app.log_debug("Creating folders for context %s" % self._app.context)
             self._app.tank.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"))
+            # finally, make sure that the folder exists - this will handle any leaf folders that aren't
+            # created above (e.g. a dynamic static folder that isn't part of the schema)
+            self._app.ensure_folder_exists(dir)
         
         # and save the current file as the new path:
         save_file(self._app, SAVE_FILE_AS_ACTION, self._app.context, new_path)

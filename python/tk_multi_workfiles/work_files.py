@@ -594,6 +594,10 @@ class WorkFiles(object):
                     return False
                 
             try:
+                # make sure that the folder exists - this will handle any leaf folders that aren't
+                # created by Toolkit (e.g. a dynamic static folder that isn't part of the schema)
+                work_dir = os.path.dirname(work_path)
+                self._app.ensure_folder_exists(work_dir)
                 # copy file:
                 self._copy_file(src_path, work_path)
             except Exception, e:
