@@ -49,6 +49,42 @@ class WorkFiles(object):
         handler = WorkFiles(app)
         handler.change_work_area(enable_start_new)    
     
+    @staticmethod
+    def show_file_open_dlg():
+        """
+        """
+        app = tank.platform.current_bundle()
+        handler = WorkFiles(app)
+        handler.__show_file_open_dlg()
+
+    @staticmethod
+    def show_file_save_dlg():
+        """
+        """
+        app = tank.platform.current_bundle()
+        handler = WorkFiles(app)
+        handler.__show_file_save_dlg()
+    
+    def __show_file_open_dlg(self):
+        """
+        """
+        try:
+            from .file_open_form import FileOpenForm
+            self._file_open_ui = self._app.engine.show_dialog("File Open", self._app, FileOpenForm)
+        except:
+            self._app.log_exception("Failed to create File Open dialog!")
+            return
+    
+    def __show_file_save_dlg(self):
+        """
+        """
+        try:
+            from .file_save_form import FileSaveForm
+            self._file_save_ui = self._app.engine.show_dialog("File Save", self._app, FileSaveForm)
+        except:
+            self._app.log_exception("Failed to create File Save dialog!")
+            return
+    
     def __init__(self, app):
         """
         Construction

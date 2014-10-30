@@ -11,7 +11,7 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_WorkFilesForm(object):
     def setupUi(self, WorkFilesForm):
         WorkFilesForm.setObjectName("WorkFilesForm")
-        WorkFilesForm.resize(823, 644)
+        WorkFilesForm.resize(827, 650)
         WorkFilesForm.setStyleSheet("")
         self.verticalLayout_8 = QtGui.QVBoxLayout(WorkFilesForm)
         self.verticalLayout_8.setObjectName("verticalLayout_8")
@@ -41,7 +41,6 @@ class Ui_WorkFilesForm(object):
         self.work_area_frame.setFrameShadow(QtGui.QFrame.Raised)
         self.work_area_frame.setObjectName("work_area_frame")
         self.verticalLayout_20 = QtGui.QVBoxLayout(self.work_area_frame)
-        self.verticalLayout_20.setSpacing(6)
         self.verticalLayout_20.setContentsMargins(6, 6, 6, 6)
         self.verticalLayout_20.setObjectName("verticalLayout_20")
         self.project_pages = QtGui.QStackedWidget(self.work_area_frame)
@@ -332,7 +331,6 @@ class Ui_WorkFilesForm(object):
         self.no_change_frame.setFrameShadow(QtGui.QFrame.Raised)
         self.no_change_frame.setObjectName("no_change_frame")
         self.verticalLayout_19 = QtGui.QVBoxLayout(self.no_change_frame)
-        self.verticalLayout_19.setSpacing(6)
         self.verticalLayout_19.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_19.setObjectName("verticalLayout_19")
         self.no_change_line = QtGui.QFrame(self.no_change_frame)

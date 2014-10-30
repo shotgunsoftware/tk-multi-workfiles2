@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>823</width>
-    <height>644</height>
+    <width>827</width>
+    <height>650</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -87,9 +87,6 @@ border-color: rgb(32,32,32);
           <enum>QFrame::Raised</enum>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_20">
-          <property name="spacing">
-           <number>6</number>
-          </property>
           <property name="margin">
            <number>6</number>
           </property>
@@ -732,9 +729,6 @@ border-radius: 3px;
              <enum>QFrame::Raised</enum>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_19">
-             <property name="spacing">
-              <number>6</number>
-             </property>
              <property name="margin">
               <number>0</number>
              </property>
