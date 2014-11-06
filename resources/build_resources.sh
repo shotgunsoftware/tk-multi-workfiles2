@@ -53,6 +53,7 @@ build_ui entity_tree_form
 build_ui navigation_widget
 build_ui search_widget
 build_ui breadcrumb_widget
+build_ui task_widget
 
 # build resources
 echo "building resources..."

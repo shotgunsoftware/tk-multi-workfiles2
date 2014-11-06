@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TaskWidget</class>
+ <widget class="QWidget" name="TaskWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>331</width>
+    <height>88</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0">
+   <item>
+    <widget class="QLabel" name="thumbnail_label">
+     <property name="minimumSize">
+      <size>
+       <width>64</width>
+       <height>64</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>64</width>
+       <height>64</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>task icon</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="description_label">
+     <property name="text">
+      <string>task details</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="find_btn">
+     <property name="text">
+      <string>O</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

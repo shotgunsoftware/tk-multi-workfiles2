@@ -19,6 +19,7 @@ from tank.platform.qt import QtCore, QtGui
 from tank import TankError
 from tank_vendor.shotgun_api3 import sg_timezone
 
+from .sg_entity_model import SgEntityModel
 from .file_item import FileItem
 from .wrapper_dialog import WrapperDialog
 from .select_work_area_form import SelectWorkAreaForm
@@ -68,6 +69,17 @@ class WorkFiles(object):
     def __show_file_open_dlg(self):
         """
         """
+        # build entity models:
+        entities = self._app.get_setting(entities)
+        for ent in entities:
+            caption = ent["caption"]
+            entity_type = ent["enitty_type"]
+            publish_filters = ent["publish_filters"]
+            filters = ent["filters"]
+            hierarchy = ent["hierarchy"]
+            
+            model = SgEntityModel(None, entity_type, filters, hierarchy)
+        
         try:
             from .file_open_form import FileOpenForm
             self._file_open_ui = self._app.engine.show_dialog("File Open", self._app, FileOpenForm)
