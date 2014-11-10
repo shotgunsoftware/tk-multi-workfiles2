@@ -15,6 +15,40 @@ class FileItem(object):
     """
     Encapsulate details about a work file
     """
+    
+    @staticmethod
+    def build_file_key(fields, template, ignore_fields = None):
+        """
+        Build a unique key from the specified fields and template.  This will be
+        used to determine if multiple files are actually versions of the same
+        file.
+        
+        :param fields:          A dictionary of fields extracted from a file path
+        :param template:        The template that represents the files this key will be 
+                                used to compare.
+        :param ignore_fields:   A list of fields to ignore when constructing the key.
+                                Typically this will contain at least 'version' but it 
+                                may also contain other fields (e.g. user initials in
+                                the file name).
+        :returns:               An immutable 'key' that can be used for comparison and
+                                as the key in a dictionary (e.g. a string).
+        """
+        # default ignore keys to just 'version':
+        ignore_fields = ignore_fields or ["version"]
+
+        file_key = {}
+        template_keys = template.keys
+        for name, value in fields.iteritems():
+            if name not in template_keys:
+                continue
+            if name in ignore_fields:
+                continue
+            file_key[name] = value
+        
+        # return a string representation of the sorted dictionary:
+        # e.g. "[('name', 'foo'), ('sequence', 'Sequence01'), ('shot', 'shot_010')]"
+        return str(sorted(file_key.iteritems()))
+    
     def __init__(self, path, publish_path, is_local, is_published, details, key):
         """
         Construction
@@ -61,7 +95,7 @@ class FileItem(object):
 
     @property
     def key(self):
-        # a key that matches across all versions of a single file.
+        # a unique key that matches across all versions of a single file.
         return self._key
 
     """

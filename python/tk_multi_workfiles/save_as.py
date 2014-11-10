@@ -20,6 +20,7 @@ from pprint import pprint
 from .async_worker import AsyncWorker
 from .scene_operation import get_current_path, save_file, SAVE_FILE_AS_ACTION
 from .find_files import FileFinder
+from .file_item import FileItem
 
 class SaveAs(object):
     """
@@ -48,6 +49,9 @@ class SaveAs(object):
         self._publish_template = self._app.get_template("template_publish")
         
         self._cached_files = None
+        
+        # cache any fields that should be ignored when looking for work files:
+        self.__version_compare_ignore_fields = self._app.get_setting("version_compare_ignore_fields", [])        
         
     def _show_save_as_dlg(self):
         """
@@ -259,11 +263,9 @@ class SaveAs(object):
             finder = FileFinder(self._app)
             self._cached_files = finder.find_files(self._work_template, self._publish_template, self._app.context)
 
-        # construct a file key ('0' version work path) that represents 
-        # all versions of this publish/work file:
-        key_fields = fields.copy()
-        key_fields["version"] = 0            
-        file_key = self._work_template.apply_fields(key_fields)
+        # construct a file key that represents all versions of this publish/work file:
+        file_key = FileItem.build_file_key(fields, self._work_template, 
+                                           self.__version_compare_ignore_fields + ["version"])
 
         # find the max work file and publish versions:        
         work_versions = [f.version for f in self._cached_files if f.is_local and f.key == file_key]

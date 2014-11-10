@@ -155,6 +155,20 @@ configuration:
         type: str
       allows_empty: True
       default_value: []
+      
+    version_compare_ignore_fields:
+      type: list
+      description:  A list of fields that should be ignored when comparing files to
+                    determine if they are different versions of the same file.  If 
+                    this is left empty then only the version field will be ignored.
+                    Care should be taken when specifying fields to ignore as Toolkit 
+                    will expect the version to be unique across files that have 
+                    different values for those fields and will error if this isn't the
+                    case.
+      values:
+        type: str
+      allows_empty: True
+      default_value: []
 
 # the Shotgun fields that this app needs in order to operate correctly
 requires_shotgun_fields:
