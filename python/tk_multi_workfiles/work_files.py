@@ -798,6 +798,11 @@ class WorkFiles(object):
         if ctx == self._context:
             self._app.log_debug("Context hasn't changed so nothing to do!")    
             return
+        
+        # ensure our local path cache is up to date
+        self._app.log_debug("Synchronizing remote path cache...")
+        self._app.sgtk.synchronize_filesystem_structure()
+        self._app.log_debug("Path cache up to date!")
             
         # update templates for the new context:
         templates = {}
