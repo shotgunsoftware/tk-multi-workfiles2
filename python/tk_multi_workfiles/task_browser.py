@@ -169,8 +169,10 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
                     elif type(fieldData) == type(str):
                         name_extension.append(fieldData)
                     elif type(fieldData) == type(dict()):
-                        name_extension.append(fieldData['name'])
+                        #or what other thing might be of interest ?
+                        name_extension.append(fieldData.get('name',''))
                     else:
+                        # this is a bit optional ... 
                         name_extension.append(str(fieldData))
                          
                 name_extension = ", ".join(name_extension)
