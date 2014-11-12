@@ -10,6 +10,7 @@
 
 import os
 import copy
+from itertools import chain
 
 import tank
 from tank import TankError
@@ -40,6 +41,9 @@ class Versioning(object):
         self._work_template = work_template if work_template else self._app.get_template("template_work")
         self._publish_template = publish_template if publish_template else self._app.get_template("template_publish")
         self._context = context if context else self._app.context
+
+        # cache any fields that should be ignored when looking for work files:
+        self._version_compare_ignore_fields = self._app.get_setting("version_compare_ignore_fields", [])
         
     def change_work_file_version(self, work_path, new_version):
         """
@@ -52,12 +56,13 @@ class Versioning(object):
             raise TankError("Work template does not contain a version key - unable to change version!")
         
         # update version and get new path:
-        fields = self._work_template.get_fields(work_path)
-        current_version = fields["version"]
+        ctx_fields = self._app.context.as_template_fields(self._work_template)
+        current_fields = self._work_template.get_fields(work_path)
+        fields = dict(chain(current_fields.iteritems(), ctx_fields.iteritems()))
         fields["version"] = new_version
         new_work_file = self._work_template.apply_fields(fields)
         
-        # do save-as:
+        # do save:
         save_file(self._app, VERSION_UP_FILE_ACTION, self._app.context, new_work_file)        
         
     def _show_change_version_dlg(self):
@@ -131,6 +136,21 @@ class Versioning(object):
             finally:
                 dlg.clean_up()
             
+    def _find_workfile_versions(self, fields):
+        """
+        Find all version numbers for all work files that match the specified fields.
+        
+        :param fields:    Dictionary of fields to be used when searching for work files
+        :returns:         List of all version numbers found for matching work files
+        """
+        # find workfiles that match the specified fields:
+        work_area_paths = self._app.tank.paths_from_template(self._work_template, 
+                                                             fields,
+                                                             self._version_compare_ignore_fields + ["version"])
+        # and find all versions for these files:
+        all_versions = [self._work_template.get_fields(p).get("version") for p in work_area_paths]
+        return all_versions
+            
     def _get_max_workfile_version(self, fields):
         """
         Get the current highest version of the work file that is generated using the current 
@@ -139,11 +159,8 @@ class Versioning(object):
         :param fields:    Dictionary of fields to be used when searching for work files
         :returns:         The maximum version found for all matching work files
         """
-        # find max workfile version that exactly matches all other fields:
-        work_area_paths = self._app.tank.paths_from_template(self._work_template, fields, ["version"])
-        existing_work_versions = [self._work_template.get_fields(p).get("version") for p in work_area_paths]
-        max_work_version = max(existing_work_versions) if existing_work_versions else None
-        return max_work_version
+        existing_work_versions = self._find_workfile_versions(fields)
+        return max(existing_work_versions) if existing_work_versions else None
                     
     def _check_version_availability(self, work_path, version):
         """
@@ -165,18 +182,8 @@ class Versioning(object):
         if fields["version"] == version:
             return "The current work file is already version v%03d" % version
 
-        # check to see if a work file of that version exists:        
-        fields["version"] = version
-        new_work_file = self._work_template.apply_fields(fields)
-        if os.path.exists(new_work_file):
+        # check to see if a work file of that version exists:
+        all_versions = self._find_workfile_versions(fields)
+        if all_versions and version in all_versions:        
             return ("Work file already exists for version v%03d - "
                     "changing to this version will overwrite the existing file!" % version)
-        
-        
-        
-        
-        
-        
-        
-        
-        
