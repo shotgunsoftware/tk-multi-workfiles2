@@ -52,30 +52,18 @@ background-color: rgb(255, 128, 0);
          <height>0</height>
         </size>
        </property>
-       <widget class="QWidget" name="tab">
+       <widget class="MyTasksForm" name="my_tasks_form">
         <attribute name="title">
-         <string>Tab 1</string>
-        </attribute>
-       </widget>
-       <widget class="QWidget" name="tab_2">
-        <attribute name="title">
-         <string>Tab 2</string>
+         <string>My Tasks</string>
         </attribute>
        </widget>
       </widget>
      </item>
      <item>
       <widget class="FileBrowserTabs" name="file_browser_tabs">
-       <widget class="QWidget" name="tab_3">
-        <attribute name="title">
-         <string>Tab 1</string>
-        </attribute>
-       </widget>
-       <widget class="QWidget" name="tab_4">
-        <attribute name="title">
-         <string>Tab 2</string>
-        </attribute>
-       </widget>
+       <property name="currentIndex">
+        <number>-1</number>
+       </property>
       </widget>
      </item>
     </layout>
@@ -83,7 +71,7 @@ background-color: rgb(255, 128, 0);
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QPushButton" name="pushButton">
+      <widget class="QPushButton" name="new_file_btn">
        <property name="text">
         <string>+ New File</string>
        </property>
@@ -103,14 +91,14 @@ background-color: rgb(255, 128, 0);
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_2">
+      <widget class="QPushButton" name="cancel_btn">
        <property name="text">
         <string>Cancel</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_3">
+      <widget class="QPushButton" name="open_btn">
        <property name="text">
         <string>Open</string>
        </property>
@@ -143,6 +131,12 @@ background-color: rgb(255, 128, 0);
    <class>BreadcrumbWidget</class>
    <extends>QWidget</extends>
    <header>..breadcrumb_widget</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>MyTasksForm</class>
+   <extends>QWidget</extends>
+   <header>..my_tasks_form</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

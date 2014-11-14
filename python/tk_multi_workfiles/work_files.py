@@ -19,7 +19,9 @@ from tank.platform.qt import QtCore, QtGui
 from tank import TankError
 from tank_vendor.shotgun_api3 import sg_timezone
 
-from .sg_entity_model import SgEntityModel
+shotgun_model = tank.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
+ShotgunEntityModel = shotgun_model.ShotgunEntityModel
+
 from .file_item import FileItem
 from .wrapper_dialog import WrapperDialog
 from .select_work_area_form import SelectWorkAreaForm
@@ -69,23 +71,50 @@ class WorkFiles(object):
     def __show_file_open_dlg(self):
         """
         """
-        # build entity models:
-        entities = self._app.get_setting(entities)
-        for ent in entities:
-            caption = ent["caption"]
-            entity_type = ent["enitty_type"]
-            publish_filters = ent["publish_filters"]
-            filters = ent["filters"]
-            hierarchy = ent["hierarchy"]
-            
-            model = SgEntityModel(None, entity_type, filters, hierarchy)
-        
+        # first, build the data models for use by the open UI:
+
         try:
             from .file_open_form import FileOpenForm
-            self._file_open_ui = self._app.engine.show_dialog("File Open", self._app, FileOpenForm)
+            res, file_open_ui = self._app.engine.show_modal("File Open", self._app, FileOpenForm, self._init_file_open_form)
+            print "Open result: %s" % res
         except:
             self._app.log_exception("Failed to create File Open dialog!")
             return
+    
+    def _init_file_open_form(self, form):
+        """
+        """
+        # build entity models:
+        entities = self._app.get_setting("entities", [])
+        for ent in entities:
+            caption = ent.get("caption", None)
+            entity_type = ent.get("entity_type")
+            filters = ent.get("filters")
+            
+            # resolve any magic tokens in the filter
+            resolved_filters = []
+            for filter in filters:
+                resolved_filter = []
+                for field in filter:
+                    if field == "{context.entity}":
+                        field = self._app.context.entity
+                    elif field == "{context.project}":
+                        field = self._app.context.project
+                    elif field == "{context.step}":
+                        field = self._app.context.step
+                    elif field == "{context.task}":
+                        field = self._app.context.task
+                    elif field == "{context.user}":
+                        field = self._app.context.user
+                    resolved_filter.append(field)
+                resolved_filters.append(resolved_filter)
+                            
+            hierarchy = ent.get("hierarchy")
+
+            model = ShotgunEntityModel(entity_type, resolved_filters, hierarchy)
+            
+            form.add_entity_model(caption, model)
+            model.hard_refresh()
     
     def __show_file_save_dlg(self):
         """

@@ -13,6 +13,8 @@ class Ui_MyTasksForm(object):
         MyTasksForm.setObjectName("MyTasksForm")
         MyTasksForm.resize(341, 335)
         self.verticalLayout = QtGui.QVBoxLayout(MyTasksForm)
+        self.verticalLayout.setSpacing(2)
+        self.verticalLayout.setContentsMargins(2, 8, 2, 2)
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")

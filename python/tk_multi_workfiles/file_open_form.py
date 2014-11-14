@@ -17,18 +17,52 @@ import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
 from .ui.file_open_form import Ui_FileOpenForm
+from .entity_tree_form import EntityTreeForm
 
 class FileOpenForm(QtGui.QWidget):
     """
     UI for opening a publish or work file
     """
     
-    def __init__(self, parent=None):
+    @property
+    def exit_code(self):
+        return self._exit_code    
+    
+    def __init__(self, init_callback, parent=None):
         """
         Construction
         """
         QtGui.QWidget.__init__(self, parent)
         
         # set up the UI
-        self.__ui = Ui_FileOpenForm()
-        self.__ui.setupUi(self)
+        self._ui = Ui_FileOpenForm()
+        self._ui.setupUi(self)
+        
+        # hook up controls:
+        self._ui.cancel_btn.clicked.connect(self._on_cancel)
+        
+        # add my-tasks
+                
+        # allow callback to initialize UI:
+        init_callback(self)
+        
+    def add_entity_model(self, title, model):
+        """
+        """
+        
+        # create a new entity tab for the model:
+        entity_form = EntityTreeForm(self)
+        entity_form.set_model(model)
+        
+        self._ui.task_browser_tabs.addTab(entity_form, title)
+        
+
+        
+    def _on_cancel(self):
+        """
+        Called when the cancel button is clicked
+        """
+        self._exit_code = QtGui.QDialog.Rejected        
+        self.close()
+        
+        
