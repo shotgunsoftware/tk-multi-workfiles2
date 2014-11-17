@@ -162,21 +162,9 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
                 task_name = "<b>Task: %s</b>" % d.get("content", "")
                 extra_fields = self._app.get_setting("task_extra_display_fields", [])
                 name_extension = list()
-                for field in extra_fields:
-                    fieldData = d.get(field,None)
-                    if type(fieldData) == type(None):
-                        pass
-                    elif type(fieldData) == type(str):
-                        name_extension.append(fieldData)
-                    elif type(fieldData) == type(dict()):
-                        #or what other thing might be of interest ?
-                        name_extension.append(fieldData.get('name',''))
-                    else:
-                        # this is a bit optional ... 
-                        name_extension.append(str(fieldData))
-                         
-                name_extension = ", ".join(name_extension)
-                #name_extension = ", ".join([d.get(f) for f in extra_fields])
+                extra_data = [d.get(f) for f in extra_fields]
+                name_extension = ", ".join([str(item) for item in extra_data if item != None])
+
                 if name_extension:
                     task_name = task_name + " (%s)" % name_extension
 
