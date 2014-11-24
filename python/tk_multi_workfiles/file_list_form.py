@@ -28,5 +28,21 @@ class FileListForm(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         
         # set up the UI
-        self.__ui = Ui_FileListForm()
-        self.__ui.setupUi(self)
+        self._ui = Ui_FileListForm()
+        self._ui.setupUi(self)
+        
+        self._ui.details_radio_btn.toggled.connect(self._on_view_toggled)
+        
+    def _on_view_toggled(self, checked):
+        """
+        """
+        if self._ui.details_radio_btn.isChecked():
+            self._ui.view_pages.setCurrentWidget(self._ui.details_page)
+        else:
+            self._ui.view_pages.setCurrentWidget(self._ui.list_page)
+            
+    def set_model(self, model):
+        """
+        """
+        self._ui.file_list_view.setModel(model)
+        self._ui.file_details_view.setModel(model)

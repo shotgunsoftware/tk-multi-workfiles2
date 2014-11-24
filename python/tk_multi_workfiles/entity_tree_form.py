@@ -18,14 +18,16 @@ from sgtk.platform.qt import QtCore, QtGui
 from .ui.entity_tree_form import Ui_EntityTreeForm
 
 overlay_module = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
-
+from .entity_proxy_model import EntityProxyModel
 
 class EntityTreeForm(QtGui.QWidget):
     """
     """
+    
+    entity_selected = QtCore.Signal(object)
     create_new_task = QtCore.Signal()
     
-    def __init__(self, parent=None):
+    def __init__(self, entity_model, parent=None):
         """
         Construction
         """
@@ -40,12 +42,31 @@ class EntityTreeForm(QtGui.QWidget):
         
         # create the overlay 'busy' widget:
         self._overlay_widget = overlay_module.ShotgunModelOverlayWidget(None, self._ui.entity_tree)
+        self._overlay_widget.set_model(entity_model)
+
+        self._proxy_model = EntityProxyModel(self)
+        self._proxy_model.setSourceModel(entity_model)
+        self._ui.entity_tree.setModel(self._proxy_model)
+
+        # connect to the selection model for the tree view:
+        selection_model = self._ui.entity_tree.selectionModel()
+        if selection_model:
+            selection_model.selectionChanged.connect(self._on_selection_changed) 
         
-    def set_model(self, model):
+    def _on_selection_changed(self, selected, deselected):
         """
         """
-        self._ui.entity_tree.setModel(model)
-        self._overlay_widget.set_model(model)
+        selected_index = None
+        
+        selected_indexes = selected.indexes()
+        if len(selected_indexes) == 1:
+            # extract the selected model index from the selection:
+            proxy_index = selected_indexes[0]
+            selected_index = self._proxy_model.mapToSource(proxy_index)
+            
+        # emit selection_changed signal:            
+        self.entity_selected.emit(selected_index)
+        
         
     def _on_new_task(self):
         """
