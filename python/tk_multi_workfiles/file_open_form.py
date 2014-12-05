@@ -152,7 +152,8 @@ class FileOpenForm(QtGui.QWidget):
         context = self._extract_context(entity_item)
 
         # finally, update the file model for the filters and context:
-        self._file_model.find_files(publish_filters, context) 
+        self._file_model.refresh_files(publish_filters, context)
+
         
     def _extract_context(self, entity_item):
         """

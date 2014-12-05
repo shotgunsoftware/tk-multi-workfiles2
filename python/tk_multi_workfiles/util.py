@@ -2,17 +2,16 @@
 import sgtk
 from sgtk import TankError
 
-def get_templates_for_context(context, keys):
+def get_templates_for_context(app, context, keys):
     """
     Find templates for the given context.
     """
-    settings = _get_app_settings_for_context(context)
+    settings = _get_app_settings_for_context(app, context)
     if not settings:
         raise TankError("Failed to find Work Files settings for context '%s'.\n\nPlease ensure that"
                         " the Work Files app is installed for the environment that will be used for"
                         " this context" % context)
     
-    app = sgtk.platform.current_bundle()
     templates = {}
     for key in keys:
         template = app.get_template_from(settings, key)
@@ -21,14 +20,12 @@ def get_templates_for_context(context, keys):
     return templates
         
     
-def _get_app_settings_for_context(context):
+def _get_app_settings_for_context(app, context):
     """
     Find settings for the app in the specified context
     """
     if not context:
         return
-    
-    app = sgtk.platform.current_bundle()
     
     # find settings for all instances of app in 
     # the environment picked for the given context:
