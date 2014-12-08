@@ -11,6 +11,7 @@
 import os
 from datetime import datetime
 from itertools import chain
+import traceback
 
 import sgtk
 from sgtk.platform.qt import QtCore
@@ -45,7 +46,7 @@ class ShotgunPublishedFilesModel(ShotgunModel):
         filters = filters or []
         fields = fields or ["code"]
         hierarchy = [fields[0]]
-        return self._load_data(self, self._published_file_type, filters, hierarchy, fields)
+        return self._load_data(self._published_file_type, filters, hierarchy, fields)
         
     def refresh(self):
         """
@@ -127,7 +128,8 @@ class Task(QtCore.QRunnable, QtCore.QObject):
             result = self._func(*self._args, **self._kwargs)
             self.completed.emit(self, result)
         except Exception, e:
-            self.failed.emit(self, str(e))
+            tb = traceback.format_exc()
+            self.failed.emit(self, "%s, %s" % (str(e), tb))
 
 class FileFinder(QtCore.QObject):
     """
@@ -163,6 +165,7 @@ class FileFinder(QtCore.QObject):
     
     _FIND_TEMPLATES_TASK_TYPE = "find_templates"
     _FIND_SG_PUBLISHES_TASK_TYPE = "find_sg_publishes"
+    _FILTER_SG_PUBLISHES_TASK_TYPE = "filter_sg_publishes"
     _FIND_WORK_FILES_TASK_TYPE = "find_work_files"
     _AGGREGATE_FILES_TASK_TYPE = "aggregate_files"
     
@@ -230,9 +233,6 @@ class FileFinder(QtCore.QObject):
                 task.is_runnable = False
                 #task.completed.disconnect(self._on_task_completed)
                 #task.failed.disconnect(self._on_task_failed)
-
-            # clean up the Shotgun model:
-            # ???
             
             del(self._search_data[search_id])
     
@@ -279,21 +279,15 @@ class FileFinder(QtCore.QObject):
         """
         """
         model = ShotgunPublishedFilesModel(self)
-        model.set_shotgun_connection(self.__app.shotgun)
-        
         # start the process of finding publishes in Shotgun:
-        loaded_data = model.load_data(publish_filters)
+        fields = ["id", "description", "version_number", "image", "created_at", "created_by", "name", "path", "task"]
+        loaded_data = model.load_data(filters = publish_filters, fields = fields)
         if not loaded_data or force:
             # refresh data from Shotgun:
             model.refresh()
 
         sg_publishes = model.get_sg_data()
         return sg_publishes
-    
-    def _filter_publishes(self, sg_publishes, publish_template, context):
-        """
-        """
-        pass    
     
     def _find_work_files(self, context, work_template):
         """
@@ -308,6 +302,7 @@ class FileFinder(QtCore.QObject):
             return
         
         if task.task_type == FileFinder._FIND_TEMPLATES_TASK_TYPE:
+            # Find templates task completed
             search_data.work_template, search_data.publish_template = result
             
             # start task to find work files:
@@ -320,19 +315,30 @@ class FileFinder(QtCore.QObject):
             self._on_publishes_found(search_data.id)
           
         elif task.task_type == FileFinder._FIND_SG_PUBLISHES_TASK_TYPE:
-            
-            print "SEARCH RES: %s" % result
+            # Finished searching for SG publish records. 
             search_data.sg_publishes = result
-            
-            # (AD) TEMP - STEPS MISSING
-            search_data.publishes = []
-            self._on_find_completed(task.id)
+            if not search_data.sg_publishes:
+                # no sg publshes so no publishes, skip the filter step:
+                search_data.publishes = []
+                self._on_find_completed(search_data.id)
+            else:
+                # trigger publishes found path:
+                self._on_publishes_found(search_data.id)
+           
+        elif task.task_type == FileFinder._FILTER_SG_PUBLISHES_TASK_TYPE:
+            # Finished filtering raw SG publishes
+            search_data.publishes = result
+           
+            # trigger publishes found path:
+            self._on_find_completed(search_data.id)
            
         elif task.task_type == FileFinder._FIND_WORK_FILES_TASK_TYPE:
+            # Finished searching for work files!
             search_data.work_files = result
-            self._on_find_completed(task.id)
+            self._on_find_completed(search_data.id)
             
         elif task.task_type == FileFinder._AGGREGATE_FILES_TASK_TYPE:
+            # search is complete!
             self._on_search_complete(task.id, result)
         else:
             pass
@@ -341,26 +347,6 @@ class FileFinder(QtCore.QObject):
         """
         """
         self._on_search_failed(task.id, error)
-        
-        
-        
-    def _on_publishes_data_refreshed(self, search_id, updated):
-        """
-        """
-        search_data = self._search_data.get(search_id)
-        if not search_data:
-            return
-        
-        search_data.sg_publishes = self._publishes_model.get_sg_data()
-        
-        self._on_publishes_found(search_id)
-        
-    def _on_publishes_data_refresh_failed(self, search_id, error):
-        """
-        """
-        self._on_search_failed(search_id, error)
-        
-
 
     def _on_publishes_found(self, search_id):
         """
@@ -373,12 +359,12 @@ class FileFinder(QtCore.QObject):
             # don't have everything we need yet to build published file list!
             return
         
-        # start new task to aggregate publishes and work files together:
-        aggregate_files_task = self.start_task(search_data.id, 
-                                               FileFinder._FILTER_PUBLISHES_TASK_TYPE, 
+        # start new task to filter list of publishes:
+        filter_task = self.start_task(search_data.id, 
+                                               FileFinder._FILTER_SG_PUBLISHES_TASK_TYPE, 
                                                self._filter_publishes, search_data.sg_publishes, 
                                                search_data.publish_template, search_data.context)
-        search_data.tasks.append(aggregate_files_task)
+        search_data.tasks.append(filter_task)
         
         
     def _on_find_completed(self, search_id):
@@ -395,49 +381,13 @@ class FileFinder(QtCore.QObject):
         # start new task to aggregate publishes and work files together:
         aggregate_files_task = self.start_task(search_data.id, 
                                                FileFinder._AGGREGATE_FILES_TASK_TYPE, 
-                                               self._aggregate_files, search_data.publishes, 
-                                               search_data.publish_template, search_data.work_files, 
-                                               search_data.work_template, search_data.context)
+                                               self._aggregate_files, 
+                                               search_data.work_files, 
+                                               search_data.work_template,
+                                               search_data.publishes, 
+                                               search_data.publish_template, 
+                                               search_data.context)
         search_data.tasks.append(aggregate_files_task)
-        
-    #    
-    #################################################################################################
-    #################################################################################################
-    ## slots for shotgun model refresh/fail
-    #def _on_find_publishes_data_refreshed(self, something_changed):
-    #    """
-    #    """
-    #    # ok, now we have the publishes list we need to start a new task
-    #    # to filter them and turn them into a usable list!
-    #    
-    #
-    #def _on_find_publishes_data_refresh_failed(self, error):
-    #    """
-    #    """
-    #    search_id = 0
-    #    self._on_search_failed(search_id, error)
-    #
-    #################################################################################################
-    #################################################################################################
-    ## mechanism for building publish list:
-    #def _build_publishes_list(self):
-    #    pass
-    #
-    #def _on_process_publishes_task_completed(self, task, result):
-    #    """
-    #    """
-    #    if task.id not in self._search_results:
-    #        # no longer needed so disgard:
-    #        return        
-    #    self._search_results[task.id]["publishes"] = result
-    #    self._find_completed()
-    #
-    #def _on_process_publishes_task_failed(self, task, error):
-    #    """
-    #    """
-    #    self._on_search_failed(task.id, error)
-    #    
-
         
 
 
@@ -646,6 +596,11 @@ class FileFinder(QtCore.QObject):
         sg_fields = ["id", "description", "version_number", "image", "created_at", "created_by", "name", "path", "task"]
         sg_res = self.__app.shotgun.find(published_file_entity_type, sg_filters, sg_fields)
     
+        return self._filter_publishes(sg_res, publish_template, context)
+    
+    def _filter_publishes(self, sg_res, publish_template, context):
+        """
+        """
         # build list of publishes to send to the filter_publishes hook:
         hook_publishes = [{"sg_publish":sg_publish} for sg_publish in sg_res]
         

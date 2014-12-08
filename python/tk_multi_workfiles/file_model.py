@@ -28,6 +28,67 @@ class ModelFileItem(QtGui.QStandardItem):
     def file_item(self):
         return self._file_item
 
+overlay_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
+ShotgunOverlayWidget = overlay_widget.ShotgunOverlayWidget
+
+class FileModelOverlayWidget(ShotgunOverlayWidget):
+    """
+    """
+    
+    def __init__(self, model=None, parent=None):
+        """
+        """
+        ShotgunOverlayWidget.__init__(self, parent)
+        
+        self._model = None
+        self._connect_to_model(model)
+        
+    def set_model(self, model):
+        """
+        """
+        self.hide()
+        
+        # search for a FileModel:
+        while isinstance(model, QtGui.QAbstractProxyModel):
+            model = model.sourceModel()
+
+        if isinstance(model, FileModel):
+            self._connect_to_model(model)
+
+    def _connect_to_model(self, model):
+        """
+        """
+        if model == self._model:
+            return
+        
+        if self._model:
+            self._model.search_started.disconnect(self._on_search_started)
+            self._model.files_found.disconnect(self._on_files_found)
+            self._model.search_failed.disconnect(self._on_search_failed)
+            self._model = None
+            self.hide(hide_errors=True)            
+            
+        if model:
+            self._model = model
+            self._model.search_started.connect(self._on_search_started)
+            self._model.files_found.connect(self._on_files_found)
+            self._model.search_failed.connect(self._on_search_failed)
+            
+    def _on_search_started(self):
+        """
+        """
+        self.start_spin()
+    
+    def _on_files_found(self):
+        """
+        """
+        self.hide(hide_errors=True)
+    
+    def _on_search_failed(self, msg):
+        """
+        """
+        self.show_error_message(msg)
+
 
 class FileModel(QtGui.QStandardItemModel):
     """
@@ -71,7 +132,6 @@ class FileModel(QtGui.QStandardItemModel):
         """
         Called when the finder has found some files.
         """
-        print "FOUND FILES"
         if search_id != self._current_search_id:
             # ignore result
             return
@@ -89,51 +149,12 @@ class FileModel(QtGui.QStandardItemModel):
         """
         Called when the finder search fails for some reason!
         """
-        print "FOUND FILES FAILED: '%s'" % error
         if search_id != self._current_search_id:
             # ignore result
             return
         
         # emit signal:
         self.search_failed.emit(error)
-        
-    #def find_files(self, publish_filters, context):
-    #    """
-    #    """
-    #    # clear current file list:
-    #    self.clear()
-    #    
-    #    app = sgtk.platform.current_bundle()
-    #    try:
-    #        templates = get_templates_for_context(context, ["template_work", "template_publish"])
-    #        work_template = templates.get("template_work")
-    #        publish_template = templates.get("template_publish")
-    #    except TankError, e:
-    #        # had problems getting the work file settings for the specified context!
-    #        app.log_debug("Failed to retrieve configuration: %s" % e)
-    #        return
-    #
-    #    finder = FileFinder(sgtk.platform.current_bundle())
-    #    files = finder.find_files(work_template, publish_template, context)
-    #    print "Found %d files!" % len(files)
-    #    
-    #    # and add them to the model:
-    #    # ...
-    #    for file in files:
-    #        file_item = FileItem(file)
-    #        self.appendRow(file_item)
-    #
-    #    
-    #def _on_publishes_model_data_refreshed(self, data_changed):
-    #    """
-    #    """
-    #    if not data_changed:
-    #        return
-    #    
-    #    # update this model to say that the data has changed...
-    #    print "Found %s publishes!" % self._sg_publishes_model.rowCount()
-        
-
 
 
 

@@ -25,7 +25,7 @@ from .file_list_form import FileListForm
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 
-from .file_model import FileModel
+from .file_model import FileModel, FileModelOverlayWidget
 from .publishes_proxy_model import PublishesProxyModel
 from .work_files_proxy_model import WorkFilesProxyModel
 

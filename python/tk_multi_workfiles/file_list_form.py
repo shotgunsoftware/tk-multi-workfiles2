@@ -15,6 +15,8 @@
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
+from .file_model import FileModel, FileModelOverlayWidget
+
 from .ui.file_list_form import Ui_FileListForm
 
 class FileListForm(QtGui.QWidget):
@@ -31,8 +33,11 @@ class FileListForm(QtGui.QWidget):
         self._ui = Ui_FileListForm()
         self._ui.setupUi(self)
         
+        self._overlay_widget = FileModelOverlayWidget(parent = self._ui.view_pages)
+        
         self._ui.details_radio_btn.toggled.connect(self._on_view_toggled)
         
+                
     def _on_view_toggled(self, checked):
         """
         """
@@ -46,3 +51,5 @@ class FileListForm(QtGui.QWidget):
         """
         self._ui.file_list_view.setModel(model)
         self._ui.file_details_view.setModel(model)
+        self._overlay_widget.set_model(model)
+        
