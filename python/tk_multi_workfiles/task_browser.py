@@ -161,7 +161,9 @@ class TaskBrowserWidget(browser_widget.BrowserWidget):
                 # figure out the name to display for the task
                 task_name = "<b>Task: %s</b>" % d.get("content", "")
                 extra_fields = self._app.get_setting("task_extra_display_fields", [])
-                name_extension = ", ".join([d.get(f) for f in extra_fields])
+                extra_data = [d.get(f) for f in extra_fields]
+                name_extension = ", ".join([str(item) for item in extra_data if item != None])
+
                 if name_extension:
                     task_name = task_name + " (%s)" % name_extension
 
