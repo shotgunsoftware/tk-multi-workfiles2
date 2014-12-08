@@ -55,6 +55,10 @@ build_ui search_widget
 build_ui breadcrumb_widget
 build_ui task_widget
 
+build_ui test_form
+
+build_ui file_tile
+
 # build resources
 echo "building resources..."
 build_res resources
