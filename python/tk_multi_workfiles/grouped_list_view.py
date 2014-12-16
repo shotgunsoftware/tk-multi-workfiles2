@@ -15,6 +15,8 @@ class GroupedListView(GroupedListBase):
         GroupedListBase.__init__(self, parent)
         
         self._item_rects = {}
+        self._max_width = 0
+        self._max_height = 0
         self._rects_dirty = True
         
     def set_expanded(self, index, expand):
@@ -177,6 +179,7 @@ class GroupedListView(GroupedListBase):
         """
         self.scrollDirtyRegion(dx, dy)
         self.viewport().scroll(dx, dy)
+        self.viewport().update()
 
     def setSelection(self, selection_rect, flags):
         """
@@ -250,6 +253,7 @@ class GroupedListView(GroupedListBase):
         # make sure item rects are up to date:
         self._calculate_item_rects()
         
+        viewport_rect = self.viewport().rect()
         viewport_offset = (-self.horizontalOffset(), -self.verticalOffset())
         
         painter = QtGui.QPainter(self.viewport())
@@ -262,51 +266,49 @@ class GroupedListView(GroupedListBase):
             rect = self._get_item_rect(index)
             rect = rect.translated(viewport_offset[0], viewport_offset[1])
             
-            if (not rect.isValid() or rect.bottom() < 0 or
-                rect.y() > self.viewport().height()):
-                continue
-            
-            option = self.viewOptions()
-            option.rect = rect
-            if self.selectionModel().isSelected(index):
-                option.state |= QtGui.QStyle.State_Selected
-            if index == self.currentIndex():
-                option.state |= QtGui.QStyle.State_HasFocus
-
-            self.itemDelegate().paint(painter, option, index)
+            if (rect.isValid 
+                and rect.top() <= viewport_rect.bottom() 
+                and rect.bottom() >= viewport_rect.top()):
+                # need to paint the widget:
+                option = self.viewOptions()
+                option.rect = rect
+                if self.selectionModel().isSelected(index):
+                    option.state |= QtGui.QStyle.State_Selected
+                if index == self.currentIndex():
+                    option.state |= QtGui.QStyle.State_HasFocus
+    
+                self.itemDelegate().paint(painter, option, index)
                         
             # and draw children:
             for child_row in range(self.model().rowCount(index)):
             
                 child_index = self.model().index(child_row, 0, index)
-
                 child_rect = self._get_item_rect(child_index)
                 child_rect = child_rect.translated(viewport_offset[0], viewport_offset[1])
-                
-                if (not child_rect.isValid() or child_rect.bottom() < 0 or
-                    child_rect.y() > self.viewport().height()):
-                    continue
 
-                option = self.viewOptions()
-                option.rect = child_rect
-                if self.selectionModel().isSelected(child_index):
-                    option.state |= QtGui.QStyle.State_Selected
-                if child_index == self.currentIndex():
-                    option.state |= QtGui.QStyle.State_HasFocus                
-            
-                self.itemDelegate().paint(painter, option, child_index)
+                if (child_rect.isValid 
+                    and child_rect.top() <= viewport_rect.bottom() 
+                    and child_rect.bottom() >= viewport_rect.top()):
+                    # draw the widget!
+                    option = self.viewOptions()
+                    option.rect = child_rect
+                    if self.selectionModel().isSelected(child_index):
+                        option.state |= QtGui.QStyle.State_Selected
+                    if child_index == self.currentIndex():
+                        option.state |= QtGui.QStyle.State_HasFocus                
+                
+                    self.itemDelegate().paint(painter, option, child_index)
 
     def updateGeometries(self):
         """
         """
         self.horizontalScrollBar().setSingleStep(1)
         self.horizontalScrollBar().setPageStep(self.viewport().width())
-        self.horizontalScrollBar().setRange(0, 0)
+        self.horizontalScrollBar().setRange(0, max(0, self._max_width - self.viewport().width()))
         
         self.verticalScrollBar().setSingleStep(1)#00)# TODO - make this more intelligent!
         self.verticalScrollBar().setPageStep(self.viewport().height())
-        self.verticalScrollBar().setRange(0,
-                max(0, self._item_rects[-1][0].bottom() - self.viewport().height()))
+        self.verticalScrollBar().setRange(0, max(0, self._max_height - self.viewport().height()))
     
     def resizeEvent(self, event):
         """
@@ -351,9 +353,10 @@ class GroupedListView(GroupedListBase):
         if not self._rects_dirty:
             return
         
-        max_width = self.viewport().width()
+        viewport_width = self.viewport().width()
         
         rects = []
+        max_width = viewport_width
         
         x_pos = 0
         y_pos = 0
@@ -374,7 +377,7 @@ class GroupedListView(GroupedListBase):
             view_options = base_view_options
             
             # get the item size and calculate the rectangle the widget will need:
-            item_size = self.itemDelegate().sizeHint(view_options, index)            
+            item_size = self.itemDelegate().sizeHint(view_options, index)
             item_rect = QtCore.QRect(x_pos, y_pos, item_size.width(), item_size.height())
                         
             # update y_pos:
@@ -394,7 +397,7 @@ class GroupedListView(GroupedListBase):
                 child_item_size = self.itemDelegate().sizeHint(view_options, child_index)
                 
                 # see if it fits in the current row:
-                if x_pos == left or (x_pos + child_item_size.width()) < max_width:
+                if x_pos == left or (x_pos + (child_item_size.width() * 0.5)) < viewport_width:
                     # item will fit in the current row!
                     pass
                 else:
@@ -411,14 +414,22 @@ class GroupedListView(GroupedListBase):
                 # keep track of the tallest row item:                
                 row_height = max(row_height, child_item_rect.height())
                 x_pos += item_spacing.width() + child_item_rect.width()
+                max_width = max(child_item_rect.right(), max_width)
 
             # if needed, update y_pos:
             if row_height > 0:
                 y_pos = y_pos + row_height + item_spacing.height()
                 
             rects.append((item_rect, child_rects))
+            
+        # update all root level items to be the full width of the viewport:
+        for rect, _ in rects:
+            rect.setRight(max_width)
                 
         self._item_rects = rects
+        self._max_width = max_width
+        self._max_height = y_pos
+        
         self._rects_dirty = False
         self.viewport().update()
 

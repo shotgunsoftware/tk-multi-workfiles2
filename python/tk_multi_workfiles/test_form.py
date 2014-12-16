@@ -10,45 +10,79 @@ WidgetDelegate = shotgun_view.WidgetDelegate
 from .file_tile import FileTile
 from .group_header_widget import GroupHeaderWidget
 
-class TestItemDelegate(WidgetDelegate):
+class TestItemDelegateBase(WidgetDelegate):
     """
     """
     def __init__(self, view):
+        """
+        """
         WidgetDelegate.__init__(self, view)
         
         self._group_widget = None
-        self._grp_size = QtCore.QSize(300, 100)
+        self._group_widget_size = None
         self._item_widget = None
-        self._item_size = QtCore.QSize(300, 100)
+        self._item_widget_size = None
+    
+    # ------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------
         
-    def _get_widget(self, index, role, parent):
+    def _create_group_widget(self, parent):
+        """
+        """
+        raise NotImplementedError()
+    
+    def _create_item_widget(self, parent):
+        """
+        """
+        raise NotImplementedError()
         
-        if index.parent() == self._view.rootIndex():
-            if role == self.WIDGET_PAINT_ROLE:
-                if not self._group_widget:
-                    self._group_widget = GroupHeaderWidget(parent)
-                    self._grp_size = self._group_widget.size() 
-                return self._group_widget
-            elif role == self.WIDGET_EDIT_ROLE:
-                return GroupHeaderWidget(parent)
-        else:
-            if role == self.WIDGET_PAINT_ROLE:
-                if not self._item_widget:
-                    self._item_widget = FileTile(parent)
-                    self._item_size = self._item_widget.size()
-                return self._item_widget
-            elif role == self.WIDGET_EDIT_ROLE:
-                return FileTile(parent)
-            
-    #def _create_widget(self, parent):
-    #    """
-    #    """
-    #    return FileTile(parent)
+    # ------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------
+        
+    def _get_painter_widget(self, model_index, parent):
+        """
+        """
+        if not model_index.isValid():
+            return
+        
+        parent_index = model_index.parent()
+        if not parent_index.isValid():
+            return
+        
+        if parent_index == self.view.rootIndex():
+            # we need a group widget:
+            if not self._group_widget:
+                self._group_widget = self._create_group_widget(parent)
+                self._group_widget_size = self._group_widget.size()
+            return self._group_widget
+        elif parent_index.parent() == self.view.rootIndex():
+            # we need an item widget:
+            if not self._item_widget:
+                self._item_widget = self._create_item_widget(parent)
+                self._item_widget_size = self._item_widget.size()
+            return self._item_widget
+    
+    def _create_editor_widget(self, model_index, parent):
+        """
+        """
+        if not model_index.isValid():
+            return
+        
+        parent_index = model_index.parent()
+        if not parent_index.isValid():
+            return        
+        
+        if parent_index == self.view.rootIndex():
+            # return new group widget:  
+            return self._create_group_widget(parent)
+        elif parent_index.parent() == self.view.rootIndex():
+            # return new item widget:
+            return self._create_item_widget(parent)
     
     def _on_before_paint(self, widget, model_index, style_options):
         """
         """
-        if model_index.parent() == self._view.rootIndex():
+        if model_index.parent() == self.view.rootIndex():
             # update group widget:
             pass
         else:
@@ -64,13 +98,37 @@ class TestItemDelegate(WidgetDelegate):
     def sizeHint(self, style_options, model_index):
         """
         """
-        if model_index.parent() == self._view.rootIndex():
-            return self._grp_size
-        else:
-            if self._item_size:
-                return self._item_size
-            
-        return QtCore.QSize(300, 100)
+        if not model_index.isValid():
+            return QtCore.QSize()
+        
+        # ensure we have a painter widget for this model index:
+        self._get_painter_widget(model_index, self.view)
+        
+        parent_index = model_index.parent()
+        
+        if parent_index == self.view.rootIndex():
+            return self._group_widget_size
+        elif parent_index and parent_index.parent() == self.view.rootIndex():
+            return self._item__widget_size
+        
+        return QtCore.QSize()
+        
+        
+
+class TestItemDelegate(TestItemDelegateBase):
+
+    def __init__(self, view):
+        TestItemDelegateBase.__init__(self, view)
+
+    def _create_group_widget(self, parent):
+        """
+        """
+        return GroupHeaderWidget(parent)
+    
+    def _create_item_widget(self, parent):
+        """
+        """
+        return FileTile(parent)
 
 
 class TestModel(QtGui.QStandardItemModel):
