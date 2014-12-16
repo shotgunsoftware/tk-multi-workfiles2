@@ -45,9 +45,9 @@ class FileItem(object):
                 continue
             file_key[name] = value
         
-        # return a string representation of the sorted dictionary:
-        # e.g. "[('name', 'foo'), ('sequence', 'Sequence01'), ('shot', 'shot_010')]"
-        return str(sorted(file_key.iteritems()))
+        # return an immutable representation of the sorted dictionary:
+        # e.g. (('name', 'foo'), ('sequence', 'Sequence01'), ('shot', 'shot_010'))
+        return tuple(sorted(file_key.iteritems()))
     
     def __init__(self, path, publish_path, is_local, is_published, details, key):
         """

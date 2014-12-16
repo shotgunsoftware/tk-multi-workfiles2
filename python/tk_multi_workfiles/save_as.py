@@ -15,8 +15,6 @@ import tank
 from tank.platform.qt import QtCore, QtGui 
 from tank import TankError
 
-from pprint import pprint
-
 from .async_worker import AsyncWorker
 from .scene_operation import get_current_path, save_file, SAVE_FILE_AS_ACTION
 from .find_files import FileFinder
