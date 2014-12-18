@@ -11,14 +11,17 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_GroupHeaderWidget(object):
     def setupUi(self, GroupHeaderWidget):
         GroupHeaderWidget.setObjectName("GroupHeaderWidget")
-        GroupHeaderWidget.resize(387, 73)
+        GroupHeaderWidget.resize(395, 45)
         self.verticalLayout = QtGui.QVBoxLayout(GroupHeaderWidget)
+        self.verticalLayout.setSpacing(2)
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.expand_label = QtGui.QLabel(GroupHeaderWidget)
-        self.expand_label.setObjectName("expand_label")
-        self.horizontalLayout.addWidget(self.expand_label)
+        self.checkBox = QtGui.QCheckBox(GroupHeaderWidget)
+        self.checkBox.setText("")
+        self.checkBox.setChecked(True)
+        self.checkBox.setObjectName("checkBox")
+        self.horizontalLayout.addWidget(self.checkBox)
         self.title_label = QtGui.QLabel(GroupHeaderWidget)
         self.title_label.setObjectName("title_label")
         self.horizontalLayout.addWidget(self.title_label)
@@ -35,6 +38,5 @@ class Ui_GroupHeaderWidget(object):
 
     def retranslateUi(self, GroupHeaderWidget):
         GroupHeaderWidget.setWindowTitle(QtGui.QApplication.translate("GroupHeaderWidget", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.expand_label.setText(QtGui.QApplication.translate("GroupHeaderWidget", ">", None, QtGui.QApplication.UnicodeUTF8))
         self.title_label.setText(QtGui.QApplication.translate("GroupHeaderWidget", "Layout - Planning", None, QtGui.QApplication.UnicodeUTF8))
 

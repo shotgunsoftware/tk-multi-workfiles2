@@ -11,7 +11,7 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_FileTile(object):
     def setupUi(self, FileTile):
         FileTile.setObjectName("FileTile")
-        FileTile.resize(288, 121)
+        FileTile.resize(333, 112)
         FileTile.setStyleSheet("")
         self.horizontalLayout = QtGui.QHBoxLayout(FileTile)
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)

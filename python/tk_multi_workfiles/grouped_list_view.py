@@ -19,6 +19,11 @@ class GroupedListView(GroupedListBase):
         self._max_height = 0
         self._rects_dirty = True
         
+        self._expanded_rows = set()
+        
+        self.setEditTriggers(self.CurrentChanged)
+        #self.setMouseTracking(True)
+        
     def set_expanded(self, index, expand):
         """
         """
@@ -26,7 +31,20 @@ class GroupedListView(GroupedListBase):
             # can only expand valid root indexes!
             return 
     
-        # AD - TODO
+        # update set used to track expanded rows:
+        if expand:
+            if index.row() in self._expanded_rows:
+                return
+            self._expanded_rows.add(index.row())
+        else:
+            if index.row() not in self._expanded_rows:
+                return
+            self._expanded_rows.remove(index.row())
+    
+        # recalculate rectangles:
+        
+        # update viewport:
+    
     
     def is_expanded(self, index):
         """
@@ -34,7 +52,7 @@ class GroupedListView(GroupedListBase):
         if not index.isValid() or index.parent != self.rootIndex():
             return False
         
-        # AD - TODO
+        return index.row() in self._expanded_rows
 
         
     def setModel(self, model):
@@ -73,6 +91,7 @@ class GroupedListView(GroupedListBase):
         rect = QtCore.QRect()
         if index.isValid():
             rect = self._get_item_rect(index)
+            rect = rect.translated(-self.horizontalOffset(), -self.verticalOffset())
         return rect
     
     def isIndexHidden(self, index):
@@ -150,7 +169,13 @@ class GroupedListView(GroupedListBase):
         # no match so return model index
         return QtCore.QModelIndex()
     
-    
+    #def mouseMoveEvent(self, event):
+    #    """
+    #    """
+    #    pos = event.pos()
+    #    idx = self.indexAt(pos)
+    #    self.selectionModel().setCurrentIndex(idx, QtGui.QItemSelectionModel.NoUpdate)
+
     def moveCursor(self, cursor_action, keyboard_modifiers):
         """
         Return the index for the item that the specified cursor action will 
@@ -283,6 +308,7 @@ class GroupedListView(GroupedListBase):
             for child_row in range(self.model().rowCount(index)):
             
                 child_index = self.model().index(child_row, 0, index)
+                
                 child_rect = self._get_item_rect(child_index)
                 child_rect = child_rect.translated(viewport_offset[0], viewport_offset[1])
 

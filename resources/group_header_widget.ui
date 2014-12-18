@@ -6,20 +6,26 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>387</width>
-    <height>73</height>
+    <width>395</width>
+    <height>45</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>2</number>
+   </property>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1">
      <item>
-      <widget class="QLabel" name="expand_label">
+      <widget class="QCheckBox" name="checkBox">
        <property name="text">
-        <string>&gt;</string>
+        <string/>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
        </property>
       </widget>
      </item>

@@ -10,7 +10,7 @@ WidgetDelegate = shotgun_view.WidgetDelegate
 from .file_tile import FileTile
 from .group_header_widget import GroupHeaderWidget
 
-class TestItemDelegateBase(WidgetDelegate):
+class GroupListViewItemDelegate(WidgetDelegate):
     """
     """
     def __init__(self, view):
@@ -43,19 +43,16 @@ class TestItemDelegateBase(WidgetDelegate):
         """
         """
         if not model_index.isValid():
-            return
+            return None
         
         parent_index = model_index.parent()
-        if not parent_index.isValid():
-            return
-        
         if parent_index == self.view.rootIndex():
             # we need a group widget:
             if not self._group_widget:
                 self._group_widget = self._create_group_widget(parent)
                 self._group_widget_size = self._group_widget.size()
             return self._group_widget
-        elif parent_index.parent() == self.view.rootIndex():
+        elif parent_index.isValid() and parent_index.parent() == self.view.rootIndex():
             # we need an item widget:
             if not self._item_widget:
                 self._item_widget = self._create_item_widget(parent)
@@ -66,35 +63,16 @@ class TestItemDelegateBase(WidgetDelegate):
         """
         """
         if not model_index.isValid():
-            return
+            return None
+        
+        #print "CREATING EDITOR WIDGET"
         
         parent_index = model_index.parent()
-        if not parent_index.isValid():
-            return        
-        
         if parent_index == self.view.rootIndex():
-            # return new group widget:  
             return self._create_group_widget(parent)
-        elif parent_index.parent() == self.view.rootIndex():
-            # return new item widget:
+        elif parent_index.isValid() and parent_index.parent() == self.view.rootIndex():
             return self._create_item_widget(parent)
-    
-    def _on_before_paint(self, widget, model_index, style_options):
-        """
-        """
-        if model_index.parent() == self.view.rootIndex():
-            # update group widget:
-            pass
-        else:
-            # update item widget:
-            widget.title = model_index.data()
-            widget.selected = (style_options.state & QtGui.QStyle.State_Selected) == QtGui.QStyle.State_Selected 
             
-    def _on_before_selection(self, widget, model_index, style_options):
-        """
-        """
-        pass
-    
     def sizeHint(self, style_options, model_index):
         """
         """
@@ -105,20 +83,19 @@ class TestItemDelegateBase(WidgetDelegate):
         self._get_painter_widget(model_index, self.view)
         
         parent_index = model_index.parent()
-        
         if parent_index == self.view.rootIndex():
             return self._group_widget_size
-        elif parent_index and parent_index.parent() == self.view.rootIndex():
-            return self._item__widget_size
+        elif parent_index.isValid() and parent_index.parent() == self.view.rootIndex():
+            return self._item_widget_size
         
         return QtCore.QSize()
         
         
 
-class TestItemDelegate(TestItemDelegateBase):
+class TestItemDelegate(GroupListViewItemDelegate):
 
     def __init__(self, view):
-        TestItemDelegateBase.__init__(self, view)
+        GroupListViewItemDelegate.__init__(self, view)
 
     def _create_group_widget(self, parent):
         """
@@ -130,6 +107,29 @@ class TestItemDelegate(TestItemDelegateBase):
         """
         return FileTile(parent)
 
+    def _setup_widget(self, widget, model_index, style_options):
+        """
+        """
+        if isinstance(widget, GroupHeaderWidget):
+            # update group widget:
+            widget.label = model_index.data()
+        elif isinstance(widget, FileTile):
+            # update item widget:
+            widget.title = model_index.data()
+            widget.selected = (style_options.state & QtGui.QStyle.State_Selected) == QtGui.QStyle.State_Selected 
+
+    def _on_before_paint(self, widget, model_index, style_options):
+        """
+        """
+        self._setup_widget(widget, model_index, style_options) 
+
+    def _on_before_selection(self, widget, model_index, style_options):
+        """
+        """
+        self._setup_widget(widget, model_index, style_options)
+        
+    def setModelData(self, editor, model, model_index):
+        pass
 
 class TestModel(QtGui.QStandardItemModel):
     def __init__(self, parent=None):

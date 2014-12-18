@@ -7,6 +7,9 @@ class GroupHeaderWidget(QtGui.QWidget):
     """
     """
     
+    expand = QtCore.Signal()
+    collapse = QtCore.Signal()
+    
     def __init__(self, parent=None):
         """
         Construction
@@ -16,5 +19,13 @@ class GroupHeaderWidget(QtGui.QWidget):
         # set up the UI
         self._ui = Ui_GroupHeaderWidget()
         self._ui.setupUi(self)
+        
+    @property
+    def label(self):
+        return self._ui.title_label.text()
+    
+    @label.setter
+    def label(self, value):
+        self._ui.title_label.setText(value)
         
         
