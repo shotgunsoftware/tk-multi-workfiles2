@@ -11,9 +11,9 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_FileListForm(object):
     def setupUi(self, FileListForm):
         FileListForm.setObjectName("FileListForm")
-        FileListForm.resize(566, 479)
+        FileListForm.resize(582, 494)
         self.verticalLayout = QtGui.QVBoxLayout(FileListForm)
-        self.verticalLayout.setSpacing(2)
+        self.verticalLayout.setSpacing(-1)
         self.verticalLayout.setContentsMargins(2, 8, 2, 2)
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
@@ -22,10 +22,58 @@ class Ui_FileListForm(object):
         self.horizontalLayout.setSpacing(0)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.grid_radio_btn = QtGui.QRadioButton(FileListForm)
+        self.grid_radio_btn.setMinimumSize(QtCore.QSize(0, 0))
+        self.grid_radio_btn.setMaximumSize(QtCore.QSize(26, 16777215))
+        self.grid_radio_btn.setLayoutDirection(QtCore.Qt.RightToLeft)
+        self.grid_radio_btn.setStyleSheet("#grid_radio_btn::indicator {\n"
+"width: 26;\n"
+"height: 24;\n"
+"}\n"
+"\n"
+"#grid_radio_btn::indicator::unchecked {\n"
+"    image: url(:/tk-multi-workfiles/grid_view_unchecked.png);\n"
+"}\n"
+"\n"
+"#grid_radio_btn::indicator::unchecked::hover {\n"
+"    image: url(:/tk-multi-workfiles/grid_view_unchecked_hover.png);\n"
+"}\n"
+"\n"
+"#grid_radio_btn::indicator::checked {\n"
+"    image: url(:/tk-multi-workfiles/grid_view_checked.png);\n"
+"}\n"
+"\n"
+"#grid_radio_btn::indicator::checked::hover {\n"
+"    image: url(:/tk-multi-workfiles/grid_view_checked_hover.png);\n"
+"}")
+        self.grid_radio_btn.setText("")
+        self.grid_radio_btn.setIconSize(QtCore.QSize(20, 20))
         self.grid_radio_btn.setChecked(True)
         self.grid_radio_btn.setObjectName("grid_radio_btn")
         self.horizontalLayout.addWidget(self.grid_radio_btn)
         self.details_radio_btn = QtGui.QRadioButton(FileListForm)
+        self.details_radio_btn.setMaximumSize(QtCore.QSize(26, 16777215))
+        self.details_radio_btn.setStyleSheet("#details_radio_btn::indicator {\n"
+"width: 26;\n"
+"height: 24;\n"
+"}\n"
+"\n"
+"#details_radio_btn::indicator::unchecked {\n"
+"    image: url(:/tk-multi-workfiles/details_view_unchecked.png);\n"
+"}\n"
+"\n"
+"#details_radio_btn::indicator::unchecked::hover {\n"
+"    image: url(:/tk-multi-workfiles/details_view_unchecked_hover.png);\n"
+"}\n"
+"\n"
+"#details_radio_btn::indicator::checked {\n"
+"    image: url(:/tk-multi-workfiles/details_view_checked.png);\n"
+"}\n"
+"\n"
+"#details_radio_btn::indicator::checked::hover {\n"
+"    image: url(:/tk-multi-workfiles/details_view_checked_hover.png);\n"
+"}")
+        self.details_radio_btn.setText("")
+        self.details_radio_btn.setIconSize(QtCore.QSize(20, 20))
         self.details_radio_btn.setObjectName("details_radio_btn")
         self.horizontalLayout.addWidget(self.details_radio_btn)
         self.horizontalLayout_3.addLayout(self.horizontalLayout)
@@ -57,7 +105,7 @@ class Ui_FileListForm(object):
         self.details_page = QtGui.QWidget()
         self.details_page.setObjectName("details_page")
         self.horizontalLayout_4 = QtGui.QHBoxLayout(self.details_page)
-        self.horizontalLayout_4.setContentsMargins(0, 5, 0, 0)
+        self.horizontalLayout_4.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.file_details_view = FileDetailsView(self.details_page)
         self.file_details_view.setObjectName("file_details_view")
@@ -67,14 +115,15 @@ class Ui_FileListForm(object):
         self.verticalLayout.setStretch(1, 1)
 
         self.retranslateUi(FileListForm)
-        self.view_pages.setCurrentIndex(0)
+        self.view_pages.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(FileListForm)
 
     def retranslateUi(self, FileListForm):
         FileListForm.setWindowTitle(QtGui.QApplication.translate("FileListForm", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.grid_radio_btn.setText(QtGui.QApplication.translate("FileListForm", "Grid", None, QtGui.QApplication.UnicodeUTF8))
-        self.details_radio_btn.setText(QtGui.QApplication.translate("FileListForm", "Details", None, QtGui.QApplication.UnicodeUTF8))
+        self.grid_radio_btn.setToolTip(QtGui.QApplication.translate("FileListForm", "List view", None, QtGui.QApplication.UnicodeUTF8))
+        self.details_radio_btn.setToolTip(QtGui.QApplication.translate("FileListForm", "Details view", None, QtGui.QApplication.UnicodeUTF8))
         self.checkBox.setText(QtGui.QApplication.translate("FileListForm", "All Versions", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..file_details_view import FileDetailsView
 from ..search_widget import SearchWidget
+from . import resources_rc

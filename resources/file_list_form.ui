@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>566</width>
-    <height>479</height>
+    <width>582</width>
+    <height>494</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,7 +15,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1">
    <property name="spacing">
-    <number>2</number>
+    <number>-1</number>
    </property>
    <property name="leftMargin">
     <number>2</number>
@@ -38,8 +38,54 @@
        </property>
        <item>
         <widget class="QRadioButton" name="grid_radio_btn">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>26</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="toolTip">
+          <string>List view</string>
+         </property>
+         <property name="layoutDirection">
+          <enum>Qt::RightToLeft</enum>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">#grid_radio_btn::indicator {
+width: 26;
+height: 24;
+}
+
+#grid_radio_btn::indicator::unchecked {
+	image: url(:/tk-multi-workfiles/grid_view_unchecked.png);
+}
+
+#grid_radio_btn::indicator::unchecked::hover {
+	image: url(:/tk-multi-workfiles/grid_view_unchecked_hover.png);
+}
+
+#grid_radio_btn::indicator::checked {
+    image: url(:/tk-multi-workfiles/grid_view_checked.png);
+}
+
+#grid_radio_btn::indicator::checked::hover {
+    image: url(:/tk-multi-workfiles/grid_view_checked_hover.png);
+}</string>
+         </property>
          <property name="text">
-          <string>Grid</string>
+          <string/>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>20</width>
+           <height>20</height>
+          </size>
          </property>
          <property name="checked">
           <bool>true</bool>
@@ -48,8 +94,45 @@
        </item>
        <item>
         <widget class="QRadioButton" name="details_radio_btn">
+         <property name="maximumSize">
+          <size>
+           <width>26</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="toolTip">
+          <string>Details view</string>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">#details_radio_btn::indicator {
+width: 26;
+height: 24;
+}
+
+#details_radio_btn::indicator::unchecked {
+	image: url(:/tk-multi-workfiles/details_view_unchecked.png);
+}
+
+#details_radio_btn::indicator::unchecked::hover {
+	image: url(:/tk-multi-workfiles/details_view_unchecked_hover.png);
+}
+
+#details_radio_btn::indicator::checked {
+    image: url(:/tk-multi-workfiles/details_view_checked.png);
+}
+
+#details_radio_btn::indicator::checked::hover {
+    image: url(:/tk-multi-workfiles/details_view_checked_hover.png);
+}</string>
+         </property>
          <property name="text">
-          <string>Details</string>
+          <string/>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>20</width>
+           <height>20</height>
+          </size>
          </property>
         </widget>
        </item>
@@ -95,7 +178,7 @@ background-color: rgb(255, 128, 0);
    <item>
     <widget class="QStackedWidget" name="view_pages">
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="list_page">
       <layout class="QHBoxLayout" name="horizontalLayout_5">
@@ -109,16 +192,7 @@ background-color: rgb(255, 128, 0);
      </widget>
      <widget class="QWidget" name="details_page">
       <layout class="QHBoxLayout" name="horizontalLayout_4">
-       <property name="leftMargin">
-        <number>0</number>
-       </property>
-       <property name="topMargin">
-        <number>5</number>
-       </property>
-       <property name="rightMargin">
-        <number>0</number>
-       </property>
-       <property name="bottomMargin">
+       <property name="margin">
         <number>0</number>
        </property>
        <item>
@@ -143,6 +217,8 @@ background-color: rgb(255, 128, 0);
    <header>..file_details_view</header>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections/>
 </ui>
