@@ -44,9 +44,6 @@ class Ui_FileOpenForm(object):
         self.task_browser_tabs.setMinimumSize(QtCore.QSize(300, 0))
         self.task_browser_tabs.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.task_browser_tabs.setObjectName("task_browser_tabs")
-        self.my_tasks_form = MyTasksForm()
-        self.my_tasks_form.setObjectName("my_tasks_form")
-        self.task_browser_tabs.addTab(self.my_tasks_form, "")
         self.file_browser_tabs = FileBrowserTabs(self.splitter)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(1)
@@ -77,12 +74,10 @@ class Ui_FileOpenForm(object):
 
     def retranslateUi(self, FileOpenForm):
         FileOpenForm.setWindowTitle(QtGui.QApplication.translate("FileOpenForm", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.task_browser_tabs.setTabText(self.task_browser_tabs.indexOf(self.my_tasks_form), QtGui.QApplication.translate("FileOpenForm", "My Tasks", None, QtGui.QApplication.UnicodeUTF8))
         self.new_file_btn.setText(QtGui.QApplication.translate("FileOpenForm", "+ New File", None, QtGui.QApplication.UnicodeUTF8))
         self.cancel_btn.setText(QtGui.QApplication.translate("FileOpenForm", "Cancel", None, QtGui.QApplication.UnicodeUTF8))
         self.open_btn.setText(QtGui.QApplication.translate("FileOpenForm", "Open", None, QtGui.QApplication.UnicodeUTF8))
 
-from ..my_tasks_form import MyTasksForm
 from ..navigation_widget import NavigationWidget
 from ..breadcrumb_widget import BreadcrumbWidget
 from ..task_browser_tabs import TaskBrowserTabs

@@ -14,9 +14,10 @@ class Ui_FileListForm(object):
         FileListForm.resize(582, 494)
         self.verticalLayout = QtGui.QVBoxLayout(FileListForm)
         self.verticalLayout.setSpacing(-1)
-        self.verticalLayout.setContentsMargins(2, 8, 2, 2)
+        self.verticalLayout.setContentsMargins(2, 6, 2, 2)
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
+        self.horizontalLayout_3.setContentsMargins(2, -1, 2, -1)
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setSpacing(0)
@@ -42,9 +43,9 @@ class Ui_FileListForm(object):
 "    image: url(:/tk-multi-workfiles/grid_view_checked.png);\n"
 "}\n"
 "\n"
-"#grid_radio_btn::indicator::checked::hover {\n"
+"/*#grid_radio_btn::indicator::checked::hover {\n"
 "    image: url(:/tk-multi-workfiles/grid_view_checked_hover.png);\n"
-"}")
+"}*/")
         self.grid_radio_btn.setText("")
         self.grid_radio_btn.setIconSize(QtCore.QSize(20, 20))
         self.grid_radio_btn.setChecked(True)
@@ -69,9 +70,9 @@ class Ui_FileListForm(object):
 "    image: url(:/tk-multi-workfiles/details_view_checked.png);\n"
 "}\n"
 "\n"
-"#details_radio_btn::indicator::checked::hover {\n"
+"/*#details_radio_btn::indicator::checked::hover {\n"
 "    image: url(:/tk-multi-workfiles/details_view_checked_hover.png);\n"
-"}")
+"}*/")
         self.details_radio_btn.setText("")
         self.details_radio_btn.setIconSize(QtCore.QSize(20, 20))
         self.details_radio_btn.setObjectName("details_radio_btn")
@@ -115,7 +116,7 @@ class Ui_FileListForm(object):
         self.verticalLayout.setStretch(1, 1)
 
         self.retranslateUi(FileListForm)
-        self.view_pages.setCurrentIndex(1)
+        self.view_pages.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(FileListForm)
 
     def retranslateUi(self, FileListForm):

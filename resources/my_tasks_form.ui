@@ -6,22 +6,22 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>341</width>
-    <height>335</height>
+    <width>359</width>
+    <height>541</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,1">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1,0">
    <property name="spacing">
-    <number>2</number>
+    <number>-1</number>
    </property>
    <property name="leftMargin">
     <number>2</number>
    </property>
    <property name="topMargin">
-    <number>8</number>
+    <number>6</number>
    </property>
    <property name="rightMargin">
     <number>2</number>
@@ -30,7 +30,41 @@
     <number>2</number>
    </property>
    <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <property name="leftMargin">
+      <number>2</number>
+     </property>
+     <property name="rightMargin">
+      <number>2</number>
+     </property>
+     <item>
+      <widget class="SearchWidget" name="search_ctrl" native="true">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">#search_ctrl {
+background-color: rgb(255, 128, 0);
+}</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="MyTasksTreeView" name="task_tree"/>
+   </item>
+   <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
+     <property name="leftMargin">
+      <number>2</number>
+     </property>
+     <property name="rightMargin">
+      <number>2</number>
+     </property>
      <item>
       <widget class="QToolButton" name="toolButton">
        <property name="styleSheet">
@@ -72,24 +106,6 @@
      </item>
     </layout>
    </item>
-   <item>
-    <widget class="SearchWidget" name="search_ctrl" native="true">
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>20</height>
-      </size>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">#search_ctrl {
-background-color: rgb(255, 128, 0);
-}</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QTreeView" name="task_tree"/>
-   </item>
   </layout>
  </widget>
  <customwidgets>
@@ -98,6 +114,11 @@ background-color: rgb(255, 128, 0);
    <extends>QWidget</extends>
    <header>..search_widget</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>MyTasksTreeView</class>
+   <extends>QTreeView</extends>
+   <header>..my_tasks_tree_view</header>
   </customwidget>
  </customwidgets>
  <resources/>

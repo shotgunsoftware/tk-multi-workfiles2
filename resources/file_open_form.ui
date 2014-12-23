@@ -69,11 +69,6 @@ background-color: rgb(255, 128, 0);
         <height>16777215</height>
        </size>
       </property>
-      <widget class="MyTasksForm" name="my_tasks_form">
-       <attribute name="title">
-        <string>My Tasks</string>
-       </attribute>
-      </widget>
      </widget>
      <widget class="FileBrowserTabs" name="file_browser_tabs">
       <property name="sizePolicy">
@@ -151,12 +146,6 @@ background-color: rgb(255, 128, 0);
    <class>BreadcrumbWidget</class>
    <extends>QWidget</extends>
    <header>..breadcrumb_widget</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>MyTasksForm</class>
-   <extends>QWidget</extends>
-   <header>..my_tasks_form</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

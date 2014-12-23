@@ -42,6 +42,8 @@ class SearchWidget(QtGui.QWidget):
         style = ("QPushButton {"
                  + "border: 0px solid;"
                  + "image: url(:/tk-multi-workfiles/clear_search.png);"
+                 + "width: 16;"
+                 + "height: 16;"
                  + "}"
                  + "QPushButton::hover {"
                  + "image: url(:/tk-multi-workfiles/clear_search_hover.png);"
@@ -68,12 +70,18 @@ class SearchWidget(QtGui.QWidget):
     def _set_search_text(self, value):
         self._ui.search_edit.setText(value)
     search_text = property(_get_search_text, _set_search_text)
+
+    def set_placeholder_text(self, text):
+        """
+        """
+        self._ui.search_edit.setPlaceholderText(text)
                 
     def _on_clear_clicked(self):
         """
         """
         self._ui.search_edit.setText("")
         self.search_changed.emit("")
+        self._clear_btn.hide()
                 
     def _on_text_edited(self):
         """

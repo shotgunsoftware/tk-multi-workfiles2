@@ -23,7 +23,7 @@ class FileListForm(QtGui.QWidget):
     """
     """
     
-    def __init__(self, parent=None):
+    def __init__(self, search_label, parent=None):
         """
         Construction
         """
@@ -32,6 +32,8 @@ class FileListForm(QtGui.QWidget):
         # set up the UI
         self._ui = Ui_FileListForm()
         self._ui.setupUi(self)
+        
+        self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
         
         self._overlay_widget = FileModelOverlayWidget(parent = self._ui.view_pages)
         

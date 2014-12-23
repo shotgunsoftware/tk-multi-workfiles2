@@ -27,7 +27,7 @@ class EntityTreeForm(QtGui.QWidget):
     entity_selected = QtCore.Signal(object)
     create_new_task = QtCore.Signal()
     
-    def __init__(self, entity_model, parent=None):
+    def __init__(self, entity_model, search_label, parent=None):
         """
         Construction
         """
@@ -36,6 +36,8 @@ class EntityTreeForm(QtGui.QWidget):
         # set up the UI
         self._ui = Ui_EntityTreeForm()
         self._ui.setupUi(self)
+        
+        self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
         
         # connect up controls:
         self._ui.new_task_btn.clicked.connect(self._on_new_task)
@@ -51,7 +53,7 @@ class EntityTreeForm(QtGui.QWidget):
         # connect to the selection model for the tree view:
         selection_model = self._ui.entity_tree.selectionModel()
         if selection_model:
-            selection_model.selectionChanged.connect(self._on_selection_changed) 
+            selection_model.selectionChanged.connect(self._on_selection_changed)
         
     def _on_selection_changed(self, selected, deselected):
         """

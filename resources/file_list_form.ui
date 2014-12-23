@@ -21,7 +21,7 @@
     <number>2</number>
    </property>
    <property name="topMargin">
-    <number>8</number>
+    <number>6</number>
    </property>
    <property name="rightMargin">
     <number>2</number>
@@ -31,6 +31,12 @@
    </property>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,1,0">
+     <property name="leftMargin">
+      <number>2</number>
+     </property>
+     <property name="rightMargin">
+      <number>2</number>
+     </property>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout">
        <property name="spacing">
@@ -74,9 +80,9 @@ height: 24;
     image: url(:/tk-multi-workfiles/grid_view_checked.png);
 }
 
-#grid_radio_btn::indicator::checked::hover {
+/*#grid_radio_btn::indicator::checked::hover {
     image: url(:/tk-multi-workfiles/grid_view_checked_hover.png);
-}</string>
+}*/</string>
          </property>
          <property name="text">
           <string/>
@@ -121,9 +127,9 @@ height: 24;
     image: url(:/tk-multi-workfiles/details_view_checked.png);
 }
 
-#details_radio_btn::indicator::checked::hover {
+/*#details_radio_btn::indicator::checked::hover {
     image: url(:/tk-multi-workfiles/details_view_checked_hover.png);
-}</string>
+}*/</string>
          </property>
          <property name="text">
           <string/>
@@ -178,7 +184,7 @@ background-color: rgb(255, 128, 0);
    <item>
     <widget class="QStackedWidget" name="view_pages">
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="list_page">
       <layout class="QHBoxLayout" name="horizontalLayout_5">

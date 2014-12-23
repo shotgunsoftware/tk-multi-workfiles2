@@ -20,6 +20,7 @@ from sgtk.platform.qt import QtCore, QtGui
 
 from .ui.file_open_form import Ui_FileOpenForm
 from .entity_tree_form import EntityTreeForm
+from .my_tasks_form import MyTasksForm
 from .file_list_form import FileListForm
 
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
@@ -70,6 +71,25 @@ class FileOpenForm(QtGui.QWidget):
         """
         app = sgtk.platform.current_bundle()
         
+        if app.context.user:
+            # set up 'My Tasks':
+            filters = [["project", "is", app.context.project],
+                       ["task_assignees", "is", app.context.user]]
+            
+            model = ShotgunEntityModel("Task", filters, hierarchy=["id"], parent=self)
+            model.async_refresh()
+            
+            # create my tasks form:
+            my_tasks_form = MyTasksForm(model, self)
+            #my_tasks_form.task_selected.connect(self._on_my_task_selected)
+            self._ui.task_browser_tabs.addTab(my_tasks_form, "My Tasks")            
+        
+        #import sgtk
+        #sg = sgtk.platform.current_engine().shotgun
+        #user = sg.find_one("HumanUser", [["login", "starts_with", "Alan"]], [])
+        #sg.find("Task", [["task_assignees", "is", user]], ["project.Project.name"])
+        
+        
         # set up the task trees:
         entities = app.get_setting("entities", [])
         for ent in entities:
@@ -102,7 +122,7 @@ class FileOpenForm(QtGui.QWidget):
             model.async_refresh()
             
             # create new entity form:
-            entity_form = EntityTreeForm(model, self)
+            entity_form = EntityTreeForm(model, caption, self)
             entity_form.entity_selected.connect(self._on_entity_selected)
             self._ui.task_browser_tabs.addTab(entity_form, caption)
         
@@ -114,21 +134,21 @@ class FileOpenForm(QtGui.QWidget):
         # create the model that represents files:
         self._file_model = FileModel(self)
 
-        all_files_form = FileListForm(self)
+        all_files_form = FileListForm("All Files", self)
         self._ui.file_browser_tabs.addTab(all_files_form, "All")
         all_files_form.set_model(self._file_model)
         
         # create the workfiles proxy model & form:
         work_files_model = WorkFilesProxyModel(self)
         work_files_model.setSourceModel(self._file_model)
-        work_files_form = FileListForm(self)
+        work_files_form = FileListForm("Work Files", self)
         work_files_form.set_model(work_files_model)
         self._ui.file_browser_tabs.addTab(work_files_form, "Working")
 
         # create the publish proxy model & form:
         publishes_model = PublishesProxyModel(self)
         publishes_model.setSourceModel(self._file_model)
-        publishes_form = FileListForm(self)
+        publishes_form = FileListForm("Publishes", self)
         publishes_form.set_model(publishes_model)
         self._ui.file_browser_tabs.addTab(publishes_form, "Publishes")
         
