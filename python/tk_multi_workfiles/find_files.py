@@ -310,12 +310,43 @@ class FileFinder(object):
             # file system resolution, so just exit early insted.
             return []
         
-        # Find all versions so skip the 'version' key if it's present.  Also skip any fields that
-        # the user has configured to ignore when comparing different versions of the same file.
+        # build list of fields to ignore when looking for files:
+        skip_fields = list(self.__version_compare_ignore_fields)
+
+        # Skip any keys from work_fields that are _only_ optional in the template.  This is to
+        # ensure we find as wide a range of files as possible considering all optional keys.
+        # Note, this may be better as a general change to the paths_from_template method...
+        skip_fields += [n for n in work_fields.keys() if work_template.is_optional(n)]
+        
+        # Find all versions so skip the 'version' key if it's present:
+        skip_fields += ["version"]
+
+        # find paths:        
         work_file_paths = self.__app.sgtk.paths_from_template(work_template, 
                                                               work_fields, 
-                                                              self.__version_compare_ignore_fields + ["version"], 
+                                                              skip_fields, 
                                                               skip_missing_optional_keys=True)
+
+        # paths_from_template may have returned additional files that we don't want (aren't valid within this
+        # work area) if any of the fields were populated by the context.  Filter the list to remove these
+        # extra files.
+        filtered_paths = []
+        for p in work_file_paths:
+            # (AD) TODO - this should be optimized as it's doing 'get_fields' again 
+            # when this method returns!
+            fields = work_template.get_fields(p)
+            is_match = True
+            for wfn, wfv in work_fields.iteritems():
+                if wfn in fields:
+                    if fields[wfn] != wfv:
+                        is_match = False
+                        break
+                elif wfn not in skip_fields:
+                    is_match = False
+                    break
+            if is_match:
+                filtered_paths.append(p)
+        work_file_paths = filtered_paths
         
         # build list of work files to send to the filter_work_files hook:
         hook_work_files = [{"work_file":{"path":path}} for path in work_file_paths]
