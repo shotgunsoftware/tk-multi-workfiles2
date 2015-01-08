@@ -81,6 +81,7 @@ class SearchWidget(QtGui.QWidget):
         """
         self._ui.search_edit.setText("")
         self.search_changed.emit("")
+        self.search_edited.emit("")
         self._clear_btn.hide()
                 
     def _on_text_edited(self):

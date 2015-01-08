@@ -59,77 +59,170 @@ class ShotgunPublishedFilesModel(ShotgunModel):
             item = self.item(row, 0)
             sg_data.append(item.get_sg_data())
         return sg_data
-            
 
 
 class Task(QtCore.QRunnable, QtCore.QObject):
     """
-    Runnable task that can be used with QThreadPool and emits signals on
-    completion/failure
     """
-    
     completed = QtCore.Signal(object, object)
     failed = QtCore.Signal(object, object)
-    
-    def __init__(self, id, task_type, func, *args, **kwargs):
+    skipped = QtCore.Signal(object)
+
+    _next_task_id = 0
+    def __init__(self, func, upstream_tasks=None, **kwargs):
         """
         """
         QtCore.QRunnable.__init__(self)
         QtCore.QObject.__init__(self)
-                
-        self._id = id
-        self._task_type = task_type
         
         self._func = func
-        self._args = args
-        self._kwargs = kwargs
+        self._input_kwargs = kwargs
+                
+        self._upstream_tasks = []
+        upstream_tasks = upstream_tasks or []
+        for task in upstream_tasks:
+            self.add_upstream_task(task)
+                
+        task_id = Task._next_task_id
+        Task._next_task_id = Task._next_task_id + 1
+        self._id = task_id
         
         self._mutex = QtCore.QMutex()
         self._is_runnable = True
+        self._is_queued = False 
+        
+    def __repr__(self):
+        return "%s -> %s" % (self._id, self._upstream_tasks)
         
     @property
     def id(self):
         return self._id
-    
-    @property
-    def task_type(self):
-        return self._task_type
-        
+
     # @property
     def _get_is_runnable(self):
+        self._mutex.lock()
         try:
-            self._mutex.lock()
             return self._is_runnable
         finally:
             self._mutex.unlock()
     # @is_runnable.setter
     def _set_is_runnable(self, value):
+        self._mutex.lock()
         try:
-            self._mutex.lock()
             self._is_runnable = value
         finally:
             self._mutex.unlock()
-    is_runnable=property(_get_is_runnable, _set_is_runnable)        
+    is_runnable=property(_get_is_runnable, _set_is_runnable)  
+        
+    def start(self):
+        """
+        """
+        if self._upstream_tasks:
+            for task in self._upstream_tasks:
+                task.start()
+        else:
+            should_start = False
+            self._mutex.lock()
+            try:
+                if not self._is_queued:
+                    should_start = True
+                    self._is_queued = True
+            finally:
+                self._mutex.unlock()
+                
+            if should_start:
+                #print "Starting task [%s] %s" % (self.id, self._func.__name__)
+                QtCore.QThreadPool.globalInstance().start(self)
+    
+    def stop(self):
+        """
+        """
+        for task in self._upstream_tasks:
+            task.stop()
+        # just use a flag to indicate that this task shouldn't be run!
+        self.is_runnable = False
         
     def autoDelete(self):
         """
         """
-        return False
-    
+        # always let Python manage the lifetime of these objects!
+        return False        
+        
+    def add_upstream_task(self, task):
+        """
+        """
+        if task not in self._upstream_tasks:
+            self._upstream_tasks.append(task)
+            task.completed.connect(self._on_upstream_task_completed)
+            task.failed.connect(self._on_upstream_task_failed)
+            task.skipped.connect(self._on_upstream_task_skipped)
+        
+    def _on_upstream_task_completed(self, task, result):
+        """
+        """
+        if task not in self._upstream_tasks:
+            return
+        
+        #print "[%s] %s completed, res: %s" % (task.id, task._func.__name__, result)
+
+        # disconnect from this task:
+        self._upstream_tasks.remove(task)
+        
+        # append result to input args for this task:
+        self._input_kwargs = dict(self._input_kwargs.items() + result.items())
+        
+        # if we have no more upstream tasks left then we can add this task to be processed:
+        if not self._upstream_tasks:
+            #print "Upstream tasks completed - starting task [%s] %s with args %s" % (self.id, self._func.__name__, self._input_kwargs.keys())
+            
+            # ok, so now we're ready to start this task!
+            QtCore.QThreadPool.globalInstance().start(self)
+        
+    def _on_upstream_task_failed(self, task, msg):
+        """
+        """
+        if task not in self._upstream_tasks:
+            return
+
+        # clear out upstream tasks:
+        self._upstream_tasks = []
+        
+        # if any upstream task failed then this task has also failed!
+        self.failed.emit(self, msg)
+
+    def _on_upstream_task_skipped(self, task):
+        """
+        """
+        if task not in self._upstream_tasks:
+            return
+
+        # clear out upstream tasks:
+        self._upstream_tasks = []
+        
+        # if any upstream task was skipped then this task will also be skipped!
+        self.skipped.emit(self)
+
     def run(self):
         """
         """
         if not self.is_runnable:
             # just skip this task
+            self.skipped.emit(self)
             return
         
         try:
             # run the function with the provided args
-            result = self._func(*self._args, **self._kwargs)
+            result = self._func(**self._input_kwargs) or {}
+            if not isinstance(result, dict):
+                # unsupported result type!
+                raise TankError("Non-dictionary result type '%s' returned from function '%s'!" 
+                                % (type(result), self._func.__name__))
+                
             self.completed.emit(self, result)
         except Exception, e:
             tb = traceback.format_exc()
             self.failed.emit(self, "%s, %s" % (str(e), tb))
+
 
 class FileFinder(QtCore.QObject):
     """
@@ -138,36 +231,6 @@ class FileFinder(QtCore.QObject):
     
     search_failed = QtCore.Signal(object, object)
     files_found = QtCore.Signal(object, object) # search_id, file_list
-    
-    class SearchData(object):
-        """
-        """
-        __next_search_id = 0
-        
-        def __init__(self, context):
-            self._id = FileFinder.SearchData.__next_search_id
-            FileFinder.SearchData.__next_search_id += 1
-
-            self.tasks = []
-            #self.sg_model = None
-            
-            self.context = context 
-            self.work_template = None
-            self.publish_template = None
-            
-            self.sg_publishes = None
-            self.publishes = None
-            self.work_files = None
-            
-        @property
-        def id(self):
-            return self._id
-    
-    _FIND_TEMPLATES_TASK_TYPE = "find_templates"
-    _FIND_SG_PUBLISHES_TASK_TYPE = "find_sg_publishes"
-    _FILTER_SG_PUBLISHES_TASK_TYPE = "filter_sg_publishes"
-    _FIND_WORK_FILES_TASK_TYPE = "find_work_files"
-    _AGGREGATE_FILES_TASK_TYPE = "aggregate_files"
     
     def __init__(self, app=None, user_cache=None, parent=None):
         """
@@ -188,208 +251,133 @@ class FileFinder(QtCore.QObject):
         # and cache any fields that should be ignored when comparing work files:
         self.__version_compare_ignore_fields = self.__app.get_setting("version_compare_ignore_fields", [])
         
-        self._next_search_id = 0
-        self._search_data = {}
-        
-    def start_task(self, search_id, task_type, func, *args, **kwargs):
-        """
-        """        
-        task = Task(search_id, task_type, func, *args, **kwargs)
-        task.completed.connect(self._on_task_completed)
-        task.failed.connect(self._on_task_failed)
-        QtCore.QThreadPool.globalInstance().start(task)
-        return task
-        
+        self._searches = {}
+     
     def begin_search(self, publish_filters, context, force=False):
         """
         [publishes from Shotgun] ->  
                 [find_templates] -> [build publishes list] ->
                                  -> [find work files]      -> [aggregate files]        
         """
-        search_data = FileFinder.SearchData(context)
-        self._search_data[search_data.id] = search_data
+        # build task chain for search:
+        find_templates_task = Task(self._task_find_templates, 
+                                   context=context)
         
-        # start the task to find the work and publish templates for the specified context:
-        find_templates_task = self.start_task(search_data.id, 
-                                              FileFinder._FIND_TEMPLATES_TASK_TYPE, 
-                                              self._find_templates, context)
-        search_data.tasks.append(find_templates_task)
+        find_sg_publishes_task = Task(self._task_find_publishes,
+                                      upstream_tasks = [find_templates_task], 
+                                      publish_filters=publish_filters, 
+                                      force=force)
+        
+        find_work_files_task = Task(self._task_find_work_files, 
+                                    upstream_tasks = [find_templates_task], 
+                                    context=context)
+        
+        filter_publishes_task = Task(self._task_filter_publishes, 
+                                     upstream_tasks = [find_templates_task, find_sg_publishes_task])
+        
+        aggregate_files_task = Task(self._task_aggregate_files,
+                                    upstream_tasks = [find_templates_task, find_work_files_task, filter_publishes_task],
+                                    context = context)
+        
+        # we only care about when the final task completes or fails:
+        aggregate_files_task.completed.connect(self._on_search_completed)
+        aggregate_files_task.failed.connect(self._on_search_failed)
+        
+        # keep track of the search:
+        self._searches[aggregate_files_task.id] = aggregate_files_task
+        
+        print "----------------------------------------------"
+        print "----------------------------------------------"
+        print "Beginning search [%s] for ctx '%s' with filters: %s" % (aggregate_files_task.id, context, publish_filters)
+        
+        # start the first tasks:
+        aggregate_files_task.start()
 
-        # start the task to finding publishes in Shotgun:
-        find_publishes_task = self.start_task(search_data.id, 
-                                              FileFinder._FIND_SG_PUBLISHES_TASK_TYPE, 
-                                              self._find_publishes, publish_filters, force)
-        search_data.tasks.append(find_publishes_task)
-            
-        return search_data.id
-    
+        return aggregate_files_task.id
+
     def stop_search(self, search_id):
         """
         """
-        search_data = self._search_data.get(search_id)
-        if search_data:
-            # stop any currently running tasks:
-            for task in search_data.tasks:
-                task.is_runnable = False
-                #task.completed.disconnect(self._on_task_completed)
-                #task.failed.disconnect(self._on_task_failed)
-            
-            del(self._search_data[search_id])
+        search_task = self._searches.get(search_id)
+        if search_task:
+            #search_task.completed.disconnect(self._on_search_completed)
+            #search_task.failed.disconnect(self._on_search_failed)
+            search_task.stop()
+            del (self._searches[search_id])
     
-    def stop_all_searches(self, search_id):
+    def stop_all_searches(self):
         """
         """
-        for id in self._search_data.keys():
+        for id in self._searches.keys():
             self.stop_search(id)
     
-    def _on_search_failed(self, search_id, error):
+    def _on_search_failed(self, task, msg):
         """
         """
         # clean up search intermediate data:
-        self.stop_search(search_id)
+        self.stop_search(task.id)
         
         # emit signal:
-        self.search_failed.emit(search_id, error)
+        self.search_failed.emit(task.id, msg)
         
-    def _on_search_complete(self, search_id, files):
+    def _on_search_completed(self, task, result):
         """
         """
         # clean up search intermediate data:
-        self.stop_search(search_id)
+        self.stop_search(task.id)
         
         # emit signal:
-        self.files_found.emit(search_id, files)
+        self.files_found.emit(task.id, result.get("files", []))
         
     ################################################################################################
     ################################################################################################
     
-    def _find_templates(self, context):
+    def _task_find_templates(self, context, **kwargs):
         """
         """
         try:
             templates = get_templates_for_context(self.__app, context, ["template_work", "template_publish"])
             work_template = templates.get("template_work")
             publish_template = templates.get("template_publish")
-            return (work_template, publish_template)
+            return {"work_template":work_template, "publish_template":publish_template}
         except TankError, e:
             # had problems getting the work file settings for the specified context!
             raise
     
-    def _find_publishes(self, publish_filters, force):
+    def _task_find_publishes(self, publish_filters, publish_template, force, **kwargs):
         """
         """
-        model = ShotgunPublishedFilesModel(self)
-        # start the process of finding publishes in Shotgun:
-        fields = ["id", "description", "version_number", "image", "created_at", "created_by", "name", "path", "task"]
-        loaded_data = model.load_data(filters = publish_filters, fields = fields)
-        if not loaded_data or force:
-            # refresh data from Shotgun:
-            model.refresh()
-
-        sg_publishes = model.get_sg_data()
-        return sg_publishes
+        sg_publishes = []
+        if publish_filters and publish_template:
+            sg_publishes = self._find_publishes(publish_filters, force)
+        return {"sg_publishes":sg_publishes}
     
-    def _find_work_files(self, context, work_template):
+    def _task_find_work_files(self, context, work_template, **kwargs):
         """
         """
-        return self.__find_work_files(context, work_template)
-
-    def _on_task_completed(self, task, result):
-        """
-        """
-        search_data = self._search_data.get(task.id)
-        if not search_data:
-            return
-        
-        if task.task_type == FileFinder._FIND_TEMPLATES_TASK_TYPE:
-            # Find templates task completed
-            search_data.work_template, search_data.publish_template = result
-            
-            # start task to find work files:
-            find_files_task = self.start_task(search_data.id, 
-                                              FileFinder._FIND_WORK_FILES_TASK_TYPE, 
-                                              self._find_work_files, search_data.context, search_data.work_template)
-            search_data.tasks.append(find_files_task)
-            
-            # trigger publishes found path:
-            self._on_publishes_found(search_data.id)
-          
-        elif task.task_type == FileFinder._FIND_SG_PUBLISHES_TASK_TYPE:
-            # Finished searching for SG publish records. 
-            search_data.sg_publishes = result
-            if not search_data.sg_publishes:
-                # no sg publshes so no publishes, skip the filter step:
-                search_data.publishes = []
-                self._on_find_completed(search_data.id)
-            else:
-                # trigger publishes found path:
-                self._on_publishes_found(search_data.id)
-           
-        elif task.task_type == FileFinder._FILTER_SG_PUBLISHES_TASK_TYPE:
-            # Finished filtering raw SG publishes
-            search_data.publishes = result
-           
-            # trigger publishes found path:
-            self._on_find_completed(search_data.id)
-           
-        elif task.task_type == FileFinder._FIND_WORK_FILES_TASK_TYPE:
-            # Finished searching for work files!
-            search_data.work_files = result
-            self._on_find_completed(search_data.id)
-            
-        elif task.task_type == FileFinder._AGGREGATE_FILES_TASK_TYPE:
-            # search is complete!
-            self._on_search_complete(task.id, result)
-        else:
-            pass
+        work_files = []
+        if context and work_template:
+            work_files = self._find_work_files(context, work_template)
+        return {"work_files":work_files}
     
-    def _on_task_failed(self, task, error):
+    def _task_filter_publishes(self, sg_publishes, publish_template, **kwargs):
         """
         """
-        self._on_search_failed(task.id, error)
+        filtered_publishes = []
+        if sg_publishes and publish_template:
+            filtered_publishes = self._filter_publishes(sg_publishes, publish_template)
+        return {"sg_publishes":filtered_publishes}
 
-    def _on_publishes_found(self, search_id):
+    def _task_aggregate_files(self, work_files, work_template, sg_publishes, publish_template, context, **kwargs):
         """
         """
-        search_data = self._search_data.get(search_id)
-        if not search_data:
-            return
-        
-        if not search_data.sg_publishes or not search_data.publish_template:
-            # don't have everything we need yet to build published file list!
-            return
-        
-        # start new task to filter list of publishes:
-        filter_task = self.start_task(search_data.id, 
-                                               FileFinder._FILTER_SG_PUBLISHES_TASK_TYPE, 
-                                               self._filter_publishes, search_data.sg_publishes, 
-                                               search_data.publish_template, search_data.context)
-        search_data.tasks.append(filter_task)
-        
-        
-    def _on_find_completed(self, search_id):
-        """
-        """
-        search_data = self._search_data.get(search_id)
-        if not search_data:
-            return
-        
-        if search_data.publishes == None or search_data.work_files == None:
-            # both searches haven't finished yet so can't aggregate!
-            return
+        files = []
+        if sg_publishes or work_files:
+            files = self._aggregate_files(work_files, work_template, sg_publishes, publish_template, context) 
+        return {"files":files}
 
-        # start new task to aggregate publishes and work files together:
-        aggregate_files_task = self.start_task(search_data.id, 
-                                               FileFinder._AGGREGATE_FILES_TASK_TYPE, 
-                                               self._aggregate_files, 
-                                               search_data.work_files, 
-                                               search_data.work_template,
-                                               search_data.publishes, 
-                                               search_data.publish_template, 
-                                               search_data.context)
-        search_data.tasks.append(aggregate_files_task)
-        
-
+    ################################################################################################
+    ################################################################################################
 
     def find_files(self, work_template, publish_template, context, filter_file_key=None):
         """
@@ -408,18 +396,28 @@ class FileFinder(QtCore.QObject):
         if not work_template:
             return []
     
+        # determien the publish filters to use from the context:
+        publish_filters = [["entity", "is", context.entity or context.project]]
+        if context.task:
+            publish_filters.append(["task", "is", context.task])
+        else:
+            publish_filters.append(["task", "is", None])
+    
         # find all work & publish files and filter out any that should be ignored:
-        work_files = self.__find_work_files(context, work_template)
-        published_files = self.__find_publishes(context, publish_template)
+        work_files = self._find_work_files(context, work_template)
+        sg_publishes = self._find_publishes(publish_filters)
+        published_files = self._filter_publishes(sg_publishes, publish_template)
         
+        # return the aggregated list of all files:
         return self._aggregate_files(work_files, work_template, published_files, publish_template, context, filter_file_key)
 
-    def _aggregate_files(self, work_files, work_template, published_files, publish_template, context, filter_file_key=None):
+    def _aggregate_files(self, work_files, work_template, sg_publishes, publish_template, context, 
+                         filter_file_key=None):
         """
         """
 
         work_files = [wf for wf in work_files if not self.__ignore_file_path(wf["path"])]
-        published_files = [pf for pf in published_files if not self.__ignore_file_path(pf["path"])]
+        sg_publishes = [pf for pf in sg_publishes if not self.__ignore_file_path(pf["path"])]
                 
         # now amalgamate the two lists together:
         files = {}
@@ -494,11 +492,11 @@ class FileFinder(QtCore.QObject):
         # and add in publish details:
         ctx_fields = context.as_template_fields(work_template)
                     
-        for published_file in published_files:
+        for sg_publish in sg_publishes:
             file_details = {}
     
             # always have a path:
-            publish_path = published_file["path"]
+            publish_path = sg_publish["path"]
             
             # determine the work path fields from the publish fields + ctx fields:
             # The order is important as it ensures that the user is correct if the 
@@ -521,9 +519,9 @@ class FileFinder(QtCore.QObject):
             # resolve the work path:
             work_path = work_template.apply_fields(wp_fields)
             
-            # copy common fields from published_file:
+            # copy common fields from sg_publish:
             #
-            file_details = dict([(k, v) for k, v in published_file.iteritems() if k != "path"])
+            file_details = dict([(k, v) for k, v in sg_publish.iteritems() if k != "path"])
             
             # get version from fields if not specified in publish file:
             if file_details["version"] == None:
@@ -555,8 +553,8 @@ class FileFinder(QtCore.QObject):
                     file_details["modified_by"] = self.__user_cache.get_file_last_modified_user(publish_path)
                 else:
                     # just use the publish info
-                    file_details["modified_at"] = published_file.get("published_at")
-                    file_details["modified_by"] = published_file.get("published_by")
+                    file_details["modified_at"] = sg_publish.get("published_at")
+                    file_details["modified_by"] = sg_publish.get("published_by")
     
             # make sure all files with the same key have the same name:
             update_name_map = True
@@ -579,14 +577,23 @@ class FileFinder(QtCore.QObject):
         # return list of FileItems
         return files.values()
     
-    def __find_publishes(self, context, publish_template):
+    def _find_publishes(self, publish_filters, force=True):
         """
         Find all publishes for the specified context and publish template
         
         :param context:             The context to find publishes for
-        :param publish_template:    The publish template to match found publishes against
         :returns:                   List of dictionaries, each one containing the details
                                     of an individual published file
+        """
+        model = ShotgunPublishedFilesModel(self)
+        # start the process of finding publishes in Shotgun:
+        fields = ["id", "description", "version_number", "image", "created_at", "created_by", "name", "path", "task"]
+        loaded_data = model.load_data(filters = publish_filters, fields = fields)
+        if not loaded_data or force:
+            # refresh data from Shotgun:
+            model.refresh()
+        
+        sg_publishes = model.get_sg_data()
         """
         # get list of published files for the context from Shotgun:
         sg_filters = [["entity", "is", context.entity or context.project]]
@@ -594,15 +601,15 @@ class FileFinder(QtCore.QObject):
             sg_filters.append(["task", "is", context.task])
         published_file_entity_type = sgtk.util.get_published_file_entity_type(self.__app.sgtk)
         sg_fields = ["id", "description", "version_number", "image", "created_at", "created_by", "name", "path", "task"]
-        sg_res = self.__app.shotgun.find(published_file_entity_type, sg_filters, sg_fields)
+        sg_publishes = self.__app.shotgun.find(published_file_entity_type, sg_filters, sg_fields)
+        """
+        return sg_publishes
     
-        return self._filter_publishes(sg_res, publish_template, context)
-    
-    def _filter_publishes(self, sg_res, publish_template, context):
+    def _filter_publishes(self, sg_publishes, publish_template):
         """
         """
         # build list of publishes to send to the filter_publishes hook:
-        hook_publishes = [{"sg_publish":sg_publish} for sg_publish in sg_res]
+        hook_publishes = [{"sg_publish":sg_publish} for sg_publish in sg_publishes]
         
         # execute the hook - this will return a list of filtered publishes:
         hook_result = self.__app.execute_hook("hook_filter_publishes", publishes = hook_publishes)
@@ -653,7 +660,7 @@ class FileFinder(QtCore.QObject):
         return published_files
     
         
-    def __find_work_files(self, context, work_template):
+    def _find_work_files(self, context, work_template):
         """
         Find all work files for the specified context and work template
         

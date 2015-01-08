@@ -11,7 +11,7 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_EntityTreeForm(object):
     def setupUi(self, EntityTreeForm):
         EntityTreeForm.setObjectName("EntityTreeForm")
-        EntityTreeForm.resize(353, 334)
+        EntityTreeForm.resize(354, 357)
         self.verticalLayout = QtGui.QVBoxLayout(EntityTreeForm)
         self.verticalLayout.setSpacing(-1)
         self.verticalLayout.setContentsMargins(2, 6, 2, 6)
@@ -28,8 +28,24 @@ class Ui_EntityTreeForm(object):
         self.horizontalLayout_2.addWidget(self.search_ctrl)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
         self.entity_tree = QtGui.QTreeView(EntityTreeForm)
+        self.entity_tree.setStyleSheet("QTreeView::item {\n"
+"padding: 2px;\n"
+"}\n"
+"\n"
+"QTreeView::branch:has-children:!has-siblings:closed,\n"
+"QTreeView::branch:closed:has-children:has-siblings  {\n"
+"        border-image: none;\n"
+"        image: url(:/tk-multi-workfiles/tree_arrow_collapsed.png);\n"
+"}\n"
+" \n"
+"QTreeView::branch:open:has-children:!has-siblings,\n"
+"QTreeView::branch:open:has-children:has-siblings   {\n"
+"        border-image: none;\n"
+"        image: url(:/tk-multi-workfiles/tree_arrow_expanded.png);\n"
+"}")
         self.entity_tree.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
         self.entity_tree.setProperty("showDropIndicator", False)
+        self.entity_tree.setIconSize(QtCore.QSize(20, 20))
         self.entity_tree.setObjectName("entity_tree")
         self.entity_tree.header().setVisible(False)
         self.verticalLayout.addWidget(self.entity_tree)
@@ -56,3 +72,4 @@ class Ui_EntityTreeForm(object):
         self.new_task_btn.setText(QtGui.QApplication.translate("EntityTreeForm", "+ New Task", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..search_widget import SearchWidget
+from . import resources_rc

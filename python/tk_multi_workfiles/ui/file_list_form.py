@@ -11,7 +11,7 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_FileListForm(object):
     def setupUi(self, FileListForm):
         FileListForm.setObjectName("FileListForm")
-        FileListForm.resize(582, 494)
+        FileListForm.resize(658, 635)
         self.verticalLayout = QtGui.QVBoxLayout(FileListForm)
         self.verticalLayout.setSpacing(-1)
         self.verticalLayout.setContentsMargins(2, 6, 2, 2)
@@ -99,7 +99,7 @@ class Ui_FileListForm(object):
         self.horizontalLayout_5 = QtGui.QHBoxLayout(self.list_page)
         self.horizontalLayout_5.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
-        self.file_list_view = QtGui.QListView(self.list_page)
+        self.file_list_view = QtGui.QTreeView(self.list_page)
         self.file_list_view.setObjectName("file_list_view")
         self.horizontalLayout_5.addWidget(self.file_list_view)
         self.view_pages.addWidget(self.list_page)

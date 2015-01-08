@@ -10,7 +10,7 @@
 
 
 from sgtk.platform.qt import QtGui, QtCore
-
+from file_model import ModelFileItem
 
 class PublishesProxyModel(QtGui.QSortFilterProxyModel):
     """
@@ -30,5 +30,8 @@ class PublishesProxyModel(QtGui.QSortFilterProxyModel):
         else:
             item = self.sourceModel().itemFromIndex(self.sourceModel().index(source_row, 0))
         
-        return (item and item.file_item.is_published) or False
+        if not isinstance(item, ModelFileItem):
+            return True
+        else:
+            return (item and item.file_item.is_published) or False
         

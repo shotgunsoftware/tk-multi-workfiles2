@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>353</width>
-    <height>334</height>
+    <width>354</width>
+    <height>357</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -56,11 +56,34 @@ background-color: rgb(255, 128, 0);
    </item>
    <item>
     <widget class="QTreeView" name="entity_tree">
+     <property name="styleSheet">
+      <string notr="true">QTreeView::item {
+padding: 2px;
+}
+
+QTreeView::branch:has-children:!has-siblings:closed,
+QTreeView::branch:closed:has-children:has-siblings  {
+        border-image: none;
+		image: url(:/tk-multi-workfiles/tree_arrow_collapsed.png);
+}
+ 
+QTreeView::branch:open:has-children:!has-siblings,
+QTreeView::branch:open:has-children:has-siblings   {
+        border-image: none;
+		image: url(:/tk-multi-workfiles/tree_arrow_expanded.png);
+}</string>
+     </property>
      <property name="editTriggers">
       <set>QAbstractItemView::NoEditTriggers</set>
      </property>
      <property name="showDropIndicator" stdset="0">
       <bool>false</bool>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>20</width>
+       <height>20</height>
+      </size>
      </property>
      <attribute name="headerVisible">
       <bool>false</bool>
@@ -114,6 +137,8 @@ background-color: rgb(255, 128, 0);
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

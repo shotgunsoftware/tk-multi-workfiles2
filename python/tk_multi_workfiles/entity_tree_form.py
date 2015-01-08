@@ -40,20 +40,29 @@ class EntityTreeForm(QtGui.QWidget):
         self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
         
         # connect up controls:
+        self._ui.search_ctrl.search_edited.connect(self._on_search_changed)      
         self._ui.new_task_btn.clicked.connect(self._on_new_task)
         
         # create the overlay 'busy' widget:
         self._overlay_widget = overlay_module.ShotgunModelOverlayWidget(None, self._ui.entity_tree)
         self._overlay_widget.set_model(entity_model)
 
-        self._proxy_model = EntityProxyModel(self)
-        self._proxy_model.setSourceModel(entity_model)
-        self._ui.entity_tree.setModel(self._proxy_model)
+        # create a filter proxy model between the source model and the task tree view:
+        self._filter_model = EntityProxyModel(["content", {"entity":"name"}], self)
+        self._filter_model.setSourceModel(entity_model)
+        self._ui.entity_tree.setModel(self._filter_model)
 
         # connect to the selection model for the tree view:
         selection_model = self._ui.entity_tree.selectionModel()
         if selection_model:
             selection_model.selectionChanged.connect(self._on_selection_changed)
+
+    def _on_search_changed(self, search_text):
+        """
+        """
+        # update the proxy filter search text:
+        filter_reg_exp = QtCore.QRegExp(search_text, QtCore.Qt.CaseInsensitive, QtCore.QRegExp.FixedString)
+        self._filter_model.setFilterRegExp(filter_reg_exp)
         
     def _on_selection_changed(self, selected, deselected):
         """
@@ -64,7 +73,7 @@ class EntityTreeForm(QtGui.QWidget):
         if len(selected_indexes) == 1:
             # extract the selected model index from the selection:
             proxy_index = selected_indexes[0]
-            selected_index = self._proxy_model.mapToSource(proxy_index)
+            selected_index = self._filter_model.mapToSource(proxy_index)
             
         # emit selection_changed signal:            
         self.entity_selected.emit(selected_index)

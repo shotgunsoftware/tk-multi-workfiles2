@@ -1,5 +1,7 @@
 <RCC>
   <qresource prefix="tk-multi-workfiles">
+    <file>tree_arrow_expanded.png</file>
+    <file>tree_arrow_collapsed.png</file>
     <file>clear_search_hover.png</file>
     <file>clear_search.png</file>
     <file>details_view_checked_hover.png</file>
