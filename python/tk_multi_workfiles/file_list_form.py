@@ -37,6 +37,7 @@ class FileListForm(QtGui.QWidget):
         
         self._overlay_widget = FileModelOverlayWidget(parent = self._ui.view_pages)
         
+        self._ui.details_radio_btn.setEnabled(False) # (AD) - temp
         self._ui.details_radio_btn.toggled.connect(self._on_view_toggled)
         
                 

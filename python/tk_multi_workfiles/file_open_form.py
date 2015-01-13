@@ -409,31 +409,47 @@ class FileOpenForm(QtGui.QWidget):
         """
 
         print "A"
+
         model = entity_item.model()
+        model_entity_type = model.get_entity_type()
 
-        # Extract information from the model based on selection that is needed to populate the 
-        # file views.  This will be the current item + children where the children will either be
-        # represented as 'folders' or as leaf items of groups of files.
-
-        item_details = self._get_details_for_item(entity_item)
+        # extract the search details from this item that will be used to search for files:
+        item_details = self._get_search_details_for_item(entity_item)
         
+        # now iterate over immediate children finding search details for them.  There is a special
+        # case handling for Step children that have immediate Task children
         for ri in range(entity_item.rowCount()):
             child_item = entity_item.child(ri)
-            child_details = self._get_details_for_item(child_item)
+            child_details = self._get_search_details_for_item(child_item)
 
-            collapsed_to_grandchildren = False            
-            if child_details.entity and child_details.entity["type"] == "Step" and child_item.hasChildren():
+            collapsed_steps = False
+            if child_details.step and not child_details.entity and not child_details.is_leaf:
+                # child is a Step and not a leaf so special case if grandchildren are leaf tasks 
+                # as we can collapse step and task together:
+                for cri in range(child_item.rowCount()):
+                    grandchild_item = child_item.child(cri)
+                    grandchild_details = self._get_search_details_for_item(grandchild_item)
+                    if (grandchild_details.is_leaf 
+                        and not grandchild_details.entity 
+                        and grandchild_details.task):
+                        # have a leaf level task under a step!
+                        grandchild_details.name = "%s - %s" % (child_details.name(), grandchild_details.name())
+                        item_details.children.append(grandchild_details)
+                        collapsed_steps = True
+
+            """            
+            if child_details.entity and child_details.entity["type"] == "Step" and model_entity_type != "Step":
                 # special case if grandchildren are leaf tasks as we can collapse step and task together:
                 for cri in range(child_item.rowCount()):
                     grandchild_item = child_item.child(cri)
                     
-                    grandchild_details = self._get_details_for_item(grandchild_item)
+                    grandchild_details = self._get_search_details_for_item(grandchild_item)
                     if grandchild_details.entity and grandchild_details.entity["type"] == "Task":
                         grandchild_details.name = "%s - %s" % (child_item.text(), grandchild_item.text())
                         item_details.children.append(grandchild_details)
                         collapsed_to_grandchildren = True
-            
-            if not collapsed_to_grandchildren:
+            """
+            if not collapsed_steps:
                 item_details.children.append(child_details)
 
         print item_details
@@ -452,13 +468,14 @@ class FileOpenForm(QtGui.QWidget):
 
         
 
-    def _get_details_for_item(self, item):
+    def _get_search_details_for_item(self, item):
         """
         """
         app = sgtk.platform.current_bundle()
         
         class _Details(object):
             def __init__(self, item):
+                """
                 self.item = item
                 self.entity = None
                 self.entity_filter = None
@@ -466,25 +483,81 @@ class FileOpenForm(QtGui.QWidget):
                 self.children = []
                 self.name = item.text()
                 self.context = None
+                """
+                self.item = item
+                self.entity = None
+                self.task = None
+                self.step = None
+                self.is_leaf = False
+                self.children = []
+
+            @property
+            def name(self):
+                return self.item.text()
                 
             def __repr__(self):
+                return ("%s\n"
+                        " - Entity: %s\n"
+                        " - Task: %s\n"
+                        " - Step: %s\n"
+                        " - Is leaf: %s\n%s"
+                        % (self.name, self.entity, self.task, self.step, self.is_leaf, self.children))
+                """                
                 return ("%s - %s\n"
                         " - CTX: %s\n"
                         " - EF: %s\n"
                         " - TF: %s\n%s" 
                         % (self.name, self.entity, self.context, self.entity_filter, self.task_filter, self.children))
-        
+                """
+
         details = _Details(item)
         
         model = item.model()
         item_entity = model.get_entity(item)
         if not item_entity:
             return details
-        details.entity = {"type":item_entity["type"], "id":item_entity["id"]}
+        
+        item_entity = {"type":item_entity["type"], "id":item_entity["id"]}
+        entity_type = item_entity["type"]
+
+        if item.rowCount() == 0 and entity_type == model.get_entity_type():
+            details.is_leaf = True
+        
+        if entity_type == "Task":
+            details.task = item_entity
+        elif entity_type == "Step":
+            details.step = item_entity
+        else:
+            details.entity = item_entity
             
-        if details.entity["type"] == "Task":
-            # special case when the entity is a task as we can just filter on this:
-            details.task_filter = ["task", "is", details.entity]
+            # see if we can find a task or step as well:
+            parent_item = item.parent()
+            while parent_item:
+                parent_entity = model.get_entity(parent_item)
+                if parent_entity:
+                    parent_entity = {"type":parent_entity["type"], "id":parent_entity["id"]}
+                    parent_entity_type = parent_entity["type"]
+                    if parent_entity_type == "Task":
+                        # found a specific task!
+                        details.task = parent_entity
+                        details.step = None
+                        # this is the best we can do so lets stop looking!                        
+                        break
+                    elif parent_entity_type == "Step":
+                        # found a specific step!
+                        details.step = parent_entity
+                        # don't break as we would prefer to find a task entity!            
+
+                parent_item = parent_item.parent()
+
+        return details
+        """
+        if details.entity["type"] == "task":
+            details.task = details.entity
+            details.entity = None
+        #if details.entity["type"] == "Task":
+        #    # special case when the entity is a task as we can just filter on this:
+        #    details.task_filter = ["task", "is", details.entity]
         else:
             # lets filter on the entity:
             details.entity_filter = ["entity", "is", details.entity]
@@ -525,6 +598,7 @@ class FileOpenForm(QtGui.QWidget):
                 app.log_debug("Failed to create context from entity '%s'" % details.entity)
 
         return details
+        """
         
     def _extract_context(self, entity_item):
         """

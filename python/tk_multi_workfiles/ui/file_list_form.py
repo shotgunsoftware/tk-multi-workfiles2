@@ -52,6 +52,7 @@ class Ui_FileListForm(object):
         self.grid_radio_btn.setObjectName("grid_radio_btn")
         self.horizontalLayout.addWidget(self.grid_radio_btn)
         self.details_radio_btn = QtGui.QRadioButton(FileListForm)
+        self.details_radio_btn.setEnabled(True)
         self.details_radio_btn.setMaximumSize(QtCore.QSize(26, 16777215))
         self.details_radio_btn.setStyleSheet("#details_radio_btn::indicator {\n"
 "width: 26;\n"

@@ -110,56 +110,60 @@ class FileModel(QtGui.QStandardItemModel):
         self._finder.files_found.connect(self._on_finder_files_found)
         self._finder.search_failed.connect(self._on_finder_search_failed)
         
-        self._in_progress_search_ids = []
+        self._in_progress_searches = {}
         
-    def refresh_files(self, query_tree):
+        
+    def refresh_files(self, search_details):
         """
         Asynchronously refresh the list of files in the model based on the
         supplied filters and context.
         """
         # stop all previous searches:
-        for id in self._in_progress_search_ids:
+        search_ids = self._in_progress_searches.keys()
+        self._in_progress_searches = {}
+        for id in search_ids:
             self._finder.stop_search(id)
-        self._in_progress_search_ids = []
     
         # emit search started signal:
-        self.search_started.emit() 
+        self.search_started.emit()
     
         # clear existing data from model:
         self.clear()
         
         # start any searches necessary for the item and it's children!
-        self._begin_searches_r(query_tree, self.invisibleRootItem())
+        self._begin_searches_r(search_details, self.invisibleRootItem())
         
-    def _begin_searches_r(self, query, model_item):
+    def _begin_searches_r(self, search_details, model_item):
         """
         """
-        new_model_item = QtGui.QStandardItem(query.name)
+        new_model_item = QtGui.QStandardItem(search_details.name)
         model_item.appendRow(new_model_item)
         
-        if query.item.hasChildren():
-            return
-        
-        publish_filters = [f for f in [query.entity_filter, query.task_filter] if f]
-        if publish_filters:
-            search_id = self._finder.begin_search(publish_filters, query.context)
-            self._in_progress_search_ids.append(search_id)
+        #if not query.item.hasChildren():
+        #    return
+        if search_details.entity or search_details.step or search_details.task:
+            search_id = self._finder.begin_search(search_details)
+            self._in_progress_searches[search_id] = new_model_item
             
-        for child_query in query.children:
-            self._begin_searches_r(child_query, new_model_item)
+        for child_search_details in search_details.children:
+            self._begin_searches_r(child_search_details, new_model_item)
         
     def _on_finder_files_found(self, search_id, files):
         """
         Called when the finder has found some files.
         """
-        if search_id not in self._in_progress_search_ids:
+        if search_id not in self._in_progress_searches:
             # ignore result
             return
+        parent_model_item = self._in_progress_searches[search_id]
+        del(self._in_progress_searches[search_id])
+        
+        print "FOUND %d FILES FOR SEARCH %d" % (len(files), search_id)
         
         # add files to model:
         for file in files:
             file_item = ModelFileItem(file)
-            self.appendRow(file_item)
+            parent_model_item.appendRow(file_item)
             
         # emit signal:
         self.files_found.emit()
@@ -168,9 +172,10 @@ class FileModel(QtGui.QStandardItemModel):
         """
         Called when the finder search fails for some reason!
         """
-        if search_id not in self._in_progress_search_ids:
+        if search_id not in self._in_progress_searches:
             # ignore result
             return
+        del(self._in_progress_searches[search_id])
         
         # emit signal:
         self.search_failed.emit(error)

@@ -253,12 +253,39 @@ class FileFinder(QtCore.QObject):
         
         self._searches = {}
      
-    def begin_search(self, publish_filters, context, force=False):
+    def begin_search(self, search_details, force=False):
         """
         [publishes from Shotgun] ->  
                 [find_templates] -> [build publishes list] ->
                                  -> [find work files]      -> [aggregate files]        
         """
+        app = sgtk.platform.current_bundle()
+        
+        # first, construct filters and context from search details:
+        publish_filters = []
+        if search_details.entity:
+            publish_filters.append(["entity", "is", search_details.entity])
+            
+        if search_details.task:
+            publish_filters.append(["task", "is", search_details.task])
+        elif search_details.step:
+            publish_filters.append(["task.Task.step", "is", search_details.step])
+            
+            
+        context_entity = search_details.task or search_details.entity
+        try:
+            #cache_key = (details.entity["type"], details.entity["id"])
+            #if cache_key in self.__context_cache:
+            #    details.context =  self.__context_cache[cache_key]
+            #else:
+            # Note - context_from_entity is _really_ slow :(
+            # TODO: profile it to see if it can be improved!
+            context = app.sgtk.context_from_entity(context_entity["type"], context_entity["id"])
+            #self.__context_cache[cache_key] = details.context
+        except TankError, e:
+            app.log_debug("Failed to create context from entity '%s'" % details.entity)
+        
+        
         # build task chain for search:
         find_templates_task = Task(self._task_find_templates, 
                                    context=context)
