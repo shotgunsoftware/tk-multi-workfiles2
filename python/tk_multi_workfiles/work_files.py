@@ -62,6 +62,9 @@ class WorkFiles(object):
         # determine if changing work area should be available based on the sg_entity_types setting:
         self._can_change_workarea = (len(self._app.get_setting("sg_entity_types", [])) > 0)
         
+        # cache any fields that should be ignored when looking for work files:
+        self.__version_compare_ignore_fields = self._app.get_setting("version_compare_ignore_fields", [])
+        
         # set up the work area from the app:
         self._context = None
         self._configuration_is_valid = False
@@ -650,9 +653,9 @@ class WorkFiles(object):
         ctx_fields = self._context.as_template_fields(self._work_template)
         fields.update(ctx_fields)
         
-        # build unique key (this is a versionless work-file path):
-        fields["version"] = 0            
-        file_key = self._work_template.apply_fields(fields)
+        # build unique key to use when searching for existing files:
+        file_key = FileItem.build_file_key(fields, self._work_template, 
+                                           self.__version_compare_ignore_fields + ["version"])
         
         # find all files that match the file key:
         finder = FileFinder(self._app, self._user_cache)

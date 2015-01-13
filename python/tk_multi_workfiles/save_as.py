@@ -49,7 +49,7 @@ class SaveAs(object):
         self._cached_files = None
         
         # cache any fields that should be ignored when looking for work files:
-        self.__version_compare_ignore_fields = self._app.get_setting("version_compare_ignore_fields", [])        
+        self.__version_compare_ignore_fields = self._app.get_setting("version_compare_ignore_fields", [])
         
     def _show_save_as_dlg(self):
         """
