@@ -272,7 +272,7 @@ class FileFinder(QtCore.QObject):
             publish_filters.append(["task.Task.step", "is", search_details.step])
             
             
-        context_entity = search_details.task or search_details.entity
+        context_entity = search_details.task or search_details.entity or search_details.step
         try:
             #cache_key = (details.entity["type"], details.entity["id"])
             #if cache_key in self.__context_cache:
