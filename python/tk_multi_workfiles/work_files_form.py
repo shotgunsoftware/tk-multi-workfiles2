@@ -46,6 +46,7 @@ class WorkFilesForm(QtGui.QWidget):
         
         self._app = app
         self._handler = handler
+        self._ignore_filter_changes = True
 
         # set up the UI
         from .ui.work_files_form import Ui_WorkFilesForm
@@ -172,9 +173,15 @@ class WorkFilesForm(QtGui.QWidget):
         self._app.log_debug(" - Updating Work Area")
         self._update_work_area(ctx)
         
-        # update the filter menu:
+        # update the filter menu being sure that this
+        # doesn't trigger a file list refresh as this
+        # would result in a double refresh!
         self._app.log_debug(" - Updating Filter menu")
-        self._update_filter_menu()
+        self._ignore_filter_changes = True
+        try:
+            self._update_filter_menu()
+        finally:
+            self._ignore_filter_changes = False    
         
         # finally, update file list:
         self._app.log_debug(" - Refreshing File List")
@@ -217,6 +224,10 @@ class WorkFilesForm(QtGui.QWidget):
         """
         Called when the filter is changed
         """
+        if self._ignore_filter_changes:
+            # ignore this change to the filter selection
+            return
+
         self._refresh_file_list()
         
     def _on_file_selection_changed(self):
