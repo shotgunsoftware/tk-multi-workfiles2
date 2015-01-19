@@ -273,22 +273,22 @@ class FileFinder(QtCore.QObject):
             
             
         context_entity = search_details.task or search_details.entity or search_details.step
-        try:
-            #cache_key = (details.entity["type"], details.entity["id"])
-            #if cache_key in self.__context_cache:
-            #    details.context =  self.__context_cache[cache_key]
-            #else:
-            # Note - context_from_entity is _really_ slow :(
-            # TODO: profile it to see if it can be improved!
-            context = app.sgtk.context_from_entity(context_entity["type"], context_entity["id"])
-            #self.__context_cache[cache_key] = details.context
-        except TankError, e:
-            app.log_debug("Failed to create context from entity '%s'" % details.entity)
+        #try:
+        #    #cache_key = (details.entity["type"], details.entity["id"])
+        #    #if cache_key in self.__context_cache:
+        #    #    details.context =  self.__context_cache[cache_key]
+        #    #else:
+        #    # Note - context_from_entity is _really_ slow :(
+        #    # TODO: profile it to see if it can be improved!
+        #    context = app.sgtk.context_from_entity(context_entity["type"], context_entity["id"])
+        #    #self.__context_cache[cache_key] = details.context
+        #except TankError, e:
+        #    app.log_debug("Failed to create context from entity '%s'" % details.entity)
         
         
         # build task chain for search:
         find_templates_task = Task(self._task_find_templates, 
-                                   context=context)
+                                   context_entity=context_entity)
         
         find_sg_publishes_task = Task(self._task_find_publishes,
                                       upstream_tasks = [find_templates_task], 
@@ -296,15 +296,13 @@ class FileFinder(QtCore.QObject):
                                       force=force)
         
         find_work_files_task = Task(self._task_find_work_files, 
-                                    upstream_tasks = [find_templates_task], 
-                                    context=context)
+                                    upstream_tasks = [find_templates_task])
         
         filter_publishes_task = Task(self._task_filter_publishes, 
                                      upstream_tasks = [find_templates_task, find_sg_publishes_task])
         
         aggregate_files_task = Task(self._task_aggregate_files,
-                                    upstream_tasks = [find_templates_task, find_work_files_task, filter_publishes_task],
-                                    context = context)
+                                    upstream_tasks = [find_templates_task, find_work_files_task, filter_publishes_task])
         
         # we only care about when the final task completes or fails:
         aggregate_files_task.completed.connect(self._on_search_completed)
@@ -315,7 +313,7 @@ class FileFinder(QtCore.QObject):
         
         print "----------------------------------------------"
         print "----------------------------------------------"
-        print "Beginning search [%s] for ctx '%s' with filters: %s" % (aggregate_files_task.id, context, publish_filters)
+        print "Beginning search [%s] for ctx entity '%s' with filters: %s" % (aggregate_files_task.id, context_entity, publish_filters)
         
         # start the first tasks:
         aggregate_files_task.start()
@@ -359,14 +357,29 @@ class FileFinder(QtCore.QObject):
     ################################################################################################
     ################################################################################################
     
-    def _task_find_templates(self, context, **kwargs):
+    def _task_find_templates(self, context_entity, **kwargs):
         """
         """
+        app = sgtk.platform.current_bundle()
+        context = None
         try:
-            templates = get_templates_for_context(self.__app, context, ["template_work", "template_publish"])
+            #cache_key = (details.entity["type"], details.entity["id"])
+            #if cache_key in self.__context_cache:
+            #    details.context =  self.__context_cache[cache_key]
+            #else:
+            # Note - context_from_entity is _really_ slow :(
+            # TODO: profile it to see if it can be improved!
+            context = app.sgtk.context_from_entity(context_entity["type"], context_entity["id"])
+            #self.__context_cache[cache_key] = details.context
+        except TankError, e:
+            #app.log_debug("Failed to create context from entity '%s'" % details.entity)
+            raise        
+        
+        try:
+            templates = get_templates_for_context(app, context, ["template_work", "template_publish"])
             work_template = templates.get("template_work")
             publish_template = templates.get("template_publish")
-            return {"work_template":work_template, "publish_template":publish_template}
+            return {"context":context, "work_template":work_template, "publish_template":publish_template}
         except TankError, e:
             # had problems getting the work file settings for the specified context!
             raise

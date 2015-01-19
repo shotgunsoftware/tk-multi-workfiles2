@@ -100,7 +100,8 @@ class Ui_FileListForm(object):
         self.horizontalLayout_5 = QtGui.QHBoxLayout(self.list_page)
         self.horizontalLayout_5.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
-        self.file_list_view = QtGui.QTreeView(self.list_page)
+        self.file_list_view = GroupedListView(self.list_page)
+        self.file_list_view.setStyleSheet("")
         self.file_list_view.setObjectName("file_list_view")
         self.horizontalLayout_5.addWidget(self.file_list_view)
         self.view_pages.addWidget(self.list_page)
@@ -128,4 +129,5 @@ class Ui_FileListForm(object):
 
 from ..file_details_view import FileDetailsView
 from ..search_widget import SearchWidget
+from ..grouped_list_view import GroupedListView
 from . import resources_rc

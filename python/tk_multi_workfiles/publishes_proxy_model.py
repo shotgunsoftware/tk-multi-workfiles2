@@ -10,7 +10,7 @@
 
 
 from sgtk.platform.qt import QtGui, QtCore
-from file_model import ModelFileItem
+from file_model import FileModel
 
 class PublishesProxyModel(QtGui.QSortFilterProxyModel):
     """
@@ -19,19 +19,14 @@ class PublishesProxyModel(QtGui.QSortFilterProxyModel):
     def __init__(self, parent=None):
         QtGui.QSortFilterProxyModel.__init__(self, parent)
         
-        
     def filterAcceptsRow(self, source_row, source_parent_index):
         """
         """
-        item = None
-        if source_parent_index.isValid():
-            source_index = source_parent_index.child(source_row, 0)
-            item = self.sourceModel().itemFromIndex(source_index)
-        else:
-            item = self.sourceModel().itemFromIndex(self.sourceModel().index(source_row, 0))
-        
-        if not isinstance(item, ModelFileItem):
+        src_index = self.sourceModel().index(source_row, 0, source_parent_index)
+        node_type = src_index.data(FileModel.NODE_TYPE_ROLE)
+        if node_type != FileModel.FILE_NODE_TYPE:
             return True
         else:
-            return (item and item.file_item.is_published) or False
+            file_item = src_index.data(FileModel.FILE_ITEM_ROLE)
+            return (file_item and file_item.is_published)
         
