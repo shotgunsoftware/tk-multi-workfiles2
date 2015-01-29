@@ -13,68 +13,125 @@ import sgtk
 from sgtk.platform.qt import QtGui, QtCore
 from sgtk import TankError
 
-overlay_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
-ShotgunOverlayWidget = overlay_widget.ShotgunOverlayWidget
+import time
+import random
 
-from .find_files import FileFinder
-
-class FileModelOverlayWidget(ShotgunOverlayWidget):
-    """
-    """
+class DummyTask(QtCore.QRunnable, QtCore.QObject):
     
-    def __init__(self, model=None, parent=None):
-        """
-        """
-        ShotgunOverlayWidget.__init__(self, parent)
+    completed = QtCore.Signal(int, object)
+    failed = QtCore.Signal(int, str)
+    
+    def __init__(self, id, data=None):
+        QtCore.QRunnable.__init__(self)
+        QtCore.QObject.__init__(self)
+        self._id = id
+        self._data = data
         
-        self._model = None
-        self._connect_to_model(model)
+    def autoDelete(self):
+        return False
         
-    def set_model(self, model):
+    def run(self):
         """
         """
-        self.hide()
-        
-        # search for a FileModel:
-        while isinstance(model, QtGui.QAbstractProxyModel):
-            model = model.sourceModel()
+        try:
+            time.sleep(random.randint(0, 5))
+            #time.sleep(1)
+            
+            # do something...
+            result = []
+            
+            if self._data == None:
+                raise TankError("An unhandled error occured!\n"
+                                "This is a multi-line error...\n"
+                                "... what does it look like?\n"
+                                "odd!!!")
+            else:
+                result = self._data
+            self.completed.emit(self._id, result)
+        except Exception, e:
+            self.failed.emit(self._id, str(e))
 
-        if isinstance(model, FileModel):
-            self._connect_to_model(model)
 
-    def _connect_to_model(self, model):
+#from .find_files import FileFinder
+class FileFinder(QtCore.QObject):
+    """
+    Temp 'off-line' finder that returns dummy data!
+    """
+    search_failed = QtCore.Signal(object, object)
+    files_found = QtCore.Signal(object, object) # search_id, file_list
+    
+    def __init__(self, parent=None):
+        QtCore.QObject.__init__(self, parent)
+        
+        self._next_search_id = 0
+        self._current_searches = []
+        
+    def begin_search(self, search_details, force=False):
         """
         """
-        if model == self._model:
+        from .file_item import FileItem
+        
+        search_id = self._next_search_id
+        self._next_search_id += 1
+
+
+        dummy_results = {
+            "Sequence 01":[
+                FileItem("/dummy/path/to/sequence01_v123.ma", "", True, False, {"version":123}, None)
+            ],
+            "Sequence 02":None,
+            "Shot 01":[
+                FileItem("/dummy/path/to/shot01_v010.ma", "", True, False, {"version":10}, None)
+            ],
+            "Light - Lighting":[
+                FileItem("/dummy/path/to/lightinga_v001.ma", "", True, False, {"version":1}, None),
+                FileItem("/dummy/path/to/lightingb_v001.ma", "", True, False, {"version":1}, None),
+                FileItem("/dummy/path/to/lightingc_v001.ma", "", True, False, {"version":1}, None),
+                FileItem("/dummy/path/to/lightingd_v001.ma", "", True, False, {"version":1}, None),
+                FileItem("/dummy/path/to/lightinge_v001.ma", "", True, False, {"version":1}, None),
+                FileItem("/dummy/path/to/lightingf_v001.ma", "", True, False, {"version":1}, None),
+                FileItem("/dummy/path/to/lightingg_v001.ma", "", True, False, {"version":1}, None),
+                FileItem("/dummy/path/to/lightingh_v001.ma", "", True, False, {"version":1}, None),
+                FileItem("/dummy/path/to/lightingi_v001.ma", "", True, False, {"version":1}, None)
+            ],
+            "Anm - Animation":[
+                FileItem("/dummy/path/to/animationa_v001.ma", "", True, False, {"version":1}, None),
+                FileItem("/dummy/path/to/animationa_v002.ma", "", True, False, {"version":2}, None)
+            ],
+            "Mod - Modelling":None
+        }
+        dummy_result = dummy_results.get(search_details.name, [])
+        
+        task = DummyTask(search_id, dummy_result)
+        task.completed.connect(self._on_search_completed)
+        task.failed.connect(self._on_search_failed)
+
+        self._current_searches.append(search_id)
+
+        print "Starting search %d: %s" % (search_id, search_details)
+        QtCore.QThreadPool.globalInstance().start(task)
+        
+        return search_id
+
+    def stop_search(self, search_id):
+        """
+        """
+        self._current_searches.remove(search_id)
+        
+    def stop_all_searches(self):
+        """
+        """
+        self._current_searches = []
+        
+    def _on_search_completed(self, search_id, result):
+        if search_id not in self._current_searches:
             return
-        
-        if self._model:
-            self._model.search_started.disconnect(self._on_search_started)
-            self._model.files_found.disconnect(self._on_files_found)
-            self._model.search_failed.disconnect(self._on_search_failed)
-            self._model = None
-            self.hide(hide_errors=True)            
-            
-        if model:
-            self._model = model
-            self._model.search_started.connect(self._on_search_started)
-            self._model.files_found.connect(self._on_files_found)
-            self._model.search_failed.connect(self._on_search_failed)
-            
-    def _on_search_started(self, idx):
-        """
-        """
-        self.start_spin()
+        self.files_found.emit(search_id, result)
     
-    def _on_files_found(self, idx):
-        """
-        """
-        self.hide(hide_errors=True)
-    
-    def _on_search_failed(self, idx, msg):
-        """
-        """
-        self.show_error_message(msg)
+    def _on_search_failed(self, search_id, msg):
+        if search_id not in self._current_searches:
+            return
+        self.search_failed.emit(search_id, msg)
 
 
 class FileModel(QtGui.QStandardItemModel):
@@ -86,9 +143,15 @@ class FileModel(QtGui.QStandardItemModel):
     search_failed = QtCore.Signal(object, object)
     
     _BASE_ROLE = QtCore.Qt.UserRole + 32
-    NODE_TYPE_ROLE = _BASE_ROLE + 1
-    (FILE_NODE_TYPE, GROUP_NODE_TYPE, FOLDER_NODE_TYPE) = range(3)
+    GROUP_NODE_ROLE = _BASE_ROLE + 1
     FILE_ITEM_ROLE = _BASE_ROLE + 2
+    SEARCH_STATUS_ROLE = _BASE_ROLE + 3
+    SEARCH_MSG_ROLE = _BASE_ROLE + 4
+
+    NODE_TYPE_ROLE = _BASE_ROLE + 5
+    (FILE_NODE_TYPE, GROUP_NODE_TYPE, FOLDER_NODE_TYPE) = range(3)
+    
+    (SEARCHING, SEARCH_COMPLETED, SEARCH_FAILED) = range(3)
     
     class _BaseItem(QtGui.QStandardItem):
         """
@@ -150,6 +213,7 @@ class FileModel(QtGui.QStandardItemModel):
                 pass
             elif role == FileModel.FILE_ITEM_ROLE:
                 self._file_item = value
+                self.emitDataChanged()
             else:
                 # call the base implementation:
                 FileModel._BaseItem.setData(self, value, role) 
@@ -164,7 +228,44 @@ class FileModel(QtGui.QStandardItemModel):
         """
         """
         def __init__(self, name):
-            FileModel._BaseItem.__init__(self, typ=FileModel.GROUP_NODE_TYPE, text=name)    
+            FileModel._BaseItem.__init__(self, typ=FileModel.GROUP_NODE_TYPE, text=name)
+            
+            self._search_status = FileModel.SEARCHING
+            self._search_msg = ""    
+    
+        def set_search_status(self, status, msg=None):
+            self._search_status = status
+            self._search_msg = msg
+
+        def data(self, role=QtCore.Qt.UserRole+1):
+            """
+            """
+            if role == FileModel.SEARCH_STATUS_ROLE:
+                return self._search_status
+            elif role == FileModel.SEARCH_MSG_ROLE:
+                return self._search_msg
+            elif role == FileModel.GROUP_NODE_ROLE:
+                # always return true!
+                return True
+            else:
+                # just return the default implementation:
+                return FileModel._BaseItem.data(self, role)
+    
+        def setData(self, value, role=QtCore.Qt.UserRole+1):
+            """
+            """
+            if role == FileModel.SEARCH_STATUS_ROLE:
+                self._search_status = value
+                self.emitDataChanged()
+            elif role == FileModel.SEARCH_MSG_ROLE:
+                self._search_msg = value
+                self.emitDataChanged()
+            elif role == FileModel.GROUP_NODE_ROLE:
+                # can't be set!
+                pass
+            else:
+                # call the base implementation:
+                FileModel._BaseItem.setData(self, value, role) 
     
     
     def __init__(self, sg_data_retriever, parent=None):
@@ -216,7 +317,8 @@ class FileModel(QtGui.QStandardItemModel):
         
         elif search_details.is_leaf:
             # add a 'group' item to the model:
-            new_item = FileModel._GroupItem(search_details.name)
+            new_item = FileModel._GroupItem("%s*" % search_details.name)
+            new_item.set_search_status(FileModel.SEARCHING)
             model_item.appendRow(new_item)
             new_index = new_item.index()
             
@@ -262,9 +364,16 @@ class FileModel(QtGui.QStandardItemModel):
         print "FOUND %d FILES FOR SEARCH %d" % (len(files), search_id)
         
         # add files to model:
+        new_rows = []
         for file in files:
             file_item = FileModel._FileItem(file)
-            parent_model_item.appendRow(file_item)
+            new_rows.append(file_item)            
+        if new_rows:
+            parent_model_item.appendRows(new_rows)
+            
+        parent_model_item.setText(parent_model_item.text()[:-1])
+        if isinstance(parent_model_item, FileModel._GroupItem):
+            parent_model_item.set_search_status(FileModel.SEARCH_COMPLETED)
             
         # emit signal:
         self.files_found.emit(parent_model_item.index())
@@ -278,6 +387,11 @@ class FileModel(QtGui.QStandardItemModel):
             return
         parent_model_item = self._in_progress_searches[search_id]
         del(self._in_progress_searches[search_id])
+        
+        print "SEARCH %d FAILED: %s" % (search_id, error)
+        
+        if isinstance(parent_model_item, FileModel._GroupItem):
+            parent_model_item.set_search_status(FileModel.SEARCH_FAILED, error)
         
         # emit signal:
         self.search_failed.emit(parent_model_item.index(), error)

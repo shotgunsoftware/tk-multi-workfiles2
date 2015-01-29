@@ -11,7 +11,7 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_GroupHeaderWidget(object):
     def setupUi(self, GroupHeaderWidget):
         GroupHeaderWidget.setObjectName("GroupHeaderWidget")
-        GroupHeaderWidget.resize(395, 45)
+        GroupHeaderWidget.resize(391, 53)
         self.verticalLayout = QtGui.QVBoxLayout(GroupHeaderWidget)
         self.verticalLayout.setSpacing(2)
         self.verticalLayout.setObjectName("verticalLayout")
@@ -23,6 +23,9 @@ class Ui_GroupHeaderWidget(object):
         self.checkBox.setObjectName("checkBox")
         self.horizontalLayout.addWidget(self.checkBox)
         self.title_label = QtGui.QLabel(GroupHeaderWidget)
+        self.title_label.setStyleSheet("#title_label {\n"
+"font-size: 16px;\n"
+"}")
         self.title_label.setObjectName("title_label")
         self.horizontalLayout.addWidget(self.title_label)
         self.horizontalLayout.setStretch(1, 1)

@@ -30,7 +30,6 @@ ShotgunModel = shotgun_model.ShotgunModel
 shotgun_data = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_data")
 ShotgunDataRetriever = shotgun_data.ShotgunDataRetriever
 
-from .file_model import FileModel, FileModelOverlayWidget
 from .publishes_proxy_model import PublishesProxyModel
 from .work_files_proxy_model import WorkFilesProxyModel
 

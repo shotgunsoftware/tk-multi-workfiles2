@@ -195,7 +195,11 @@ background-color: rgb(255, 128, 0);
         <number>0</number>
        </property>
        <item>
-        <widget class="QTreeView" name="file_list_view"/>
+        <widget class="GroupedListView" name="file_list_view" native="true">
+         <property name="styleSheet">
+          <string notr="true"/>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
@@ -224,6 +228,12 @@ background-color: rgb(255, 128, 0);
    <class>FileDetailsView</class>
    <extends>QTableView</extends>
    <header>..file_details_view</header>
+  </customwidget>
+  <customwidget>
+   <class>GroupedListView</class>
+   <extends>QWidget</extends>
+   <header>..grouped_list_view</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources>

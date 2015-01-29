@@ -1,10 +1,13 @@
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
+from .file_model import FileModel
+
 from .ui.test_form import Ui_TestForm
 
-shotgun_view = sgtk.platform.import_framework("tk-framework-qtwidgets", "shotgun_view")
-WidgetDelegate = shotgun_view.WidgetDelegate
+#shotgun_view = sgtk.platform.import_framework("tk-framework-qtwidgets", "shotgun_view")
+#WidgetDelegate = shotgun_view.WidgetDelegate
+from .tmp_delegate import WidgetDelegate
 
 
 from .file_tile import FileTile
@@ -46,6 +49,13 @@ class GroupListViewItemDelegate(WidgetDelegate):
             return None
         
         parent_index = model_index.parent()
+        # we need an item widget:
+        if not self._item_widget:
+            self._item_widget = self._create_item_widget(parent)
+            self._item_widget_size = self._item_widget.size()
+        return self._item_widget
+
+        """        
         if parent_index == self.view.rootIndex():
             # we need a group widget:
             if not self._group_widget:
@@ -58,6 +68,7 @@ class GroupListViewItemDelegate(WidgetDelegate):
                 self._item_widget = self._create_item_widget(parent)
                 self._item_widget_size = self._item_widget.size()
             return self._item_widget
+        """
     
     def _create_editor_widget(self, model_index, parent):
         """
@@ -65,13 +76,16 @@ class GroupListViewItemDelegate(WidgetDelegate):
         if not model_index.isValid():
             return None
         
+        parent_index = model_index.parent()        
+        return self._create_item_widget(parent)
+        """
         #print "CREATING EDITOR WIDGET"
-        
-        parent_index = model_index.parent()
+
         if parent_index == self.view.rootIndex():
             return self._create_group_widget(parent)
         elif parent_index.isValid() and parent_index.parent() == self.view.rootIndex():
             return self._create_item_widget(parent)
+        """
             
     def sizeHint(self, style_options, model_index):
         """
@@ -83,12 +97,15 @@ class GroupListViewItemDelegate(WidgetDelegate):
         self._get_painter_widget(model_index, self.view)
         
         parent_index = model_index.parent()
+        return self._item_widget_size
+        """
         if parent_index == self.view.rootIndex():
             return self._group_widget_size
         elif parent_index.isValid() and parent_index.parent() == self.view.rootIndex():
             return self._item_widget_size
         
         return QtCore.QSize()
+        """
         
         
 
@@ -174,6 +191,61 @@ class TestForm(QtGui.QWidget):
             #self._expand_recursive(self._ui.customView, idx)
         
     def _init_model(self):
+        model = FileModel(None, self)
+
+
+        # populate the model with some dummy data:
+        class _Details(object):
+            def __init__(self, item, entity=None, is_leaf=False):
+                """
+                """
+                self.item = item
+                self.entity = entity
+                self.task = None
+                self.step = None
+                self.is_leaf = is_leaf
+                self.children = []
+                self.name = item.text() if item else ""
+                
+            def __repr__(self):
+                return ("%s\n"
+                        " - Entity: %s\n"
+                        " - Task: %s\n"
+                        " - Step: %s\n"
+                        " - Is leaf: %s\n%s"
+                        % (self.name, self.entity, self.task, self.step, self.is_leaf, self.children))
+                
+        class _Item(object):
+            def __init__(self, name):
+                self._name = name
+
+            def text(self):
+                return self._name
+        
+        variation = 1
+        details = None        
+        if variation == 0:
+            details = _Details(_Item("Sequence 01"), {"type":"Sequence", "id":123})
+            details.children.append(_Details(_Item("Shot 01"), {"type":"Shot", "id":123}))
+            details.children.append(_Details(_Item("Shot 02"), {"type":"Shot", "id":123}))
+            details.children.append(_Details(_Item("Shot 03"), {"type":"Shot", "id":123}))
+        elif variation == 1:
+            details = _Details(_Item("Sequence 02"), {"type":"Sequence", "id":123})
+            details.children.append(_Details(_Item("Shot A"), {"type":"Shot", "id":123}))
+            details.children.append(_Details(_Item("Shot B"), {"type":"Shot", "id":123}))
+            details.children.append(_Details(_Item("Shot C"), {"type":"Shot", "id":123}))
+        elif variation == 2:
+            details = _Details(_Item("Shot 01"), {"type":"Shot", "id":123})
+            details.children.append(_Details(_Item("Light - Lighting"), {"type":"Task", "id":123}, True))
+            details.children.append(_Details(_Item("Anm - Animation"), {"type":"Task", "id":123}, True))
+            details.children.append(_Details(_Item("Mod - Modelling"), {"type":"Task", "id":123}, True))
+
+        
+        model.refresh_files(details)
+        
+
+        
+        """
         model = TestModel(self)
         
         items = {
@@ -189,6 +261,7 @@ class TestForm(QtGui.QWidget):
             
             for tf in group:
                 header_item.appendRow(QtGui.QStandardItem(tf))
+        """
         
         return model
         

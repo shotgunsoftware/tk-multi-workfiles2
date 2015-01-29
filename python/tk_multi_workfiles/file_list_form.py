@@ -15,7 +15,8 @@
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-from .file_model import FileModel, FileModelOverlayWidget
+from .file_model import FileModel
+from .file_model_overlay_widget import FileModelOverlayWidget
 
 from .ui.file_list_form import Ui_FileListForm
 

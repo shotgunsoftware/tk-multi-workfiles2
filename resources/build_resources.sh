@@ -60,6 +60,8 @@ build_ui test_form
 build_ui file_tile
 build_ui group_header_widget
 
+build_ui file_group_widget
+
 # build resources
 echo "building resources..."
 build_res resources
