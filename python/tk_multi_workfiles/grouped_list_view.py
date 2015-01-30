@@ -156,13 +156,18 @@ class FileGroupWidget(GroupWidgetBase):
             
         self._toggle_spinner(search_status == FileModel.SEARCHING)
         
-        # and update the content and visibility of the message
-        msg = model_idx.data(FileModel.SEARCH_MSG_ROLE)
-        if msg:
-            self._ui.msg_label.setText(msg)
-            self._ui.msg_label.show()
-        else:
-            self._ui.msg_label.hide()
+        search_msg = ""
+        if search_status == FileModel.SEARCHING:
+            search_msg = "Searching for files..."
+        elif search_status == FileModel.SEARCH_COMPLETED:
+            if not model_idx.model().hasChildren(model_idx):
+                search_msg = "No files found!"
+        elif search_status == FileModel.SEARCH_FAILED:
+            search_msg = model_idx.data(FileModel.SEARCH_MSG_ROLE) or ""
+        self._ui.msg_label.setText(search_msg)
+                        
+        show_msg = bool(search_msg) and self._ui.expand_check_box.checkState() == QtCore.Qt.Checked
+        self._ui.msg_label.setVisible(show_msg)
         
 
     def set_expanded(self, expand=True):
@@ -182,11 +187,19 @@ class GroupedListView(GroupedListBase):
     class ItemInfo(object):
         def __init__(self):
             self.rect = QtCore.QRect()              # relative item rect for group header
-            self.is_group = True                    # True if item is a group, otherwise False
             self.dirty = True                       # True if data in group or children has changed
-            self.collapsed = True                   # True if the group is currently collapsed
+            self.collapsable = True                 # True if the group should be collapsable
+            self._collapsed = False                 # True if the group is currently collapsed
+            #self.header_visible = True              # True if the header should be visible
             self.child_rects = []                   # List of sizes for all child items relative to the group
             self.child_area_rect = QtCore.QRect()   # total size of child area
+            
+        @property 
+        def collapsed(self):
+            return self.collapsable and self._collapsed
+        @collapsed.setter
+        def collapsed(self, value):
+            self._collapsed = value
             
         def __repr__(self):
             return "Dirty: %s, Collapsed: %s" % (self.dirty, self.collapsed)    
@@ -197,13 +210,10 @@ class GroupedListView(GroupedListBase):
         """
         GroupedListBase.__init__(self, parent)
         
-        self._item_spacing = QtCore.QSize(2, 2)
-        
         self._item_info = []
         self._update_all_item_info = True
         self._update_some_item_info = False
         self._max_width = 0
-        self._non_group_area_rect = QtCore.QRect()
         
         self.setEditTriggers(self.CurrentChanged)
 
@@ -212,6 +222,41 @@ class GroupedListView(GroupedListBase):
         self._group_widget_rows = {}
 
         self._prev_viewport_sz = QtCore.QSize()
+
+        self._border = QtCore.QSize(6,6)
+        self._group_spacing = 30
+        self._item_spacing = QtCore.QSize(4,4)
+
+    @property
+    def border(self):
+        return self._border
+    
+    @border.setter
+    def border(self, border_sz):
+        self._border = border_sz
+        self._update_all_item_info = True
+        self.viewport().update()
+
+    @property
+    def group_spacing(self):
+        return self._group_spacing
+    
+    @group_spacing.setter
+    def group_spacing(self, spacing):
+        self._group_spacing = spacing
+        self._update_all_item_info = True
+        self.viewport().update()
+        
+    @property
+    def item_spacing(self):
+        return self._item_spacing
+    
+    @item_spacing.setter
+    def item_spacing(self, spacing):
+        self._item_spacing = spacing
+        self._update_all_item_info = True
+        self.viewport().update()        
+        
 
         
     def create_group_widget(self, parent):
@@ -238,6 +283,8 @@ class GroupedListView(GroupedListBase):
         row = index.row()
         if row < len(self._item_info):
             self._item_info[row].collapsed = not expand
+            self._item_info[row].dirty = True
+            self._update_some_item_info = True
             self.viewport().update()
     
     def is_expanded(self, index):
@@ -417,7 +464,7 @@ class GroupedListView(GroupedListBase):
             # just in case!
             return QtCore.QModelIndex()
         
-        y_offset = 0
+        y_offset = self._border.height()
         for row, item_info in enumerate(self._item_info):
             
             # get point in local space:
@@ -437,19 +484,18 @@ class GroupedListView(GroupedListBase):
             # update y-offset:
             y_offset += item_info.rect.height()
             
-            if item_info.collapsed:
-                # move on to next item:
-                continue
-            
-            # now check children:
-            local_point = point + QtCore.QPoint(0, -y_offset)
-            for child_row, child_rect in enumerate(item_info.child_rects):
-                if child_rect.contains(local_point):
-                    # found a hit on a child item
-                    return self.model().index(child_row, 0, index)
+            if not item_info.collapsed:
+                # now check children:
+                local_point = point + QtCore.QPoint(0, -y_offset)
+                for child_row, child_rect in enumerate(item_info.child_rects):
+                    if child_rect.contains(local_point):
+                        # found a hit on a child item
+                        return self.model().index(child_row, 0, index)
 
-            # update y-offset                
-            y_offset += item_info.child_area_rect.height()
+                # update y-offset                
+                y_offset += item_info.child_area_rect.height() + self._group_spacing
+            else:
+                y_offset += self._item_spacing.height()
         
         # no match so return model index
         return QtCore.QModelIndex()
@@ -498,60 +544,43 @@ class GroupedListView(GroupedListBase):
             # just in case!
             return
         
-        # first look through non-group items:
-        y_offset = 0
-        local_selection_rect = selection_rect.translated(0, -y_offset)
-        if self._non_group_area_rect.intersects(local_selection_rect):
-            for row, item_info in enumerate(self._item_info):
-                if item_info.is_group:
-                    continue
-                if item_info.rect.intersects(local_selection_rect):
-                    index = self.model().index(row, 0)
-                    selection.select(index, index)
-
-        y_offset += self._non_group_area_rect.height()
-        
-        # now look through groups:
+        y_offset = self._border.height()
         for row, item_info in enumerate(self._item_info):
-            
-            if not item_info.is_group:
-                continue
             
             # we only allow selection of child items so we can skip testing the group/top level:
             y_offset += item_info.rect.height()
             
-            if item_info.collapsed:
-                # skip collapsed items:
-                continue
-            
-            # check to see if the selection rect intersects the child area:
-            local_selection_rect = selection_rect.translated(0, -y_offset)
-            
-            if local_selection_rect.intersects(item_info.child_area_rect):
-                # we'll need an index for this row:
-                index = self.model().index(row, 0)
+            if not item_info.collapsed:
+                # check to see if the selection rect intersects the child area:
+                local_selection_rect = selection_rect.translated(0, -y_offset)
                 
-                # need to iterate through and check all child items:
-                top_left = bottom_right = None
-                for child_row, child_rect in enumerate(item_info.child_rects):
+                if local_selection_rect.intersects(item_info.child_area_rect):
+                    # we'll need an index for this row:
+                    index = self.model().index(row, 0)
                     
-                    if child_rect.intersects(local_selection_rect):
-                        child_index = self.model().index(child_row, 0, index)
-                        top_left = top_left or child_index
-                        bottom_right = child_index
-                    else:
-                        if top_left:
-                            selection.select(top_left, bottom_right)
-                            top_left = bottom_right = None
-                    
-                if top_left:
-                    selection.select(top_left, bottom_right)
-            elif local_selection_rect.bottom() > item_info.child_area_rect.top():
-                # no need to look any further!
-                pass
-                    
-            # update y-offset
-            y_offset += item_info.child_area_rect.height()
+                    # need to iterate through and check all child items:
+                    top_left = bottom_right = None
+                    for child_row, child_rect in enumerate(item_info.child_rects):
+                        
+                        if child_rect.intersects(local_selection_rect):
+                            child_index = self.model().index(child_row, 0, index)
+                            top_left = top_left or child_index
+                            bottom_right = child_index
+                        else:
+                            if top_left:
+                                selection.select(top_left, bottom_right)
+                                top_left = bottom_right = None
+                        
+                    if top_left:
+                        selection.select(top_left, bottom_right)
+                elif local_selection_rect.bottom() > item_info.child_area_rect.top():
+                    # no need to look any further!
+                    pass
+                        
+                # update y-offset
+                y_offset += item_info.child_area_rect.height() + self._group_spacing
+            else:
+                y_offset += self._item_spacing.height()
         
         # update the selection model:
         self.selectionModel().select(selection, flags)
@@ -571,8 +600,6 @@ class GroupedListView(GroupedListBase):
                 rect = self._get_item_rect(index)
                 rect = rect.translated(viewport_offset[0], viewport_offset[1])
                 region += rect
-
-        #print "REGION: %s" % region.boundingRect()
 
         return region        
     
@@ -598,40 +625,8 @@ class GroupedListView(GroupedListBase):
             painter.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.TextAntialiasing)
             
             # keep track of the y-offset as we go:
-            y_offset = 0
-            
-            # first draw non-group items - these are always at the top:
+            y_offset = self._border.height()
             for row, item_info in enumerate(self._item_info):
-                if item_info.is_group:
-                    continue
-                
-                # get the rectangle and translate into the correct relative location:
-                rect = item_info.rect.translated(viewport_offset[0], viewport_offset[1] + y_offset)
-                if not rect.isValid or not rect.intersects(viewport_rect):
-                    # no need to draw!
-                    continue                
-
-                # get valid model index:
-                index = self.model().index(row, 0, self.rootIndex())
-                
-                # set up the rendering options:
-                option = self.viewOptions()
-                option.rect = rect
-                if self.selectionModel().isSelected(index):
-                    option.state |= QtGui.QStyle.State_Selected
-                if index == self.currentIndex():
-                    option.state |= QtGui.QStyle.State_HasFocus                
-            
-                # draw the widget using the item delegate
-                self.itemDelegate().paint(painter, option, index)
-                
-            y_offset += self._non_group_area_rect.height()         
-            
-            # now draw all group items and any expanded children:
-            for row, item_info in enumerate(self._item_info):
-                
-                if not item_info.is_group:
-                    continue
                 
                 # get valid model index:
                 index = self.model().index(row, 0, self.rootIndex())
@@ -661,39 +656,38 @@ class GroupedListView(GroupedListBase):
                         grp_widget.show()
                         self._group_widget_rows[grp_widget] = row
 
-                # add the groupd rectangle height to the y-offset
+                # add the group rectangle height to the y-offset
                 y_offset += rect.height()
                     
-                if item_info.collapsed:
-                    # don't need to draw children!
-                    continue
-                
-                # draw children:
-                num_child_rows = self.model().rowCount(index)
-                if len(item_info.child_rects) == num_child_rows:
-                    # draw all children
-                    for child_row, child_rect in enumerate(item_info.child_rects):
-                        # figure out index and update rect:
-                        child_index = self.model().index(child_row, 0, index)
-                        child_rect = child_rect.translated(viewport_offset[0], viewport_offset[1] + y_offset)
-    
-                        if not child_rect.isValid or not child_rect.intersects(viewport_rect):
-                            # no need to draw!
-                            continue
-                         
-                        # set up the rendering options:
-                        option = self.viewOptions()
-                        option.rect = child_rect
-                        if self.selectionModel().isSelected(child_index):
-                            option.state |= QtGui.QStyle.State_Selected
-                        if child_index == self.currentIndex():
-                            option.state |= QtGui.QStyle.State_HasFocus                
-                    
-                        # draw the widget using the item delegate
-                        self.itemDelegate().paint(painter, option, child_index)
+                if not item_info.collapsed:
+                    # draw any children:
+                    num_child_rows = self.model().rowCount(index)
+                    if len(item_info.child_rects) == num_child_rows:
+                        # draw all children
+                        for child_row, child_rect in enumerate(item_info.child_rects):
+                            # figure out index and update rect:
+                            child_index = self.model().index(child_row, 0, index)
+                            
+                            child_rect = child_rect.translated(viewport_offset[0], viewport_offset[1] + y_offset)
+                            if not child_rect.isValid or not child_rect.intersects(viewport_rect):
+                                # no need to draw!
+                                continue
+                             
+                            # set up the rendering options:
+                            option = self.viewOptions()
+                            option.rect = child_rect
+                            if self.selectionModel().isSelected(child_index):
+                                option.state |= QtGui.QStyle.State_Selected
+                            if child_index == self.currentIndex():
+                                option.state |= QtGui.QStyle.State_HasFocus                
+                        
+                            # draw the widget using the item delegate
+                            self.itemDelegate().paint(painter, option, child_index)
             
-                # update the y-offset to include the child area:
-                y_offset += item_info.child_area_rect.height()            
+                    # update the y-offset to include the child area:
+                    y_offset += item_info.child_area_rect.height() + self._group_spacing
+                else:
+                    y_offset += self._item_spacing.height()
             
             # hide any group widgets that were not used:
             for w in self._group_widgets[next_group_widget_idx:]:
@@ -712,18 +706,19 @@ class GroupedListView(GroupedListBase):
 
         # toggle collapsed state for item:        
         self._item_info[row].collapsed = not expanded
+        self._item_info[row].dirty = True
+        self._update_some_item_info = True
         
-        # and update the viewport and scrollbars:
-        self.updateGeometries()
+        # and update the viewport:
         self.viewport().update()
 
     def updateGeometries(self):
         """
         """
         # calculate the maximum height of all visible items in the model:
-        max_height = self._non_group_area_rect.height()
+        max_height = 0
         for item_info in self._item_info:
-            max_height += item_info.rect.height()
+            max_height += item_info.rect.height() + self._group_spacing
             if not item_info.collapsed:
                 max_height += item_info.child_area_rect.height()
         
@@ -741,7 +736,7 @@ class GroupedListView(GroupedListBase):
         # at the moment, recalculating the dimensions is handled at the start of painting so
         # we don't need to do anything here.  If this causes problems later then we may have
         # to rethink things!
-        pass
+        GroupedListBase.resizeEvent(self, event)
 
     def _get_item_rect(self, index):
         """
@@ -759,15 +754,14 @@ class GroupedListView(GroupedListBase):
         root_info = self._item_info[root_row]
         
         # and the Y offset for the start of the root item:
-        y_offset = 0
-        if root_info.is_group:
-            y_offset += self._non_group_area_rect.height()
-            for row_info in self._item_info[:root_row]:
-                if not root_info.is_group:
-                    continue
-                y_offset += row_info.rect.height()
-                if not row_info.collapsed:
-                    y_offset += row_info.child_area_rect.height()
+        y_offset = self._border.height()
+        for row_info in self._item_info[:root_row]:
+            y_offset += row_info.rect.height()
+            if not row_info.collapsed:
+                y_offset += row_info.child_area_rect.height()
+                y_offset += self._group_spacing
+            else:
+                y_offset += self._item_spacing.height()
 
         # get the rect for the leaf item:
         rect = QtCore.QRect()
@@ -793,7 +787,9 @@ class GroupedListView(GroupedListBase):
         if not self.verticalScrollBar().isVisible():
             # to avoid unnecessary resizing, we always calculate the viewport width as if
             # the vertical scroll bar were visible:
-            viewport_sz.setWidth(viewport_sz.width() - self.verticalScrollBar().width())
+            scroll_bar_width = self.style().pixelMetric(QtGui.QStyle.PM_ScrollBarExtent)
+            viewport_sz.setWidth(viewport_sz.width() - scroll_bar_width)
+
         if viewport_sz != self._prev_viewport_sz:
             # the viewport width has changed so we'll need to update all geometry :(
             viewport_resized = True
@@ -803,55 +799,79 @@ class GroupedListView(GroupedListBase):
         if not self._update_some_item_info and not self._update_all_item_info and not viewport_resized:
             # nothing to do!
             return
-        
         #print "%s, %s, %s, %s" % (self._update_all_item_info, self._update_some_item_info, viewport_resized, self._item_info)
-
         self._update_all_item_info = self._update_all_item_info or viewport_resized
         
         viewport_width = viewport_sz.width()
-        max_width = viewport_width
+        max_width = viewport_width - self._border.width()
         base_view_options = self.viewOptions()
         
         # iterate over root items:
         something_updated = False
-        non_group_rows = []
         for row in range(self.model().rowCount()):
 
             item_info = self._item_info[row] if row < len(self._item_info) else GroupedListView.ItemInfo()
             if not self._update_all_item_info and not item_info.dirty:
                 # no need to update item info!
                 max_width = max(max_width, item_info.child_area_rect.width())
-                if not item_info.is_group:
-                    non_group_rows.append(row)
                 continue
             
             # construxt the model index for this row:
             index = self.model().index(row, 0)
-            
-            # see if this item is tagged as a group:
-            item_info.is_group = index.data(FileModel.GROUP_NODE_ROLE) or False
-            
-            if item_info.is_group:
-                # update group widget size:
-                if not self._calc_group_widget:
-                    self._calc_group_widget = self.create_group_widget(self)
-                    self._calc_group_widget.setVisible(False)            
-                
-                self._calc_group_widget.set_item(index)
-                item_size = self._calc_group_widget.size()
-                item_info.rect = QtCore.QRect(0, 0, item_size.width(), item_size.height())
-        
-                # update size info of children:
-                (child_rects, max_width, bottom) = self._layout_rows(range(self.model().rowCount(index)), 
-                                                             index, 
-                                                             base_view_options, 
-                                                             viewport_width, 
-                                                             max_width)
 
-                item_info.child_rects = child_rects
-                item_info.child_area_rect = QtCore.QRect(0, 0, max_width, bottom)
-            else:
-                non_group_rows.append(row) 
+            # update group widget size:
+            if not self._calc_group_widget:
+                self._calc_group_widget = self.create_group_widget(self)
+                self._calc_group_widget.setVisible(False)            
+            
+            self._calc_group_widget.set_expanded(not item_info.collapsed)
+            self._calc_group_widget.set_item(index)
+            layout = self._calc_group_widget.layout()
+            if layout:
+                layout.invalidate()
+                layout.activate()
+            item_size = self._calc_group_widget.sizeHint()
+            item_info.rect = QtCore.QRect(self._border.width(), 0, item_size.width(), item_size.height())
+    
+            # update size info of children:
+            row_height = 0
+            left = self._border.width()
+            x_pos = left
+            y_pos = self._item_spacing.height()
+            child_rects = []  
+            for child_row in range(self.model().rowCount(index)):
+            
+                child_index = self.model().index(child_row, 0, index)
+
+                # do we need to modify the view options?
+                view_options = base_view_options
+                
+                # get the item size:
+                child_item_size = self.itemDelegate().sizeHint(view_options, child_index)
+                
+                # see if it fits in the current row:
+                if x_pos == left or (x_pos + child_item_size.width()) < viewport_width:
+                    # item will fit in the current row!
+                    pass
+                else:
+                    # start a new row for this item:
+                    y_pos = y_pos + row_height + self._item_spacing.height()
+                    row_height = 0
+                    x_pos = left
+
+                # store the item rect:
+                child_item_rect = QtCore.QRect(x_pos, y_pos, 
+                                               child_item_size.width(), 
+                                               child_item_size.height())
+                child_rects.append(child_item_rect)
+
+                # keep track of the tallest row item:                
+                row_height = max(row_height, child_item_rect.height())
+                x_pos += self._item_spacing.width() + child_item_rect.width()
+                max_width = max(child_item_rect.right(), max_width)
+
+            item_info.child_rects = child_rects
+            item_info.child_area_rect = QtCore.QRect(self._border.width(), 0, max_width, y_pos + row_height)
             
             # reset dirty flag for item:
             item_info.dirty = False
@@ -862,19 +882,6 @@ class GroupedListView(GroupedListBase):
             else:
                 self._item_info.append(item_info)
             
-        # now update non-group items:
-        print "Non-group rows: %s" % non_group_rows
-        
-        (rects, max_width, bottom) = self._layout_rows(non_group_rows, 
-                                               self.rootIndex(), 
-                                               base_view_options, 
-                                               viewport_width, 
-                                               max_width)
-        self._non_group_area_rect = QtCore.QRect(0, 0, max_width, bottom)
-        
-        for row, rect in zip(non_group_rows, rects):
-            self._item_info[row].rect = rect
-            
         # reset flags:
         self._update_all_item_info = False
         self._update_some_item_info = False
@@ -882,53 +889,11 @@ class GroupedListView(GroupedListBase):
         if something_updated:
             # update all root level items to be the full width of the viewport:
             for item_info in self._item_info:
-                if item_info.is_group:
-                    item_info.rect.setRight(max_width)
+                item_info.rect.setRight(max_width)
             self._max_width = max_width
 
             # update scroll bars for the new dimensions:            
-            self.updateGeometries()            
-            
-    def _layout_rows(self, row_indexes, parent_index, base_view_options, viewport_width, max_width):
-        """
-        """
-        # update size info of children:
-        row_height = 0
-        left = 0 # might extend this later!
-        x_pos = left
-        y_pos = 0
-        rects = []  
-        for row in row_indexes:
-        
-            index = self.model().index(row, 0, parent_index)
-
-            # do we need to modify the view options?
-            view_options = base_view_options
-            
-            # get the item size:
-            item_size = self.itemDelegate().sizeHint(view_options, index)
-            
-            # see if it fits in the current row:
-            if x_pos == left or (x_pos + (item_size.width() * 0.5)) < viewport_width:
-                # item will fit in the current row!
-                pass
-            else:
-                # start a new row for this item:
-                y_pos = y_pos + row_height + self._item_spacing.height()
-                row_height = 0
-                x_pos = left
-
-            # store the item rect:
-            item_rect = QtCore.QRect(x_pos, y_pos, 
-                                     item_size.width(), item_size.height())
-            rects.append(item_rect)
-
-            # keep track of the tallest row item:                
-            row_height = max(row_height, item_rect.height())
-            x_pos += self._item_spacing.width() + item_rect.width()
-            max_width = max(item_rect.right(), max_width)
-            
-        return (rects, max_width, y_pos + row_height)
+            self.updateGeometries()
         
             
 class FileGroupedListView(GroupedListView):

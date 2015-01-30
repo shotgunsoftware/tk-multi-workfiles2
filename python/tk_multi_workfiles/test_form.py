@@ -52,6 +52,11 @@ class GroupListViewItemDelegate(WidgetDelegate):
         # we need an item widget:
         if not self._item_widget:
             self._item_widget = self._create_item_widget(parent)
+            #layout = self._item_widget.layout()
+            #if layout:
+            #    layout.invalidate()
+            #    layout.activate()
+            
             self._item_widget_size = self._item_widget.size()
         return self._item_widget
 
@@ -96,7 +101,7 @@ class GroupListViewItemDelegate(WidgetDelegate):
         # ensure we have a painter widget for this model index:
         self._get_painter_widget(model_index, self.view)
         
-        parent_index = model_index.parent()
+        #parent_index = model_index.parent()
         return self._item_widget_size
         """
         if parent_index == self.view.rootIndex():
@@ -222,7 +227,7 @@ class TestForm(QtGui.QWidget):
             def text(self):
                 return self._name
         
-        variation = 1
+        variation = 2
         details = None        
         if variation == 0:
             details = _Details(_Item("Sequence 01"), {"type":"Sequence", "id":123})
@@ -237,8 +242,10 @@ class TestForm(QtGui.QWidget):
         elif variation == 2:
             details = _Details(_Item("Shot 01"), {"type":"Shot", "id":123})
             details.children.append(_Details(_Item("Light - Lighting"), {"type":"Task", "id":123}, True))
-            details.children.append(_Details(_Item("Anm - Animation"), {"type":"Task", "id":123}, True))
             details.children.append(_Details(_Item("Mod - Modelling"), {"type":"Task", "id":123}, True))
+            details.children.append(_Details(_Item("Anm - Animation"), {"type":"Task", "id":123}, True))
+            details.children.append(_Details(_Item("Anm - More Animation"), {"type":"Task", "id":123}, True))
+
 
         
         model.refresh_files(details)

@@ -92,12 +92,14 @@ class FileFinder(QtCore.QObject):
                 FileItem("/dummy/path/to/lightingf_v001.ma", "", True, False, {"version":1}, None),
                 FileItem("/dummy/path/to/lightingg_v001.ma", "", True, False, {"version":1}, None),
                 FileItem("/dummy/path/to/lightingh_v001.ma", "", True, False, {"version":1}, None),
-                FileItem("/dummy/path/to/lightingi_v001.ma", "", True, False, {"version":1}, None)
+                FileItem("/dummy/path/to/lightingi_v001.ma", "", True, False, {"version":1}, None),
+                FileItem("/dummy/path/to/lightingi_this_one_has_quite_a_long_name_so_lets_see_what_happens_v001.ma", "", True, False, {"version":1}, None)
             ],
             "Anm - Animation":[
                 FileItem("/dummy/path/to/animationa_v001.ma", "", True, False, {"version":1}, None),
                 FileItem("/dummy/path/to/animationa_v002.ma", "", True, False, {"version":2}, None)
             ],
+            "Anm - More Animation":[],
             "Mod - Modelling":None
         }
         dummy_result = dummy_results.get(search_details.name, [])
@@ -236,6 +238,7 @@ class FileModel(QtGui.QStandardItemModel):
         def set_search_status(self, status, msg=None):
             self._search_status = status
             self._search_msg = msg
+            self.emitDataChanged()
 
         def data(self, role=QtCore.Qt.UserRole+1):
             """
@@ -304,22 +307,11 @@ class FileModel(QtGui.QStandardItemModel):
         """
         """
         new_item = None
-        if is_root:
-            new_item = model_item
-            
-            # always want to search for the root item if we can:
-            if search_details.entity or search_details.step or search_details.task:
-                search_id = self._finder.begin_search(search_details)
-                self._in_progress_searches[search_id] = model_item
-                
-                # emit signal that we have started a new search for this index:
-                self.search_started.emit(model_item.index())
-        
-        elif search_details.is_leaf:
+        if is_root or search_details.is_leaf:
             # add a 'group' item to the model:
-            new_item = FileModel._GroupItem("%s*" % search_details.name)
+            new_item = FileModel._GroupItem(search_details.name)
             new_item.set_search_status(FileModel.SEARCHING)
-            model_item.appendRow(new_item)
+            self.invisibleRootItem().appendRow(new_item)
             new_index = new_item.index()
             
             # start a search for this new group:
@@ -371,7 +363,6 @@ class FileModel(QtGui.QStandardItemModel):
         if new_rows:
             parent_model_item.appendRows(new_rows)
             
-        parent_model_item.setText(parent_model_item.text()[:-1])
         if isinstance(parent_model_item, FileModel._GroupItem):
             parent_model_item.set_search_status(FileModel.SEARCH_COMPLETED)
             

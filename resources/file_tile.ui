@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>333</width>
-    <height>112</height>
+    <width>271</width>
+    <height>80</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -48,8 +48,14 @@ border-radius: 3px;
        <widget class="QLabel" name="thumbnail">
         <property name="minimumSize">
          <size>
-          <width>128</width>
-          <height>96</height>
+          <width>96</width>
+          <height>64</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>96</width>
+          <height>64</height>
          </size>
         </property>
         <property name="styleSheet">
@@ -62,6 +68,9 @@ border-radius: 3px;
       </item>
       <item>
        <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,0,0,1">
+        <property name="spacing">
+         <number>2</number>
+        </property>
         <item>
          <spacer name="verticalSpacer_2">
           <property name="orientation">
