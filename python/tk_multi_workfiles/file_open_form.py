@@ -26,54 +26,12 @@ from .file_list_form import FileListForm
 
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
-ShotgunModel = shotgun_model.ShotgunModel
-shotgun_data = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_data")
-ShotgunDataRetriever = shotgun_data.ShotgunDataRetriever
 
+from .find_files import FileFinder
+from .file_model import FileModel
+from .my_tasks_model import MyTasksModel
 from .publishes_proxy_model import PublishesProxyModel
 from .work_files_proxy_model import WorkFilesProxyModel
-
-class MyTasksModel(ShotgunEntityModel):
-    """
-    """
-    _MAX_THUMB_WIDTH=512
-    _MAX_THUMB_HEIGHT=512
-    
-    def __init__(self, filters, parent=None):
-        """
-        """
-        ShotgunModel.__init__(self, parent, download_thumbs=True)
-        
-        fields = ["image", "sg_status_list", "description", "entity", "content"]
-        self._load_data("Task", filters, ["id"], fields)
-    
-    def _populate_default_thumbnail(self, item):
-        """
-        """
-        pass
-    
-    def _populate_thumbnail(self, item, field, path):
-        """
-        """
-        if field != "image":
-            # there may be other thumbnails being loaded in as part of the data flow
-            # (in particular, created_by.HumanUser.image) - these ones we just want to 
-            # ignore and not display.
-            return
-    
-        # set the item icon to be the thumbnail:
-        item.setIcon(QtGui.QIcon(path))
-
-class EntitySearchDetails(object):
-    def __init__(self, name, sg_entity=None, context=None, publish_filters=None):
-        self.name = name
-        self.entity = sg_entity
-        self.context = context
-        self.publish_filters = publish_filters
-        self.children = []
-        
-    def __repr__(self):
-        return "%s\nFilters: %s\nContext: %s\n - %s" % (self.name, self.publish_filters, self.context, self.children)
 
 class FileOpenForm(QtGui.QWidget):
     """
@@ -91,13 +49,11 @@ class FileOpenForm(QtGui.QWidget):
         """
         QtGui.QWidget.__init__(self, parent)
         
+        self._exit_code = QtGui.QDialog.Rejected
+        
         # set up the UI
         self._ui = Ui_FileOpenForm()
         self._ui.setupUi(self)
-
-        # create a single instance of a ShotgunDataRetriever that will be used to
-        # download all thumbnails in the background
-        #self._sg_data_retriever = ShotgunDataRetriever(self)
         
         # initialize task trees:
         self._initilize_task_trees()
@@ -107,18 +63,16 @@ class FileOpenForm(QtGui.QWidget):
                 
         # hook up all other controls:
         self._ui.cancel_btn.clicked.connect(self._on_cancel)
+        self._ui.open_btn.clicked.connect(self._on_open)
 
         self.__context_cache = {}
 
         # call init callback:
         init_callback(self)
-        
+    
     def closeEvent(self, event):
         """
         """
-        # stop the Shotgun data retriever:
-        #self._sg_data_retriever.stop()
-        
         return QtGui.QWidget.closeEvent(self, event)
 
     def _initilize_task_trees(self):
@@ -188,6 +142,9 @@ class FileOpenForm(QtGui.QWidget):
         all_files_form = FileListForm("All Files", self)
         self._ui.file_browser_tabs.addTab(all_files_form, "All")
         all_files_form.set_model(self._file_model)
+        selection_model = all_files_form.get_selection_model()
+        if selection_model:
+            selection_model.selectionChanged.connect(self._on_selection_changed)
         
         # create the workfiles proxy model & form:
         work_files_model = WorkFilesProxyModel(self)
@@ -195,34 +152,53 @@ class FileOpenForm(QtGui.QWidget):
         work_files_form = FileListForm("Work Files", self)
         work_files_form.set_model(work_files_model)
         self._ui.file_browser_tabs.addTab(work_files_form, "Working")
-
+        selection_model = work_files_form.get_selection_model()
+        if selection_model:
+            selection_model.selectionChanged.connect(self._on_selection_changed)
+            
         # create the publish proxy model & form:
         publishes_model = PublishesProxyModel(self)
         publishes_model.setSourceModel(self._file_model)
         publishes_form = FileListForm("Publishes", self)
         publishes_form.set_model(publishes_model)
         self._ui.file_browser_tabs.addTab(publishes_form, "Publishes")
+        selection_model = publishes_form.get_selection_model()
+        if selection_model:
+            selection_model.selectionChanged.connect(self._on_selection_changed)
         
         # create any user-sandbox/configured tabs:
         # (AD) TODO
         
+    def _on_selection_changed(self, selected, deselected):
+        """
+        """
+        # find the file that has been selected:
+        pass
+        
     def _on_my_task_selected(self, task_index):
         """
         """
-        if not task_index:
+        if not task_index or not task_index.isValid():
             return None
-        
-        app = sgtk.platform.current_bundle()
+
+        model = task_index.model()
         
         # get the item for the specified index:
-        task_item = task_index.model().itemFromIndex(task_index)
+        task_item = model.itemFromIndex(task_index)
         
-        # find the publish filters and context for this item:
-        publish_filters = self._extract_publish_filters(task_item)
-        context = self._extract_context(task_item)
+        # and extract the information we need from it:
+        sg_data = task_item.get_sg_data()
+        step = sg_data.get("step", {})
+        step_name = step.get("name")
+        task_name = sg_data.get("content")
 
-        # finally, update the file model for the filters and context:
-        self._file_model.refresh_files(publish_filters, context)        
+        # build the search details:
+        details = FileFinder.SearchDetails("%s - %s" % (step_name, task_name))
+        details.task = {"type":"Task", "id":sg_data["id"]}
+        details.is_leaf = True
+        
+        # refresh files:
+        self._file_model.refresh_files([details])
         
     def _on_entity_selected(self, entity_index):
         """
@@ -235,85 +211,95 @@ class FileOpenForm(QtGui.QWidget):
         
         # get the item for the specified index:
         entity_item = entity_index.model().itemFromIndex(entity_index)
-
-        # extract the search details from this item that will be used to search for files:
-        item_details = self._get_search_details_for_item(entity_item)
         
-        # now iterate over immediate children finding search details for them.  There is a special
-        # case handling for Step children that have immediate Task children
-        for ri in range(entity_item.rowCount()):
-            child_item = entity_item.child(ri)
-            child_details = self._get_search_details_for_item(child_item)
+        # first get searches for the entity item:
+        search_details = self._get_item_searches_r(entity_item, recurse_once=True)
 
-            collapsed_steps = False
-            if child_details.step and not child_details.entity and not child_details.is_leaf:
-                # child is a Step and not a leaf so special case if grandchildren are leaf tasks 
-                # as we can collapse step and task together:
-                for cri in range(child_item.rowCount()):
-                    grandchild_item = child_item.child(cri)
-                    grandchild_details = self._get_search_details_for_item(grandchild_item)
-                    if (grandchild_details.is_leaf 
-                        and not grandchild_details.entity 
-                        and grandchild_details.task):
-                        # have a leaf level task under a step!
-                        grandchild_details.name = "%s - %s" % (child_details.name, grandchild_details.name)
-                        item_details.children.append(grandchild_details)
-                        collapsed_steps = True
-
-            if not collapsed_steps:
-                item_details.children.append(child_details)
-
-        print "B"
-
-        self._file_model.refresh_files(item_details)
-
-        print "C"
+        # refresh files:
+        self._file_model.refresh_files(search_details)
         
-
-    def _get_search_details_for_item(self, item):
+    def _get_item_searches_r(self, entity_item, recurse_once=False):
         """
         """
-        app = sgtk.platform.current_bundle()
-        
-        class _Details(object):
-            def __init__(self, item):
-                """
-                """
-                self.item = item
-                self.entity = None
-                self.task = None
-                self.step = None
-                self.is_leaf = False
-                self.children = []
-                self.name = item.text() if item else ""
-                
-            def __repr__(self):
-                return ("%s\n"
-                        " - Entity: %s\n"
-                        " - Task: %s\n"
-                        " - Step: %s\n"
-                        " - Is leaf: %s\n%s"
-                        % (self.name, self.entity, self.task, self.step, self.is_leaf, self.children))
+        item_search_pairs = []
 
-        details = _Details(item)
+        # get the entities for this item:
+        item_entities = self._get_item_entities(entity_item)
+        
+        model = entity_item.model()
+        model_entity_type = model.get_entity_type()
+        
+        search_details = []
+        for name, item, entity in item_entities:
+            details = self._get_search_details_for_item(name, item, entity)
+            search_details.append(details)
+            
+            # iterate over children:
+            for ri in range(item.rowCount()):
+                child_item = item.child(ri)
+                child_item_entities = self._get_item_entities(child_item)
+                for c_name, c_item, c_entity in child_item_entities:
+                    if (c_item.rowCount() == 0
+                        and c_entity 
+                        and c_entity["type"] == model_entity_type):
+                        # child is a leaf entity in the model
+                        if recurse_once:
+                            child_item_searches = self._get_item_searches_r(child_item)
+                            search_details = search_details + child_item_searches
+                    else:
+                        # this is not a leaf item so add it to the children:
+                        details.child_entities.append({"name":c_name, "entity":c_entity})
+                        
+        return search_details
+
+    def _get_item_entities(self, item):
+        """
+        """
+        entities = []
         
         model = item.model()
         item_entity = model.get_entity(item)
         if not item_entity:
-            return details
+            return entities
         
         item_entity = {"type":item_entity["type"], "id":item_entity["id"]}
-        entity_type = item_entity["type"]
 
+        collapsed_steps = False
+        if item_entity.get("type") == "Step" and model.get_entity_type() == "Task":
+            # item represents a Step and not a leaf so special case if children are leaf tasks 
+            # as we can collapse step and task together:
+            for ri in range(item.rowCount()):
+                child_item = item.child(ri)
+                child_entity = model.get_entity(child_item)
+                if child_entity.get("type") == "Task":
+                    # have a leaf level task under a step!
+                    name = "%s - %s" % (item.text(), child_item.text())
+                    entities.append((name, child_item, child_entity))
+                    collapsed_steps = True        
+
+        if not collapsed_steps:
+            entities.append((item.text(), item, item_entity))
+            
+        return entities
+        
+    def _get_search_details_for_item(self, name, item, entity):
+        """
+        """
+        app = sgtk.platform.current_bundle()
+        model = item.model()
+        
+        details = FileFinder.SearchDetails(name)
+        
+        entity_type = entity["type"]
         if item.rowCount() == 0 and entity_type == model.get_entity_type():
             details.is_leaf = True
         
         if entity_type == "Task":
-            details.task = item_entity
+            details.task = entity
         elif entity_type == "Step":
-            details.step = item_entity
+            details.step = entity
         else:
-            details.entity = item_entity
+            details.entity = entity
             
             # see if we can find a task or step as well:
             parent_item = item.parent()
@@ -337,77 +323,19 @@ class FileOpenForm(QtGui.QWidget):
 
         return details
         
-    def _extract_context(self, entity_item):
+    def _get_selected_file(self):
         """
         """
-        app = sgtk.platform.current_bundle()
-
-        # get the list of entities for the item:
-        entities = entity_item.model().get_entities(entity_item)
-            
-        # from the list of entities, extract a context:
-        context_project = None
-        context_entity = None
-        context_task = None
-        for entity in entities:
-            entity_type = entity.get("type")
-            if entity_type == "Task":
-                context_task = context_task or entity
-            elif entity_type == "Project":
-                context_project = context_project or entity
-            elif entity_type:
-                context_entity = context_entity or entity
-                
-        entity_to_use = context_task or context_entity or context_project
-        context = None
-        if entity_to_use:
-            try:
-                cache_key = (entity_to_use["type"], entity_to_use["id"])
-                if cache_key in self.__context_cache:
-                    context =  self.__context_cache[cache_key]
-                else:
-                    # Note - context_from_entity is _really_ slow :(
-                    # TODO: profile it to see if it can be improved!
-                    context = app.sgtk.context_from_entity(entity_to_use["type"], entity_to_use["id"])
-                    self.__context_cache[cache_key] = context
-            except TankError, e:
-                app.log_debug("Failed to create context from entity '%s'" % entity_to_use)
-                
-        return context
-
-    def _extract_publish_filters(self, entity_item):
-        """
-        """
-        app = sgtk.platform.current_bundle()
-
-        # get the list of filters for the item:
-        entity_model = entity_item.model()
-        filters = entity_model.get_filters(entity_item)
-        entity_type = entity_model.get_entity_type()
-        
-        # if we are on a leaf item then sg_data will represent a 
-        # specific entity so add this to the filters:
-        sg_data = entity_item.get_sg_data()
-        if sg_data:
-            filters = [["id", "is", sg_data["id"]]] + filters
-
-        # all filters will be relative to the PublishedFile
-        # entity so we need to extend the filters to either the 
-        # linked entity or task:
-        link_field = "task" if entity_type == "Task" else "entity"
-        publish_filters = []
-        for filter in copy.deepcopy(filters):
-            filter[0] = "%s.%s.%s" % (link_field, entity_type, filter[0])
-            publish_filters.append(filter)
-            
-        return publish_filters
-        
+        pass
         
     def _on_cancel(self):
         """
         Called when the cancel button is clicked
         """
-        self._exit_code = QtGui.QDialog.Rejected        
+        self._exit_code = QtGui.QDialog.Rejected
         self.close()
         
+    def _on_open(self):
+        self._exit_code = QtGui.QDialog.Accepted
+        self.close()
         

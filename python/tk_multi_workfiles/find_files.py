@@ -228,6 +228,22 @@ class FileFinder(QtCore.QObject):
     """
     Helper class to find work and publish files for a specified context and set of templates
     """
+    class SearchDetails(object):
+        def __init__(self, name=None):
+            self.entity = None
+            self.step = None
+            self.task = None
+            self.child_entities = []
+            self.name = name
+            self.is_leaf = False
+            
+        def __repr__(self):
+            return ("%s\n"
+                    " - Entity: %s\n"
+                    " - Task: %s\n"
+                    " - Step: %s\n"
+                    " - Is leaf: %s\n%s"
+                    % (self.name, self.entity, self.task, self.step, self.is_leaf, self.child_entities))       
     
     search_failed = QtCore.Signal(object, object)
     files_found = QtCore.Signal(object, object) # search_id, file_list
@@ -271,20 +287,7 @@ class FileFinder(QtCore.QObject):
         elif search_details.step:
             publish_filters.append(["task.Task.step", "is", search_details.step])
             
-            
         context_entity = search_details.task or search_details.entity or search_details.step
-        #try:
-        #    #cache_key = (details.entity["type"], details.entity["id"])
-        #    #if cache_key in self.__context_cache:
-        #    #    details.context =  self.__context_cache[cache_key]
-        #    #else:
-        #    # Note - context_from_entity is _really_ slow :(
-        #    # TODO: profile it to see if it can be improved!
-        #    context = app.sgtk.context_from_entity(context_entity["type"], context_entity["id"])
-        #    #self.__context_cache[cache_key] = details.context
-        #except TankError, e:
-        #    app.log_debug("Failed to create context from entity '%s'" % details.entity)
-        
         
         # build task chain for search:
         find_templates_task = Task(self._task_find_templates, 
@@ -311,9 +314,9 @@ class FileFinder(QtCore.QObject):
         # keep track of the search:
         self._searches[aggregate_files_task.id] = aggregate_files_task
         
-        print "----------------------------------------------"
-        print "----------------------------------------------"
-        print "Beginning search [%s] for ctx entity '%s' with filters: %s" % (aggregate_files_task.id, context_entity, publish_filters)
+        #print "----------------------------------------------"
+        #print "----------------------------------------------"
+        #print "Beginning search [%s] for ctx entity '%s' with filters: %s" % (aggregate_files_task.id, context_entity, publish_filters)
         
         # start the first tasks:
         aggregate_files_task.start()

@@ -73,7 +73,9 @@ class WorkFiles(object):
         try:
             from .file_open_form import FileOpenForm
             res, file_open_ui = self._app.engine.show_modal("File Open", self._app, FileOpenForm, self._init_file_open_form)
-            print "Open result: %s" % res
+            if res == QtGui.QDialog.Accepted:
+                print "Lets open a file!"
+                
         except:
             self._app.log_exception("Failed to create File Open dialog!")
             return

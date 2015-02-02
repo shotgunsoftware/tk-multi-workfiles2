@@ -12,6 +12,9 @@
 
 """
 
+import time
+import math
+
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
@@ -26,115 +29,168 @@ from .group_header_widget import GroupHeaderWidget
 shotgun_view = sgtk.platform.import_framework("tk-framework-qtwidgets", "shotgun_view")
 WidgetDelegate = shotgun_view.WidgetDelegate
 
-class GroupListViewItemDelegate(WidgetDelegate):
+from .grouped_list_view import GroupListViewItemDelegate, GroupWidgetBase
+
+
+from .ui.file_group_widget import Ui_FileGroupWidget
+from .file_model import FileModel
+
+class FileGroupWidget(GroupWidgetBase):
     """
     """
-    def __init__(self, view):
-        """
-        """
-        WidgetDelegate.__init__(self, view)
-        
-        self._group_widget = None
-        self._group_widget_size = None
-        self._item_widget = None
-        self._item_widget_size = None
+    _SPINNER_FPS = 20
+    _SPINNER_LINE_WIDTH = 2
+    _SPINNER_BORDER = 2
+    _SPINNER_ARC_LENGTH = 280 * 16
+    _SECONDS_PER_SPIN = 3
     
-    # ------------------------------------------------------------------------------------------------------
-    # ------------------------------------------------------------------------------------------------------
-        
-    def _create_group_widget(self, parent):
+    def __init__(self, parent=None):
         """
+        Construction
         """
-        raise NotImplementedError()
-    
-    def _create_item_widget(self, parent):
+        QtGui.QWidget.__init__(self, parent)
+        
+        # set up the UI
+        self._ui = Ui_FileGroupWidget()
+        self._ui.setupUi(self)
+        
+        self._ui.expand_check_box.stateChanged.connect(self._on_expand_checkbox_state_changed)
+        
+        self._show_spinner = False
+        self._timer = QtCore.QTimer(self)
+        self._timer.timeout.connect(self._on_animation)
+
+    def _on_animation(self):
         """
+        Spinner async callback to help animate the progress spinner.
         """
-        raise NotImplementedError()
-        
-    # ------------------------------------------------------------------------------------------------------
-    # ------------------------------------------------------------------------------------------------------
-        
-    def _get_painter_widget(self, model_index, parent):
+        # just force a repaint:    
+        self.repaint()
+
+    def paintEvent(self, event):
         """
+        Render the UI.
         """
-        # need to look at the index to determine the type of widget to return.
-        
-        
-        if not model_index.isValid():
-            return None
-        
-        parent_index = model_index.parent()
-        if parent_index == self.view.rootIndex():
-            # we need a group widget:
-            if not self._group_widget:
-                self._group_widget = self._create_group_widget(parent)
-                self._group_widget_size = self._group_widget.size()
-            return self._group_widget
-        elif parent_index.isValid() and parent_index.parent() == self.view.rootIndex():
-            # we need an item widget:
-            if not self._item_widget:
-                self._item_widget = self._create_item_widget(parent)
-                self._item_widget_size = self._item_widget.size()
-            return self._item_widget
-    
-    def _create_editor_widget(self, model_index, parent):
-        """
-        """
-        if not model_index.isValid():
-            return None
-        
-        #print "CREATING EDITOR WIDGET"
-        
-        parent_index = model_index.parent()
-        if parent_index == self.view.rootIndex():
-            return self._create_group_widget(parent)
-        elif parent_index.isValid() and parent_index.parent() == self.view.rootIndex():
-            return self._create_item_widget(parent)
+        if self._show_spinner:
+            self._paint_spinner()
+
+        GroupWidgetBase.paintEvent(self, event)
             
-    def sizeHint(self, style_options, model_index):
+    def _paint_spinner(self):
         """
         """
-        # for group widgets this should return the complete width of the view.
         
-        if not model_index.isValid():
-            return QtCore.QSize()
+        # calculate the spin angle as a function of the current time so that all spinners appear in sync!
+        t = time.time()
+        whole_seconds = int(t)
+        p = (whole_seconds % FileGroupWidget._SECONDS_PER_SPIN) + (t - whole_seconds)
+        angle = int((360 * p)/FileGroupWidget._SECONDS_PER_SPIN)
+
+        painter = QtGui.QPainter()
+        painter.begin(self)
+        try:
+            painter.setRenderHint(QtGui.QPainter.Antialiasing)
+            pen = QtGui.QPen(QtGui.QColor(200, 200, 200))
+            pen.setWidth(FileGroupWidget._SPINNER_LINE_WIDTH)
+            painter.setPen(pen)
+            
+            border = FileGroupWidget._SPINNER_BORDER + int(math.ceil(FileGroupWidget._SPINNER_LINE_WIDTH / 2.0))
+            r = self._ui.spinner.geometry()
+            #painter.fillRect(r, QtGui.QColor("#000000"))
+            r = r.adjusted(border, border, -border, -border)
+            
+            start_angle = -angle * 16
+            painter.drawArc(r, start_angle, FileGroupWidget._SPINNER_ARC_LENGTH)
+            
+        finally:
+            painter.end()
+
+    def _toggle_spinner(self, show=True):
+        """
+        """
+        self._show_spinner = show
+        if self._show_spinner and self.isVisible():
+            if not self._timer.isActive():
+                self._timer.start(1000 / FileGroupWidget._SPINNER_FPS)
+        else:
+            if self._timer.isActive():
+                self._timer.stop()
         
-        # ensure we have a painter widget for this model index:
-        self._get_painter_widget(model_index, self.view)
         
-        parent_index = model_index.parent()
-        if parent_index == self.view.rootIndex():
-            return self._group_widget_size
-        elif parent_index.isValid() and parent_index.parent() == self.view.rootIndex():
-            return self._item_widget_size
+    def showEvent(self, event):
+        self._toggle_spinner(self._show_spinner)
+        #self._timer.start(1000 / FileGroupWidget._SPINNER_FPS)
+        GroupWidgetBase.showEvent(self, event)
         
-        return QtCore.QSize()
+    def hideEvent(self, event):
+        self._timer.stop()
+        GroupWidgetBase.hideEvent(self, event)
+
+    def set_item(self, model_idx):
+        """
+        """
+        label = model_idx.data()
+        self._ui.expand_check_box.setText(label)
         
+        # update if the spinner should be visible or not:
+        search_status = model_idx.data(FileModel.SEARCH_STATUS_ROLE)
+        if search_status == None:
+            search_status = FileModel.SEARCH_COMPLETED
+            
+        self._toggle_spinner(search_status == FileModel.SEARCHING)
         
+        search_msg = ""
+        if search_status == FileModel.SEARCHING:
+            search_msg = "Searching for files..."
+        elif search_status == FileModel.SEARCH_COMPLETED:
+            if not model_idx.model().hasChildren(model_idx):
+                search_msg = "No files found!"
+        elif search_status == FileModel.SEARCH_FAILED:
+            search_msg = model_idx.data(FileModel.SEARCH_MSG_ROLE) or ""
+        self._ui.msg_label.setText(search_msg)
+                        
+        show_msg = bool(search_msg) and self._ui.expand_check_box.checkState() == QtCore.Qt.Checked
+        self._ui.msg_label.setVisible(show_msg)
+        
+
+    def set_expanded(self, expand=True):
+        """
+        """
+        self._ui.expand_check_box.setCheckState(QtCore.Qt.Checked if expand else QtCore.Qt.Unchecked)
+
+    def _on_expand_checkbox_state_changed(self, state):
+        """
+        """
+        self.toggle_expanded.emit(state != QtCore.Qt.Unchecked)        
 
 class TestItemDelegate(GroupListViewItemDelegate):
 
     def __init__(self, view):
         GroupListViewItemDelegate.__init__(self, view)
+        
+        self._item_widget = None
 
-    def _create_group_widget(self, parent):
+    def create_group_widget(self, parent):
+        return FileGroupWidget(parent)
+
+    def _get_painter_widget(self, model_index, parent):
         """
         """
-        return GroupHeaderWidget(parent)
-    
-    def _create_item_widget(self, parent):
+        if not model_index.isValid():
+            return None
+        return self._get_item_widget(parent)
+
+    def _get_item_widget(self, parent):
         """
         """
-        return FileTile(parent)
+        if not self._item_widget:
+            self._item_widget = FileTile(parent)
+        return self._item_widget
 
     def _setup_widget(self, widget, model_index, style_options):
         """
         """
-        if isinstance(widget, GroupHeaderWidget):
-            # update group widget:
-            widget.label = model_index.data()
-        elif isinstance(widget, FileTile):
+        if isinstance(widget, FileTile):
             # update item widget:
             widget.title = model_index.data()
             widget.selected = (style_options.state & QtGui.QStyle.State_Selected) == QtGui.QStyle.State_Selected 
@@ -148,9 +204,20 @@ class TestItemDelegate(GroupListViewItemDelegate):
         """
         """
         self._setup_widget(widget, model_index, style_options)
+
+    def sizeHint(self, style_options, model_index):
+        """
+        """
+        if not model_index.isValid():
+            return QtCore.QSize()
         
-    def setModelData(self, editor, model, model_index):
-        pass
+        if model_index.parent() != self.view.rootIndex():
+            return self._get_item_widget(self.view).size()
+        else:
+            return GroupListViewItemDelegate.sizeHint(self, style_options, model_index)
+        
+    #def setModelData(self, editor, model, model_index):
+    #    pass
 
 class FileListForm(QtGui.QWidget):
     """
@@ -168,7 +235,7 @@ class FileListForm(QtGui.QWidget):
         
         self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
         
-        self._overlay_widget = FileModelOverlayWidget(parent = self._ui.view_pages)
+        #self._overlay_widget = FileModelOverlayWidget(parent = self._ui.view_pages)
         
         self._ui.details_radio_btn.setEnabled(False) # (AD) - temp
         self._ui.details_radio_btn.toggled.connect(self._on_view_toggled)
@@ -190,5 +257,13 @@ class FileListForm(QtGui.QWidget):
         """
         self._ui.file_list_view.setModel(model)
         self._ui.file_details_view.setModel(model)
-        self._overlay_widget.set_model(model)
+        #self._overlay_widget.set_model(model)
+        
+    def get_selection_model(self):
+        """
+        """
+        return self._ui.file_list_view.selectionModel() 
+        
+        
+        
         

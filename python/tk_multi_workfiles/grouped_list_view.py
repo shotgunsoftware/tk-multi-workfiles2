@@ -7,11 +7,14 @@ from sgtk.platform.qt import QtCore, QtGui
 
 GroupedListBase = QtGui.QAbstractItemView#QtGui.QTreeView
 
+shotgun_view = sgtk.platform.import_framework("tk-framework-qtwidgets", "shotgun_view")
+WidgetDelegate = shotgun_view.WidgetDelegate
+
 class GroupWidgetBase(QtGui.QWidget):
     """
     """
     toggle_expanded = QtCore.Signal(bool)
-    
+
     def __init__(self, parent=None):
         """
         """
@@ -36,7 +39,6 @@ class GroupWidgetBase(QtGui.QWidget):
         else:
             rect.setHeight(30)
         self.setGeometry(rect)
-            
         
     def set_expanded(self, expand=True):
         """
@@ -48,138 +50,43 @@ class GroupWidgetBase(QtGui.QWidget):
         """
         self.toggle_expanded.emit(state != QtCore.Qt.Unchecked)
         
-from .ui.file_group_widget import Ui_FileGroupWidget
-
-from .file_model import FileModel
-
-class FileGroupWidget(GroupWidgetBase):
+class GroupListViewItemDelegate(WidgetDelegate):
     """
     """
-    _SPINNER_FPS = 20
-    _SPINNER_LINE_WIDTH = 2
-    _SPINNER_BORDER = 4
-    _SPINNER_ARC_LENGTH = 320 * 16
-    _SECONDS_PER_SPIN = 3
+    def __init__(self, view):
+        """
+        """
+        WidgetDelegate.__init__(self, view)
+        
+        self._calc_group_widget = None
+        
+    def create_group_widget(self, parent):
+        return GroupWidgetBase(parent)
     
-    def __init__(self, parent=None):
+    def sizeHint(self, style_options, model_index):#, expanded):
         """
-        Construction
         """
-        QtGui.QWidget.__init__(self, parent)
-        
-        # set up the UI
-        self._ui = Ui_FileGroupWidget()
-        self._ui.setupUi(self)
-        
-        self._ui.expand_check_box.stateChanged.connect(self._on_expand_checkbox_state_changed)
-        
-        self._show_spinner = False
-        self._timer = QtCore.QTimer(self)
-        self._timer.timeout.connect(self._on_animation)
-
-    def _on_animation(self):
-        """
-        Spinner async callback to help animate the progress spinner.
-        """
-        # just force a repaint:    
-        self.repaint()
-
-    def paintEvent(self, event):
-        """
-        Render the UI.
-        """
-        if self._show_spinner:
-            self._paint_spinner()
-
-        GroupWidgetBase.paintEvent(self, event)
+        if model_index.parent() == self.view.rootIndex():
+            expanded = self.view.is_expanded(model_index)
             
-    def _paint_spinner(self):
-        """
-        """
-        
-        # calculate the spin angle as a function of the current time so that all spinners appear in sync!
-        t = time.time()
-        whole_seconds = int(t)
-        p = (whole_seconds % FileGroupWidget._SECONDS_PER_SPIN) + (t - whole_seconds)
-        angle = int((360 * p)/FileGroupWidget._SECONDS_PER_SPIN)
-
-        painter = QtGui.QPainter()
-        painter.begin(self)
-        try:
-            painter.setRenderHint(QtGui.QPainter.Antialiasing)
-            pen = QtGui.QPen(QtGui.QColor(200, 200, 200))
-            pen.setWidth(FileGroupWidget._SPINNER_LINE_WIDTH)
-            painter.setPen(pen)
-            
-            border = FileGroupWidget._SPINNER_BORDER + int(math.ceil(FileGroupWidget._SPINNER_LINE_WIDTH / 2.0))
-            r = self._ui.spinner.geometry()
-            #painter.fillRect(r, QtGui.QColor("#000000"))
-            r = r.adjusted(border, border, -border, -border)
-            
-            start_angle = -angle * 16
-            painter.drawArc(r, start_angle, FileGroupWidget._SPINNER_ARC_LENGTH)
-            
-        finally:
-            painter.end()
-
-    def _toggle_spinner(self, show=True):
-        """
-        """
-        self._show_spinner = show
-        if self._show_spinner and self.isVisible():
-            if not self._timer.isActive():
-                self._timer.start(1000 / FileGroupWidget._SPINNER_FPS)
+            # the index is a root/group item:
+            if not self._calc_group_widget:
+                self._calc_group_widget = self.create_group_widget(self.view)
+                self._calc_group_widget.setVisible(False)
+                                
+            self._calc_group_widget.set_expanded(expanded)
+            self._calc_group_widget.set_item(model_index)
+            layout = self._calc_group_widget.layout()
+            if layout:
+                layout.invalidate()
+                layout.activate()
+            item_size = self._calc_group_widget.sizeHint()
+            return item_size
         else:
-            if self._timer.isActive():
-                self._timer.stop()
+            # return the base size hint:
+            return WidgetDelegate.sizeHint(self, style_options, model_index)        
         
         
-    def showEvent(self, event):
-        self._toggle_spinner(self._show_spinner)
-        #self._timer.start(1000 / FileGroupWidget._SPINNER_FPS)
-        GroupWidgetBase.showEvent(self, event)
-        
-    def hideEvent(self, event):
-        self._timer.stop()
-        GroupWidgetBase.hideEvent(self, event)
-
-    def set_item(self, model_idx):
-        """
-        """
-        label = model_idx.data()
-        self._ui.expand_check_box.setText(label)
-        
-        # update if the spinner should be visible or not:
-        search_status = model_idx.data(FileModel.SEARCH_STATUS_ROLE)
-        if search_status == None:
-            search_status = FileModel.SEARCH_COMPLETED
-            
-        self._toggle_spinner(search_status == FileModel.SEARCHING)
-        
-        search_msg = ""
-        if search_status == FileModel.SEARCHING:
-            search_msg = "Searching for files..."
-        elif search_status == FileModel.SEARCH_COMPLETED:
-            if not model_idx.model().hasChildren(model_idx):
-                search_msg = "No files found!"
-        elif search_status == FileModel.SEARCH_FAILED:
-            search_msg = model_idx.data(FileModel.SEARCH_MSG_ROLE) or ""
-        self._ui.msg_label.setText(search_msg)
-                        
-        show_msg = bool(search_msg) and self._ui.expand_check_box.checkState() == QtCore.Qt.Checked
-        self._ui.msg_label.setVisible(show_msg)
-        
-
-    def set_expanded(self, expand=True):
-        """
-        """
-        self._ui.expand_check_box.setCheckState(QtCore.Qt.Checked if expand else QtCore.Qt.Unchecked)
-
-    def _on_expand_checkbox_state_changed(self, state):
-        """
-        """
-        self.toggle_expanded.emit(state != QtCore.Qt.Unchecked)
-
 
 class GroupedListView(GroupedListBase):
     """
@@ -217,6 +124,9 @@ class GroupedListView(GroupedListBase):
         
         self.setEditTriggers(self.CurrentChanged)
 
+        # default the item delegate to the base implementation:
+        self.setItemDelegate(GroupListViewItemDelegate(self))
+
         self._calc_group_widget = None # should this be some kind of delegate?
         self._group_widgets = []
         self._group_widget_rows = {}
@@ -226,6 +136,13 @@ class GroupedListView(GroupedListBase):
         self._border = QtCore.QSize(6,6)
         self._group_spacing = 30
         self._item_spacing = QtCore.QSize(4,4)
+
+    def setItemDelegate(self, delegate):
+        """
+        """
+        if not isinstance(delegate, GroupListViewItemDelegate):
+            raise Exception("Item delegate for this view must be derived from 'GroupListViewItemDelegate'!")
+        GroupedListBase.setItemDelegate(self, delegate)
 
     @property
     def border(self):
@@ -311,18 +228,20 @@ class GroupedListView(GroupedListBase):
         """
         Called when data in the model has been changed
         """
-        print "DATA CHANGED [%s] %s -> %s" % (top_left.parent().row(), top_left.row(), bottom_right.row())
+        #print "DATA CHANGED [%s] %s -> %s" % (top_left.parent().row(), top_left.row(), bottom_right.row())
         
         if top_left.parent() == self.rootIndex():
             # data has changed for top-level rows:
             for row in range(top_left.row(), bottom_right.row()+1):
-                self._item_info[row].dirty = True
+                if row < len(self._item_info):
+                    self._item_info[row].dirty = True
                 self._update_some_item_info = True
         elif top_left.parent().parent() == self.rootIndex():
             # this assumes that all rows from top-left to bottom-right have 
             # the same parent!
             row = top_left.parent().row()
-            self._item_info[row].dirty = True
+            if row < len(self._item_info):
+                self._item_info[row].dirty = True
             self._update_some_item_info = True
         else:
             self._update_all_item_info = True
@@ -335,7 +254,7 @@ class GroupedListView(GroupedListBase):
         """
         Called when rows have been inserted into the model
         """
-        print "ROWS INSERTED [%s] %s -> %s" % (parent_index.row(), start, end)
+        #print "ROWS INSERTED [%s] %s -> %s" % (parent_index.row(), start, end)
         
         if not self._update_all_item_info:
             if parent_index == self.rootIndex():
@@ -363,7 +282,7 @@ class GroupedListView(GroupedListBase):
         """
         Called just before rows are going to be removed from the model
         """
-        print "ROWS REMOVED [%s] %s -> %s" % (parent_index.row(), start, end)
+        #print "ROWS REMOVED [%s] %s -> %s" % (parent_index.row(), start, end)
         
         if not self._update_all_item_info:
             if parent_index == self.rootIndex():
@@ -642,7 +561,7 @@ class GroupedListView(GroupedListBase):
                         grp_widget = self._group_widgets[next_group_widget_idx]
                     else:
                         # need to create a new group widget and hook up the signals:
-                        grp_widget = self.create_group_widget(self.viewport())
+                        grp_widget = self.itemDelegate().create_group_widget(self.viewport())
                         if grp_widget:
                             self._group_widgets.append(grp_widget)
                             grp_widget.toggle_expanded.connect(self._on_group_expanded_toggled)
@@ -651,8 +570,8 @@ class GroupedListView(GroupedListBase):
                     if grp_widget:
                         # set up this widget for this index:
                         grp_widget.setGeometry(rect)
-                        grp_widget.set_item(index)
                         grp_widget.set_expanded(not item_info.collapsed)
+                        grp_widget.set_item(index)
                         grp_widget.show()
                         self._group_widget_rows[grp_widget] = row
 
@@ -819,18 +738,8 @@ class GroupedListView(GroupedListBase):
             # construxt the model index for this row:
             index = self.model().index(row, 0)
 
-            # update group widget size:
-            if not self._calc_group_widget:
-                self._calc_group_widget = self.create_group_widget(self)
-                self._calc_group_widget.setVisible(False)            
-            
-            self._calc_group_widget.set_expanded(not item_info.collapsed)
-            self._calc_group_widget.set_item(index)
-            layout = self._calc_group_widget.layout()
-            if layout:
-                layout.invalidate()
-                layout.activate()
-            item_size = self._calc_group_widget.sizeHint()
+            view_options = base_view_options
+            item_size = self.itemDelegate().sizeHint(view_options, index)
             item_info.rect = QtCore.QRect(self._border.width(), 0, item_size.width(), item_size.height())
     
             # update size info of children:

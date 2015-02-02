@@ -16,125 +16,126 @@ from sgtk import TankError
 import time
 import random
 
-class DummyTask(QtCore.QRunnable, QtCore.QObject):
-    
-    completed = QtCore.Signal(int, object)
-    failed = QtCore.Signal(int, str)
-    
-    def __init__(self, id, data=None):
-        QtCore.QRunnable.__init__(self)
-        QtCore.QObject.__init__(self)
-        self._id = id
-        self._data = data
+offline_test = False
+if offline_test:
+    class DummyTask(QtCore.QRunnable, QtCore.QObject):
         
-    def autoDelete(self):
-        return False
+        completed = QtCore.Signal(int, object)
+        failed = QtCore.Signal(int, str)
         
-    def run(self):
-        """
-        """
-        try:
-            time.sleep(random.randint(0, 5))
-            #time.sleep(1)
+        def __init__(self, id, data=None):
+            QtCore.QRunnable.__init__(self)
+            QtCore.QObject.__init__(self)
+            self._id = id
+            self._data = data
             
-            # do something...
-            result = []
+        def autoDelete(self):
+            return False
             
-            if self._data == None:
-                raise TankError("An unhandled error occured!\n"
-                                "This is a multi-line error...\n"
-                                "... what does it look like?\n"
-                                "odd!!!")
-            else:
-                result = self._data
-            self.completed.emit(self._id, result)
-        except Exception, e:
-            self.failed.emit(self._id, str(e))
-
-
-#from .find_files import FileFinder
-class FileFinder(QtCore.QObject):
-    """
-    Temp 'off-line' finder that returns dummy data!
-    """
-    search_failed = QtCore.Signal(object, object)
-    files_found = QtCore.Signal(object, object) # search_id, file_list
+        def run(self):
+            """
+            """
+            try:
+                time.sleep(random.randint(0, 5))
+                #time.sleep(1)
+                
+                # do something...
+                result = []
+                
+                if self._data == None:
+                    raise TankError("An unhandled error occured!\n"
+                                    "This is a multi-line error...\n"
+                                    "... what does it look like?\n"
+                                    "odd!!!")
+                else:
+                    result = self._data
+                self.completed.emit(self._id, result)
+            except Exception, e:
+                self.failed.emit(self._id, str(e))
     
-    def __init__(self, parent=None):
-        QtCore.QObject.__init__(self, parent)
-        
-        self._next_search_id = 0
-        self._current_searches = []
-        
-    def begin_search(self, search_details, force=False):
+    class FileFinder(QtCore.QObject):
         """
+        Temp 'off-line' finder that returns dummy data!
         """
-        from .file_item import FileItem
+        search_failed = QtCore.Signal(object, object)
+        files_found = QtCore.Signal(object, object) # search_id, file_list
         
-        search_id = self._next_search_id
-        self._next_search_id += 1
-
-
-        dummy_results = {
-            "Sequence 01":[
-                FileItem("/dummy/path/to/sequence01_v123.ma", "", True, False, {"version":123}, None)
-            ],
-            "Sequence 02":None,
-            "Shot 01":[
-                FileItem("/dummy/path/to/shot01_v010.ma", "", True, False, {"version":10}, None)
-            ],
-            "Light - Lighting":[
-                FileItem("/dummy/path/to/lightinga_v001.ma", "", True, False, {"version":1}, None),
-                FileItem("/dummy/path/to/lightingb_v001.ma", "", True, False, {"version":1}, None),
-                FileItem("/dummy/path/to/lightingc_v001.ma", "", True, False, {"version":1}, None),
-                FileItem("/dummy/path/to/lightingd_v001.ma", "", True, False, {"version":1}, None),
-                FileItem("/dummy/path/to/lightinge_v001.ma", "", True, False, {"version":1}, None),
-                FileItem("/dummy/path/to/lightingf_v001.ma", "", True, False, {"version":1}, None),
-                FileItem("/dummy/path/to/lightingg_v001.ma", "", True, False, {"version":1}, None),
-                FileItem("/dummy/path/to/lightingh_v001.ma", "", True, False, {"version":1}, None),
-                FileItem("/dummy/path/to/lightingi_v001.ma", "", True, False, {"version":1}, None),
-                FileItem("/dummy/path/to/lightingi_this_one_has_quite_a_long_name_so_lets_see_what_happens_v001.ma", "", True, False, {"version":1}, None)
-            ],
-            "Anm - Animation":[
-                FileItem("/dummy/path/to/animationa_v001.ma", "", True, False, {"version":1}, None),
-                FileItem("/dummy/path/to/animationa_v002.ma", "", True, False, {"version":2}, None)
-            ],
-            "Anm - More Animation":[],
-            "Mod - Modelling":None
-        }
-        dummy_result = dummy_results.get(search_details.name, [])
-        
-        task = DummyTask(search_id, dummy_result)
-        task.completed.connect(self._on_search_completed)
-        task.failed.connect(self._on_search_failed)
-
-        self._current_searches.append(search_id)
-
-        print "Starting search %d: %s" % (search_id, search_details)
-        QtCore.QThreadPool.globalInstance().start(task)
-        
-        return search_id
-
-    def stop_search(self, search_id):
-        """
-        """
-        self._current_searches.remove(search_id)
-        
-    def stop_all_searches(self):
-        """
-        """
-        self._current_searches = []
-        
-    def _on_search_completed(self, search_id, result):
-        if search_id not in self._current_searches:
-            return
-        self.files_found.emit(search_id, result)
+        def __init__(self, parent=None):
+            QtCore.QObject.__init__(self, parent)
+            
+            self._next_search_id = 0
+            self._current_searches = []
+            
+        def begin_search(self, search_details, force=False):
+            """
+            """
+            from .file_item import FileItem
+            
+            search_id = self._next_search_id
+            self._next_search_id += 1
     
-    def _on_search_failed(self, search_id, msg):
-        if search_id not in self._current_searches:
-            return
-        self.search_failed.emit(search_id, msg)
-
+    
+            dummy_results = {
+                "Sequence 01":[
+                    FileItem("/dummy/path/to/sequence01_v123.ma", "", True, False, {"version":123}, None)
+                ],
+                "Sequence 02":None,
+                "Shot 01":[
+                    FileItem("/dummy/path/to/shot01_v010.ma", "", True, False, {"version":10}, None)
+                ],
+                "Light - Lighting":[
+                    FileItem("/dummy/path/to/lightinga_v001.ma", "", True, False, {"version":1}, None),
+                    FileItem("/dummy/path/to/lightingb_v001.ma", "", True, False, {"version":1}, None),
+                    FileItem("/dummy/path/to/lightingc_v001.ma", "", True, False, {"version":1}, None),
+                    FileItem("/dummy/path/to/lightingd_v001.ma", "", True, False, {"version":1}, None),
+                    FileItem("/dummy/path/to/lightinge_v001.ma", "", True, False, {"version":1}, None),
+                    FileItem("/dummy/path/to/lightingf_v001.ma", "", True, False, {"version":1}, None),
+                    FileItem("/dummy/path/to/lightingg_v001.ma", "", True, False, {"version":1}, None),
+                    FileItem("/dummy/path/to/lightingh_v001.ma", "", True, False, {"version":1}, None),
+                    FileItem("/dummy/path/to/lightingi_v001.ma", "", True, False, {"version":1}, None),
+                    FileItem("/dummy/path/to/lightingi_this_one_has_quite_a_long_name_so_lets_see_what_happens_v001.ma", "", True, False, {"version":1}, None)
+                ],
+                "Anm - Animation":[
+                    FileItem("/dummy/path/to/animationa_v001.ma", "", True, False, {"version":1}, None),
+                    FileItem("/dummy/path/to/animationa_v002.ma", "", True, False, {"version":2}, None)
+                ],
+                "Anm - More Animation":[],
+                "Mod - Modelling":None
+            }
+            dummy_result = dummy_results.get(search_details.name, [])
+            
+            task = DummyTask(search_id, dummy_result)
+            task.completed.connect(self._on_search_completed)
+            task.failed.connect(self._on_search_failed)
+    
+            self._current_searches.append(search_id)
+    
+            print "Starting search %d: %s" % (search_id, search_details)
+            QtCore.QThreadPool.globalInstance().start(task)
+            
+            return search_id
+    
+        def stop_search(self, search_id):
+            """
+            """
+            self._current_searches.remove(search_id)
+            
+        def stop_all_searches(self):
+            """
+            """
+            self._current_searches = []
+            
+        def _on_search_completed(self, search_id, result):
+            if search_id not in self._current_searches:
+                return
+            self.files_found.emit(search_id, result)
+        
+        def _on_search_failed(self, search_id, msg):
+            if search_id not in self._current_searches:
+                return
+            self.search_failed.emit(search_id, msg)
+else:
+    from .find_files import FileFinder
 
 class FileModel(QtGui.QStandardItemModel):
     """
@@ -300,48 +301,29 @@ class FileModel(QtGui.QStandardItemModel):
         # clear existing data from model:
         self.clear()
         
-        # start any searches necessary for the item and it's children!
-        self._begin_searches_r(search_details, self.invisibleRootItem(), True)
-        
-    def _begin_searches_r(self, search_details, model_item, is_root=False):
-        """
-        """
-        new_item = None
-        if is_root or search_details.is_leaf:
+        for search in search_details:
             # add a 'group' item to the model:
-            new_item = FileModel._GroupItem(search_details.name)
+            new_item = FileModel._GroupItem(search.name)
             new_item.set_search_status(FileModel.SEARCHING)
             self.invisibleRootItem().appendRow(new_item)
             new_index = new_item.index()
             
             # start a search for this new group:
-            search_id = self._finder.begin_search(search_details)
+            search_id = self._finder.begin_search(search)
             self._in_progress_searches[search_id] = new_item
             
             # emit signal that we have started a new search for this index:
             self.search_started.emit(new_index)
-        else:
-            # add a folder item to the model:
-            new_item = FileModel._FolderItem(search_details.name)
-            model_item.appendRow(new_item)
             
-        # recurse over all children:
-        for child_search_details in search_details.children:
-            self._begin_searches_r(child_search_details, new_item)
-        
-        """
-        new_model_item = QtGui.QStandardItem(search_details.name)
-        model_item.appendRow(new_model_item)
-        new_item_index = new_model_item.index() 
-        
-        if search_details.is_leaf:
-            if search_details.entity or search_details.step or search_details.task:
-                search_id = self._finder.begin_search(search_details)
-                self._in_progress_searches[search_id] = new_model_item
-            
-        for child_search_details in search_details.children:
-            self._begin_searches_r(child_search_details, new_model_item)
-        """
+            # and add folder items for any children:
+            for child in search.child_entities:
+                child_name = child.get("name", "Entity")
+                child_entity = child.get("entity")
+                
+                # add a folder item to the model:
+                folder_item = FileModel._FolderItem(child_name)
+                new_item.appendRow(folder_item)
+        print "NOW"
         
     def _on_finder_files_found(self, search_id, files):
         """
@@ -353,7 +335,7 @@ class FileModel(QtGui.QStandardItemModel):
         parent_model_item = self._in_progress_searches[search_id]
         del(self._in_progress_searches[search_id])
         
-        print "FOUND %d FILES FOR SEARCH %d" % (len(files), search_id)
+        #print "FOUND %d FILES FOR SEARCH %d" % (len(files), search_id)
         
         # add files to model:
         new_rows = []
@@ -379,7 +361,7 @@ class FileModel(QtGui.QStandardItemModel):
         parent_model_item = self._in_progress_searches[search_id]
         del(self._in_progress_searches[search_id])
         
-        print "SEARCH %d FAILED: %s" % (search_id, error)
+        #print "SEARCH %d FAILED: %s" % (search_id, error)
         
         if isinstance(parent_model_item, FileModel._GroupItem):
             parent_model_item.set_search_status(FileModel.SEARCH_FAILED, error)
