@@ -13,9 +13,9 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1,0">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,1">
    <property name="spacing">
-    <number>-1</number>
+    <number>4</number>
    </property>
    <property name="leftMargin">
     <number>2</number>
@@ -27,36 +27,8 @@
     <number>2</number>
    </property>
    <property name="bottomMargin">
-    <number>6</number>
+    <number>2</number>
    </property>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
-     <property name="leftMargin">
-      <number>2</number>
-     </property>
-     <property name="rightMargin">
-      <number>2</number>
-     </property>
-     <item>
-      <widget class="SearchWidget" name="search_ctrl" native="true">
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>20</height>
-        </size>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">#search_ctrl {
-background-color: rgb(255, 128, 0);
-}</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <widget class="MyTasksTreeView" name="task_tree"/>
-   </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <property name="leftMargin">
@@ -64,6 +36,9 @@ background-color: rgb(255, 128, 0);
      </property>
      <property name="rightMargin">
       <number>2</number>
+     </property>
+     <property name="bottomMargin">
+      <number>1</number>
      </property>
      <item>
       <widget class="QToolButton" name="toolButton">
@@ -105,6 +80,24 @@ background-color: rgb(255, 128, 0);
       </widget>
      </item>
     </layout>
+   </item>
+   <item>
+    <widget class="SearchWidget" name="search_ctrl" native="true">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>20</height>
+      </size>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">#search_ctrl {
+background-color: rgb(255, 128, 0);
+}</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="MyTasksTreeView" name="task_tree"/>
    </item>
   </layout>
  </widget>

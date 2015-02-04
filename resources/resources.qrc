@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="tk-multi-workfiles">
+    <file>folder_512x400.png</file>
     <file>tree_arrow_large_collapsed.png</file>
     <file>tree_arrow_large_expanded.png</file>
     <file>tree_arrow_expanded.png</file>

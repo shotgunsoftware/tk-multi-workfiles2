@@ -1,4 +1,4 @@
-# Copyright (c) 2014 Shotgun Software Inc.
+# Copyright (c) 2015 Shotgun Software Inc.
 # 
 # CONFIDENTIAL AND PROPRIETARY
 # 
@@ -9,11 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
-
 """
-
-import time
-import math
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
@@ -35,15 +31,12 @@ from .grouped_list_view import GroupListViewItemDelegate, GroupWidgetBase
 from .ui.file_group_widget import Ui_FileGroupWidget
 from .file_model import FileModel
 
+from .spinner_widget import SpinnerWidget
+
+
 class FileGroupWidget(GroupWidgetBase):
     """
     """
-    _SPINNER_FPS = 20
-    _SPINNER_LINE_WIDTH = 2
-    _SPINNER_BORDER = 2
-    _SPINNER_ARC_LENGTH = 280 * 16
-    _SECONDS_PER_SPIN = 3
-    
     def __init__(self, parent=None):
         """
         Construction
@@ -56,75 +49,25 @@ class FileGroupWidget(GroupWidgetBase):
         
         self._ui.expand_check_box.stateChanged.connect(self._on_expand_checkbox_state_changed)
         
-        self._show_spinner = False
-        self._timer = QtCore.QTimer(self)
-        self._timer.timeout.connect(self._on_animation)
-
-    def _on_animation(self):
-        """
-        Spinner async callback to help animate the progress spinner.
-        """
-        # just force a repaint:    
-        self.repaint()
-
-    def paintEvent(self, event):
-        """
-        Render the UI.
-        """
-        if self._show_spinner:
-            self._paint_spinner()
-
-        GroupWidgetBase.paintEvent(self, event)
-            
-    def _paint_spinner(self):
-        """
-        """
+        # replace the spinner widget with our SpinnerWidget widget:
+        proxy_widget = self._ui.spinner
+        proxy_size = proxy_widget.geometry()
+        proxy_min_size = proxy_widget.minimumSize()
         
-        # calculate the spin angle as a function of the current time so that all spinners appear in sync!
-        t = time.time()
-        whole_seconds = int(t)
-        p = (whole_seconds % FileGroupWidget._SECONDS_PER_SPIN) + (t - whole_seconds)
-        angle = int((360 * p)/FileGroupWidget._SECONDS_PER_SPIN)
+        spinner_widget = SpinnerWidget(self)
+        spinner_widget.setMinimumSize(proxy_min_size)
+        spinner_widget.setGeometry(proxy_size)        
 
-        painter = QtGui.QPainter()
-        painter.begin(self)
-        try:
-            painter.setRenderHint(QtGui.QPainter.Antialiasing)
-            pen = QtGui.QPen(QtGui.QColor(200, 200, 200))
-            pen.setWidth(FileGroupWidget._SPINNER_LINE_WIDTH)
-            painter.setPen(pen)
-            
-            border = FileGroupWidget._SPINNER_BORDER + int(math.ceil(FileGroupWidget._SPINNER_LINE_WIDTH / 2.0))
-            r = self._ui.spinner.geometry()
-            #painter.fillRect(r, QtGui.QColor("#000000"))
-            r = r.adjusted(border, border, -border, -border)
-            
-            start_angle = -angle * 16
-            painter.drawArc(r, start_angle, FileGroupWidget._SPINNER_ARC_LENGTH)
-            
-        finally:
-            painter.end()
-
-    def _toggle_spinner(self, show=True):
-        """
-        """
-        self._show_spinner = show
-        if self._show_spinner and self.isVisible():
-            if not self._timer.isActive():
-                self._timer.start(1000 / FileGroupWidget._SPINNER_FPS)
-        else:
-            if self._timer.isActive():
-                self._timer.stop()
+        layout = self._ui.horizontalLayout
+        idx = layout.indexOf(proxy_widget)
+        layout.removeWidget(proxy_widget)
+        layout.insertWidget(idx, spinner_widget)
         
+        self._ui.spinner.setParent(None)
+        self._ui.spinner.deleteLater()
+        self._ui.spinner = spinner_widget
         
-    def showEvent(self, event):
-        self._toggle_spinner(self._show_spinner)
-        #self._timer.start(1000 / FileGroupWidget._SPINNER_FPS)
-        GroupWidgetBase.showEvent(self, event)
-        
-    def hideEvent(self, event):
-        self._timer.stop()
-        GroupWidgetBase.hideEvent(self, event)
+        self._show_msg = False
 
     def set_item(self, model_idx):
         """
@@ -137,7 +80,8 @@ class FileGroupWidget(GroupWidgetBase):
         if search_status == None:
             search_status = FileModel.SEARCH_COMPLETED
             
-        self._toggle_spinner(search_status == FileModel.SEARCHING)
+        # show the spinner if needed:
+        self._ui.spinner.setVisible(search_status == FileModel.SEARCHING)
         
         search_msg = ""
         if search_status == FileModel.SEARCHING:
@@ -149,19 +93,25 @@ class FileGroupWidget(GroupWidgetBase):
             search_msg = model_idx.data(FileModel.SEARCH_MSG_ROLE) or ""
         self._ui.msg_label.setText(search_msg)
                         
-        show_msg = bool(search_msg) and self._ui.expand_check_box.checkState() == QtCore.Qt.Checked
+        self._show_msg = bool(search_msg)
+                        
+        show_msg = self._show_msg and self._ui.expand_check_box.checkState() == QtCore.Qt.Checked
         self._ui.msg_label.setVisible(show_msg)
-        
 
     def set_expanded(self, expand=True):
         """
         """
-        self._ui.expand_check_box.setCheckState(QtCore.Qt.Checked if expand else QtCore.Qt.Unchecked)
+        if (self._ui.expand_check_box.checkState() == QtCore.Qt.Checked) != expand:
+            self._ui.expand_check_box.setCheckState(QtCore.Qt.Checked if expand else QtCore.Qt.Unchecked)
 
     def _on_expand_checkbox_state_changed(self, state):
         """
         """
-        self.toggle_expanded.emit(state != QtCore.Qt.Unchecked)        
+        show_msg = self._show_msg and state == QtCore.Qt.Checked
+        self._ui.msg_label.setVisible(show_msg)
+        
+        self.toggle_expanded.emit(state != QtCore.Qt.Unchecked)
+    
 
 class TestItemDelegate(GroupListViewItemDelegate):
 
@@ -190,10 +140,48 @@ class TestItemDelegate(GroupListViewItemDelegate):
     def _setup_widget(self, widget, model_index, style_options):
         """
         """
-        if isinstance(widget, FileTile):
-            # update item widget:
-            widget.title = model_index.data()
-            widget.selected = (style_options.state & QtGui.QStyle.State_Selected) == QtGui.QStyle.State_Selected 
+        if not isinstance(widget, FileTile):
+            return
+        
+        label = ""
+        icon = None
+        
+        file_item = model_index.data(FileModel.FILE_ITEM_ROLE)
+        if file_item:
+            # build label:
+            label = "<b>%s, v%03d</b>" % (file_item.name, file_item.version)
+            if file_item.is_published:
+                label += "<br>%s" % file_item.format_published_by_details()
+            elif file_item.is_local:
+                label += "<br>%s" % file_item.format_modified_by_details()
+
+            # retrieve the icon:                
+            icon = model_index.data(QtCore.Qt.DecorationRole)
+            
+            #if not icon:
+            #    # look for the most recent file that does have an icon:
+            #    file_model = model_index.model()
+            #    while isinstance(file_model, QtGui.QSortFilterProxyModel):
+            #        file_model = file_model.sourceModel()
+            #        
+            #    if isinstance(file_model, FileModel):
+            #        all_versions = file_model.get_file_versions(file_item.key)
+            #        versions = sorted(all_versions.keys(), reverse=True)
+            #        for v in versions:
+            #            if file_item.version < v:
+            #                continue
+            #            
+            #            if file_item.thumbnail:
+            #                icon = QtGui.QIcon(file_item.thumbnail)
+            #                break
+        else:
+            label = model_index.data()
+            icon = model_index.data(QtCore.Qt.DecorationRole)
+
+        # update widget:
+        widget.title = label
+        widget.set_thumbnail(icon)
+        widget.selected = (style_options.state & QtGui.QStyle.State_Selected) == QtGui.QStyle.State_Selected
 
     def _on_before_paint(self, widget, model_index, style_options):
         """
@@ -223,6 +211,8 @@ class FileListForm(QtGui.QWidget):
     """
     """
     
+    file_selected = QtCore.Signal(object)
+    
     def __init__(self, search_label, parent=None):
         """
         Construction
@@ -239,6 +229,9 @@ class FileListForm(QtGui.QWidget):
         
         self._ui.details_radio_btn.setEnabled(False) # (AD) - temp
         self._ui.details_radio_btn.toggled.connect(self._on_view_toggled)
+        self._ui.all_versions_cb.toggled.connect(self._on_show_all_versions_toggled)
+        
+        self._ui.file_list_view.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
         
         item_delegate = TestItemDelegate(self._ui.file_list_view)
         self._ui.file_list_view.setItemDelegate(item_delegate)
@@ -252,6 +245,13 @@ class FileListForm(QtGui.QWidget):
         else:
             self._ui.view_pages.setCurrentWidget(self._ui.list_page)
             
+    def _on_show_all_versions_toggled(self, checked):
+        """
+        """
+        if self._ui.file_list_view.model().show_all_versions != checked:
+            self._ui.file_list_view.model().show_all_versions = checked
+            self._ui.file_list_view.model().sort(0, QtCore.Qt.DescendingOrder)
+            
     def set_model(self, model):
         """
         """
@@ -259,10 +259,26 @@ class FileListForm(QtGui.QWidget):
         self._ui.file_details_view.setModel(model)
         #self._overlay_widget.set_model(model)
         
-    def get_selection_model(self):
+        # connect to the selection model:
+        selection_model = self._ui.file_list_view.selectionModel()
+        if selection_model:
+            selection_model.selectionChanged.connect(self._on_selection_changed)
+        
+        model.show_all_versions = self._ui.all_versions_cb.isChecked()
+        model.sort(0)
+        
+    def _on_selection_changed(self, selected, deselected):
         """
         """
-        return self._ui.file_list_view.selectionModel() 
+        selected_index = None
+        
+        selected_indexes = selected.indexes()
+        if len(selected_indexes) == 1:
+            # extract the selected model index from the selection:
+            selected_index = selected_indexes[0]#self._filter_model.mapToSource(selected_indexes[0])
+            
+        # emit selection_changed signal:            
+        self.file_selected.emit(selected_index)        
         
         
         

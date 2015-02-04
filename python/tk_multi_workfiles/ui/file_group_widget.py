@@ -11,8 +11,8 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_FileGroupWidget(object):
     def setupUi(self, FileGroupWidget):
         FileGroupWidget.setObjectName("FileGroupWidget")
-        FileGroupWidget.resize(305, 49)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
+        FileGroupWidget.resize(326, 49)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(FileGroupWidget.sizePolicy().hasHeightForWidth())
@@ -26,6 +26,7 @@ class Ui_FileGroupWidget(object):
         self.horizontalLayout.setContentsMargins(-1, -1, 6, -1)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.expand_check_box = QtGui.QCheckBox(FileGroupWidget)
+        self.expand_check_box.setMinimumSize(QtCore.QSize(0, 20))
         self.expand_check_box.setStyleSheet("#expand_check_box::indicator {\n"
 "width: 12;\n"
 "height: 12;\n"

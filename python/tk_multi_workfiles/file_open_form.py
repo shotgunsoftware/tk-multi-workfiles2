@@ -27,11 +27,14 @@ from .file_list_form import FileListForm
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 
+shotgun_data = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_data")
+ShotgunDataRetriever = shotgun_data.ShotgunDataRetriever
+
 from .find_files import FileFinder
 from .file_model import FileModel
 from .my_tasks_model import MyTasksModel
 from .publishes_proxy_model import PublishesProxyModel
-from .work_files_proxy_model import WorkFilesProxyModel
+from .work_files_proxy_model import WorkFilesProxyModel, FileProxyModel
 
 class FileOpenForm(QtGui.QWidget):
     """
@@ -51,6 +54,11 @@ class FileOpenForm(QtGui.QWidget):
         
         self._exit_code = QtGui.QDialog.Rejected
         
+        # create the data retriever used to download thumbnails in the background:
+        self._sg_data_retriever = ShotgunDataRetriever(self)
+        # start it!
+        self._sg_data_retriever.start()
+        
         # set up the UI
         self._ui = Ui_FileOpenForm()
         self._ui.setupUi(self)
@@ -67,12 +75,15 @@ class FileOpenForm(QtGui.QWidget):
 
         self.__context_cache = {}
 
+        self._selected_file = None
+
         # call init callback:
         init_callback(self)
     
     def closeEvent(self, event):
         """
         """
+        self._sg_data_retriever.stop()
         return QtGui.QWidget.closeEvent(self, event)
 
     def _initilize_task_trees(self):
@@ -136,44 +147,87 @@ class FileOpenForm(QtGui.QWidget):
         app = sgtk.platform.current_bundle()
         
         # create the model that represents all files:
-        self._file_model = FileModel(self)
+        self._file_model = FileModel(self._sg_data_retriever, self)
 
         # add an 'all files' tab:
+        all_files_model = FileProxyModel(show_work_files=True, show_publishes=True, parent=self)
+        all_files_model.setSourceModel(self._file_model)
+        all_files_model.sort(0)
         all_files_form = FileListForm("All Files", self)
         self._ui.file_browser_tabs.addTab(all_files_form, "All")
-        all_files_form.set_model(self._file_model)
-        selection_model = all_files_form.get_selection_model()
-        if selection_model:
-            selection_model.selectionChanged.connect(self._on_selection_changed)
+        all_files_form.set_model(all_files_model)
+        all_files_form.file_selected.connect(self._on_file_selected)
         
         # create the workfiles proxy model & form:
-        work_files_model = WorkFilesProxyModel(self)
+        work_files_model = FileProxyModel(show_work_files=True, show_publishes=False, parent=self)
         work_files_model.setSourceModel(self._file_model)
         work_files_form = FileListForm("Work Files", self)
         work_files_form.set_model(work_files_model)
         self._ui.file_browser_tabs.addTab(work_files_form, "Working")
-        selection_model = work_files_form.get_selection_model()
-        if selection_model:
-            selection_model.selectionChanged.connect(self._on_selection_changed)
+        work_files_form.file_selected.connect(self._on_file_selected)
             
         # create the publish proxy model & form:
-        publishes_model = PublishesProxyModel(self)
+        publishes_model = FileProxyModel(show_work_files=False, show_publishes=True, parent=self)
         publishes_model.setSourceModel(self._file_model)
         publishes_form = FileListForm("Publishes", self)
         publishes_form.set_model(publishes_model)
         self._ui.file_browser_tabs.addTab(publishes_form, "Publishes")
-        selection_model = publishes_form.get_selection_model()
-        if selection_model:
-            selection_model.selectionChanged.connect(self._on_selection_changed)
+        publishes_form.file_selected.connect(self._on_file_selected)
         
         # create any user-sandbox/configured tabs:
         # (AD) TODO
         
-    def _on_selection_changed(self, selected, deselected):
+    def _on_file_selected(self, idx):
         """
         """
-        # find the file that has been selected:
-        pass
+        while idx and isinstance(idx.model(), QtGui.QSortFilterProxyModel):
+            idx = idx.model().mapToSource(idx)
+        
+        self._selected_file = None
+        if idx:
+            # extract the file item from the index:
+            self._selected_file = idx.data(FileModel.FILE_ITEM_ROLE)
+            
+        if self._selected_file:
+            self._ui.open_btn.setEnabled(True)
+        else:
+            # disable the open button:
+            self._ui.open_btn.setEnabled(False)
+            
+        #print "Selected File: %s" % self._selected_file
+        
+    def get_selected_file_details(self):
+        """
+        """
+        if not self._file_model:
+            return None
+        
+        if not self._selected_file:
+            return None
+        
+        key = self._selected_file.key
+        info = self._file_model.get_file_info(key)
+        if not info:
+            return None
+        
+        versions, context, work_template, publish_template = info
+                
+                
+                
+        
+        
+    """
+    Interface on handler
+    
+    def _on_open_publish(self, publish_file, work_file):
+    def _on_open_workfile(self, work_file, publish_file):
+    def _on_open_previous_publish(self, file):
+    def _on_open_previous_workfile(self, file):
+    def _on_new_file(self):
+    
+    typically, the highest version publish file and the highest version work file
+    
+    """
         
     def _on_my_task_selected(self, task_index):
         """
@@ -213,12 +267,12 @@ class FileOpenForm(QtGui.QWidget):
         entity_item = entity_index.model().itemFromIndex(entity_index)
         
         # first get searches for the entity item:
-        search_details = self._get_item_searches_r(entity_item, recurse_once=True)
+        search_details = self._get_item_searches(entity_item)
 
         # refresh files:
         self._file_model.refresh_files(search_details)
         
-    def _get_item_searches_r(self, entity_item, recurse_once=False):
+    def _get_item_searches(self, entity_item):
         """
         """
         item_search_pairs = []
@@ -242,10 +296,9 @@ class FileOpenForm(QtGui.QWidget):
                     if (c_item.rowCount() == 0
                         and c_entity 
                         and c_entity["type"] == model_entity_type):
-                        # child is a leaf entity in the model
-                        if recurse_once:
-                            child_item_searches = self._get_item_searches_r(child_item)
-                            search_details = search_details + child_item_searches
+                        # add a search for this child item:
+                        child_details = self._get_search_details_for_item(c_name, c_item, c_entity)
+                        search_details.append(child_details)
                     else:
                         # this is not a leaf item so add it to the children:
                         details.child_entities.append({"name":c_name, "entity":c_entity})

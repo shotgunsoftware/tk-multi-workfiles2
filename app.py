@@ -33,26 +33,26 @@ class MultiWorkFiles(tank.platform.Application):
         # register commands:
         #
         
-        if application_has_scenes:
-            # Shotgun file manager is available for all engines that have the concept of a scene file:
-            self.engine.register_command("Shotgun File Manager...", self.show_file_manager_dlg)
+        #if application_has_scenes:
+        #    # Shotgun file manager is available for all engines that have the concept of a scene file:
+        #    self.engine.register_command("Shotgun File Manager...", self.show_file_manager_dlg)
 
-        # change work area is only available if one or more entity types have been set 
-        # in the configuration: 
-        can_change_work_area = (len(self.get_setting("sg_entity_types", [])) > 0)
-        if can_change_work_area:
-            cmd = lambda enable_start_new=application_has_scenes: self.show_change_work_area_dlg(enable_start_new)
-            self.engine.register_command("Change Work Area...", cmd, {"type": "context_menu"})
+        ## change work area is only available if one or more entity types have been set 
+        ## in the configuration: 
+        #can_change_work_area = (len(self.get_setting("sg_entity_types", [])) > 0)
+        #if can_change_work_area:
+        #    cmd = lambda enable_start_new=application_has_scenes: self.show_change_work_area_dlg(enable_start_new)
+        #    self.engine.register_command("Change Work Area...", cmd, {"type": "context_menu"})
 
-        # other commands are only valid if we have at least a valid work template.  Version
-        # up the current scene is only available of the work template also has a version key
-        template_work = self.get_template("template_work")
-        self._can_save_as = template_work is not None 
-        self._can_change_version = self._can_save_as and ("version" in template_work.keys)
-        if self._can_save_as:
-            self.engine.register_command("Shotgun Save As...", self.show_save_as_dlg)
-        if self._can_change_version:
-            self.engine.register_command("Version up Current Scene...", self.show_change_version_dlg)
+        ## other commands are only valid if we have at least a valid work template.  Version
+        ## up the current scene is only available of the work template also has a version key
+        #template_work = self.get_template("template_work")
+        #self._can_save_as = template_work is not None 
+        #self._can_change_version = self._can_save_as and ("version" in template_work.keys)
+        #if self._can_save_as:
+        #    self.engine.register_command("Shotgun Save As...", self.show_save_as_dlg)
+        #if self._can_change_version:
+        #    self.engine.register_command("Version up Current Scene...", self.show_change_version_dlg)
         
         # new UI's
         self.engine.register_command("File Open...", self.show_file_open_dlg)

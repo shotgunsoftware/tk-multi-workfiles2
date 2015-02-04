@@ -277,7 +277,13 @@ class FileModel(QtGui.QStandardItemModel):
         """
         QtGui.QStandardItemModel.__init__(self, parent)
         
+        # sg data retriever is used to download thumbnails in the background
         self._sg_data_retriever = sg_data_retriever
+        if self._sg_data_retriever:
+            self._sg_data_retriever.work_completed.connect(self._on_data_retriever_work_completed)
+            self._sg_data_retriever.work_failure.connect(self._on_data_retriever_work_failed)
+            
+        self._pending_thumbnail_requests = {}
         
         # we'll need a file finder to be able to find files:
         self._finder = FileFinder()
@@ -286,6 +292,52 @@ class FileModel(QtGui.QStandardItemModel):
         
         self._in_progress_searches = {}
         
+        self._cache_dirty = True
+        self._file_item_cache = {}
+        
+    def _on_data_retriever_work_completed(self, uid, request_type, data):
+        """
+        """
+        if not uid in self._pending_thumbnail_requests:
+            return
+        
+        item = self._pending_thumbnail_requests[uid]
+        del(self._pending_thumbnail_requests[uid])
+        
+        thumb_path = data.get("thumb_path")
+        if thumb_path:
+            item.setIcon(QtGui.QIcon(thumb_path))
+
+    
+    def _on_data_retriever_work_failed(self, uid, error_msg):
+        """
+        """
+        if uid in self._pending_thumbnail_requests:
+            del(self._pending_thumbnail_requests[uid])
+        #print "Failed to find thumbnail for id %s: %s" % (uid, error_msg)
+        
+    class _CacheInfo(object):
+        def __init__(self):
+            self.versions = {}
+            self.context = None
+            self.work_template = None
+            self.publish_template = None
+        
+    def get_file_versions(self, key):
+        """
+        """
+        # return the cached versions
+        cache_info = self._file_item_cache.get(key) 
+        return cache_info.versions if cache_info else {}
+
+    def get_file_info(self, key):
+        """
+        """
+        cache_info = self._file_item_cache.get(key)
+        if not cache_info:
+            return None
+        
+        return (cache_info.versions, cache_info.context, cache_info.work_template, cache_info.publish_template)
         
     def refresh_files(self, search_details):
         """
@@ -300,6 +352,7 @@ class FileModel(QtGui.QStandardItemModel):
     
         # clear existing data from model:
         self.clear()
+        self._file_item_cache = {}
         
         for search in search_details:
             # add a 'group' item to the model:
@@ -322,10 +375,10 @@ class FileModel(QtGui.QStandardItemModel):
                 
                 # add a folder item to the model:
                 folder_item = FileModel._FolderItem(child_name)
+                folder_item.setIcon(QtGui.QIcon(":/tk-multi-workfiles/folder_512x400.png"))
                 new_item.appendRow(folder_item)
-        print "NOW"
         
-    def _on_finder_files_found(self, search_id, files):
+    def _on_finder_files_found(self, search_id, files, context, work_template, publish_template):
         """
         Called when the finder has found some files.
         """
@@ -341,9 +394,29 @@ class FileModel(QtGui.QStandardItemModel):
         new_rows = []
         for file in files:
             file_item = FileModel._FileItem(file)
-            new_rows.append(file_item)            
+            new_rows.append(file_item)
+                        
+            if file.is_published and file.thumbnail:
+                # request the thumbnail form the data retriever:
+                request_id = self._sg_data_retriever.request_thumbnail(file.thumbnail, 
+                                                                       "PublishedFile", 
+                                                                       file.published_file_id,
+                                                                       "image")
+                self._pending_thumbnail_requests[request_id] = file_item
+            elif not file.is_published and file.is_local and not file.thumbnail:
+                # see if there is another file with the same key that we can use
+                # the thumbnail from!
+                pass #TODO
+
+            # add file to cache:
+            info = self._file_item_cache.setdefault(file.key, FileModel._CacheInfo())
+            info.versions[file.version] = file
+            info.context = context
+            info.work_template = work_template
+            info.publish_template = publish_template
         if new_rows:
             parent_model_item.appendRows(new_rows)
+            #self._cache_dirty = True
             
         if isinstance(parent_model_item, FileModel._GroupItem):
             parent_model_item.set_search_status(FileModel.SEARCH_COMPLETED)

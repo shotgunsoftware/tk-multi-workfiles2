@@ -33,13 +33,6 @@ class GroupWidgetBase(QtGui.QWidget):
         label = model_idx.data()
         self._cb.setText(label)
         
-        rect = self.geometry()
-        if model_idx.row() == 1:
-            rect.setHeight(80)
-        else:
-            rect.setHeight(30)
-        self.setGeometry(rect)
-        
     def set_expanded(self, expand=True):
         """
         """
@@ -80,8 +73,8 @@ class GroupListViewItemDelegate(WidgetDelegate):
             if layout:
                 layout.invalidate()
                 layout.activate()
-            item_size = self._calc_group_widget.sizeHint()
-            return item_size
+
+            return self._calc_group_widget.sizeHint()
         else:
             # return the base size hint:
             return WidgetDelegate.sizeHint(self, style_options, model_index)        
@@ -122,7 +115,7 @@ class GroupedListView(GroupedListBase):
         self._update_some_item_info = False
         self._max_width = 0
         
-        self.setEditTriggers(self.CurrentChanged)
+        #self.setEditTriggers(self.CurrentChanged)
 
         # default the item delegate to the base implementation:
         self.setItemDelegate(GroupListViewItemDelegate(self))
@@ -207,7 +200,7 @@ class GroupedListView(GroupedListBase):
     def is_expanded(self, index):
         """
         """
-        if not index.isValid() or index.parent != self.rootIndex():
+        if not index.isValid() or index.parent() != self.rootIndex():
             return False
 
         row = index.row()
@@ -442,11 +435,19 @@ class GroupedListView(GroupedListBase):
 
     def scrollContentsBy(self, dx, dy):
         """
-        Not sure if this is needed!
+        Scroll the viewport by the specified deltas
         """
         self.scrollDirtyRegion(dx, dy)
         self.viewport().scroll(dx, dy)
         self.viewport().update()
+
+    def resizeEvent(self, event):
+        """
+        """
+        # at the moment, recalculating the dimensions is handled at the start of painting so
+        # we don't need to do anything here.  If this causes problems later then we may have
+        # to rethink things!
+        GroupedListBase.resizeEvent(self, event)
 
     def setSelection(self, selection_rect, flags):
         """
@@ -527,18 +528,29 @@ class GroupedListView(GroupedListBase):
         """
         # make sure item rects are up to date:
         self._update_item_info()
-        
+
         if self.model().rowCount() != len(self._item_info):
             # this shouldn't ever happen but just incase it does then 
             # we shouldn't paint anything as it'll probably be wrong!
             return
         
+        # build lookups for the group widgets:
+        group_widgets_by_row = {}
+        for widget, row in self._group_widget_rows.iteritems():
+            group_widgets_by_row[row] = widget
+        unused_group_widgets = []
+        for widget in self._group_widgets:
+            if widget not in self._group_widget_rows.keys():
+                unused_group_widgets.append(widget)
+        next_unused_group_widget_idx = 0
         self._group_widget_rows = {}
-        next_group_widget_idx = 0
-                
+        group_widgets_to_resize = []
+
+        # pull out the viewport size and offsets:
         viewport_rect = self.viewport().rect()
         viewport_offset = (-self.horizontalOffset(), -self.verticalOffset())
         
+        # start painting:
         painter = QtGui.QPainter(self.viewport())
         try:
             painter.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.TextAntialiasing)
@@ -554,26 +566,36 @@ class GroupedListView(GroupedListBase):
                 rect = item_info.rect.translated(viewport_offset[0], viewport_offset[1] + y_offset)
                 
                 # test to see if the rectangle exists within the viewport:
+                grp_widget = group_widgets_by_row.get(row)                
                 if rect.isValid and rect.intersects(viewport_rect):
                     # the group widget is visible:
-                    grp_widget = None
-                    if next_group_widget_idx < len(self._group_widgets):
-                        grp_widget = self._group_widgets[next_group_widget_idx]
-                    else:
-                        # need to create a new group widget and hook up the signals:
-                        grp_widget = self.itemDelegate().create_group_widget(self.viewport())
-                        if grp_widget:
-                            self._group_widgets.append(grp_widget)
-                            grp_widget.toggle_expanded.connect(self._on_group_expanded_toggled)
-                    next_group_widget_idx += 1
+                    if not grp_widget:
+                        if next_unused_group_widget_idx < len(unused_group_widgets):
+                            grp_widget = unused_group_widgets[next_unused_group_widget_idx]
+                            next_unused_group_widget_idx += 1
+                        else:
+                            # need to create a new group widget and hook up the signals:
+                            grp_widget = self.itemDelegate().create_group_widget(self.viewport())
+                            if grp_widget:
+                                self._group_widgets.append(grp_widget)
+                                grp_widget.toggle_expanded.connect(self._on_group_expanded_toggled)
+                        
+                        #grp_widget.show()
                     
                     if grp_widget:
+                        if grp_widget.geometry() != rect:
+                            # add widget to list to be resized later:
+                            group_widgets_to_resize.append((grp_widget, rect))
+                            
                         # set up this widget for this index:
-                        grp_widget.setGeometry(rect)
                         grp_widget.set_expanded(not item_info.collapsed)
                         grp_widget.set_item(index)
                         grp_widget.show()
                         self._group_widget_rows[grp_widget] = row
+                else:
+                    if grp_widget:
+                        # group widget is hidden!
+                        unused_group_widgets.append(grp_widget)
 
                 # add the group rectangle height to the y-offset
                 y_offset += rect.height()
@@ -609,10 +631,19 @@ class GroupedListView(GroupedListBase):
                     y_offset += self._item_spacing.height()
             
             # hide any group widgets that were not used:
-            for w in self._group_widgets[next_group_widget_idx:]:
+            for w in unused_group_widgets[next_unused_group_widget_idx:]:
                 w.hide()
         finally:
             painter.end()
+            
+        # update geometry for any group widgets that need updating
+        # Note, this has to be done after painting has finished otherwise
+        # the resize event gets blocked!
+        for widget, rect in group_widgets_to_resize:
+            widget.setGeometry(rect)
+            
+        # call the base implementation:
+        GroupedListBase.paintEvent(self, event)
 
     def _on_group_expanded_toggled(self, expanded):
         """
@@ -648,14 +679,6 @@ class GroupedListView(GroupedListBase):
         self.verticalScrollBar().setSingleStep(30)#00)# TODO - make this more intelligent!
         self.verticalScrollBar().setPageStep(self.viewport().height())
         self.verticalScrollBar().setRange(0, max(0, max_height - self.viewport().height()))
-    
-    def resizeEvent(self, event):
-        """
-        """
-        # at the moment, recalculating the dimensions is handled at the start of painting so
-        # we don't need to do anything here.  If this causes problems later then we may have
-        # to rethink things!
-        GroupedListBase.resizeEvent(self, event)
 
     def _get_item_rect(self, index):
         """
@@ -718,6 +741,7 @@ class GroupedListView(GroupedListBase):
         if not self._update_some_item_info and not self._update_all_item_info and not viewport_resized:
             # nothing to do!
             return
+        
         #print "%s, %s, %s, %s" % (self._update_all_item_info, self._update_some_item_info, viewport_resized, self._item_info)
         self._update_all_item_info = self._update_all_item_info or viewport_resized
         
@@ -729,15 +753,23 @@ class GroupedListView(GroupedListBase):
         something_updated = False
         for row in range(self.model().rowCount()):
 
-            item_info = self._item_info[row] if row < len(self._item_info) else GroupedListView.ItemInfo()
+            # get the item info for this row - create it if needed!
+            item_info = None
+            if row < len(self._item_info):
+                item_info = self._item_info[row]
+            else:
+                item_info = GroupedListView.ItemInfo()
+                self._item_info.append(item_info)
+
             if not self._update_all_item_info and not item_info.dirty:
                 # no need to update item info!
                 max_width = max(max_width, item_info.child_area_rect.width())
                 continue
             
-            # construxt the model index for this row:
+            # construct the model index for this row:
             index = self.model().index(row, 0)
 
+            # get the size of the item:
             view_options = base_view_options
             item_size = self.itemDelegate().sizeHint(view_options, index)
             item_info.rect = QtCore.QRect(self._border.width(), 0, item_size.width(), item_size.height())
@@ -786,11 +818,6 @@ class GroupedListView(GroupedListBase):
             item_info.dirty = False
             something_updated = True        
             
-            if row < len(self._item_info):
-                self._item_info[row] = item_info
-            else:
-                self._item_info.append(item_info)
-            
         # reset flags:
         self._update_all_item_info = False
         self._update_some_item_info = False
@@ -803,15 +830,6 @@ class GroupedListView(GroupedListBase):
 
             # update scroll bars for the new dimensions:            
             self.updateGeometries()
-        
-            
-class FileGroupedListView(GroupedListView):
-    def create_group_widget(self, parent):
-        """
-        """
-        return FileGroupWidget(parent)
-        
-        
         
         
 

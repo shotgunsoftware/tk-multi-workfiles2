@@ -11,7 +11,7 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_FileTile(object):
     def setupUi(self, FileTile):
         FileTile.setObjectName("FileTile")
-        FileTile.resize(271, 80)
+        FileTile.resize(270, 80)
         FileTile.setStyleSheet("")
         self.horizontalLayout = QtGui.QHBoxLayout(FileTile)
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
@@ -34,8 +34,11 @@ class Ui_FileTile(object):
         self.thumbnail = QtGui.QLabel(self.background)
         self.thumbnail.setMinimumSize(QtCore.QSize(96, 64))
         self.thumbnail.setMaximumSize(QtCore.QSize(96, 64))
-        self.thumbnail.setStyleSheet("#thumbnail {background-color: rgb(0, 0, 0);}")
+        self.thumbnail.setStyleSheet("")
         self.thumbnail.setText("")
+        self.thumbnail.setTextFormat(QtCore.Qt.AutoText)
+        self.thumbnail.setPixmap(QtGui.QPixmap(":/tk-multi-workfiles/thumb_empty.png"))
+        self.thumbnail.setAlignment(QtCore.Qt.AlignCenter)
         self.thumbnail.setObjectName("thumbnail")
         self.horizontalLayout_2.addWidget(self.thumbnail)
         self.verticalLayout = QtGui.QVBoxLayout()
@@ -46,16 +49,10 @@ class Ui_FileTile(object):
         self.label = QtGui.QLabel(self.background)
         self.label.setObjectName("label")
         self.verticalLayout.addWidget(self.label)
-        self.label_2 = QtGui.QLabel(self.background)
-        self.label_2.setObjectName("label_2")
-        self.verticalLayout.addWidget(self.label_2)
-        self.label_3 = QtGui.QLabel(self.background)
-        self.label_3.setObjectName("label_3")
-        self.verticalLayout.addWidget(self.label_3)
         spacerItem1 = QtGui.QSpacerItem(20, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem1)
         self.verticalLayout.setStretch(0, 1)
-        self.verticalLayout.setStretch(4, 1)
+        self.verticalLayout.setStretch(2, 1)
         self.horizontalLayout_2.addLayout(self.verticalLayout)
         self.horizontalLayout_2.setStretch(1, 1)
         self.horizontalLayout.addWidget(self.background)
@@ -66,6 +63,5 @@ class Ui_FileTile(object):
     def retranslateUi(self, FileTile):
         FileTile.setWindowTitle(QtGui.QApplication.translate("FileTile", "Form", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("FileTile", "<b>Title</b>", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_2.setText(QtGui.QApplication.translate("FileTile", "User", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_3.setText(QtGui.QApplication.translate("FileTile", "Modified/Published", None, QtGui.QApplication.UnicodeUTF8))
 
+from . import resources_rc

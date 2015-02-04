@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>271</width>
+    <width>270</width>
     <height>80</height>
    </rect>
   </property>
@@ -59,15 +59,24 @@ border-radius: 3px;
          </size>
         </property>
         <property name="styleSheet">
-         <string notr="true">#thumbnail {background-color: rgb(0, 0, 0);}</string>
+         <string notr="true"/>
         </property>
         <property name="text">
          <string/>
         </property>
+        <property name="textFormat">
+         <enum>Qt::AutoText</enum>
+        </property>
+        <property name="pixmap">
+         <pixmap resource="resources.qrc">:/tk-multi-workfiles/thumb_empty.png</pixmap>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
        </widget>
       </item>
       <item>
-       <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,0,0,1">
+       <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,1">
         <property name="spacing">
          <number>2</number>
         </property>
@@ -92,20 +101,6 @@ border-radius: 3px;
          </widget>
         </item>
         <item>
-         <widget class="QLabel" name="label_2">
-          <property name="text">
-           <string>User</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_3">
-          <property name="text">
-           <string>Modified/Published</string>
-          </property>
-         </widget>
-        </item>
-        <item>
          <spacer name="verticalSpacer">
           <property name="orientation">
            <enum>Qt::Vertical</enum>
@@ -125,6 +120,8 @@ border-radius: 3px;
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

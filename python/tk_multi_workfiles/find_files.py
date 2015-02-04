@@ -246,7 +246,7 @@ class FileFinder(QtCore.QObject):
                     % (self.name, self.entity, self.task, self.step, self.is_leaf, self.child_entities))       
     
     search_failed = QtCore.Signal(object, object)
-    files_found = QtCore.Signal(object, object) # search_id, file_list
+    files_found = QtCore.Signal(object, object, object, object, object) # search_id, file_list, context, work_template, publish_template
     
     def __init__(self, app=None, user_cache=None, parent=None):
         """
@@ -355,7 +355,10 @@ class FileFinder(QtCore.QObject):
         self.stop_search(task.id)
         
         # emit signal:
-        self.files_found.emit(task.id, result.get("files", []))
+        self.files_found.emit(task.id, result.get("files", []),
+                              result.get("context"),
+                              result.get("work_template"),
+                              result.get("publish_template"))
         
     ################################################################################################
     ################################################################################################
@@ -637,6 +640,14 @@ class FileFinder(QtCore.QObject):
             model.refresh()
         
         sg_publishes = model.get_sg_data()
+        
+        # convert created_at unix time stamp to shotgun std time stamp for all publishes
+        for sg_publish in sg_publishes:
+            created_at = sg_publish.get("created_at")
+            if created_at:
+                created_at = datetime.fromtimestamp(created_at, sg_timezone.LocalTimezone())
+                sg_publish["created_at"] = created_at
+        
         """
         # get list of published files for the context from Shotgun:
         sg_filters = [["entity", "is", context.entity or context.project]]

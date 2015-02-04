@@ -94,7 +94,7 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="FileGroupedListView" name="customView" native="true">
+        <widget class="GroupedListView" name="customView" native="true">
          <property name="styleSheet">
           <string notr="true"/>
          </property>
@@ -108,7 +108,7 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>FileGroupedListView</class>
+   <class>GroupedListView</class>
    <extends>QWidget</extends>
    <header>..grouped_list_view</header>
    <container>1</container>

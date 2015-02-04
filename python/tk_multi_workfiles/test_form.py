@@ -13,145 +13,48 @@ from .tmp_delegate import WidgetDelegate
 from .file_tile import FileTile
 from .group_header_widget import GroupHeaderWidget
 
-class GroupListViewItemDelegate(WidgetDelegate):
-    """
-    """
-    def __init__(self, view):
-        """
-        """
-        WidgetDelegate.__init__(self, view)
-        
-        self._group_widget = None
-        self._group_widget_size = None
-        self._item_widget = None
-        self._item_widget_size = None
-    
-    # ------------------------------------------------------------------------------------------------------
-    # ------------------------------------------------------------------------------------------------------
-        
-    def _create_group_widget(self, parent):
-        """
-        """
-        raise NotImplementedError()
-    
-    def _create_item_widget(self, parent):
-        """
-        """
-        raise NotImplementedError()
-        
-    # ------------------------------------------------------------------------------------------------------
-    # ------------------------------------------------------------------------------------------------------
-        
-    def _get_painter_widget(self, model_index, parent):
-        """
-        """
-        if not model_index.isValid():
-            return None
-        
-        parent_index = model_index.parent()
-        # we need an item widget:
-        if not self._item_widget:
-            self._item_widget = self._create_item_widget(parent)
-            #layout = self._item_widget.layout()
-            #if layout:
-            #    layout.invalidate()
-            #    layout.activate()
-            
-            self._item_widget_size = self._item_widget.size()
-        return self._item_widget
+from .grouped_list_view import GroupListViewItemDelegate
 
-        """        
-        if parent_index == self.view.rootIndex():
-            # we need a group widget:
-            if not self._group_widget:
-                self._group_widget = self._create_group_widget(parent)
-                self._group_widget_size = self._group_widget.size()
-            return self._group_widget
-        elif parent_index.isValid() and parent_index.parent() == self.view.rootIndex():
-            # we need an item widget:
-            if not self._item_widget:
-                self._item_widget = self._create_item_widget(parent)
-                self._item_widget_size = self._item_widget.size()
-            return self._item_widget
-        """
-    
-    def _create_editor_widget(self, model_index, parent):
-        """
-        """
-        if not model_index.isValid():
-            return None
-        
-        parent_index = model_index.parent()        
-        return self._create_item_widget(parent)
-        """
-        #print "CREATING EDITOR WIDGET"
-
-        if parent_index == self.view.rootIndex():
-            return self._create_group_widget(parent)
-        elif parent_index.isValid() and parent_index.parent() == self.view.rootIndex():
-            return self._create_item_widget(parent)
-        """
-            
-    def sizeHint(self, style_options, model_index):
-        """
-        """
-        if not model_index.isValid():
-            return QtCore.QSize()
-        
-        # ensure we have a painter widget for this model index:
-        self._get_painter_widget(model_index, self.view)
-        
-        #parent_index = model_index.parent()
-        return self._item_widget_size
-        """
-        if parent_index == self.view.rootIndex():
-            return self._group_widget_size
-        elif parent_index.isValid() and parent_index.parent() == self.view.rootIndex():
-            return self._item_widget_size
-        
-        return QtCore.QSize()
-        """
-        
-        
-
-class TestItemDelegate(GroupListViewItemDelegate):
-
-    def __init__(self, view):
-        GroupListViewItemDelegate.__init__(self, view)
-
-    def _create_group_widget(self, parent):
-        """
-        """
-        return GroupHeaderWidget(parent)
-    
-    def _create_item_widget(self, parent):
-        """
-        """
-        return FileTile(parent)
-
-    def _setup_widget(self, widget, model_index, style_options):
-        """
-        """
-        if isinstance(widget, GroupHeaderWidget):
-            # update group widget:
-            widget.label = model_index.data()
-        elif isinstance(widget, FileTile):
-            # update item widget:
-            widget.title = model_index.data()
-            widget.selected = (style_options.state & QtGui.QStyle.State_Selected) == QtGui.QStyle.State_Selected 
-
-    def _on_before_paint(self, widget, model_index, style_options):
-        """
-        """
-        self._setup_widget(widget, model_index, style_options) 
-
-    def _on_before_selection(self, widget, model_index, style_options):
-        """
-        """
-        self._setup_widget(widget, model_index, style_options)
-        
-    def setModelData(self, editor, model, model_index):
-        pass
+from .file_list_form import TestItemDelegate        
+#
+#class TestItemDelegate(GroupListViewItemDelegate):
+#
+#    def __init__(self, view):
+#        GroupListViewItemDelegate.__init__(self, view)
+#
+#    def _create_group_widget(self, parent):
+#        """
+#        """
+#        return GroupHeaderWidget(parent)
+#    
+#    def _create_item_widget(self, parent):
+#        """
+#        """
+#        return FileTile(parent)
+#
+#    def _setup_widget(self, widget, model_index, style_options):
+#        """
+#        """
+#        if isinstance(widget, GroupHeaderWidget):
+#            # update group widget:
+#            widget.label = model_index.data()
+#        elif isinstance(widget, FileTile):
+#            # update item widget:
+#            widget.title = model_index.data()
+#            widget.selected = (style_options.state & QtGui.QStyle.State_Selected) == QtGui.QStyle.State_Selected 
+#
+#    def _on_before_paint(self, widget, model_index, style_options):
+#        """
+#        """
+#        self._setup_widget(widget, model_index, style_options) 
+#
+#    def _on_before_selection(self, widget, model_index, style_options):
+#        """
+#        """
+#        self._setup_widget(widget, model_index, style_options)
+#        
+#    def setModelData(self, editor, model, model_index):
+#        pass
 
 class TestModel(QtGui.QStandardItemModel):
     def __init__(self, parent=None):
@@ -209,7 +112,7 @@ class TestForm(QtGui.QWidget):
                 self.task = None
                 self.step = None
                 self.is_leaf = is_leaf
-                self.children = []
+                self.child_entities = []
                 self.name = item.text() if item else ""
                 
             def __repr__(self):
@@ -228,7 +131,7 @@ class TestForm(QtGui.QWidget):
                 return self._name
         
         variation = 2
-        details = None        
+        details = []    
         if variation == 0:
             details = _Details(_Item("Sequence 01"), {"type":"Sequence", "id":123})
             details.children.append(_Details(_Item("Shot 01"), {"type":"Shot", "id":123}))
@@ -240,11 +143,11 @@ class TestForm(QtGui.QWidget):
             details.children.append(_Details(_Item("Shot B"), {"type":"Shot", "id":123}))
             details.children.append(_Details(_Item("Shot C"), {"type":"Shot", "id":123}))
         elif variation == 2:
-            details = _Details(_Item("Shot 01"), {"type":"Shot", "id":123})
-            details.children.append(_Details(_Item("Light - Lighting"), {"type":"Task", "id":123}, True))
-            details.children.append(_Details(_Item("Mod - Modelling"), {"type":"Task", "id":123}, True))
-            details.children.append(_Details(_Item("Anm - Animation"), {"type":"Task", "id":123}, True))
-            details.children.append(_Details(_Item("Anm - More Animation"), {"type":"Task", "id":123}, True))
+            details.append(_Details(_Item("Shot 01"), {"type":"Shot", "id":123}))
+            details.append(_Details(_Item("Light - Lighting"), {"type":"Task", "id":123}, True))
+            details.append(_Details(_Item("Mod - Modelling"), {"type":"Task", "id":123}, True))
+            details.append(_Details(_Item("Anm - Animation"), {"type":"Task", "id":123}, True))
+            details.append(_Details(_Item("Anm - More Animation"), {"type":"Task", "id":123}, True))
 
 
         

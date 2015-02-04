@@ -43,7 +43,7 @@ class Ui_TestForm(object):
         self.horizontalLayout_3 = QtGui.QHBoxLayout(self.tab_2)
         self.horizontalLayout_3.setContentsMargins(0, 10, 0, 0)
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.customView = FileGroupedListView(self.tab_2)
+        self.customView = GroupedListView(self.tab_2)
         self.customView.setStyleSheet("")
         self.customView.setObjectName("customView")
         self.horizontalLayout_3.addWidget(self.customView)
@@ -60,4 +60,4 @@ class Ui_TestForm(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), QtGui.QApplication.translate("TestForm", "Tree", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QtGui.QApplication.translate("TestForm", "Custom", None, QtGui.QApplication.UnicodeUTF8))
 
-from ..grouped_list_view import FileGroupedListView
+from ..grouped_list_view import GroupedListView

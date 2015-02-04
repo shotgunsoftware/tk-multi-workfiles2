@@ -173,7 +173,7 @@ class FileItem(object):
         
     @property
     def published_file_id(self):
-        return self._details.get("published_file_id")
+        return self._details.get("published_file_entity_id")
     
     @property
     def publish_description(self):
@@ -193,15 +193,15 @@ class FileItem(object):
         be used in UI elements
         """
         details_str = ""
-        if self.published_at:
-            details_str += ("Published %s" % self._format_modified_date_time_str(self.published_at))
-        else:
-            details_str += "Published on: <i>Unknown</i>"
-        details_str += "<br>"
         if self.published_by and "name" in self.published_by:
-            details_str += ("Published by %s" % self.published_by["name"])
+            details_str += self.published_by["name"]#("Published by %s" % self.published_by["name"])
         else:
-            details_str += "Published by: <i>Unknown</i>"
+            details_str += "<i>Unknown</i>"#"Published by: <i>Unknown</i>"
+        details_str += "<br>"
+        if self.published_at:
+            details_str += self._format_modified_date_time_str(self.published_at)#("Published %s" % self._format_modified_date_time_str(self.published_at))
+        else:
+            details_str += "<i>Unknown</i>"#"Published on: <i>Unknown</i>"
         return details_str
 
     def format_modified_by_details(self):
@@ -210,15 +210,18 @@ class FileItem(object):
         be used in UI elements
         """
         details_str = ""
-        if self.modified_at:
-            details_str += ("Last updated %s" % self._format_modified_date_time_str(self.modified_at))
-        else:
-            details_str += "Last updated: <i>Unknown</i>"
-        details_str += "<br>"
         if self.modified_by and "name" in self.modified_by:
-            details_str += ("Updated by %s" % self.modified_by["name"])
+            details_str += self.modified_by["name"]#("Updated by %s" % self.modified_by["name"])
         else:
-            details_str += "Updated by: <i>Unknown</i>"            
+            details_str += "<i>Unknown</i>"#"Updated by: <i>Unknown</i>"   
+
+        details_str += "<br>"
+        
+        if self.modified_at:
+            details_str += self._format_modified_date_time_str(self.modified_at)#("Last updated %s" % self._format_modified_date_time_str(self.modified_at))
+        else:
+            details_str += "<i>Unknown</i>"#"Last updated: <i>Unknown</i>"
+         
         return details_str
     
     def format_publish_description(self):
@@ -283,12 +286,12 @@ class FileItem(object):
         elif time_diff < timedelta(days=2):
             date_str = "Yesterday"
         else:
-            date_str = "on %d%s %s" % (modified_date.day, 
+            date_str = "%d%s %s" % (modified_date.day, 
                                     self._day_suffix(modified_date.day), 
-                                    modified_date.strftime("%B %Y"))
+                                    modified_date.strftime("%b %Y"))
 
         modified_time = date_time.time()                
-        date_str += (" at %d:%02d%s" % (modified_time.hour % 12, modified_time.minute, 
+        date_str += (", %d:%02d%s" % (modified_time.hour % 12, modified_time.minute, 
                                         "pm" if modified_time.hour > 12 else "am"))
         return date_str
     
