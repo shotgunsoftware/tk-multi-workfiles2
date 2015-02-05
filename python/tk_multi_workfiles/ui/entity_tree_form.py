@@ -28,13 +28,17 @@ class Ui_EntityTreeForm(object):
         self.new_task_btn.setObjectName("new_task_btn")
         self.horizontalLayout.addWidget(self.new_task_btn)
         self.verticalLayout.addLayout(self.horizontalLayout)
+        self.horizontalLayout_2 = QtGui.QHBoxLayout()
+        self.horizontalLayout_2.setContentsMargins(1, -1, 1, -1)
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.search_ctrl = SearchWidget(EntityTreeForm)
         self.search_ctrl.setMinimumSize(QtCore.QSize(0, 20))
         self.search_ctrl.setStyleSheet("#search_ctrl {\n"
 "background-color: rgb(255, 128, 0);\n"
 "}")
         self.search_ctrl.setObjectName("search_ctrl")
-        self.verticalLayout.addWidget(self.search_ctrl)
+        self.horizontalLayout_2.addWidget(self.search_ctrl)
+        self.verticalLayout.addLayout(self.horizontalLayout_2)
         self.entity_tree = QtGui.QTreeView(EntityTreeForm)
         self.entity_tree.setStyleSheet("QTreeView::item {\n"
 "padding: 2px;\n"

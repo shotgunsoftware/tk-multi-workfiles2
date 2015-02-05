@@ -547,7 +547,7 @@ class GroupedListView(GroupedListBase):
         group_widgets_to_resize = []
 
         # pull out the viewport size and offsets:
-        viewport_rect = self.viewport().rect()
+        update_rect = event.rect()
         viewport_offset = (-self.horizontalOffset(), -self.verticalOffset())
         
         # start painting:
@@ -567,7 +567,7 @@ class GroupedListView(GroupedListBase):
                 
                 # test to see if the rectangle exists within the viewport:
                 grp_widget = group_widgets_by_row.get(row)                
-                if rect.isValid and rect.intersects(viewport_rect):
+                if rect.isValid and rect.intersects(update_rect):
                     # the group widget is visible:
                     if not grp_widget:
                         if next_unused_group_widget_idx < len(unused_group_widgets):
@@ -610,7 +610,7 @@ class GroupedListView(GroupedListBase):
                             child_index = self.model().index(child_row, 0, index)
                             
                             child_rect = child_rect.translated(viewport_offset[0], viewport_offset[1] + y_offset)
-                            if not child_rect.isValid or not child_rect.intersects(viewport_rect):
+                            if not child_rect.isValid or not child_rect.intersects(update_rect):
                                 # no need to draw!
                                 continue
                              

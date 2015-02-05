@@ -156,7 +156,8 @@ class TestItemDelegate(GroupListViewItemDelegate):
                 label += "<br>%s" % file_item.format_modified_by_details()
 
             # retrieve the icon:                
-            icon = model_index.data(QtCore.Qt.DecorationRole)
+            icon = file_item.thumbnail
+            #icon = model_index.data(QtCore.Qt.DecorationRole)
             
             #if not icon:
             #    # look for the most recent file that does have an icon:
@@ -171,8 +172,8 @@ class TestItemDelegate(GroupListViewItemDelegate):
             #            if file_item.version < v:
             #                continue
             #            
-            #            if file_item.thumbnail:
-            #                icon = QtGui.QIcon(file_item.thumbnail)
+            #            if file_item.thumbnail_path:
+            #                icon = QtGui.QIcon(file_item.thumbnail_path)
             #                break
         else:
             label = model_index.data()

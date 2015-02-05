@@ -173,11 +173,12 @@ class FileListView(browser_widget.BrowserWidget):
                         if ((mode == FileFilter.WORKFILES_MODE and version > highest_local_version)
                             or (mode == FileFilter.PUBLISHES_MODE and version > highest_publish_version)):
                             continue
-                        thumbnail = files_versions[version].thumbnail
+                        thumbnail = files_versions[version].thumbnail_path
                         if thumbnail:
                             # special case - update the thumbnail!
                             if mode == FileFilter.WORKFILES_MODE and version < highest_local_version:
-                                files_versions[highest_local_version].set_thumbnail(thumbnail)
+                                files_versions[highest_local_version].thumbnail_path = thumbnail
+                                #files_versions[highest_local_version].set_thumbnail(thumbnail)
                             break
                     details["thumbnail"] = thumbnail
                     

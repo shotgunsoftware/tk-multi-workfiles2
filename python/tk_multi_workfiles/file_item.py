@@ -91,6 +91,7 @@ class FileItem(object):
         self._is_published = is_published
         self._details = details
         self._key = key
+        self._thumbnail_image = None
 
     def __repr__(self):
         return "%s (v%d), is_local:%s, is_publish: %s" % (self.name, self.version, self.is_local, self.is_published)
@@ -122,8 +123,20 @@ class FileItem(object):
         return self._details.get("task")
     
     @property
-    def thumbnail(self):
+    def thumbnail_path(self):
         return self._details.get("thumbnail")
+    @thumbnail_path.setter
+    def thumbnail_path(self, value):
+        if value != self._details.get("thumbnail"):
+            self._details["thumbnail"] = value
+            self._thumbnail_image = None 
+
+    @property
+    def thumbnail(self):
+        return self._thumbnail_image
+    @thumbnail.setter
+    def thumbnail(self, value):
+        self._thumbnail_image = value
 
     @property
     def key(self):
@@ -300,11 +313,6 @@ class FileItem(object):
         Return the suffix for the day of the month
         """
         return ["th", "st", "nd", "rd"][day%10 if not 11<=day<=13 and day%10 < 4 else 0]
-
-    def set_thumbnail(self, thumbnail):
-        """
-        """
-        self._details["thumbnail"] = thumbnail
 
 
 

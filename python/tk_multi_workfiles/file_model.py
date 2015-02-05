@@ -295,33 +295,13 @@ class FileModel(QtGui.QStandardItemModel):
         self._cache_dirty = True
         self._file_item_cache = {}
         
-    def _on_data_retriever_work_completed(self, uid, request_type, data):
-        """
-        """
-        if not uid in self._pending_thumbnail_requests:
-            return
-        
-        item = self._pending_thumbnail_requests[uid]
-        del(self._pending_thumbnail_requests[uid])
-        
-        thumb_path = data.get("thumb_path")
-        if thumb_path:
-            item.setIcon(QtGui.QIcon(thumb_path))
-
-    
-    def _on_data_retriever_work_failed(self, uid, error_msg):
-        """
-        """
-        if uid in self._pending_thumbnail_requests:
-            del(self._pending_thumbnail_requests[uid])
-        #print "Failed to find thumbnail for id %s: %s" % (uid, error_msg)
-        
     class _CacheInfo(object):
         def __init__(self):
             self.versions = {}
             self.context = None
             self.work_template = None
             self.publish_template = None
+            self.items = {}
         
     def get_file_versions(self, key):
         """
@@ -378,6 +358,53 @@ class FileModel(QtGui.QStandardItemModel):
                 folder_item.setIcon(QtGui.QIcon(":/tk-multi-workfiles/folder_512x400.png"))
                 new_item.appendRow(folder_item)
         
+    def _on_data_retriever_work_completed(self, uid, request_type, data):
+        """
+        """
+        if not uid in self._pending_thumbnail_requests:
+            return
+        item = self._pending_thumbnail_requests[uid]
+        del(self._pending_thumbnail_requests[uid])
+        
+        thumb_path = data.get("thumb_path")
+        if not thumb_path:
+            return
+        
+        # create a QPixMap for the path:
+        thumb_pm = QtGui.QPixmap(thumb_path)
+        
+        # update the thumbnail on the file for this item:
+        file = item.file_item
+        file.thumbnail = thumb_pm
+        item.emitDataChanged()
+    
+        # finally, see of there are any work file versions of this file that don't have a
+        # thumbnail that could make use of this thumbnail:
+        cache_info = self._file_item_cache.get(file.key)
+        if not cache_info:
+            return
+        
+        for v, file_version in sorted(cache_info.versions.iteritems(), reverse=True):
+            if (v > file_version.version 
+                or file_version.is_published 
+                or (not file_version.is_local)
+                or file_version.thumbnail_path
+                or file_version.thumbnail):
+                continue
+
+            # we can use the thumbnail for this version of the work file - yay!             
+            file_version.thumbnail = thumb_pm
+            cache_info.items[v].emitDataChanged()
+            
+
+    
+    def _on_data_retriever_work_failed(self, uid, error_msg):
+        """
+        """
+        if uid in self._pending_thumbnail_requests:
+            del(self._pending_thumbnail_requests[uid])
+        #print "Failed to find thumbnail for id %s: %s" % (uid, error_msg)        
+        
     def _on_finder_files_found(self, search_id, files, context, work_template, publish_template):
         """
         Called when the finder has found some files.
@@ -387,41 +414,41 @@ class FileModel(QtGui.QStandardItemModel):
             return
         parent_model_item = self._in_progress_searches[search_id]
         del(self._in_progress_searches[search_id])
-        
-        #print "FOUND %d FILES FOR SEARCH %d" % (len(files), search_id)
-        
+
         # add files to model:
         new_rows = []
         for file in files:
-            file_item = FileModel._FileItem(file)
-            new_rows.append(file_item)
-                        
-            if file.is_published and file.thumbnail:
-                # request the thumbnail form the data retriever:
-                request_id = self._sg_data_retriever.request_thumbnail(file.thumbnail, 
+            # create a new model item for this file:
+            new_item = FileModel._FileItem(file)
+            new_rows.append(new_item)
+
+            # if this is from a published file then we want to retrieve the thumbnail
+            # if one is available:                        
+            if file.is_published and file.thumbnail_path and not file.thumbnail:
+                # request the thumbnail using the data retriever:
+                request_id = self._sg_data_retriever.request_thumbnail(file.thumbnail_path, 
                                                                        "PublishedFile", 
                                                                        file.published_file_id,
                                                                        "image")
-                self._pending_thumbnail_requests[request_id] = file_item
-            elif not file.is_published and file.is_local and not file.thumbnail:
-                # see if there is another file with the same key that we can use
-                # the thumbnail from!
-                pass #TODO
+                self._pending_thumbnail_requests[request_id] = new_item
 
-            # add file to cache:
+            # add info to the cache indexed by the file key:
             info = self._file_item_cache.setdefault(file.key, FileModel._CacheInfo())
             info.versions[file.version] = file
+            info.items[file.version] = new_item
             info.context = context
             info.work_template = work_template
             info.publish_template = publish_template
+
         if new_rows:
+            # we have new rows so lets add them to the model:
             parent_model_item.appendRows(new_rows)
-            #self._cache_dirty = True
             
+        # update the parent group item to indicate that the search has been completed:
         if isinstance(parent_model_item, FileModel._GroupItem):
             parent_model_item.set_search_status(FileModel.SEARCH_COMPLETED)
             
-        # emit signal:
+        # emit signal indicating that the search has been completed:
         self.files_found.emit(parent_model_item.index())
     
     def _on_finder_search_failed(self, search_id, error):

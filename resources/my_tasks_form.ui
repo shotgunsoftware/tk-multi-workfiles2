@@ -82,19 +82,29 @@
     </layout>
    </item>
    <item>
-    <widget class="SearchWidget" name="search_ctrl" native="true">
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>20</height>
-      </size>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <property name="leftMargin">
+      <number>1</number>
      </property>
-     <property name="styleSheet">
-      <string notr="true">#search_ctrl {
+     <property name="rightMargin">
+      <number>1</number>
+     </property>
+     <item>
+      <widget class="SearchWidget" name="search_ctrl" native="true">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">#search_ctrl {
 background-color: rgb(255, 128, 0);
 }</string>
-     </property>
-    </widget>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="MyTasksTreeView" name="task_tree"/>

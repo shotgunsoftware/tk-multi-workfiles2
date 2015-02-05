@@ -139,8 +139,8 @@ class OpenFileForm(QtGui.QWidget):
             wf_details += "<br>" + self._work_file.format_modified_by_details()
             self._ui.work_file_details.setText(wf_details)
 
-            if self._work_file.thumbnail:
-                thumbnail_path = self._download_thumbnail(self._work_file.thumbnail)
+            if self._work_file.thumbnail_path:
+                thumbnail_path = self._download_thumbnail(self._work_file.thumbnail_path)
                 if thumbnail_path:
                     self._set_thumbnail(self._ui.work_file_thumbnail, QtGui.QPixmap(thumbnail_path))
         
@@ -178,8 +178,8 @@ class OpenFileForm(QtGui.QWidget):
         else:
             self._ui.publish_note.setText("")
         
-        if self._publish_file.thumbnail:
-            thumbnail_path = self._download_thumbnail(self._publish_file.thumbnail)
+        if self._publish_file.thumbnail_path:
+            thumbnail_path = self._download_thumbnail(self._publish_file.thumbnail_path)
             if thumbnail_path:
                 self._set_thumbnail(self._ui.publish_thumbnail, QtGui.QPixmap(thumbnail_path))
         
