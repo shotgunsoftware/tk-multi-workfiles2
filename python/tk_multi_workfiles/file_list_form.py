@@ -251,7 +251,7 @@ class FileListForm(QtGui.QWidget):
         """
         if self._ui.file_list_view.model().show_all_versions != checked:
             self._ui.file_list_view.model().show_all_versions = checked
-            self._ui.file_list_view.model().sort(0, QtCore.Qt.DescendingOrder)
+            #self._ui.file_list_view.model().sort(0, QtCore.Qt.DescendingOrder)
             
     def set_model(self, model):
         """
@@ -266,7 +266,9 @@ class FileListForm(QtGui.QWidget):
             selection_model.selectionChanged.connect(self._on_selection_changed)
         
         model.show_all_versions = self._ui.all_versions_cb.isChecked()
-        model.sort(0)
+        
+        model.sort(0, QtCore.Qt.DescendingOrder)
+        model.setDynamicSortFilter(True)
         
     def _on_selection_changed(self, selected, deselected):
         """

@@ -33,8 +33,7 @@ ShotgunDataRetriever = shotgun_data.ShotgunDataRetriever
 from .find_files import FileFinder
 from .file_model import FileModel
 from .my_tasks_model import MyTasksModel
-from .publishes_proxy_model import PublishesProxyModel
-from .work_files_proxy_model import WorkFilesProxyModel, FileProxyModel
+from .file_proxy_model import FileProxyModel
 
 class FileOpenForm(QtGui.QWidget):
     """

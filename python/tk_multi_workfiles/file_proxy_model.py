@@ -16,7 +16,6 @@ from file_model import FileModel
 class FileProxyModel(QtGui.QSortFilterProxyModel):
     """
     """
-    
     def __init__(self, show_work_files=True, show_publishes=True, show_all_versions=False, parent=None):
         """
         """
@@ -25,7 +24,7 @@ class FileProxyModel(QtGui.QSortFilterProxyModel):
         self._show_all_versions = show_all_versions
         self._show_publishes = show_publishes
         self._show_workfiles = show_work_files
-
+        
     @property
     def show_all_versions(self):
         return self._show_all_versions
@@ -89,68 +88,48 @@ class FileProxyModel(QtGui.QSortFilterProxyModel):
         
         return True
             
-    def lessThan(self, left, right):
+    def lessThan(self, left_src_idx, right_src_idx):
         """
         """
-        left_item = left.data(FileModel.FILE_ITEM_ROLE)
-        right_item = right.data(FileModel.FILE_ITEM_ROLE)
-        
-        if left.parent() != right.parent():
-            print "EH?!"
-            return True
-        
+        if not left_src_idx.parent().isValid():
+            # this is a root item so just leave the items in row 
+            # order they are in in the source model:
+            if self.sortOrder() == QtCore.Qt.AscendingOrder:
+                return left_src_idx.row() < right_src_idx.row()
+            else:
+                return right_src_idx.row() < left_src_idx.row()
+
+        # get the items:        
+        left_item = left_src_idx.data(FileModel.FILE_ITEM_ROLE)
+        right_item = right_src_idx.data(FileModel.FILE_ITEM_ROLE)
+
         # handle the case where one or both items are not file items:
         if not left_item:
             if not right_item:
-                return left.data() < right.data()
+                # sort in alphabetical order:
+                if self.sortOrder() == QtCore.Qt.AscendingOrder:
+                    return left_src_idx.data().lower() < right_src_idx.data().lower()
+                else:
+                    return right_src_idx.data().lower() < left_src_idx.data().lower()
             else:
                 return False
         elif not right_item:
             return True
-        
-        if left_item.is_published == right_item.is_published:
-            left_updated = right_updated = None
-            if self._show_workfiles:
-                if left_item.is_local:
-                    left_updated = left_item.modified_at
-                if right_item.is_local:
-                    right_updated = right_item.modified_at
-                    
-            if self._show_publishes:
-                if left_item.is_published:
-                    left_updated = max(left_updated, left_item.published_at) if left_updated else left_item.published_at 
-                if right_item.is_published:
-                    right_updated = max(right_updated, right_item.published_at) if right_updated else right_item.published_at
+
+        if left_item.key != right_item.key:
+            # items represent different files but we want to group all file versions together. 
+            # Therefore, we find the maximum version for each file and compare those instead.
+            left_versions = self.sourceModel().get_file_versions(left_item.key)
+            right_versions = self.sourceModel().get_file_versions(right_item.key)
             
-            return left_updated < right_updated    
-                        
-        elif left_item.is_published:
-            return right_item.compare_with_publish(left_item) >= 0
+            max_left_version = left_versions[max(left_versions.keys())]
+            max_right_version = right_versions[max(right_versions.keys())]
+            
+            return max_left_version.compare(max_right_version) < 0
         else:
-            return left_item.compare_with_publish(right_item) < 0
-        
-        #return left_item.name < right_item.name
-        #return left_item.version < right_item.version
-        
+            # items represent the same file so lets just compare them:
+            return left_item.compare(right_item) < 0
 
 
 
 
-
-class WorkFilesProxyModel(QtGui.QSortFilterProxyModel):
-    """
-    """
-    
-    def __init__(self, parent=None):
-        QtGui.QSortFilterProxyModel.__init__(self, parent)
-        
-    def filterAcceptsRow(self, source_row, source_parent_index):
-        """
-        """
-        src_index = self.sourceModel().index(source_row, 0, source_parent_index)
-        node_type = src_index.data(FileModel.NODE_TYPE_ROLE)
-        if node_type != FileModel.FILE_NODE_TYPE:
-            return True
-        else:
-            file_item = src_index.data(FileModel.FILE_ITEM_ROLE)
-            return (file_item and file_item.is_local)
