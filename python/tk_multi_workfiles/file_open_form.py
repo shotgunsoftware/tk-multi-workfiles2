@@ -33,7 +33,6 @@ ShotgunDataRetriever = shotgun_data.ShotgunDataRetriever
 from .find_files import FileFinder
 from .file_model import FileModel
 from .my_tasks_model import MyTasksModel
-from .file_proxy_model import FileProxyModel
 
 class FileOpenForm(QtGui.QWidget):
     """
@@ -149,27 +148,20 @@ class FileOpenForm(QtGui.QWidget):
         self._file_model = FileModel(self._sg_data_retriever, self)
 
         # add an 'all files' tab:
-        all_files_model = FileProxyModel(show_work_files=True, show_publishes=True, parent=self)
-        all_files_model.setSourceModel(self._file_model)
-        all_files_model.sort(0)
-        all_files_form = FileListForm("All Files", self)
+        all_files_form = FileListForm("All Files", show_work_files=True, show_publishes=True, parent=self)
         self._ui.file_browser_tabs.addTab(all_files_form, "All")
-        all_files_form.set_model(all_files_model)
+        all_files_form.set_model(self._file_model)
         all_files_form.file_selected.connect(self._on_file_selected)
         
         # create the workfiles proxy model & form:
-        work_files_model = FileProxyModel(show_work_files=True, show_publishes=False, parent=self)
-        work_files_model.setSourceModel(self._file_model)
-        work_files_form = FileListForm("Work Files", self)
-        work_files_form.set_model(work_files_model)
+        work_files_form = FileListForm("Work Files", show_work_files=True, show_publishes=False, parent=self)
+        work_files_form.set_model(self._file_model)
         self._ui.file_browser_tabs.addTab(work_files_form, "Working")
         work_files_form.file_selected.connect(self._on_file_selected)
             
         # create the publish proxy model & form:
-        publishes_model = FileProxyModel(show_work_files=False, show_publishes=True, parent=self)
-        publishes_model.setSourceModel(self._file_model)
-        publishes_form = FileListForm("Publishes", self)
-        publishes_form.set_model(publishes_model)
+        publishes_form = FileListForm("Publishes", show_work_files=False, show_publishes=True, parent=self)
+        publishes_form.set_model(self._file_model)
         self._ui.file_browser_tabs.addTab(publishes_form, "Publishes")
         publishes_form.file_selected.connect(self._on_file_selected)
         

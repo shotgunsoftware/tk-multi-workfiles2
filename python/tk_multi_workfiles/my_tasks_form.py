@@ -143,7 +143,7 @@ class MyTasksForm(QtGui.QWidget):
         self._ui.search_ctrl.set_placeholder_text("Search My Tasks")
         
         # connect up controls:
-        self._ui.search_ctrl.search_edited.connect(self._on_search_changed)        
+        self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
         self._ui.new_task_btn.clicked.connect(self._on_new_task)
         
         # create the overlay 'busy' widget:

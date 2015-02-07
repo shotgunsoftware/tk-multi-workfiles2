@@ -293,10 +293,11 @@ class GroupedListView(GroupedListBase):
             else:
                 # something went wrong!
                 self._update_all_item_info = True        
-            
+
         # make sure we schedule a viewport update so that everything gets updated correctly!
-        self.viewport().update()
         GroupedListBase.rowsAboutToBeRemoved(self, parent_index, start, end)        
+
+        self.viewport().update()
         
     def visualRect(self, index):
         """
@@ -529,18 +530,20 @@ class GroupedListView(GroupedListBase):
         # make sure item rects are up to date:
         self._update_item_info()
 
-        if self.model().rowCount() != len(self._item_info):
+        row_count = self.model().rowCount()
+        if row_count != len(self._item_info):
             # this shouldn't ever happen but just incase it does then 
             # we shouldn't paint anything as it'll probably be wrong!
             return
-        
+
         # build lookups for the group widgets:
         group_widgets_by_row = {}
         for widget, row in self._group_widget_rows.iteritems():
-            group_widgets_by_row[row] = widget
+            if row < row_count:
+                group_widgets_by_row[row] = widget
         unused_group_widgets = []
         for widget in self._group_widgets:
-            if widget not in self._group_widget_rows.keys():
+            if widget not in group_widgets_by_row.values():
                 unused_group_widgets.append(widget)
         next_unused_group_widget_idx = 0
         self._group_widget_rows = {}
@@ -548,6 +551,7 @@ class GroupedListView(GroupedListBase):
 
         # pull out the viewport size and offsets:
         update_rect = event.rect()
+        viewport_rect = self.viewport().rect()
         viewport_offset = (-self.horizontalOffset(), -self.verticalOffset())
         
         # start painting:
@@ -567,7 +571,7 @@ class GroupedListView(GroupedListBase):
                 
                 # test to see if the rectangle exists within the viewport:
                 grp_widget = group_widgets_by_row.get(row)                
-                if rect.isValid and rect.intersects(update_rect):
+                if rect.isValid and rect.intersects(viewport_rect):
                     # the group widget is visible:
                     if not grp_widget:
                         if next_unused_group_widget_idx < len(unused_group_widgets):
@@ -579,8 +583,6 @@ class GroupedListView(GroupedListBase):
                             if grp_widget:
                                 self._group_widgets.append(grp_widget)
                                 grp_widget.toggle_expanded.connect(self._on_group_expanded_toggled)
-                        
-                        #grp_widget.show()
                     
                     if grp_widget:
                         if grp_widget.geometry() != rect:
@@ -592,10 +594,10 @@ class GroupedListView(GroupedListBase):
                         grp_widget.set_item(index)
                         grp_widget.show()
                         self._group_widget_rows[grp_widget] = row
-                else:
-                    if grp_widget:
-                        # group widget is hidden!
-                        unused_group_widgets.append(grp_widget)
+                        
+                elif grp_widget:
+                    # group widget is hidden!
+                    unused_group_widgets.append(grp_widget)
 
                 # add the group rectangle height to the y-offset
                 y_offset += rect.height()
@@ -632,7 +634,8 @@ class GroupedListView(GroupedListBase):
             
             # hide any group widgets that were not used:
             for w in unused_group_widgets[next_unused_group_widget_idx:]:
-                w.hide()
+                if w.isVisible():
+                    w.hide()
         finally:
             painter.end()
             

@@ -30,6 +30,7 @@ from .grouped_list_view import GroupListViewItemDelegate, GroupWidgetBase
 
 from .ui.file_group_widget import Ui_FileGroupWidget
 from .file_model import FileModel
+from .file_proxy_model import FileProxyModel
 
 from .spinner_widget import SpinnerWidget
 
@@ -214,29 +215,65 @@ class FileListForm(QtGui.QWidget):
     
     file_selected = QtCore.Signal(object)
     
-    def __init__(self, search_label, parent=None):
+    def __init__(self, search_label, show_work_files=True, show_publishes=False, show_all_versions=False, parent=None):
         """
         Construction
         """
         QtGui.QWidget.__init__(self, parent)
+        
+        self._show_work_files = show_work_files
+        self._show_publishes = show_publishes
+        self._filter_model = None
         
         # set up the UI
         self._ui = Ui_FileListForm()
         self._ui.setupUi(self)
         
         self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
-        
-        #self._overlay_widget = FileModelOverlayWidget(parent = self._ui.view_pages)
+        self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
         
         self._ui.details_radio_btn.setEnabled(False) # (AD) - temp
         self._ui.details_radio_btn.toggled.connect(self._on_view_toggled)
+
+        self._ui.all_versions_cb.setChecked(show_all_versions)
         self._ui.all_versions_cb.toggled.connect(self._on_show_all_versions_toggled)
         
         self._ui.file_list_view.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
         
         item_delegate = TestItemDelegate(self._ui.file_list_view)
         self._ui.file_list_view.setItemDelegate(item_delegate)
+
+    def set_model(self, model):
+        """
+        """
+        show_all_versions = self._ui.all_versions_cb.isChecked()
         
+        # create a filter model around the source model:
+        self._filter_model = FileProxyModel(show_work_files=self._show_work_files, 
+                                            show_publishes=self._show_publishes,
+                                            show_all_versions = show_all_versions,
+                                            parent=self)
+        self._filter_model.setSourceModel(model)
+
+        # set automatic sorting on the model:
+        self._filter_model.sort(0, QtCore.Qt.DescendingOrder)
+        self._filter_model.setDynamicSortFilter(True)
+
+        # connect the views to the filtered model:        
+        self._ui.file_list_view.setModel(self._filter_model)
+        self._ui.file_details_view.setModel(self._filter_model)
+        
+        # connect to the selection model:
+        selection_model = self._ui.file_list_view.selectionModel()
+        if selection_model:
+            selection_model.selectionChanged.connect(self._on_selection_changed)
+        
+    def _on_search_changed(self, search_text):
+        """
+        """
+        # update the proxy filter search text:
+        filter_reg_exp = QtCore.QRegExp(search_text, QtCore.Qt.CaseInsensitive, QtCore.QRegExp.FixedString)
+        self._filter_model.setFilterRegExp(filter_reg_exp)
                 
     def _on_view_toggled(self, checked):
         """
@@ -249,26 +286,7 @@ class FileListForm(QtGui.QWidget):
     def _on_show_all_versions_toggled(self, checked):
         """
         """
-        if self._ui.file_list_view.model().show_all_versions != checked:
-            self._ui.file_list_view.model().show_all_versions = checked
-            #self._ui.file_list_view.model().sort(0, QtCore.Qt.DescendingOrder)
-            
-    def set_model(self, model):
-        """
-        """
-        self._ui.file_list_view.setModel(model)
-        self._ui.file_details_view.setModel(model)
-        #self._overlay_widget.set_model(model)
-        
-        # connect to the selection model:
-        selection_model = self._ui.file_list_view.selectionModel()
-        if selection_model:
-            selection_model.selectionChanged.connect(self._on_selection_changed)
-        
-        model.show_all_versions = self._ui.all_versions_cb.isChecked()
-        
-        model.sort(0, QtCore.Qt.DescendingOrder)
-        model.setDynamicSortFilter(True)
+        self._filter_model.show_all_versions = checked
         
     def _on_selection_changed(self, selected, deselected):
         """
@@ -278,7 +296,7 @@ class FileListForm(QtGui.QWidget):
         selected_indexes = selected.indexes()
         if len(selected_indexes) == 1:
             # extract the selected model index from the selection:
-            selected_index = selected_indexes[0]#self._filter_model.mapToSource(selected_indexes[0])
+            selected_index = self._filter_model.mapToSource(selected_indexes[0])
             
         # emit selection_changed signal:            
         self.file_selected.emit(selected_index)        

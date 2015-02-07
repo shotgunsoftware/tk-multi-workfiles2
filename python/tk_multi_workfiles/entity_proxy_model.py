@@ -11,15 +11,14 @@
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-class EntityProxyModel(QtGui.QSortFilterProxyModel):
+
+class HierarchicalFilteringProxyModel(QtGui.QSortFilterProxyModel):
     """
     """
-    
-    def __init__(self, compare_sg_fields=None, parent=None):
+    def __init__(self, parent=None):
         """
         """
         QtGui.QSortFilterProxyModel.__init__(self, parent)
-        self._compare_fields = compare_sg_fields
         
         self._cache_regexp = None
         self._accepted_cache = {}
@@ -75,7 +74,7 @@ class EntityProxyModel(QtGui.QSortFilterProxyModel):
         # didn't find a matching item but might not have been calculated yet so lets
         # calculate any uncached items starting from the top working down the hierarchy
         for item in reversed(uncached_items):
-            accepted = self._is_item_accepted(item, reg_exp)
+            accepted = self._is_item_accepted(item)
             self._accepted_cache[id(item)] = accepted
             if accepted:
                 # no need to calculate any further!
@@ -102,7 +101,7 @@ class EntityProxyModel(QtGui.QSortFilterProxyModel):
             accepted = self._accepted_cache.get(id(child_item), None)
             if accepted == None:
                 # it's not so lets see if it's accepted and add to the cache:
-                accepted = self._is_item_accepted(child_item, reg_exp)
+                accepted = self._is_item_accepted(child_item)
                 self._accepted_cache[id(child_item)] = accepted
             
             if not accepted:
@@ -115,12 +114,28 @@ class EntityProxyModel(QtGui.QSortFilterProxyModel):
 
         # cache if any children were accepted:
         self._child_accepted_cache[id(item)] = accepted     
-        return accepted
+        return accepted    
+    
+    def _is_item_accepted(self, item):
+        """
+        """
+        raise NotImplementedError()
 
+class EntityProxyModel(HierarchicalFilteringProxyModel):
+    """
+    """
+    
+    def __init__(self, compare_sg_fields=None, parent=None):
+        """
+        """
+        HierarchicalFilteringProxyModel.__init__(self, parent)
+        self._compare_fields = compare_sg_fields
                    
-    def _is_item_accepted(self, item, reg_exp):
+    def _is_item_accepted(self, item):
         """
         """
+        reg_exp = self.filterRegExp()
+        
         # first test to see if the item 'text' matches:
         if reg_exp.indexIn(item.text()) != -1:
             # found a match so early out!
@@ -134,7 +149,6 @@ class EntityProxyModel(QtGui.QSortFilterProxyModel):
         
         # default is to not match!
         return False
-                    
                     
     def _sg_data_matches_r(self, sg_data, compare_fields, reg_exp):
         """
