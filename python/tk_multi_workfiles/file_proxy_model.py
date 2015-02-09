@@ -51,18 +51,40 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
         self._show_workfiles = show
         self.invalidateFilter()
         
-    def _is_item_accepted(self, item):
-        accepted = self._is_item_accepted_debug(item)
-        #print "Item %s %s accepted!" % (item.text(), "is" if accepted else "isn't")
-        return accepted
-        
-    def _is_item_accepted_debug(self, item):
+    def _is_item_accepted(self, item, parent_accepted):
         """
         """
-        reg_exp = self.filterRegExp()
-
         file_item = item.data(FileModel.FILE_ITEM_ROLE)
+        if file_item:
+            accepted = False
+            if file_item.is_local and self._show_workfiles:
+                accepted = True
+            if file_item.is_published and self._show_publishes:
+                accepted = True
+            if not accepted:
+                return False
         
+            if not self._show_all_versions:
+                src_model = self.sourceModel()
+                # need to check if this is the latest version of the file:
+                all_versions = src_model.get_file_versions(file_item.key)
+                
+                visible_versions = [v for v, item in all_versions.iteritems() 
+                                        if (item.is_local and self._show_workfiles) 
+                                            or (item.is_published and self._show_publishes)]
+                
+                if not visible_versions or file_item.version != max(visible_versions):
+                    return False
+                
+        # now compare text for item:
+        if parent_accepted:
+            return True
+        
+        reg_exp = self.filterRegExp()
+        if reg_exp.isEmpty():
+            # early out
+            return True        
+
         # check
         if file_item:
             if reg_exp.indexIn(file_item.name) != -1:
@@ -73,38 +95,6 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
             
         # default is to not match:
         return False
-        
-    def filterAcceptsRow(self, src_row, src_parent_idx):
-        """
-        """
-        # get the source index for the row:
-        src_model = self.sourceModel()
-        src_idx = src_model.index(src_row, 0, src_parent_idx)
-        
-        # get the file item from the idx:
-        file_item = src_idx.data(FileModel.FILE_ITEM_ROLE)
-        if file_item:
-            accept_row = False
-            if file_item.is_local and self._show_workfiles:
-                accept_row = True
-            if file_item.is_published and self._show_publishes:
-                accept_row = True
-            if not accept_row:
-                return False
-        
-            if not self._show_all_versions:
-                # need to check if this is the latest version of the file:
-                all_versions = src_model.get_file_versions(file_item.key)
-                
-                visible_versions = [v for v, item in all_versions.iteritems() 
-                                        if (item.is_local and self._show_workfiles) 
-                                            or (item.is_published and self._show_publishes)]
-                
-                if not visible_versions or file_item.version != max(visible_versions):
-                    return False
-
-        #         
-        return HierarchicalFilteringProxyModel.filterAcceptsRow(self, src_row, src_parent_idx)
             
     def lessThan(self, left_src_idx, right_src_idx):
         """
