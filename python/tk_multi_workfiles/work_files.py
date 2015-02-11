@@ -30,7 +30,7 @@ from .file_filter import FileFilter
 from .find_files import FileFinder
 from .users import UserCache
 
-class WorkFiles(object):
+class WorkFiles(QtCore.QObject):#object):
     
     @staticmethod
     def show_file_manager_dlg(app):
@@ -72,7 +72,8 @@ class WorkFiles(object):
 
         try:
             from .file_open_form import FileOpenForm
-            res, file_open_ui = self._app.engine.show_modal("File Open", self._app, FileOpenForm, self._init_file_open_form)
+            res, file_open_ui = self._app.engine.show_modal("File Open", self._app, FileOpenForm, 
+                                                            self._init_file_open_form)
             if res == QtGui.QDialog.Accepted:
                 print "Lets open a file!"
                 
@@ -83,7 +84,23 @@ class WorkFiles(object):
     def _init_file_open_form(self, form):
         """
         """
-        pass
+        form.perform_action.connect(self._on_file_open_perform_action)
+    
+    
+    def _on_file_open_perform_action(self, action, file, file_versions, environment):
+        """
+        """
+        if not action:
+            return
+        
+        form = self.sender()
+        
+        close_dialog = action.execute(file, file_versions, environment, form)
+        if close_dialog:
+            form = self.sender()
+            if form:
+                form.close() 
+        
     
     def __show_file_save_dlg(self):
         """
@@ -102,6 +119,8 @@ class WorkFiles(object):
         """
         Construction
         """
+        QtCore.QObject.__init__(self, None)
+        
         self._app = app
         self._workfiles_ui = None
 

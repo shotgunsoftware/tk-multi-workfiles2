@@ -13,134 +13,12 @@ import sgtk
 from sgtk.platform.qt import QtGui, QtCore
 from sgtk import TankError
 
-import time
-import random
-
-offline_test = False
-if offline_test:
-    class DummyTask(QtCore.QRunnable, QtCore.QObject):
-        
-        completed = QtCore.Signal(int, object)
-        failed = QtCore.Signal(int, str)
-        
-        def __init__(self, id, data=None):
-            QtCore.QRunnable.__init__(self)
-            QtCore.QObject.__init__(self)
-            self._id = id
-            self._data = data
-            
-        def autoDelete(self):
-            return False
-            
-        def run(self):
-            """
-            """
-            try:
-                time.sleep(random.randint(0, 5))
-                #time.sleep(1)
-                
-                # do something...
-                result = []
-                
-                if self._data == None:
-                    raise TankError("An unhandled error occured!\n"
-                                    "This is a multi-line error...\n"
-                                    "... what does it look like?\n"
-                                    "odd!!!")
-                else:
-                    result = self._data
-                self.completed.emit(self._id, result)
-            except Exception, e:
-                self.failed.emit(self._id, str(e))
-    
-    class FileFinder(QtCore.QObject):
-        """
-        Temp 'off-line' finder that returns dummy data!
-        """
-        search_failed = QtCore.Signal(object, object)
-        files_found = QtCore.Signal(object, object) # search_id, file_list
-        
-        def __init__(self, parent=None):
-            QtCore.QObject.__init__(self, parent)
-            
-            self._next_search_id = 0
-            self._current_searches = []
-            
-        def begin_search(self, search_details, force=False):
-            """
-            """
-            from .file_item import FileItem
-            
-            search_id = self._next_search_id
-            self._next_search_id += 1
-    
-    
-            dummy_results = {
-                "Sequence 01":[
-                    FileItem("/dummy/path/to/sequence01_v123.ma", "", True, False, {"version":123}, None)
-                ],
-                "Sequence 02":None,
-                "Shot 01":[
-                    FileItem("/dummy/path/to/shot01_v010.ma", "", True, False, {"version":10}, None)
-                ],
-                "Light - Lighting":[
-                    FileItem("/dummy/path/to/lightinga_v001.ma", "", True, False, {"version":1}, None),
-                    FileItem("/dummy/path/to/lightingb_v001.ma", "", True, False, {"version":1}, None),
-                    FileItem("/dummy/path/to/lightingc_v001.ma", "", True, False, {"version":1}, None),
-                    FileItem("/dummy/path/to/lightingd_v001.ma", "", True, False, {"version":1}, None),
-                    FileItem("/dummy/path/to/lightinge_v001.ma", "", True, False, {"version":1}, None),
-                    FileItem("/dummy/path/to/lightingf_v001.ma", "", True, False, {"version":1}, None),
-                    FileItem("/dummy/path/to/lightingg_v001.ma", "", True, False, {"version":1}, None),
-                    FileItem("/dummy/path/to/lightingh_v001.ma", "", True, False, {"version":1}, None),
-                    FileItem("/dummy/path/to/lightingi_v001.ma", "", True, False, {"version":1}, None),
-                    FileItem("/dummy/path/to/lightingi_this_one_has_quite_a_long_name_so_lets_see_what_happens_v001.ma", "", True, False, {"version":1}, None)
-                ],
-                "Anm - Animation":[
-                    FileItem("/dummy/path/to/animationa_v001.ma", "", True, False, {"version":1}, None),
-                    FileItem("/dummy/path/to/animationa_v002.ma", "", True, False, {"version":2}, None)
-                ],
-                "Anm - More Animation":[],
-                "Mod - Modelling":None
-            }
-            dummy_result = dummy_results.get(search_details.name, [])
-            
-            task = DummyTask(search_id, dummy_result)
-            task.completed.connect(self._on_search_completed)
-            task.failed.connect(self._on_search_failed)
-    
-            self._current_searches.append(search_id)
-    
-            print "Starting search %d: %s" % (search_id, search_details)
-            QtCore.QThreadPool.globalInstance().start(task)
-            
-            return search_id
-    
-        def stop_search(self, search_id):
-            """
-            """
-            self._current_searches.remove(search_id)
-            
-        def stop_all_searches(self):
-            """
-            """
-            self._current_searches = []
-            
-        def _on_search_completed(self, search_id, result):
-            if search_id not in self._current_searches:
-                return
-            self.files_found.emit(search_id, result)
-        
-        def _on_search_failed(self, search_id, msg):
-            if search_id not in self._current_searches:
-                return
-            self.search_failed.emit(search_id, msg)
-else:
-    from .find_files import FileFinder
+from .find_files import FileFinder
 
 class FileModel(QtGui.QStandardItemModel):
     """
     """
-    
+    # signals
     search_started = QtCore.Signal(object)
     files_found = QtCore.Signal(object)
     search_failed = QtCore.Signal(object, object)
@@ -224,8 +102,11 @@ class FileModel(QtGui.QStandardItemModel):
     class _FolderItem(_BaseItem):
         """
         """
-        def __init__(self, name):
+        def __init__(self, name, entity):
             FileModel._BaseItem.__init__(self, typ=FileModel.FOLDER_NODE_TYPE, text=name)
+            self._entity = entity
+            
+        
     
     class _GroupItem(_BaseItem):
         """
@@ -298,10 +179,8 @@ class FileModel(QtGui.QStandardItemModel):
     class _CacheInfo(object):
         def __init__(self):
             self.versions = {}
-            self.context = None
-            self.work_template = None
-            self.publish_template = None
             self.items = {}
+            self.environment = None
         
     def get_file_versions(self, key):
         """
@@ -316,8 +195,7 @@ class FileModel(QtGui.QStandardItemModel):
         cache_info = self._file_item_cache.get(key)
         if not cache_info:
             return None
-        
-        return (cache_info.versions, cache_info.context, cache_info.work_template, cache_info.publish_template)
+        return (cache_info.versions, cache_info.environment)
         
     def refresh_files(self, search_details):
         """
@@ -354,7 +232,7 @@ class FileModel(QtGui.QStandardItemModel):
                 child_entity = child.get("entity")
                 
                 # add a folder item to the model:
-                folder_item = FileModel._FolderItem(child_name)
+                folder_item = FileModel._FolderItem(child_name, child_entity)
                 folder_item.setIcon(QtGui.QIcon(":/tk-multi-workfiles/folder_512x400.png"))
                 new_item.appendRow(folder_item)
         
@@ -405,7 +283,7 @@ class FileModel(QtGui.QStandardItemModel):
             del(self._pending_thumbnail_requests[uid])
         #print "Failed to find thumbnail for id %s: %s" % (uid, error_msg)        
         
-    def _on_finder_files_found(self, search_id, files, context, work_template, publish_template):
+    def _on_finder_files_found(self, search_id, file_list, environment):
         """
         Called when the finder has found some files.
         """
@@ -417,7 +295,7 @@ class FileModel(QtGui.QStandardItemModel):
 
         # add files to model:
         new_rows = []
-        for file in files:
+        for file in file_list:
             # create a new model item for this file:
             new_item = FileModel._FileItem(file)
             new_rows.append(new_item)
@@ -436,9 +314,7 @@ class FileModel(QtGui.QStandardItemModel):
             info = self._file_item_cache.setdefault(file.key, FileModel._CacheInfo())
             info.versions[file.version] = file
             info.items[file.version] = new_item
-            info.context = context
-            info.work_template = work_template
-            info.publish_template = publish_template
+            info.environment = environment
 
         if new_rows:
             # we have new rows so lets add them to the model:

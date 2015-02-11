@@ -114,8 +114,22 @@ background-color: rgb(255, 128, 0);
      </item>
      <item>
       <widget class="QPushButton" name="open_btn">
+       <property name="styleSheet">
+        <string notr="true">#open_btn {
+}</string>
+       </property>
        <property name="text">
         <string>Open</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="open_options_btn">
+       <property name="text">
+        <string>...</string>
+       </property>
+       <property name="flat">
+        <bool>false</bool>
        </property>
       </widget>
      </item>
@@ -149,6 +163,8 @@ background-color: rgb(255, 128, 0);
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

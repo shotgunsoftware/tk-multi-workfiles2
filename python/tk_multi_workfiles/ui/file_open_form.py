@@ -63,8 +63,14 @@ class Ui_FileOpenForm(object):
         self.cancel_btn.setObjectName("cancel_btn")
         self.horizontalLayout.addWidget(self.cancel_btn)
         self.open_btn = QtGui.QPushButton(FileOpenForm)
+        self.open_btn.setStyleSheet("#open_btn {\n"
+"}")
         self.open_btn.setObjectName("open_btn")
         self.horizontalLayout.addWidget(self.open_btn)
+        self.open_options_btn = QtGui.QPushButton(FileOpenForm)
+        self.open_options_btn.setFlat(False)
+        self.open_options_btn.setObjectName("open_options_btn")
+        self.horizontalLayout.addWidget(self.open_options_btn)
         self.verticalLayout.addLayout(self.horizontalLayout)
         self.verticalLayout.setStretch(1, 1)
 
@@ -77,8 +83,10 @@ class Ui_FileOpenForm(object):
         self.new_file_btn.setText(QtGui.QApplication.translate("FileOpenForm", "+ New File", None, QtGui.QApplication.UnicodeUTF8))
         self.cancel_btn.setText(QtGui.QApplication.translate("FileOpenForm", "Cancel", None, QtGui.QApplication.UnicodeUTF8))
         self.open_btn.setText(QtGui.QApplication.translate("FileOpenForm", "Open", None, QtGui.QApplication.UnicodeUTF8))
+        self.open_options_btn.setText(QtGui.QApplication.translate("FileOpenForm", "...", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..navigation_widget import NavigationWidget
 from ..breadcrumb_widget import BreadcrumbWidget
 from ..task_browser_tabs import TaskBrowserTabs
 from ..file_browser_tabs import FileBrowserTabs
+from . import resources_rc

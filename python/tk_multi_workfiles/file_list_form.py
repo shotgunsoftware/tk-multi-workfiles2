@@ -214,6 +214,7 @@ class FileListForm(QtGui.QWidget):
     """
     
     file_selected = QtCore.Signal(object)
+    file_double_clicked = QtCore.Signal(object)
     
     def __init__(self, search_label, show_work_files=True, show_publishes=False, show_all_versions=False, parent=None):
         """
@@ -239,6 +240,7 @@ class FileListForm(QtGui.QWidget):
         self._ui.all_versions_cb.toggled.connect(self._on_show_all_versions_toggled)
         
         self._ui.file_list_view.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+        self._ui.file_list_view.doubleClicked.connect(self._on_file_double_clicked)
         
         item_delegate = TestItemDelegate(self._ui.file_list_view)
         self._ui.file_list_view.setItemDelegate(item_delegate)
@@ -287,6 +289,13 @@ class FileListForm(QtGui.QWidget):
         """
         """
         self._filter_model.show_all_versions = checked
+        
+    def _on_file_double_clicked(self, idx):
+        """
+        """
+        # map the index to the source model and emit signal:
+        idx = self._filter_model.mapToSource(idx)
+        self.file_double_clicked.emit(idx)
         
     def _on_selection_changed(self, selected, deselected):
         """

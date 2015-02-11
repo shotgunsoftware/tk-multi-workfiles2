@@ -33,12 +33,15 @@ ShotgunDataRetriever = shotgun_data.ShotgunDataRetriever
 from .find_files import FileFinder
 from .file_model import FileModel
 from .my_tasks_model import MyTasksModel
+from .file_action_factory import FileActionFactory
 
 class FileOpenForm(QtGui.QWidget):
     """
     UI for opening a publish or work file.  Presents a list of available files to the user
     so that they can choose one to open in addition to any other user-definable actions.
     """
+    
+    perform_action = QtCore.Signal(object, object, object, object) # action, file, file_versions, environment
     
     @property
     def exit_code(self):
@@ -51,6 +54,10 @@ class FileOpenForm(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         
         self._exit_code = QtGui.QDialog.Rejected
+        
+        # create the action factory - this is used to generate actions
+        # for the selected file
+        self._action_factory = FileActionFactory()
         
         # create the data retriever used to download thumbnails in the background:
         self._sg_data_retriever = ShotgunDataRetriever(self)
@@ -72,8 +79,10 @@ class FileOpenForm(QtGui.QWidget):
         self._ui.open_btn.clicked.connect(self._on_open)
 
         self.__context_cache = {}
-
+        
         self._selected_file = None
+        self._default_open_action = None
+        self._on_selected_file_changed()
 
         # call init callback:
         init_callback(self)
@@ -152,73 +161,24 @@ class FileOpenForm(QtGui.QWidget):
         self._ui.file_browser_tabs.addTab(all_files_form, "All")
         all_files_form.set_model(self._file_model)
         all_files_form.file_selected.connect(self._on_file_selected)
+        all_files_form.file_double_clicked.connect(self._on_file_double_clicked)
         
         # create the workfiles proxy model & form:
         work_files_form = FileListForm("Work Files", show_work_files=True, show_publishes=False, parent=self)
         work_files_form.set_model(self._file_model)
         self._ui.file_browser_tabs.addTab(work_files_form, "Working")
         work_files_form.file_selected.connect(self._on_file_selected)
+        work_files_form.file_double_clicked.connect(self._on_file_double_clicked)
             
         # create the publish proxy model & form:
         publishes_form = FileListForm("Publishes", show_work_files=False, show_publishes=True, parent=self)
         publishes_form.set_model(self._file_model)
         self._ui.file_browser_tabs.addTab(publishes_form, "Publishes")
         publishes_form.file_selected.connect(self._on_file_selected)
+        publishes_form.file_double_clicked.connect(self._on_file_double_clicked)
         
         # create any user-sandbox/configured tabs:
         # (AD) TODO
-        
-    def _on_file_selected(self, idx):
-        """
-        """
-        while idx and isinstance(idx.model(), QtGui.QSortFilterProxyModel):
-            idx = idx.model().mapToSource(idx)
-        
-        self._selected_file = None
-        if idx:
-            # extract the file item from the index:
-            self._selected_file = idx.data(FileModel.FILE_ITEM_ROLE)
-            
-        if self._selected_file:
-            self._ui.open_btn.setEnabled(True)
-        else:
-            # disable the open button:
-            self._ui.open_btn.setEnabled(False)
-            
-        #print "Selected File: %s" % self._selected_file
-        
-    def get_selected_file_details(self):
-        """
-        """
-        if not self._file_model:
-            return None
-        
-        if not self._selected_file:
-            return None
-        
-        key = self._selected_file.key
-        info = self._file_model.get_file_info(key)
-        if not info:
-            return None
-        
-        versions, context, work_template, publish_template = info
-                
-                
-                
-        
-        
-    """
-    Interface on handler
-    
-    def _on_open_publish(self, publish_file, work_file):
-    def _on_open_workfile(self, work_file, publish_file):
-    def _on_open_previous_publish(self, file):
-    def _on_open_previous_workfile(self, file):
-    def _on_new_file(self):
-    
-    typically, the highest version publish file and the highest version work file
-    
-    """
         
     def _on_my_task_selected(self, task_index):
         """
@@ -366,20 +326,134 @@ class FileOpenForm(QtGui.QWidget):
                 parent_item = parent_item.parent()
 
         return details
-        
-    def _get_selected_file(self):
+
+    def _on_file_selected(self, idx):
         """
         """
-        pass
+        self._selected_file = None
+        if idx:
+            # extract the file item from the index:
+            self._selected_file = idx.data(FileModel.FILE_ITEM_ROLE)
+            
+        if self._selected_file:
+            self._ui.open_btn.setEnabled(True)
+        else:
+            # disable the open button:
+            self._ui.open_btn.setEnabled(False)
+            
+        self._on_selected_file_changed()
         
+    def _on_file_double_clicked(self, idx):
+        """
+        """
+        item_type = idx.data(FileModel.NODE_TYPE_ROLE)
+        
+        if item_type == FileModel.FOLDER_NODE_TYPE:
+            # selection is a folder so move into that folder
+            pass
+        elif item_type == FileModel.FILE_NODE_TYPE:
+            # this is a file so perform the default action for the file
+            file = idx.data(FileModel.FILE_ITEM_ROLE)
+            #self._selected_file = file
+            #self._on_selected_file_changed()
+            self._on_open()
+            # TODO
+
+    def _on_selected_file_changed(self):
+        """
+        """
+        # get the available actions for this file:
+        file_actions = []
+        if self._selected_file:
+            info = self._file_model.get_file_info(self._selected_file.key)
+            if info:
+                file_versions, environment = info
+                file_actions = self._action_factory.get_actions(self._selected_file, file_versions, environment)
+        
+        if not file_actions:
+            # disable both the open and open options buttons:
+            self._ui.open_btn.setEnabled(False)
+            self._ui.open_options_btn.setEnabled(False)
+            return
+        
+        # update the open button:
+        self._ui.open_btn.setEnabled(True)
+        self._ui.open_btn.setText(file_actions[0].label)
+        self._default_open_action = file_actions[0]
+        
+        # if we have more than one action then update the open options button:
+        if len(file_actions) > 1:
+            # enable the button:
+            self._ui.open_options_btn.setEnabled(True)
+            
+            # build the menu and add the actions to it:
+            menu = self._ui.open_options_btn.menu()
+            if not menu:
+                menu = QtGui.QMenu(self._ui.open_options_btn)
+                self._ui.open_options_btn.setMenu(menu)
+            menu.clear()
+                
+            for action in file_actions[1:]:
+                q_action = QtGui.QAction(action.label, menu)
+                q_action.triggered[()].connect(lambda a=action: self._on_open_action_triggered(a))
+                menu.addAction(q_action)                 
+        else:
+            # just disable the button:
+            self._ui.open_options_btn.setEnabled(False)
+        
+    """
+    Interface on handler
+    
+    def _on_open_publish(self, publish_file, work_file):
+    def _on_open_workfile(self, work_file, publish_file):
+    def _on_open_previous_publish(self, file):
+    def _on_open_previous_workfile(self, file):
+    def _on_new_file(self):
+    
+    typically, the highest version publish file and the highest version work file
+    
+    """        
+        
+    def _on_open(self):
+        """
+        """
+        if not self._default_open_action:
+            return
+        
+        self._on_open_action_triggered(self._default_open_action)
+
+    def _on_open_action_triggered(self, action):
+        """
+        """
+        if (not action
+            or not self._file_model
+            or not self._selected_file):
+            # can't do anything!
+            return
+        
+        # get the item info for the selected item:
+        info = self._file_model.get_file_info(self._selected_file.key)
+        if not info:
+            return
+        file_versions, environment = info
+        
+        # emit signal to perform the default action.  This may result in the dialog
+        # being closed so no further work should be attempted after this call
+        self.perform_action.emit(action, self._selected_file, file_versions, environment)
+
     def _on_cancel(self):
         """
         Called when the cancel button is clicked
         """
         self._exit_code = QtGui.QDialog.Rejected
         self.close()
-        
-    def _on_open(self):
-        self._exit_code = QtGui.QDialog.Accepted
-        self.close()
-        
+
+
+
+
+
+
+
+
+
+

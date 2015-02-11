@@ -22,207 +22,9 @@ from .file_item import FileItem
 from .users import UserCache
 from .util import get_templates_for_context
 
-shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
-ShotgunModel = shotgun_model.ShotgunModel
-
-class ShotgunPublishedFilesModel(ShotgunModel):
-        
-    def __init__(self, id, parent=None):
-        """
-        """
-        ShotgunModel.__init__(self, parent, download_thumbs=False, asynchronous=False)
-        # (AD) TODO - get type from core
-        self._published_file_type = "PublishedFile"
-        
-        self._id = id
-        
-    @property
-    def id(self):
-        return self._id
-        
-    def load_data(self, filters=None, fields=None):
-        """
-        """
-        filters = filters or []
-        fields = fields or ["code"]
-        hierarchy = [fields[0]]
-        return self._load_data(self._published_file_type, filters, hierarchy, fields)
-        
-    def refresh(self):
-        """
-        """
-        self._refresh_data()
-        
-    def get_sg_data(self):
-        sg_data = []
-        for row in range(self.rowCount()):
-            item = self.item(row, 0)
-            sg_data.append(item.get_sg_data())
-        return sg_data
-
-
-class Task(QtCore.QRunnable, QtCore.QObject):
-    """
-    """
-    completed = QtCore.Signal(object, object)
-    failed = QtCore.Signal(object, object)
-    skipped = QtCore.Signal(object)
-
-    _next_task_id = 0
-    def __init__(self, func, upstream_tasks=None, **kwargs):
-        """
-        """
-        QtCore.QRunnable.__init__(self)
-        QtCore.QObject.__init__(self)
-        
-        self._func = func
-        self._input_kwargs = kwargs
-                
-        self._upstream_tasks = []
-        upstream_tasks = upstream_tasks or []
-        for task in upstream_tasks:
-            self.add_upstream_task(task)
-                
-        task_id = Task._next_task_id
-        Task._next_task_id = Task._next_task_id + 1
-        self._id = task_id
-        
-        self._mutex = QtCore.QMutex()
-        self._is_runnable = True
-        self._is_queued = False 
-        
-    def __repr__(self):
-        return "%s -> %s" % (self._id, self._upstream_tasks)
-        
-    @property
-    def id(self):
-        return self._id
-
-    # @property
-    def _get_is_runnable(self):
-        self._mutex.lock()
-        try:
-            return self._is_runnable
-        finally:
-            self._mutex.unlock()
-    # @is_runnable.setter
-    def _set_is_runnable(self, value):
-        self._mutex.lock()
-        try:
-            self._is_runnable = value
-        finally:
-            self._mutex.unlock()
-    is_runnable=property(_get_is_runnable, _set_is_runnable)  
-        
-    def start(self):
-        """
-        """
-        if self._upstream_tasks:
-            for task in self._upstream_tasks:
-                task.start()
-        else:
-            should_start = False
-            self._mutex.lock()
-            try:
-                if not self._is_queued:
-                    should_start = True
-                    self._is_queued = True
-            finally:
-                self._mutex.unlock()
-                
-            if should_start:
-                #print "Starting task [%s] %s" % (self.id, self._func.__name__)
-                QtCore.QThreadPool.globalInstance().start(self)
-    
-    def stop(self):
-        """
-        """
-        for task in self._upstream_tasks:
-            task.stop()
-        # just use a flag to indicate that this task shouldn't be run!
-        self.is_runnable = False
-        
-    def autoDelete(self):
-        """
-        """
-        # always let Python manage the lifetime of these objects!
-        return False        
-        
-    def add_upstream_task(self, task):
-        """
-        """
-        if task not in self._upstream_tasks:
-            self._upstream_tasks.append(task)
-            task.completed.connect(self._on_upstream_task_completed)
-            task.failed.connect(self._on_upstream_task_failed)
-            task.skipped.connect(self._on_upstream_task_skipped)
-        
-    def _on_upstream_task_completed(self, task, result):
-        """
-        """
-        if task not in self._upstream_tasks:
-            return
-        
-        #print "[%s] %s completed, res: %s" % (task.id, task._func.__name__, result)
-
-        # disconnect from this task:
-        self._upstream_tasks.remove(task)
-        
-        # append result to input args for this task:
-        self._input_kwargs = dict(self._input_kwargs.items() + result.items())
-        
-        # if we have no more upstream tasks left then we can add this task to be processed:
-        if not self._upstream_tasks:
-            #print "Upstream tasks completed - starting task [%s] %s with args %s" % (self.id, self._func.__name__, self._input_kwargs.keys())
-            
-            # ok, so now we're ready to start this task!
-            QtCore.QThreadPool.globalInstance().start(self)
-        
-    def _on_upstream_task_failed(self, task, msg):
-        """
-        """
-        if task not in self._upstream_tasks:
-            return
-
-        # clear out upstream tasks:
-        self._upstream_tasks = []
-        
-        # if any upstream task failed then this task has also failed!
-        self.failed.emit(self, msg)
-
-    def _on_upstream_task_skipped(self, task):
-        """
-        """
-        if task not in self._upstream_tasks:
-            return
-
-        # clear out upstream tasks:
-        self._upstream_tasks = []
-        
-        # if any upstream task was skipped then this task will also be skipped!
-        self.skipped.emit(self)
-
-    def run(self):
-        """
-        """
-        if not self.is_runnable:
-            # just skip this task
-            self.skipped.emit(self)
-            return
-        
-        try:
-            # run the function with the provided args
-            result = self._func(**self._input_kwargs) or {}
-            if not isinstance(result, dict):
-                # unsupported result type!
-                raise TankError("Non-dictionary result type '%s' returned from function '%s'!" 
-                                % (type(result), self._func.__name__))
-                
-            self.completed.emit(self, result)
-        except Exception, e:
-            tb = traceback.format_exc()
-            self.failed.emit(self, "%s, %s" % (str(e), tb))
-
+from .sg_published_files_model import SgPublishedFilesModel
+from .runnable_task import RunnableTask
+from .environment_details import EnvironmentDetails
 
 class FileFinder(QtCore.QObject):
     """
@@ -245,8 +47,8 @@ class FileFinder(QtCore.QObject):
                     " - Is leaf: %s\n%s"
                     % (self.name, self.entity, self.task, self.step, self.is_leaf, self.child_entities))       
     
-    search_failed = QtCore.Signal(object, object)
-    files_found = QtCore.Signal(object, object, object, object, object) # search_id, file_list, context, work_template, publish_template
+    search_failed = QtCore.Signal(object, object) # search_id, message
+    files_found = QtCore.Signal(object, object, object) # search_id, file list, EnvironmentDetails
     
     def __init__(self, app=None, user_cache=None, parent=None):
         """
@@ -290,21 +92,21 @@ class FileFinder(QtCore.QObject):
         context_entity = search_details.task or search_details.entity or search_details.step
         
         # build task chain for search:
-        find_templates_task = Task(self._task_find_templates, 
+        find_templates_task = RunnableTask(self._task_find_templates, 
                                    context_entity=context_entity)
         
-        find_sg_publishes_task = Task(self._task_find_publishes,
+        find_sg_publishes_task = RunnableTask(self._task_find_publishes,
                                       upstream_tasks = [find_templates_task], 
                                       publish_filters=publish_filters, 
                                       force=force)
         
-        find_work_files_task = Task(self._task_find_work_files, 
+        find_work_files_task = RunnableTask(self._task_find_work_files, 
                                     upstream_tasks = [find_templates_task])
         
-        filter_publishes_task = Task(self._task_filter_publishes, 
+        filter_publishes_task = RunnableTask(self._task_filter_publishes, 
                                      upstream_tasks = [find_templates_task, find_sg_publishes_task])
         
-        aggregate_files_task = Task(self._task_aggregate_files,
+        aggregate_files_task = RunnableTask(self._task_aggregate_files,
                                     upstream_tasks = [find_templates_task, find_work_files_task, filter_publishes_task])
         
         # we only care about when the final task completes or fails:
@@ -355,10 +157,7 @@ class FileFinder(QtCore.QObject):
         self.stop_search(task.id)
         
         # emit signal:
-        self.files_found.emit(task.id, result.get("files", []),
-                              result.get("context"),
-                              result.get("work_template"),
-                              result.get("publish_template"))
+        self.files_found.emit(task.id, result.get("files", []), result.get("environment"))
         
     ################################################################################################
     ################################################################################################
@@ -367,6 +166,8 @@ class FileFinder(QtCore.QObject):
         """
         """
         app = sgtk.platform.current_bundle()
+        
+        # first, find the context for the specified context entity:
         context = None
         try:
             #cache_key = (details.entity["type"], details.entity["id"])
@@ -380,12 +181,23 @@ class FileFinder(QtCore.QObject):
         except TankError, e:
             #app.log_debug("Failed to create context from entity '%s'" % details.entity)
             raise        
-        
+
+        # then try to find the templates for the context:        
         try:
-            templates = get_templates_for_context(app, context, ["template_work", "template_publish"])
-            work_template = templates.get("template_work")
-            publish_template = templates.get("template_publish")
-            return {"context":context, "work_template":work_template, "publish_template":publish_template}
+            templates_to_find = ["template_work", "template_publish", "template_work_area", "template_publish_area"]
+            templates = get_templates_for_context(app, context, templates_to_find)
+            
+            env_details = EnvironmentDetails()
+            env_details.context = context
+            env_details.work_area_template = templates.get("template_work_area")
+            env_details.work_template = templates.get("template_work")
+            env_details.publish_area_template = templates.get("template_publish_area")
+            env_details.publish_template = templates.get("template_publish")
+            
+            return {"environment":env_details, 
+                    "context":context, 
+                    "work_template":env_details.work_template, 
+                    "publish_template":env_details.publish_template}
         except TankError, e:
             # had problems getting the work file settings for the specified context!
             raise
@@ -414,13 +226,13 @@ class FileFinder(QtCore.QObject):
             filtered_publishes = self._filter_publishes(sg_publishes, publish_template)
         return {"sg_publishes":filtered_publishes}
 
-    def _task_aggregate_files(self, work_files, work_template, sg_publishes, publish_template, context, **kwargs):
+    def _task_aggregate_files(self, work_files, work_template, sg_publishes, publish_template, context, environment, **kwargs):
         """
         """
         files = []
         if sg_publishes or work_files:
             files = self._aggregate_files(work_files, work_template, sg_publishes, publish_template, context) 
-        return {"files":files}
+        return {"files":files, "environment":environment}
 
     ################################################################################################
     ################################################################################################
@@ -631,7 +443,7 @@ class FileFinder(QtCore.QObject):
         :returns:                   List of dictionaries, each one containing the details
                                     of an individual published file
         """
-        model = ShotgunPublishedFilesModel(self)
+        model = SgPublishedFilesModel(self)
         # start the process of finding publishes in Shotgun:
         fields = ["id", "description", "version_number", "image", "created_at", "created_by", "name", "path", "task"]
         loaded_data = model.load_data(filters = publish_filters, fields = fields)
