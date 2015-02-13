@@ -11,8 +11,13 @@
 """
 """
 
-from .file_action import FileAction, CustomFileAction
-from .open_workfile_action import OpenAction, OpenWorkfileAction
+from .file_action import FileAction
+
+from .file_action import CustomFileAction
+from .file_action import ShowWorkFileInFileSystemAction, ShowPublishInFileSystemAction, ShowPublishInShotgunAction
+
+from .interactive_open_action import InteractiveOpenAction
+from .open_workfile_action import OpenWorkfileAction
 
 class FileActionFactory(object):
     
@@ -26,15 +31,46 @@ class FileActionFactory(object):
         """
         actions = []
         
-        # always add the generic 'open' action:
-        actions.append(OpenAction())
+        """
+        Open publish:
+        
+        if 
+        
+        
+        """
+        
+        
+        """
+        View latest Publish in Shotgun
+        Open Publish Read-Only -> versions
+        Open Work File -> versions
 
+        Show work file in file system
+        Show publish file in file system
+        Show publish in Shotgun
+        
+        New file
+
+    def _on_open_publish(self, publish_file, work_file):
+    def _on_open_workfile(self, work_file, publish_file):
+    def _on_open_previous_publish(self, file):
+    def _on_open_previous_workfile(self, file):
+    def _on_new_file(self):
+
+        """
+        
+        # always add the interactive 'open' action.  This is the
+        # default/generic open action that gets run whenever someone
+        # double-clicks on a file or just hits the 'Open' button
+        actions.append(InteractiveOpenAction())
+
+        # now add explicit file operations based off the selection:
         if file.is_local:
             # can open this file directly:
             # TODO: check user and version
-            actions.append(OpenWorkfileAction())
+            actions.append(OpenWorkfileAction(not file.editable))
         
-        # and query for any custom actions:
+        # query for any custom actions:
         hook_custom_actions = []
         # TODO
         for action_dict in hook_custom_actions:
@@ -43,5 +79,24 @@ class FileActionFactory(object):
             custom_action = CustomFileAction(name, label)
             actions.append(custom_action)
         
-        return actions        
+        # finally add the 'jump to' actions:
+        if file.is_local:
+            actions.append(ShowWorkFileInFileSystemAction())
+        if file.is_published:
+            actions.append(ShowPublishInFileSystemAction())
+            actions.append(ShowPublishInShotgunAction())
+            
+        return actions
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
         

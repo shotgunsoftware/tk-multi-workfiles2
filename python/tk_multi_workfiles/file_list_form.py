@@ -215,6 +215,7 @@ class FileListForm(QtGui.QWidget):
     
     file_selected = QtCore.Signal(object)
     file_double_clicked = QtCore.Signal(object)
+    file_context_menu_requested = QtCore.Signal(object, object)
     
     def __init__(self, search_label, show_work_files=True, show_publishes=False, show_all_versions=False, parent=None):
         """
@@ -242,8 +243,46 @@ class FileListForm(QtGui.QWidget):
         self._ui.file_list_view.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
         self._ui.file_list_view.doubleClicked.connect(self._on_file_double_clicked)
         
+        self._ui.file_list_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self._ui.file_list_view.customContextMenuRequested.connect(self._on_context_menu_requested)
+        
         item_delegate = TestItemDelegate(self._ui.file_list_view)
         self._ui.file_list_view.setItemDelegate(item_delegate)
+
+    def _on_context_menu_requested(self, pnt):
+        """
+        """
+        # get the item under the point:
+        idx = self._ui.file_list_view.indexAt(pnt)
+        if not idx or not idx.isValid():
+            return
+        
+        # get the file from the index:
+        file = idx.data(FileModel.FILE_ITEM_ROLE)
+        if not file:
+            return
+
+        # remap the point from the source widget:
+        pnt = self.sender().mapTo(self, pnt)
+        
+        # emit a more specific signal:
+        self.file_context_menu_requested.emit(file, pnt)
+
+    @property
+    def selected_file(self):
+        """
+        """
+        selection_model = self._ui.file_list_view.selectionModel()
+        if not selection_model:
+            return None
+        
+        selected_indexes = selection_model.selectedIndexes()
+        if len(selected_indexes) != 1:
+            return False
+                
+        file = selected_indexes[0].data(FileModel.FILE_ITEM_ROLE)
+
+        return file
 
     def set_model(self, model):
         """

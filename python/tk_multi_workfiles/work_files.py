@@ -95,6 +95,7 @@ class WorkFiles(QtCore.QObject):#object):
         
         form = self.sender()
         
+        print "Performing action: %s" % action
         close_dialog = action.execute(file, file_versions, environment, form)
         if close_dialog:
             form = self.sender()

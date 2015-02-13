@@ -77,6 +77,9 @@ class FileOpenForm(QtGui.QWidget):
         # hook up all other controls:
         self._ui.cancel_btn.clicked.connect(self._on_cancel)
         self._ui.open_btn.clicked.connect(self._on_open)
+        
+        self._file_list_forms = []
+        self._ui.file_browser_tabs.currentChanged.connect(self._on_file_tab_changed)
 
         self.__context_cache = {}
         
@@ -162,6 +165,7 @@ class FileOpenForm(QtGui.QWidget):
         all_files_form.set_model(self._file_model)
         all_files_form.file_selected.connect(self._on_file_selected)
         all_files_form.file_double_clicked.connect(self._on_file_double_clicked)
+        all_files_form.file_context_menu_requested.connect(self._on_show_file_context_menu)
         
         # create the workfiles proxy model & form:
         work_files_form = FileListForm("Work Files", show_work_files=True, show_publishes=False, parent=self)
@@ -169,6 +173,7 @@ class FileOpenForm(QtGui.QWidget):
         self._ui.file_browser_tabs.addTab(work_files_form, "Working")
         work_files_form.file_selected.connect(self._on_file_selected)
         work_files_form.file_double_clicked.connect(self._on_file_double_clicked)
+        work_files_form.file_context_menu_requested.connect(self._on_show_file_context_menu)
             
         # create the publish proxy model & form:
         publishes_form = FileListForm("Publishes", show_work_files=False, show_publishes=True, parent=self)
@@ -176,6 +181,7 @@ class FileOpenForm(QtGui.QWidget):
         self._ui.file_browser_tabs.addTab(publishes_form, "Publishes")
         publishes_form.file_selected.connect(self._on_file_selected)
         publishes_form.file_double_clicked.connect(self._on_file_double_clicked)
+        publishes_form.file_context_menu_requested.connect(self._on_show_file_context_menu)
         
         # create any user-sandbox/configured tabs:
         # (AD) TODO
@@ -327,6 +333,22 @@ class FileOpenForm(QtGui.QWidget):
 
         return details
 
+
+    def _on_file_tab_changed(self, idx):
+        """
+        """
+        selected_file = None
+        
+        form = self._ui.file_browser_tabs.widget(idx)
+        if form and isinstance(form, FileListForm):
+            # get the selected file from the form:
+            selected_file = form.selected_file
+            
+        # update the selected file:        
+        self._selected_file = selected_file 
+        self._on_selected_file_changed()
+        
+
     def _on_file_selected(self, idx):
         """
         """
@@ -392,15 +414,45 @@ class FileOpenForm(QtGui.QWidget):
                 menu = QtGui.QMenu(self._ui.open_options_btn)
                 self._ui.open_options_btn.setMenu(menu)
             menu.clear()
-                
-            for action in file_actions[1:]:
-                q_action = QtGui.QAction(action.label, menu)
-                q_action.triggered[()].connect(lambda a=action: self._on_open_action_triggered(a))
-                menu.addAction(q_action)                 
+            self._populate_open_menu(menu, self._selected_file, file_actions[1:])
         else:
             # just disable the button:
             self._ui.open_options_btn.setEnabled(False)
+
+    def _on_show_file_context_menu(self, file, pnt):
+        """
+        """
+        if not file:
+            return
         
+        # get the file actions:
+        file_actions = []
+        info = self._file_model.get_file_info(file.key)
+        if info:
+            file_versions, environment = info
+            file_actions = self._action_factory.get_actions(file, file_versions, environment)
+        
+        if not file_actions:
+            return
+
+        # build the context menu:
+        context_menu = QtGui.QMenu(self.sender())
+        self._populate_open_menu(context_menu, file, file_actions[1:])
+        
+        # map the point to a global position:
+        pnt = self.sender().mapToGlobal(pnt)
+        
+        # finally, show the context menu:
+        context_menu.exec_(pnt)
+
+    def _populate_open_menu(self, menu, file, file_actions):
+        """
+        """
+        for action in file_actions:
+            q_action = QtGui.QAction(action.label, menu)
+            q_action.triggered[()].connect(lambda a=action, f=file: self._on_open_action_triggered(a, f))
+            menu.addAction(q_action)
+
     """
     Interface on handler
     
@@ -420,26 +472,26 @@ class FileOpenForm(QtGui.QWidget):
         if not self._default_open_action:
             return
         
-        self._on_open_action_triggered(self._default_open_action)
+        self._on_open_action_triggered(self._default_open_action, self._selected_file)
 
-    def _on_open_action_triggered(self, action):
+    def _on_open_action_triggered(self, action, file):
         """
         """
         if (not action
-            or not self._file_model
-            or not self._selected_file):
+            or not file
+            or not self._file_model):
             # can't do anything!
             return
         
         # get the item info for the selected item:
-        info = self._file_model.get_file_info(self._selected_file.key)
+        info = self._file_model.get_file_info(file.key)
         if not info:
             return
         file_versions, environment = info
         
         # emit signal to perform the default action.  This may result in the dialog
         # being closed so no further work should be attempted after this call
-        self.perform_action.emit(action, self._selected_file, file_versions, environment)
+        self.perform_action.emit(action, file, file_versions, environment)
 
     def _on_cancel(self):
         """
