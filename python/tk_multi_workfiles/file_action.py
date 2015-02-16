@@ -47,6 +47,11 @@ class ShowPublishInShotgunAction(FileAction):
         if not file or not file.is_published:
             return
 
+        self._open_url_for_published_file(file)
+
+    def _open_url_for_published_file(self, file):
+        """
+        """
         # construct the url:
         published_file_entity_type = sgtk.util.get_published_file_entity_type(self._app.sgtk)
         url = "%s/detail/%s/%d" % (self._app.sgtk.shotgun.base_url, published_file_entity_type, file.published_file_id)
@@ -117,6 +122,17 @@ class ShowWorkFileInFileSystemAction(ShowInFileSystemAction):
         if file and file.is_local:
             self._show_in_fs(file.path)
 
+class ShowPublishAreaInFileSystemAction(ShowInFileSystemAction):
+    """
+    """
+    def __init__(self):
+        ShowInFileSystemAction.__init__(self, "show_workfile_in_file_system", "Show Work File In File System")
+        
+    def execute(self, file, file_versions, environment, parent_ui):
+        """
+        """
+        if file and file.is_local:
+            self._show_in_fs(file.path)
     
 class CustomFileAction(FileAction):
     def __init__(self, name, label):

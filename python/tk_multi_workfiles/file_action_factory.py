@@ -85,6 +85,12 @@ class FileActionFactory(object):
         if file.is_published:
             actions.append(ShowPublishInFileSystemAction())
             actions.append(ShowPublishInShotgunAction())
+        else:
+            # see if we have any publishes:
+            publish_versions = [v for v, f in file_versions.iteritems() if f.is_published]
+            if publish_versions:
+                actions.append(ShowPublishAreaInFileSystemAction())
+                actions.append(ShowLatestPublishInShotgunAction())
             
         return actions
     
