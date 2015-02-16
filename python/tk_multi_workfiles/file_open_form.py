@@ -33,6 +33,7 @@ ShotgunDataRetriever = shotgun_data.ShotgunDataRetriever
 from .find_files import FileFinder
 from .file_model import FileModel
 from .my_tasks_model import MyTasksModel
+from .file_action import SeparatorFileAction
 from .file_action_factory import FileActionFactory
 
 class FileOpenForm(QtGui.QWidget):
@@ -541,10 +542,20 @@ class FileOpenForm(QtGui.QWidget):
     def _populate_open_menu(self, menu, file, file_actions):
         """
         """
+        add_separators = False
         for action in file_actions:
-            q_action = QtGui.QAction(action.label, menu)
-            q_action.triggered[()].connect(lambda a=action, f=file: self._on_open_action_triggered(a, f))
-            menu.addAction(q_action)
+            if isinstance(action, SeparatorFileAction):
+                if add_separators:
+                    menu.addSeparator()
+                    
+                # ensure that we only add separators after at least one action item and
+                # never more than one!
+                add_separators = False
+            else:
+                q_action = QtGui.QAction(action.label, menu)
+                q_action.triggered[()].connect(lambda a=action, f=file: self._on_open_action_triggered(a, f))
+                menu.addAction(q_action)
+                add_separators = True
 
     """
     Interface on handler

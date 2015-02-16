@@ -11,10 +11,12 @@
 """
 """
 
-from .file_action import FileAction
+from .file_action import FileAction, SeparatorFileAction
 
 from .file_action import CustomFileAction
-from .file_action import ShowWorkFileInFileSystemAction, ShowPublishInFileSystemAction, ShowPublishInShotgunAction
+from .file_action import ShowWorkFileInFileSystemAction, ShowPublishInFileSystemAction
+from .file_action import ShowWorkAreaInFileSystemAction, ShowPublishAreaInFileSystemAction 
+from .file_action import ShowPublishInShotgunAction, ShowLatestPublishInShotgunAction
 
 from .interactive_open_action import InteractiveOpenAction
 from .open_workfile_action import OpenWorkfileAction
@@ -64,11 +66,15 @@ class FileActionFactory(object):
         # double-clicks on a file or just hits the 'Open' button
         actions.append(InteractiveOpenAction())
 
+        actions.append(SeparatorFileAction())
+
         # now add explicit file operations based off the selection:
         if file.is_local:
             # can open this file directly:
             # TODO: check user and version
             actions.append(OpenWorkfileAction(not file.editable))
+        
+        actions.append(SeparatorFileAction())
         
         # query for any custom actions:
         hook_custom_actions = []
@@ -79,17 +85,25 @@ class FileActionFactory(object):
             custom_action = CustomFileAction(name, label)
             actions.append(custom_action)
         
+        actions.append(SeparatorFileAction())
+        
         # finally add the 'jump to' actions:
         if file.is_local:
             actions.append(ShowWorkFileInFileSystemAction())
+        else:
+            if environment.work_area_template:
+                actions.append(ShowWorkAreaInFileSystemAction())
+            
         if file.is_published:
             actions.append(ShowPublishInFileSystemAction())
             actions.append(ShowPublishInShotgunAction())
         else:
+            if environment.publish_area_template:
+                actions.append(ShowPublishAreaInFileSystemAction())            
+            
             # see if we have any publishes:
             publish_versions = [v for v, f in file_versions.iteritems() if f.is_published]
             if publish_versions:
-                actions.append(ShowPublishAreaInFileSystemAction())
                 actions.append(ShowLatestPublishInShotgunAction())
             
         return actions

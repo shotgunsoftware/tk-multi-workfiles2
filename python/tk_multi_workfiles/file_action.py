@@ -33,22 +33,19 @@ class FileAction(object):
         raise NotImplementedError()
 
 
-from sgtk.platform.qt import QtGui, QtCore
-
-class ShowPublishInShotgunAction(FileAction):
-    """
-    """
+class SeparatorFileAction(FileAction):
     def __init__(self):
-        FileAction.__init__(self, "jump_to_publish_in_shotgun", "Jump to Publish in Shotgun")
+        FileAction.__init__(self, "separator", "Separator")
         
     def execute(self, file, file_versions, environment, parent_ui):
-        """
-        """
-        if not file or not file.is_published:
-            return
+        pass
 
-        self._open_url_for_published_file(file)
 
+from sgtk.platform.qt import QtGui, QtCore
+
+class ShowInShotgunAction(FileAction):
+    """
+    """
     def _open_url_for_published_file(self, file):
         """
         """
@@ -58,6 +55,40 @@ class ShowPublishInShotgunAction(FileAction):
         
         # and open it:
         QtGui.QDesktopServices.openUrl(QtCore.QUrl(url))
+
+
+class ShowPublishInShotgunAction(ShowInShotgunAction):
+    """
+    """
+    def __init__(self):
+        ShowInShotgunAction.__init__(self, "jump_to_publish_in_shotgun", "Jump to Publish in Shotgun")
+        
+    def execute(self, file, file_versions, environment, parent_ui):
+        """
+        """
+        if not file or not file.is_published:
+            return
+
+        self._open_url_for_published_file(file)
+
+class ShowLatestPublishInShotgunAction(ShowInShotgunAction):
+    """
+    """
+    def __init__(self):
+        ShowInShotgunAction.__init__(self, "jump_to_latest_publish_in_shotgun", 
+                                     "Jump to Latest Publish in Shotgun")
+        
+    def execute(self, file, file_versions, environment, parent_ui):
+        """
+        """
+        publish_versions = [v for v, f in file_versions.iteritems() if f.is_published]
+        if not publish_versions:
+            return
+        
+        max_publish_version = max(publish_versions)
+        self._open_url_for_published_file(file_versions[max_publish_version])
+
+
 
 import os
 import sys
@@ -122,17 +153,80 @@ class ShowWorkFileInFileSystemAction(ShowInFileSystemAction):
         if file and file.is_local:
             self._show_in_fs(file.path)
 
-class ShowPublishAreaInFileSystemAction(ShowInFileSystemAction):
+from itertools import chain
+
+class ShowAreaInFileSystemAction(ShowInFileSystemAction):
+    def _show_area_in_fs(self, file, template):
+        """
+        """
+        # build fields starting with the context:
+        fields = environment.context.as_template_fields(template)
+        if file:
+            # add any additional fields that we can extract from the work or publish paths
+            file_fields = {}
+            if file.is_local and environment.work_template:
+                try:
+                    file_fields = environment.work_template.get_fields(file.path)
+                except TankError, e:
+                    pass
+            elif file.is_published and environment.publish_template:
+                try:
+                    file_fields = environment.publish_template.get_fields(file.publish_path)
+                except TankError, e:
+                    pass
+            # combine with the context fields, preferring the context
+            fields = dict(chain(ctx_fields.iteritems(), file_fields.iteritems()))
+            
+        # try to build a path from the template with these fields:
+        while template and template.missing_keys(fields):
+            template = template.parent
+        if not template:
+            # failed to find a template with no missing keys!
+            return
+        path = template.apply_fields(fields)
+        
+        # finally, show the path:
+        self._show_in_fs(path)
+
+
+
+class ShowWorkAreaInFileSystemAction(ShowInFileSystemAction):
     """
     """
     def __init__(self):
-        ShowInFileSystemAction.__init__(self, "show_workfile_in_file_system", "Show Work File In File System")
+        ShowInFileSystemAction.__init__(self, "show_work_area_in_file_system", "Show Work Area In File System")
         
     def execute(self, file, file_versions, environment, parent_ui):
         """
         """
-        if file and file.is_local:
-            self._show_in_fs(file.path)
+        if not file:
+            return
+        
+        if not environment or not environment.context or not environment.work_area_template:
+            return
+
+        self._show_area_in_fs(file, environment.work_area_template)
+
+
+
+class ShowPublishAreaInFileSystemAction(ShowInFileSystemAction):
+    """
+    """
+    def __init__(self):
+        ShowInFileSystemAction.__init__(self, "show_publish_area_in_file_system", "Show Publish Area In File System")
+        
+    def execute(self, file, file_versions, environment, parent_ui):
+        """
+        """
+        if not file:
+            return
+        
+        if not environment or not environment.context or not environment.publish_area_template:
+            return
+        
+        self._show_area_in_fs(file, environment.publish_area_template)
+
+
     
 class CustomFileAction(FileAction):
     def __init__(self, name, label):
