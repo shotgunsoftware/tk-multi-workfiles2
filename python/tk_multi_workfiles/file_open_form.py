@@ -42,6 +42,7 @@ class FileOpenForm(QtGui.QWidget):
     """
     
     perform_action = QtCore.Signal(object, object, object, object) # action, file, file_versions, environment
+    create_new_task = QtCore.Signal(object, object)
     
     @property
     def exit_code(self):
@@ -54,6 +55,8 @@ class FileOpenForm(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         
         self._exit_code = QtGui.QDialog.Rejected
+        self._my_tasks_model = None
+        self._entity_models = []
         
         # create the action factory - this is used to generate actions
         # for the selected file
@@ -89,11 +92,38 @@ class FileOpenForm(QtGui.QWidget):
 
         # call init callback:
         init_callback(self)
+
+    def select_entity(self, entity):
+        """
+        :param entity:  The entity or task to select in the current tree/my tasks view.  If it can't be found
+                        then attempt to switch tabs if it can be found in a different tab! 
+        """
+        pass
+
+    def refresh_all(self):
+        """
+        """
+        # refresh the entity models:
+        self._my_tasks_model.async_refresh()
+        for model in self._entity_models:
+            model.async_refresh()
+
     
     def closeEvent(self, event):
         """
         """
+        # stop the sg data retriever used to download thumbnails:
         self._sg_data_retriever.stop()
+        
+        # stop any model updates and background workers:
+        for model in self._entity_models:
+            # TODO!
+            pass
+        self._entity_models = []
+        
+        #self._my_tasks_model.
+        #self._file_model.
+        
         return QtGui.QWidget.closeEvent(self, event)
 
     def _initilize_task_trees(self):
@@ -102,18 +132,23 @@ class FileOpenForm(QtGui.QWidget):
         """
         app = sgtk.platform.current_bundle()
 
-        # set up 'My Tasks':        
-        if app.context.user:
-            filters = [["project", "is", app.context.project],
-                       ["task_assignees", "is", app.context.user]]
-            
-            model = MyTasksModel(filters, self)
-            model.async_refresh()
-            
-            # create my tasks form:
-            my_tasks_form = MyTasksForm(model, self)
-            my_tasks_form.task_selected.connect(self._on_my_task_selected)
-            self._ui.task_browser_tabs.addTab(my_tasks_form, "My Tasks")
+        # set up 'My Tasks':
+        show_my_tasks = app.get_setting("show_my_tasks_view", True)
+        if show_my_tasks:
+            this_user = sgtk.util.get_current_user(app.sgtk)
+            if this_user:
+                # filter my tasks based on the current project and user:
+                filters = [["project", "is", app.context.project],
+                           ["task_assignees", "is", this_user]]
+                
+                self._my_tasks_model = MyTasksModel(filters, self)
+                self._my_tasks_model.async_refresh()
+                
+                # create my tasks form:
+                my_tasks_form = MyTasksForm(self._my_tasks_model, self)
+                my_tasks_form.task_selected.connect(self._on_my_task_selected)
+                self._ui.task_browser_tabs.addTab(my_tasks_form, "My Tasks")
+                my_tasks_form.create_new_task.connect(self._on_create_new_my_task)
         
         # set up any defined task trees:
         entities = app.get_setting("entities", [])
@@ -144,13 +179,15 @@ class FileOpenForm(QtGui.QWidget):
             
             # create an entity model for this query:
             model = ShotgunEntityModel(entity_type, resolved_filters, hierarchy, parent=self)
+            self._entity_models.append(model)
             model.async_refresh()
             
             # create new entity form:
             entity_form = EntityTreeForm(model, caption, self)
             entity_form.entity_selected.connect(self._on_entity_selected)
             self._ui.task_browser_tabs.addTab(entity_form, caption)
-        
+            entity_form.create_new_task.connect(self._on_create_new_entity_task)
+
     def _initilize_file_views(self):
         """
         """
@@ -228,6 +265,62 @@ class FileOpenForm(QtGui.QWidget):
 
         # refresh files:
         self._file_model.refresh_files(search_details)
+
+    def _on_create_new_my_task(self, idx):
+        """
+        """
+        if not idx or not idx.isValid():
+            # can't create a new task if we don't have one
+            # available to base it on
+            return
+        
+        my_tasks_form = self.sender()
+        my_tasks_model = idx.model()
+        task_item = my_tasks_model.itemFromIndex(idx)
+        
+        # determine the currently selected task:
+        sg_data = task_item.get_sg_data()
+        if not sg_data:
+            return
+        
+        entity = sg_data.get("entity", {})
+        step = sg_data.get("step", {})
+
+        # and emit the signal for this task:
+        self.create_new_task.emit(entity, step)
+    
+    def _on_create_new_entity_task(self, idx):
+        """
+        """
+        if not idx or not idx.isValid():
+            # can't create a new task if we don't have one
+            # available to base it on
+            return
+        
+        entity_form = self.sender()
+        entity_model = idx.model()
+        entity_item = entity_model.itemFromIndex(idx)
+        
+        # determine the currently selected entity:
+        entity = entity_model.get_entity(entity_item)
+        if not entity:
+            return
+        
+        if entity.get("type") == "Step":
+            # can't create tasks on steps!
+            return
+        
+        # if this is a task then assume that the user wants to create a new task
+        # for the selected task's linked entity
+        step = None
+        if entity.get("type") == "Task":
+            step = entity.get("step")
+            entity = entity.get("entity")
+            if not entity:
+                return
+                        
+        # and emit the signal for this task:
+        self.create_new_task.emit(entity, step)
         
     def _get_item_searches(self, entity_item):
         """

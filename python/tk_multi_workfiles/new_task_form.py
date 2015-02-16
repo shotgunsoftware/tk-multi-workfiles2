@@ -8,8 +8,8 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import tank
-from tank.platform.qt import QtCore, QtGui
+import sgtk
+from sgtk.platform.qt import QtCore, QtGui
 
 class NewTaskForm(QtGui.QWidget):
     """
@@ -21,13 +21,13 @@ class NewTaskForm(QtGui.QWidget):
     def exit_code(self):
         return self._exit_code    
     
-    def __init__(self, app, entity, user, parent=None):
+    def __init__(self, entity, step, user, parent=None):
         """
         Construction
         """
         QtGui.QWidget.__init__(self, parent)
 
-        self._app = app
+        self._app = sgtk.platform.current_bundle()
         self._entity = entity
         self._user = user
         self._exit_code = QtGui.QDialog.Rejected
@@ -38,14 +38,14 @@ class NewTaskForm(QtGui.QWidget):
         self._ui.setupUi(self)
 
         # populate entity name
-        entity_name = "%s %s" % (self._entity["type"], self._entity["code"])
+        entity_name = "%s %s" % (self._entity["type"], self._entity.get("code") or entity.get("name"))
         self._ui.entity.setText(entity_name)
         
         # populate user
-        username = self._user["name"] if self._user else "<unassigned>"
-        self._ui.assigned_to.setText(username)
+        username = self._user.get("name") if self._user else None
+        self._ui.assigned_to.setText(username or "<unassigned>")
         
-        # populate pipeline steps
+        # populate pipeline steps for this entity type:
         sg_result = self._app.shotgun.find("Step", [["entity_type", "is", self._entity["type"]]], ["code", "id"])
         self._pipeline_step_dict = {}
         for item in sg_result:
@@ -56,9 +56,9 @@ class NewTaskForm(QtGui.QWidget):
             self._pipeline_step_dict[item["id"]] = item
         
         # try to figure out a default pipeline step and task name
-        if self._app.context.step:
+        if step:
             # update menu to show the same step as the current app context:
-            step_id = self._app.context.step["id"]
+            step_id = step["id"]
             idx = self._ui.pipeline_step.findData(step_id)
             if idx != -1:
                 self._ui.pipeline_step.setCurrentIndex(idx)

@@ -17,6 +17,9 @@ from sgtk.platform.qt import QtCore, QtGui
 
 from .ui.entity_tree_form import Ui_EntityTreeForm
 
+shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
+ShotgunEntityModel = shotgun_model.ShotgunEntityModel
+
 overlay_module = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
 from .entity_proxy_model import EntityProxyModel
 
@@ -68,7 +71,7 @@ class EntityTreeForm(QtGui.QWidget):
     """
     
     entity_selected = QtCore.Signal(object)
-    create_new_task = QtCore.Signal()
+    create_new_task = QtCore.Signal(object)
     
     def __init__(self, entity_model, search_label, parent=None):
         """
@@ -83,9 +86,15 @@ class EntityTreeForm(QtGui.QWidget):
         self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
         
         # connect up controls:
-        self._ui.search_ctrl.search_edited.connect(self._on_search_changed)      
-        self._ui.new_task_btn.clicked.connect(self._on_new_task)
-        self._ui.my_tasks_cb.toggled.connect(self._on_my_tasks_only_toggled)
+        self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
+        
+        if entity_model and entity_model.get_entity_type() == "Task":
+            self._ui.new_task_btn.clicked.connect(self._on_new_task)
+            self._ui.new_task_btn.setEnabled(False)
+            self._ui.my_tasks_cb.toggled.connect(self._on_my_tasks_only_toggled)
+        else:
+            self._ui.new_task_btn.hide()
+            self._ui.my_tasks_cb.hide()
         
         # create the overlay 'busy' widget:
         self._overlay_widget = overlay_module.ShotgunModelOverlayWidget(None, self._ui.entity_tree)
@@ -118,6 +127,28 @@ class EntityTreeForm(QtGui.QWidget):
             # extract the selected model index from the selection:
             proxy_index = selected_indexes[0]
             selected_index = self._filter_model.mapToSource(proxy_index)
+        
+        # determine if the new tasks button should be enabled:
+        enable_new_tasks = selected_index != None
+        if enable_new_tasks:
+            
+            src_model = self._filter_model
+            while src_model and not isinstance(src_model, ShotgunEntityModel):
+                if isinstance(src_model, QtGui.QSortFilterProxyModel):
+                    src_model = src_model.sourceModel()
+                else:
+                    src_model = None
+                    
+            if src_model:
+                item = src_model.itemFromIndex(selected_index)
+                entity = src_model.get_entity(item)
+                if not entity or entity.get("type") == "Step":
+                    enable_new_tasks = False
+        
+        # TODO - button should only be enabled if an entity is selected that has tasks as
+        # children in the tree...
+        
+        self._ui.new_task_btn.setEnabled(enable_new_tasks)
             
         # emit selection_changed signal:            
         self.entity_selected.emit(selected_index)
@@ -130,7 +161,18 @@ class EntityTreeForm(QtGui.QWidget):
     def _on_new_task(self):
         """
         """
-        self.create_new_task.emit()    
+        if not self._filter_model:
+            return
+        
+        selected_index = None
+        selected_indexes = self._ui.entity_tree.selectionModel().selectedIndexes()
+        if len(selected_indexes) != 1:
+            return
+        
+        # extract the selected model index from the selection:
+        selected_index = self._filter_model.mapToSource(selected_indexes[0])
+        
+        self.create_new_task.emit(selected_index)        
     
     
     

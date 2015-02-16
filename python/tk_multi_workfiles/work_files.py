@@ -15,6 +15,7 @@ from datetime import datetime
 from pprint import pprint
 
 import tank
+import sgtk
 from tank.platform.qt import QtCore, QtGui 
 from tank import TankError
 from tank_vendor.shotgun_api3 import sg_timezone
@@ -85,8 +86,8 @@ class WorkFiles(QtCore.QObject):#object):
         """
         """
         form.perform_action.connect(self._on_file_open_perform_action)
-    
-    
+        form.create_new_task.connect(self._on_file_open_create_new_task)
+        
     def _on_file_open_perform_action(self, action, file, file_versions, environment):
         """
         """
@@ -102,6 +103,46 @@ class WorkFiles(QtCore.QObject):#object):
             if form:
                 form.close() 
         
+    def _on_file_open_create_new_task(self, current_entity, current_step):
+        """
+        """
+        if not current_entity:
+            return
+        
+        file_open_form = self.sender()
+        
+        # get the current user:
+        current_user = sgtk.util.get_current_user(self._app.sgtk)
+
+        # show new task dialog:
+        from .new_task_form import NewTaskForm
+        new_task_form = NewTaskForm(current_entity, current_step, current_user)
+        
+        res = WrapperDialog.show_modal(new_task_form, "Create New Task", parent=file_open_form)
+        if res == QtGui.QDialog.Accepted:
+            # get details from new_task_form:
+            entity = new_task_form.entity
+            assigned_to = new_task_form.assigned_to
+            pipeline_step = new_task_form.pipeline_step
+            task_name = new_task_form.task_name
+        
+            # create the task:    
+            new_task = None
+            try:
+                new_task = self.create_new_task(task_name, pipeline_step, entity, assigned_to)
+            except TankError, e:
+                QtGui.QMessageBox.warning(parent_ui,
+                                      "Failed to create new task!",
+                                      ("Failed to create a new task '%s' for pipeline step '%s' on entity '%s %s':\n\n%s" 
+                                       % (task_name, pipeline_step.get("code"), entity["type"], entity["code"], e)))
+                return
+
+            # build folders for this new task - we have to do this to ensure
+            # that files found during the search are matched to the correct task
+            # TODO
+            
+            # trigger a refresh of all views in the file-open form:
+            file_open_form.refresh_all()
     
     def __show_file_save_dlg(self):
         """

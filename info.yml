@@ -199,6 +199,11 @@ configuration:
         allows_empty: False
         values:
             type: dict
+            
+    show_my_tasks_view:
+        type: bool
+        description: Define if the My Tasks view should be visible or not.
+        default: true
 
 
 # the Shotgun fields that this app needs in order to operate correctly

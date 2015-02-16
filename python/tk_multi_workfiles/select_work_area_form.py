@@ -186,7 +186,7 @@ class SelectWorkAreaForm(QtGui.QWidget):
         # show new task dialog:
         from .wrapper_dialog import WrapperDialog
         from .new_task_form import NewTaskForm
-        form = NewTaskForm(self._app, current_entity, current_user)
+        form = NewTaskForm(current_entity, self._app.context.step, current_user)
         
         res = WrapperDialog.show_modal(form, "Create New Task", parent=self)
         if res == QtGui.QDialog.Accepted:
