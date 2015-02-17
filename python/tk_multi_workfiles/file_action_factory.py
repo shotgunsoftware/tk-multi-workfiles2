@@ -73,6 +73,12 @@ class FileActionFactory(object):
             # can open this file directly:
             # TODO: check user and version
             actions.append(OpenWorkfileAction(not file.editable))
+        if file.is_published:
+            # 'Continue working from' action
+            #actions.append(OpenPublishAction())
+            # 'Open read-only' action
+            #actions.append(OpenPublishAction())
+            pass
         
         actions.append(SeparatorFileAction())
         
