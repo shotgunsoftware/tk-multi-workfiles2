@@ -146,6 +146,7 @@ class TestItemDelegate(GroupListViewItemDelegate):
         
         label = ""
         icon = None
+        is_publish = False
         
         file_item = model_index.data(FileModel.FILE_ITEM_ROLE)
         if file_item:
@@ -158,24 +159,7 @@ class TestItemDelegate(GroupListViewItemDelegate):
 
             # retrieve the icon:                
             icon = file_item.thumbnail
-            #icon = model_index.data(QtCore.Qt.DecorationRole)
-            
-            #if not icon:
-            #    # look for the most recent file that does have an icon:
-            #    file_model = model_index.model()
-            #    while isinstance(file_model, QtGui.QSortFilterProxyModel):
-            #        file_model = file_model.sourceModel()
-            #        
-            #    if isinstance(file_model, FileModel):
-            #        all_versions = file_model.get_file_versions(file_item.key)
-            #        versions = sorted(all_versions.keys(), reverse=True)
-            #        for v in versions:
-            #            if file_item.version < v:
-            #                continue
-            #            
-            #            if file_item.thumbnail_path:
-            #                icon = QtGui.QIcon(file_item.thumbnail_path)
-            #                break
+            is_publish = file_item.is_published
         else:
             label = model_index.data()
             icon = model_index.data(QtCore.Qt.DecorationRole)
@@ -184,6 +168,7 @@ class TestItemDelegate(GroupListViewItemDelegate):
         widget.title = label
         widget.set_thumbnail(icon)
         widget.selected = (style_options.state & QtGui.QStyle.State_Selected) == QtGui.QStyle.State_Selected
+        widget.set_is_publish(is_publish)
 
     def _on_before_paint(self, widget, model_index, style_options):
         """

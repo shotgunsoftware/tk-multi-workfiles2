@@ -16,6 +16,26 @@ class FileTile(QtGui.QWidget):
         # set up the UI
         self._ui = Ui_FileTile()
         self._ui.setupUi(self)
+        
+        self._publish_icon = QtGui.QLabel(self)
+        self._publish_icon.setPixmap(QtGui.QPixmap(":/tk-multi-workfiles/publish_icon.png"))
+        self._publish_icon.hide()
+
+        pi_layout = QtGui.QVBoxLayout(self)
+        pi_layout.setContentsMargins(0, 0, 0, 0)
+        pi_layout.setSpacing(0)
+        pi_layout.addStretch()
+        pi_layout.addWidget(self._publish_icon)
+
+        thumb_layout = QtGui.QHBoxLayout(self)
+        thumb_layout.setContentsMargins(4, 4, 4, 4)
+        thumb_layout.setSpacing(0)
+        thumb_layout.addStretch()
+        thumb_layout.addLayout(pi_layout)
+
+        self._ui.thumbnail.setLayout(thumb_layout)
+        
+        
 
         self._is_selected = False        
         self._background_styles = {}
@@ -49,18 +69,32 @@ class FileTile(QtGui.QWidget):
         self._is_selected = value
         self._update_ui()
         
+    def set_is_publish(self, is_publish):
+        """
+        """
+        self._publish_icon.setVisible(is_publish)
+        
+        
     def set_thumbnail(self, thumb):
         """
         """
         if not thumb:
             thumb = QtGui.QPixmap(":/tk-multi-workfiles/thumb_empty.png")
+            
+        self._ui.thumbnail.setPixmap(thumb)
         
-        geom = self._ui.thumbnail.geometry()
-        self._set_label_image(self._ui.thumbnail, thumb, geom.width(), geom.height())        
+        #geom = self._ui.thumbnail.geometry()
+        #self._set_label_image(self._ui.thumbnail, thumb, geom.width(), geom.height())        
         
     def _set_label_image(self, label, image, w, h):
         """
         """
+        """
+        CANVAS_WIDTH = 512
+        CANVAS_HEIGHT = 400
+        CORNER_RADIUS = 10
+        """        
+        
         if not image:
             # make sure it's cleared
             label.setPixmap(None)

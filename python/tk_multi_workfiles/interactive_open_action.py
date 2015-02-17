@@ -22,7 +22,7 @@ class InteractiveOpenAction(OpenFileAction):
     def __init__(self):
         """
         """
-        OpenFileAction.__init__(self, "open", "Open")
+        OpenFileAction.__init__(self, "Open")
 
 
     def execute(self, file, file_versions, environment, parent_ui):

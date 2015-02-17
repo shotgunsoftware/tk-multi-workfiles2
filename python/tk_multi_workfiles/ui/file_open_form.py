@@ -11,7 +11,7 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_FileOpenForm(object):
     def setupUi(self, FileOpenForm):
         FileOpenForm.setObjectName("FileOpenForm")
-        FileOpenForm.resize(912, 719)
+        FileOpenForm.resize(956, 718)
         self.verticalLayout = QtGui.QVBoxLayout(FileOpenForm)
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout_3 = QtGui.QHBoxLayout()

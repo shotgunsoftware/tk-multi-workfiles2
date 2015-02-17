@@ -13,24 +13,18 @@
 
 import sgtk
 
-class FileAction(object):
-    def __init__(self, label):
+from .file_action import FileAction
+
+class CustomFileAction(FileAction):
+    def __init__(self, name, label):
         """
         """
-        self._app = sgtk.platform.current_bundle()
-        self._label = label
-        
-    @property
-    def label(self):
-        return self._label
+        FileAction.__init__(self, label)
+        self._name = name
     
     def execute(self, file, file_versions, environment, parent_ui):
-        raise NotImplementedError()
-
-class SeparatorFileAction(FileAction):
-    def __init__(self):
-        FileAction.__init__(self, "---")
-        
-    def execute(self, file, file_versions, environment, parent_ui):
-        # do nothing!
+        """
+        """
+        # execute hook to perform the action
+        # TODO
         pass

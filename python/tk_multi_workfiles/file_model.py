@@ -247,16 +247,19 @@ class FileModel(QtGui.QStandardItemModel):
         thumb_path = data.get("thumb_path")
         if not thumb_path:
             return
-        
-        # create a QPixMap for the path:
-        thumb_pm = QtGui.QPixmap(thumb_path)
-        
-        # update the thumbnail on the file for this item:
+
         file = item.file_item
-        file.thumbnail = thumb_pm
+        
+        # create a pixmap for the path:
+        thumb = self._build_thumbnail(thumb_path)
+        if not thumb:
+            return
+
+        # update the thumbnail on the file for this item:
+        file.thumbnail = thumb
         item.emitDataChanged()
     
-        # finally, see of there are any work file versions of this file that don't have a
+        # See of there are any work file versions of this file that don't have a
         # thumbnail that could make use of this thumbnail:
         cache_info = self._file_item_cache.get(file.key)
         if not cache_info:
@@ -271,10 +274,66 @@ class FileModel(QtGui.QStandardItemModel):
                 continue
 
             # we can use the thumbnail for this version of the work file - yay!             
-            file_version.thumbnail = thumb_pm
+            file_version.thumbnail = thumb
             cache_info.items[v].emitDataChanged()
-            
 
+    def _build_thumbnail(self, thumb_path):
+        """
+        """
+        # load the thumbnail
+        thumb = QtGui.QPixmap(thumb_path)
+        if not thumb or thumb.isNull():
+            return
+        
+        # make sure the thumbnail is a good size with the correct aspect ratio:
+        MAX_WIDTH = 576#96
+        MAX_HEIGHT = 374#64
+        ASPECT = float(MAX_WIDTH)/MAX_HEIGHT
+        
+        thumb_sz = thumb.size()
+        thumb_aspect = float(thumb_sz.width())/thumb_sz.height()
+        max_thumb_sz = QtCore.QSize(MAX_WIDTH, MAX_HEIGHT)
+        if thumb_aspect >= ASPECT:
+            # scale based on width:
+            if thumb_sz.width() > MAX_WIDTH:
+                thumb_sz *= (float(MAX_WIDTH)/thumb_sz.width())
+            else:
+                max_thumb_sz *= (float(thumb_sz.width())/MAX_WIDTH)
+        else:
+            # scale based on height:
+            if thumb_sz.height() > MAX_HEIGHT:
+                thumb_sz *= (float(MAX_HEIGHT)/thumb_sz.height())
+            else:
+                max_thumb_sz *= (float(thumb_sz.height())/MAX_HEIGHT)
+
+        if thumb_sz != thumb.size():
+            thumb = thumb.scaled(thumb_sz.width(), thumb_sz.height(), 
+                                 QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+
+        # create base pixmap with the correct aspect ratio that the thumbnail will fit in
+        # and fill it with a transparent colour:
+        thumb_base = QtGui.QPixmap(max_thumb_sz)
+        thumb_base.fill(QtGui.QColor(QtCore.Qt.transparent))
+
+        # create a painter to paint into this pixmap:
+        painter = QtGui.QPainter(thumb_base)
+        try:
+            painter.setRenderHint(QtGui.QPainter.Antialiasing)
+            
+            # paint the thumbnail into this base making sure it's centered:
+            diff = max_thumb_sz - thumb.size()
+            offset = diff/2
+            brush = QtGui.QBrush(thumb)
+            painter.setBrush(brush)
+            painter.translate(offset.width(), offset.height())
+            painter.drawRect(0, 0, thumb.width(), thumb.height())
+        finally:
+            painter.end()
+        
+        return thumb_base
+        
+        
+        
     
     def _on_data_retriever_work_failed(self, uid, error_msg):
         """

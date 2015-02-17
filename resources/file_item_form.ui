@@ -67,7 +67,7 @@ border-color: rgb(32,32,32);
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap resource="resources.qrc">:/res/thumb_empty.png</pixmap>
+         <pixmap>:/res/thumb_empty.png</pixmap>
         </property>
         <property name="scaledContents">
          <bool>false</bool>
@@ -135,7 +135,7 @@ border-color: rgb(32,32,32);
            <string/>
           </property>
           <property name="pixmap">
-           <pixmap resource="resources.qrc">:/res/padlock.png</pixmap>
+           <pixmap>:/res/padlock.png</pixmap>
           </property>
           <property name="scaledContents">
            <bool>false</bool>

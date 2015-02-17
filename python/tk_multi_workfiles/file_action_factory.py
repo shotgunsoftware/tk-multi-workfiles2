@@ -11,15 +11,16 @@
 """
 """
 
-from .file_action import FileAction, SeparatorFileAction
-
-from .file_action import CustomFileAction
-from .file_action import ShowWorkFileInFileSystemAction, ShowPublishInFileSystemAction
-from .file_action import ShowWorkAreaInFileSystemAction, ShowPublishAreaInFileSystemAction 
-from .file_action import ShowPublishInShotgunAction, ShowLatestPublishInShotgunAction
+from .file_action import SeparatorFileAction
 
 from .interactive_open_action import InteractiveOpenAction
 from .open_workfile_action import OpenWorkfileAction
+
+from .show_in_filesystem_action import ShowWorkFileInFileSystemAction, ShowPublishInFileSystemAction
+from .show_in_filesystem_action import ShowWorkAreaInFileSystemAction, ShowPublishAreaInFileSystemAction 
+from .show_in_shotgun_action import ShowPublishInShotgunAction, ShowLatestPublishInShotgunAction
+
+from .custom_file_action import CustomFileAction
 
 class FileActionFactory(object):
     
@@ -33,39 +34,12 @@ class FileActionFactory(object):
         """
         actions = []
         
-        """
-        Open publish:
-        
-        if 
-        
-        
-        """
-        
-        
-        """
-        View latest Publish in Shotgun
-        Open Publish Read-Only -> versions
-        Open Work File -> versions
-
-        Show work file in file system
-        Show publish file in file system
-        Show publish in Shotgun
-        
-        New file
-
-    def _on_open_publish(self, publish_file, work_file):
-    def _on_open_workfile(self, work_file, publish_file):
-    def _on_open_previous_publish(self, file):
-    def _on_open_previous_workfile(self, file):
-    def _on_new_file(self):
-
-        """
-        
         # always add the interactive 'open' action.  This is the
         # default/generic open action that gets run whenever someone
         # double-clicks on a file or just hits the 'Open' button
         actions.append(InteractiveOpenAction())
 
+        # ------------------------------------------------------------------
         actions.append(SeparatorFileAction())
 
         # now add explicit file operations based off the selection:
@@ -80,6 +54,7 @@ class FileActionFactory(object):
             #actions.append(OpenPublishAction())
             pass
         
+        # ------------------------------------------------------------------
         actions.append(SeparatorFileAction())
         
         # query for any custom actions:
@@ -91,6 +66,7 @@ class FileActionFactory(object):
             custom_action = CustomFileAction(name, label)
             actions.append(custom_action)
         
+        # ------------------------------------------------------------------
         actions.append(SeparatorFileAction())
         
         # finally add the 'jump to' actions:

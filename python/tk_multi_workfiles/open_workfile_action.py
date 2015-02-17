@@ -22,9 +22,9 @@ class OpenWorkfileAction(OpenFileAction):
         """
         """
         if read_only:
-            OpenFileAction.__init__(self, "open_workfile_readonly", "Open Work File (Read-only)")
+            OpenFileAction.__init__(self, "Open Work File (Read-only)")
         else:
-            OpenFileAction.__init__(self, "open_workfile", "Open Work File")
+            OpenFileAction.__init__(self, "Open Work File")
         self._read_only = read_only
         
         
