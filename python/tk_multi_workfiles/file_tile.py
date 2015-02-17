@@ -17,26 +17,35 @@ class FileTile(QtGui.QWidget):
         self._ui = Ui_FileTile()
         self._ui.setupUi(self)
         
+        # create the status icons and add them to a layout over the main thumbnail:
         self._publish_icon = QtGui.QLabel(self)
+        self._publish_icon.setMinimumSize(16, 16)
+        self._publish_icon.setAlignment(QtCore.Qt.AlignCenter)
         self._publish_icon.setPixmap(QtGui.QPixmap(":/tk-multi-workfiles/publish_icon.png"))
         self._publish_icon.hide()
 
-        pi_layout = QtGui.QVBoxLayout(self)
-        pi_layout.setContentsMargins(0, 0, 0, 0)
-        pi_layout.setSpacing(0)
-        pi_layout.addStretch()
-        pi_layout.addWidget(self._publish_icon)
+        # not sure I like this - think I preferred it when it was over on the right of the tile!
+        self._lock_icon = QtGui.QLabel(self)
+        self._lock_icon.setMinimumSize(16, 16)
+        self._lock_icon.setAlignment(QtCore.Qt.AlignCenter)
+        self._lock_icon.setPixmap(QtGui.QPixmap(":/tk-multi-workfiles/padlock.png"))
+        self._lock_icon.hide()
+
+        rhs_layout = QtGui.QVBoxLayout(self)
+        rhs_layout.setContentsMargins(0, 0, 0, 0)
+        rhs_layout.setSpacing(0)
+        rhs_layout.addWidget(self._lock_icon)
+        rhs_layout.addStretch(1)
+        rhs_layout.addWidget(self._publish_icon)
 
         thumb_layout = QtGui.QHBoxLayout(self)
         thumb_layout.setContentsMargins(4, 4, 4, 4)
         thumb_layout.setSpacing(0)
         thumb_layout.addStretch()
-        thumb_layout.addLayout(pi_layout)
+        thumb_layout.addLayout(rhs_layout)
 
         self._ui.thumbnail.setLayout(thumb_layout)
         
-        
-
         self._is_selected = False        
         self._background_styles = {}
         self._background_styles["normal"] = {
@@ -73,7 +82,16 @@ class FileTile(QtGui.QWidget):
         """
         """
         self._publish_icon.setVisible(is_publish)
-        
+
+    def set_is_editable(self, editable, not_editable_reason = None):
+        """
+        Set if the file this item represents is editable - if not editable 
+        then an additional padlock icon is shown with it's tooltip indicating 
+        the reason why.
+        """
+        self._lock_icon.setVisible(not editable)
+        # (AD) - this doesn't actually work as there is no concrete widget to show the tooltip on!
+        self._lock_icon.setToolTip(not_editable_reason or "")
         
     def set_thumbnail(self, thumb):
         """

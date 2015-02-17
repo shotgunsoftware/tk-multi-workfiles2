@@ -147,6 +147,8 @@ class TestItemDelegate(GroupListViewItemDelegate):
         label = ""
         icon = None
         is_publish = False
+        is_editable = True
+        not_editable_reason = None
         
         file_item = model_index.data(FileModel.FILE_ITEM_ROLE)
         if file_item:
@@ -160,6 +162,8 @@ class TestItemDelegate(GroupListViewItemDelegate):
             # retrieve the icon:                
             icon = file_item.thumbnail
             is_publish = file_item.is_published
+            is_editable = file_item.editable
+            not_editable_reason = file_item.not_editable_reason
         else:
             label = model_index.data()
             icon = model_index.data(QtCore.Qt.DecorationRole)
@@ -169,6 +173,7 @@ class TestItemDelegate(GroupListViewItemDelegate):
         widget.set_thumbnail(icon)
         widget.selected = (style_options.state & QtGui.QStyle.State_Selected) == QtGui.QStyle.State_Selected
         widget.set_is_publish(is_publish)
+        widget.set_is_editable(is_editable, not_editable_reason)
 
     def _on_before_paint(self, widget, model_index, style_options):
         """
