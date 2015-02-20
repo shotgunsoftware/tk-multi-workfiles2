@@ -15,6 +15,9 @@ import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
 views = sgtk.platform.import_framework("tk-framework-qtwidgets", "views")
+spinner_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "spinner_widget")
+SpinnerWidget = spinner_widget.SpinnerWidget
+
 GroupedListView = views.GroupedListView
 
 from .file_model import FileModel
@@ -28,8 +31,6 @@ from .group_header_widget import GroupHeaderWidget
 from .ui.file_group_widget import Ui_FileGroupWidget
 from .file_model import FileModel
 from .file_proxy_model import FileProxyModel
-
-from .spinner_widget import SpinnerWidget
 
 
 class FileGroupWidget(views.GroupWidgetBase):
