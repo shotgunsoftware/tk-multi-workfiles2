@@ -129,19 +129,15 @@ class TestItemDelegate(GroupListViewItemDelegate):
         """
         if not model_index.isValid():
             return None
-        return self._get_item_widget(parent)
-
-    def _get_item_widget(self, parent):
-        """
-        """
         if not self._item_widget:
             self._item_widget = FileTile(parent)
         return self._item_widget
 
-    def _setup_widget(self, widget, model_index, style_options):
+    def _on_before_paint(self, widget, model_index, style_options):
         """
         """
         if not isinstance(widget, FileTile):
+            # this class only paints FileTile widgets
             return
         
         label = ""
@@ -175,16 +171,6 @@ class TestItemDelegate(GroupListViewItemDelegate):
         widget.set_is_publish(is_publish)
         widget.set_is_editable(is_editable, not_editable_reason)
 
-    def _on_before_paint(self, widget, model_index, style_options):
-        """
-        """
-        self._setup_widget(widget, model_index, style_options) 
-
-    def _on_before_selection(self, widget, model_index, style_options):
-        """
-        """
-        self._setup_widget(widget, model_index, style_options)
-
     def sizeHint(self, style_options, model_index):
         """
         """
@@ -192,12 +178,10 @@ class TestItemDelegate(GroupListViewItemDelegate):
             return QtCore.QSize()
         
         if model_index.parent() != self.view.rootIndex():
-            return self._get_item_widget(self.view).size()
+            return self._get_painter_widget(model_index, self.view).size()
         else:
+            # call base class:
             return GroupListViewItemDelegate.sizeHint(self, style_options, model_index)
-        
-    #def setModelData(self, editor, model, model_index):
-    #    pass
 
 class FileListForm(QtGui.QWidget):
     """

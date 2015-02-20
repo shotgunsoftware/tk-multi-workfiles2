@@ -46,17 +46,19 @@ class GroupWidgetBase(QtGui.QWidget):
 class GroupListViewItemDelegate(WidgetDelegate):
     """
     """
-    def __init__(self, view):
+    def __init__(self, view, edit_on_selection_changed=False):
         """
         """
-        WidgetDelegate.__init__(self, view)
+        WidgetDelegate.__init__(self, view, edit_on_selection_changed)
         
         self._calc_group_widget = None
         
     def create_group_widget(self, parent):
+        """
+        """
         return GroupWidgetBase(parent)
     
-    def sizeHint(self, style_options, model_index):#, expanded):
+    def sizeHint(self, style_options, model_index):
         """
         """
         if model_index.parent() == self.view.rootIndex():
