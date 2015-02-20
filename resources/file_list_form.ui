@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>658</width>
-    <height>635</height>
+    <width>667</width>
+    <height>631</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -232,7 +232,7 @@ background-color: rgb(255, 128, 0);
   <customwidget>
    <class>GroupedListView</class>
    <extends>QWidget</extends>
-   <header>..grouped_list_view</header>
+   <header>..file_list_form</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

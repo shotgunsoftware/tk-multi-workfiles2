@@ -11,7 +11,7 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_FileListForm(object):
     def setupUi(self, FileListForm):
         FileListForm.setObjectName("FileListForm")
-        FileListForm.resize(658, 635)
+        FileListForm.resize(667, 631)
         self.verticalLayout = QtGui.QVBoxLayout(FileListForm)
         self.verticalLayout.setSpacing(4)
         self.verticalLayout.setContentsMargins(2, 6, 2, 2)
@@ -129,5 +129,5 @@ class Ui_FileListForm(object):
 
 from ..file_details_view import FileDetailsView
 from ..search_widget import SearchWidget
-from ..grouped_list_view import GroupedListView
+from ..file_list_form import GroupedListView
 from . import resources_rc

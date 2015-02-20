@@ -14,6 +14,9 @@
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
+views = sgtk.platform.import_framework("tk-framework-qtwidgets", "views")
+GroupedListView = views.GroupedListView
+
 from .file_model import FileModel
 from .file_model_overlay_widget import FileModelOverlayWidget
 
@@ -22,12 +25,6 @@ from .ui.file_list_form import Ui_FileListForm
 from .file_tile import FileTile
 from .group_header_widget import GroupHeaderWidget
 
-shotgun_view = sgtk.platform.import_framework("tk-framework-qtwidgets", "shotgun_view")
-WidgetDelegate = shotgun_view.WidgetDelegate
-
-from .grouped_list_view import GroupListViewItemDelegate, GroupWidgetBase
-
-
 from .ui.file_group_widget import Ui_FileGroupWidget
 from .file_model import FileModel
 from .file_proxy_model import FileProxyModel
@@ -35,14 +32,14 @@ from .file_proxy_model import FileProxyModel
 from .spinner_widget import SpinnerWidget
 
 
-class FileGroupWidget(GroupWidgetBase):
+class FileGroupWidget(views.GroupWidgetBase):
     """
     """
     def __init__(self, parent=None):
         """
         Construction
         """
-        QtGui.QWidget.__init__(self, parent)
+        views.GroupWidgetBase.__init__(self, parent)
         
         # set up the UI
         self._ui = Ui_FileGroupWidget()
@@ -114,10 +111,10 @@ class FileGroupWidget(GroupWidgetBase):
         self.toggle_expanded.emit(state != QtCore.Qt.Unchecked)
     
 
-class TestItemDelegate(GroupListViewItemDelegate):
+class TestItemDelegate(views.GroupedListViewItemDelegate):
 
     def __init__(self, view):
-        GroupListViewItemDelegate.__init__(self, view)
+        views.GroupedListViewItemDelegate.__init__(self, view)
         
         self._item_widget = None
 
@@ -181,7 +178,7 @@ class TestItemDelegate(GroupListViewItemDelegate):
             return self._get_painter_widget(model_index, self.view).size()
         else:
             # call base class:
-            return GroupListViewItemDelegate.sizeHint(self, style_options, model_index)
+            return views.GroupedListViewItemDelegate.sizeHint(self, style_options, model_index)
 
 class FileListForm(QtGui.QWidget):
     """
