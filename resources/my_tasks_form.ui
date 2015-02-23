@@ -107,7 +107,14 @@ background-color: rgb(255, 128, 0);
     </layout>
    </item>
    <item>
-    <widget class="MyTasksTreeView" name="task_tree"/>
+    <widget class="QTreeView" name="task_tree">
+     <property name="rootIsDecorated">
+      <bool>false</bool>
+     </property>
+     <attribute name="headerVisible">
+      <bool>false</bool>
+     </attribute>
+    </widget>
    </item>
   </layout>
  </widget>
@@ -117,11 +124,6 @@ background-color: rgb(255, 128, 0);
    <extends>QWidget</extends>
    <header>..search_widget</header>
    <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>MyTasksTreeView</class>
-   <extends>QTreeView</extends>
-   <header>..my_tasks_tree_view</header>
   </customwidget>
  </customwidgets>
  <resources/>

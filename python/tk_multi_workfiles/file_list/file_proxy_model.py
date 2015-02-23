@@ -1,4 +1,4 @@
-# Copyright (c) 2014 Shotgun Software Inc.
+# Copyright (c) 2015 Shotgun Software Inc.
 # 
 # CONFIDENTIAL AND PROPRIETARY
 # 
@@ -11,7 +11,7 @@
 
 import sgtk
 from sgtk.platform.qt import QtCore
-from file_model import FileModel
+from ..file_model import FileModel
 
 models = sgtk.platform.import_framework("tk-framework-qtwidgets", "models")
 HierarchicalFilteringProxyModel = models.HierarchicalFilteringProxyModel

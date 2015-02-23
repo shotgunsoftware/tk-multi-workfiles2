@@ -43,8 +43,10 @@ class Ui_MyTasksForm(object):
         self.search_ctrl.setObjectName("search_ctrl")
         self.horizontalLayout_2.addWidget(self.search_ctrl)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
-        self.task_tree = MyTasksTreeView(MyTasksForm)
+        self.task_tree = QtGui.QTreeView(MyTasksForm)
+        self.task_tree.setRootIsDecorated(False)
         self.task_tree.setObjectName("task_tree")
+        self.task_tree.header().setVisible(False)
         self.verticalLayout.addWidget(self.task_tree)
         self.verticalLayout.setStretch(2, 1)
 
@@ -56,5 +58,4 @@ class Ui_MyTasksForm(object):
         self.toolButton.setText(QtGui.QApplication.translate("MyTasksForm", "Filter", None, QtGui.QApplication.UnicodeUTF8))
         self.new_task_btn.setText(QtGui.QApplication.translate("MyTasksForm", "+ New Task", None, QtGui.QApplication.UnicodeUTF8))
 
-from ..my_tasks_tree_view import MyTasksTreeView
 from ..search_widget import SearchWidget

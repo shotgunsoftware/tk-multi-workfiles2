@@ -15,7 +15,6 @@ import sgtk
 from sgtk.platform.qt import QtGui
 
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
-ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 ShotgunModel = shotgun_model.ShotgunModel
 
 class MyTasksModel(ShotgunModel):

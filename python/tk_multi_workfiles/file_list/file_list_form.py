@@ -20,16 +20,12 @@ SpinnerWidget = spinner_widget.SpinnerWidget
 
 GroupedListView = views.GroupedListView
 
-from .file_model import FileModel
-from .file_model_overlay_widget import FileModelOverlayWidget
-
-from .ui.file_list_form import Ui_FileListForm
+from ..file_model import FileModel
+from ..ui.file_list_form import Ui_FileListForm
+from ..ui.file_group_widget import Ui_FileGroupWidget
 
 from .file_tile import FileTile
 from .group_header_widget import GroupHeaderWidget
-
-from .ui.file_group_widget import Ui_FileGroupWidget
-from .file_model import FileModel
 from .file_proxy_model import FileProxyModel
 
 

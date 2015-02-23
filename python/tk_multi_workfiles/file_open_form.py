@@ -21,8 +21,8 @@ from sgtk import TankError
 
 from .ui.file_open_form import Ui_FileOpenForm
 from .entity_tree_form import EntityTreeForm
-from .my_tasks_form import MyTasksForm
-from .file_list_form import FileListForm
+from .my_tasks.my_tasks_form import MyTasksForm
+from .file_list.file_list_form import FileListForm
 
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
@@ -32,7 +32,7 @@ ShotgunDataRetriever = shotgun_data.ShotgunDataRetriever
 
 from .find_files import FileFinder
 from .file_model import FileModel
-from .my_tasks_model import MyTasksModel
+from .my_tasks.my_tasks_model import MyTasksModel
 
 from .actions.file_action import SeparatorFileAction
 from .actions.file_action_factory import FileActionFactory

@@ -395,7 +395,7 @@ p, li { white-space: pre-wrap; }
   <customwidget>
    <class>FileListForm</class>
    <extends>QWidget</extends>
-   <header>..file_list_form</header>
+   <header>..file_list.file_list_form</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
