@@ -20,7 +20,7 @@ from sgtk.platform.qt import QtCore, QtGui
 from sgtk import TankError
 
 from .ui.file_open_form import Ui_FileOpenForm
-from .entity_tree_form import EntityTreeForm
+from .entity_tree.entity_tree_form import EntityTreeForm
 from .my_tasks.my_tasks_form import MyTasksForm
 from .file_list.file_list_form import FileListForm
 

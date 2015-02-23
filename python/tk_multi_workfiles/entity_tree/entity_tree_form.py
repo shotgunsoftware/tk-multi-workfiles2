@@ -15,55 +15,14 @@
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-from .ui.entity_tree_form import Ui_EntityTreeForm
-
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 
 overlay_module = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
-from .entity_proxy_model import EntityProxyModel
+ShotgunModelOverlayWidget = overlay_module.ShotgunModelOverlayWidget
 
-class EntityTreeProxyModel(EntityProxyModel):
-    """
-    """
-    def __init__(self, compare_sg_fields=None, parent=None):
-        """
-        """
-        EntityProxyModel.__init__(self, compare_sg_fields, parent)
-        self._only_show_my_tasks = False
-
-    @property
-    def only_show_my_tasks(self):
-        return self._only_show_my_tasks
-    
-    @only_show_my_tasks.setter
-    def only_show_my_tasks(self, show):
-        if self._only_show_my_tasks != show:
-            self._only_show_my_tasks = show
-            self.invalidateFilter()
-
-    def _is_item_accepted(self, item, parent_accepted):
-        """
-        """
-        if self._only_show_my_tasks:
-            
-            sg_entity = item.model().get_entity(item)
-            if sg_entity and sg_entity["type"] == "Task":
-                
-                assignees = sg_entity.get("task_assignees", [])
-                assignee_ids = [a["id"] for a in assignees if "id" in a]
-                
-                # make sure that the current user is in this lise of assignees:
-                app = sgtk.platform.current_bundle()
-                current_user = sgtk.util.get_current_user(app.sgtk)
-                
-                if not current_user or current_user["id"] not in assignee_ids:
-                    # task isn't assigned to the current user so this item
-                    # is definitely not accepted!
-                    return False
-
-        # fall back to the base implementation:        
-        return EntityProxyModel._is_item_accepted(self, item, parent_accepted)
+from ..ui.entity_tree_form import Ui_EntityTreeForm
+from .entity_tree_proxy_model import EntityTreeProxyModel
 
 
 class EntityTreeForm(QtGui.QWidget):
