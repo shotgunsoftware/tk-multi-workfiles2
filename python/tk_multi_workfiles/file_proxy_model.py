@@ -9,10 +9,12 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 
-from sgtk.platform.qt import QtGui, QtCore
+import sgtk
+from sgtk.platform.qt import QtCore
 from file_model import FileModel
 
-from .entity_proxy_model import HierarchicalFilteringProxyModel
+models = sgtk.platform.import_framework("tk-framework-qtwidgets", "models")
+HierarchicalFilteringProxyModel = models.HierarchicalFilteringProxyModel
 
 
 class FileProxyModel(HierarchicalFilteringProxyModel):
