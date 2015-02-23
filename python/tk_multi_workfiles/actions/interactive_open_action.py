@@ -15,7 +15,7 @@ from sgtk.platform.qt import QtCore, QtGui
 
 from .open_file_action import OpenFileAction
 
-from .wrapper_dialog import WrapperDialog
+from ..wrapper_dialog import WrapperDialog
 
 class InteractiveOpenAction(OpenFileAction):
 

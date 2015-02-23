@@ -33,8 +33,9 @@ ShotgunDataRetriever = shotgun_data.ShotgunDataRetriever
 from .find_files import FileFinder
 from .file_model import FileModel
 from .my_tasks_model import MyTasksModel
-from .file_action import SeparatorFileAction
-from .file_action_factory import FileActionFactory
+
+from .actions.file_action import SeparatorFileAction
+from .actions.file_action_factory import FileActionFactory
 
 class FileOpenForm(QtGui.QWidget):
     """

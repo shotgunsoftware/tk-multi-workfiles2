@@ -14,7 +14,7 @@ import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
 from .file_action import FileAction
-from .scene_operation import reset_current_scene, open_file, OPEN_FILE_ACTION
+from ..scene_operation import reset_current_scene, open_file, OPEN_FILE_ACTION
 
 class OpenFileAction(FileAction):
     """
