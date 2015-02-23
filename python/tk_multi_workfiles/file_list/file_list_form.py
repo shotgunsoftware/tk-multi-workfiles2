@@ -15,167 +15,13 @@ import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
 views = sgtk.platform.import_framework("tk-framework-qtwidgets", "views")
-spinner_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "spinner_widget")
-SpinnerWidget = spinner_widget.SpinnerWidget
-
 GroupedListView = views.GroupedListView
 
 from ..file_model import FileModel
 from ..ui.file_list_form import Ui_FileListForm
-from ..ui.file_group_widget import Ui_FileGroupWidget
-
-from .file_tile import FileTile
-from .group_header_widget import GroupHeaderWidget
+#from .group_header_widget import GroupHeaderWidget
 from .file_proxy_model import FileProxyModel
-
-
-class FileGroupWidget(views.GroupWidgetBase):
-    """
-    """
-    def __init__(self, parent=None):
-        """
-        Construction
-        """
-        views.GroupWidgetBase.__init__(self, parent)
-        
-        # set up the UI
-        self._ui = Ui_FileGroupWidget()
-        self._ui.setupUi(self)
-        
-        self._ui.expand_check_box.stateChanged.connect(self._on_expand_checkbox_state_changed)
-        
-        # replace the spinner widget with our SpinnerWidget widget:
-        proxy_widget = self._ui.spinner
-        proxy_size = proxy_widget.geometry()
-        proxy_min_size = proxy_widget.minimumSize()
-        
-        spinner_widget = SpinnerWidget(self)
-        spinner_widget.setMinimumSize(proxy_min_size)
-        spinner_widget.setGeometry(proxy_size)        
-
-        layout = self._ui.horizontalLayout
-        idx = layout.indexOf(proxy_widget)
-        layout.removeWidget(proxy_widget)
-        layout.insertWidget(idx, spinner_widget)
-        
-        self._ui.spinner.setParent(None)
-        self._ui.spinner.deleteLater()
-        self._ui.spinner = spinner_widget
-        
-        self._show_msg = False
-
-    def set_item(self, model_idx):
-        """
-        """
-        label = model_idx.data()
-        self._ui.expand_check_box.setText(label)
-        
-        # update if the spinner should be visible or not:
-        search_status = model_idx.data(FileModel.SEARCH_STATUS_ROLE)
-        if search_status == None:
-            search_status = FileModel.SEARCH_COMPLETED
-            
-        # show the spinner if needed:
-        self._ui.spinner.setVisible(search_status == FileModel.SEARCHING)
-        
-        search_msg = ""
-        if search_status == FileModel.SEARCHING:
-            search_msg = "Searching for files..."
-        elif search_status == FileModel.SEARCH_COMPLETED:
-            if not model_idx.model().hasChildren(model_idx):
-                search_msg = "No files found!"
-        elif search_status == FileModel.SEARCH_FAILED:
-            search_msg = model_idx.data(FileModel.SEARCH_MSG_ROLE) or ""
-        self._ui.msg_label.setText(search_msg)
-                        
-        self._show_msg = bool(search_msg)
-                        
-        show_msg = self._show_msg and self._ui.expand_check_box.checkState() == QtCore.Qt.Checked
-        self._ui.msg_label.setVisible(show_msg)
-
-    def set_expanded(self, expand=True):
-        """
-        """
-        if (self._ui.expand_check_box.checkState() == QtCore.Qt.Checked) != expand:
-            self._ui.expand_check_box.setCheckState(QtCore.Qt.Checked if expand else QtCore.Qt.Unchecked)
-
-    def _on_expand_checkbox_state_changed(self, state):
-        """
-        """
-        show_msg = self._show_msg and state == QtCore.Qt.Checked
-        self._ui.msg_label.setVisible(show_msg)
-        
-        self.toggle_expanded.emit(state != QtCore.Qt.Unchecked)
-    
-
-class TestItemDelegate(views.GroupedListViewItemDelegate):
-
-    def __init__(self, view):
-        views.GroupedListViewItemDelegate.__init__(self, view)
-        
-        self._item_widget = None
-
-    def create_group_widget(self, parent):
-        return FileGroupWidget(parent)
-
-    def _get_painter_widget(self, model_index, parent):
-        """
-        """
-        if not model_index.isValid():
-            return None
-        if not self._item_widget:
-            self._item_widget = FileTile(parent)
-        return self._item_widget
-
-    def _on_before_paint(self, widget, model_index, style_options):
-        """
-        """
-        if not isinstance(widget, FileTile):
-            # this class only paints FileTile widgets
-            return
-        
-        label = ""
-        icon = None
-        is_publish = False
-        is_editable = True
-        not_editable_reason = None
-        
-        file_item = model_index.data(FileModel.FILE_ITEM_ROLE)
-        if file_item:
-            # build label:
-            label = "<b>%s, v%03d</b>" % (file_item.name, file_item.version)
-            if file_item.is_published:
-                label += "<br>%s" % file_item.format_published_by_details()
-            elif file_item.is_local:
-                label += "<br>%s" % file_item.format_modified_by_details()
-
-            # retrieve the icon:                
-            icon = file_item.thumbnail
-            is_publish = file_item.is_published
-            is_editable = file_item.editable
-            not_editable_reason = file_item.not_editable_reason
-        else:
-            label = model_index.data()
-            icon = model_index.data(QtCore.Qt.DecorationRole)
-
-        # update widget:
-        widget.title = label
-        widget.set_thumbnail(icon)
-        widget.selected = (style_options.state & QtGui.QStyle.State_Selected) == QtGui.QStyle.State_Selected
-        widget.set_is_publish(is_publish)
-        widget.set_is_editable(is_editable, not_editable_reason)
-
-    def sizeHint(self, style_options, model_index):
-        """
-        """
-        if not model_index.isValid():
-            return QtCore.QSize()
-        
-        if model_index.parent() != self.view.rootIndex():
-            return self._get_painter_widget(model_index, self.view).size()
-        else:
-            # call base class:
-            return views.GroupedListViewItemDelegate.sizeHint(self, style_options, model_index)
+from .file_list_item_delegate import FileListItemDelegate
 
 class FileListForm(QtGui.QWidget):
     """
@@ -214,7 +60,7 @@ class FileListForm(QtGui.QWidget):
         self._ui.file_list_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self._ui.file_list_view.customContextMenuRequested.connect(self._on_context_menu_requested)
         
-        item_delegate = TestItemDelegate(self._ui.file_list_view)
+        item_delegate = FileListItemDelegate(self._ui.file_list_view)
         self._ui.file_list_view.setItemDelegate(item_delegate)
 
     def _on_context_menu_requested(self, pnt):

@@ -35,7 +35,7 @@ class Ui_FileOpenForm(object):
         self.splitter.setOrientation(QtCore.Qt.Horizontal)
         self.splitter.setChildrenCollapsible(False)
         self.splitter.setObjectName("splitter")
-        self.task_browser_tabs = TaskBrowserTabs(self.splitter)
+        self.task_browser_tabs = QtGui.QTabWidget(self.splitter)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -44,7 +44,7 @@ class Ui_FileOpenForm(object):
         self.task_browser_tabs.setMinimumSize(QtCore.QSize(300, 0))
         self.task_browser_tabs.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.task_browser_tabs.setObjectName("task_browser_tabs")
-        self.file_browser_tabs = FileBrowserTabs(self.splitter)
+        self.file_browser_tabs = QtGui.QTabWidget(self.splitter)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
@@ -87,6 +87,4 @@ class Ui_FileOpenForm(object):
 
 from ..navigation_widget import NavigationWidget
 from ..breadcrumb_widget import BreadcrumbWidget
-from ..task_browser_tabs import TaskBrowserTabs
-from ..file_browser_tabs import FileBrowserTabs
 from . import resources_rc

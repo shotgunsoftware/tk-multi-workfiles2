@@ -59,7 +59,7 @@ class Ui_FileSaveForm(object):
         self.horizontalLayout_2 = QtGui.QHBoxLayout()
         self.horizontalLayout_2.setContentsMargins(0, -1, -1, -1)
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.task_browser_tabs = TaskBrowserTabs(FileSaveForm)
+        self.task_browser_tabs = QtGui.QTabWidget(FileSaveForm)
         self.task_browser_tabs.setMinimumSize(QtCore.QSize(200, 0))
         self.task_browser_tabs.setObjectName("task_browser_tabs")
         self.tab = QtGui.QWidget()
@@ -204,5 +204,4 @@ class Ui_FileSaveForm(object):
 
 from ..navigation_widget import NavigationWidget
 from ..file_list.file_list_form import FileListForm
-from ..task_browser_tabs import TaskBrowserTabs
 from ..breadcrumb_widget import BreadcrumbWidget

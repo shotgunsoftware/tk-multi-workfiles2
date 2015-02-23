@@ -227,7 +227,7 @@ background-color: rgb(255, 128, 0);
   <customwidget>
    <class>FileDetailsView</class>
    <extends>QTableView</extends>
-   <header>..file_details_view</header>
+   <header>..file_list.file_details_view</header>
   </customwidget>
   <customwidget>
    <class>GroupedListView</class>

@@ -95,7 +95,7 @@ background-color: rgb(255, 128, 0);
       <number>0</number>
      </property>
      <item>
-      <widget class="TaskBrowserTabs" name="task_browser_tabs">
+      <widget class="QTabWidget" name="task_browser_tabs">
        <property name="minimumSize">
         <size>
          <width>200</width>
@@ -374,12 +374,6 @@ p, li { white-space: pre-wrap; }
   </layout>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>TaskBrowserTabs</class>
-   <extends>QTabWidget</extends>
-   <header>..task_browser_tabs</header>
-   <container>1</container>
-  </customwidget>
   <customwidget>
    <class>NavigationWidget</class>
    <extends>QWidget</extends>

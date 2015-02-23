@@ -50,7 +50,7 @@ background-color: rgb(255, 128, 0);
      <property name="childrenCollapsible">
       <bool>false</bool>
      </property>
-     <widget class="TaskBrowserTabs" name="task_browser_tabs">
+     <widget class="QTabWidget" name="task_browser_tabs">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -70,7 +70,7 @@ background-color: rgb(255, 128, 0);
        </size>
       </property>
      </widget>
-     <widget class="FileBrowserTabs" name="file_browser_tabs">
+     <widget class="QTabWidget" name="file_browser_tabs">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>1</horstretch>
@@ -138,18 +138,6 @@ background-color: rgb(255, 128, 0);
   </layout>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>TaskBrowserTabs</class>
-   <extends>QTabWidget</extends>
-   <header>..task_browser_tabs</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>FileBrowserTabs</class>
-   <extends>QTabWidget</extends>
-   <header>..file_browser_tabs</header>
-   <container>1</container>
-  </customwidget>
   <customwidget>
    <class>NavigationWidget</class>
    <extends>QWidget</extends>
