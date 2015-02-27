@@ -63,24 +63,17 @@ class FileListForm(QtGui.QWidget):
         item_delegate = FileListItemDelegate(self._ui.file_list_view)
         self._ui.file_list_view.setItemDelegate(item_delegate)
 
-    def _on_context_menu_requested(self, pnt):
+    @property
+    def work_files_visible(self):
         """
         """
-        # get the item under the point:
-        idx = self._ui.file_list_view.indexAt(pnt)
-        if not idx or not idx.isValid():
-            return
-        
-        # get the file from the index:
-        file = idx.data(FileModel.FILE_ITEM_ROLE)
-        if not file:
-            return
+        return self._show_work_files
 
-        # remap the point from the source widget:
-        pnt = self.sender().mapTo(self, pnt)
-        
-        # emit a more specific signal:
-        self.file_context_menu_requested.emit(file, pnt)
+    @property
+    def publishes_visible(self):
+        """
+        """
+        return self._show_publishes
 
     @property
     def selected_file(self):
@@ -122,6 +115,25 @@ class FileListForm(QtGui.QWidget):
         selection_model = self._ui.file_list_view.selectionModel()
         if selection_model:
             selection_model.selectionChanged.connect(self._on_selection_changed)
+
+    def _on_context_menu_requested(self, pnt):
+        """
+        """
+        # get the item under the point:
+        idx = self._ui.file_list_view.indexAt(pnt)
+        if not idx or not idx.isValid():
+            return
+        
+        # get the file from the index:
+        file = idx.data(FileModel.FILE_ITEM_ROLE)
+        if not file:
+            return
+
+        # remap the point from the source widget:
+        pnt = self.sender().mapTo(self, pnt)
+        
+        # emit a more specific signal:
+        self.file_context_menu_requested.emit(file, pnt)
         
     def _on_search_changed(self, search_text):
         """

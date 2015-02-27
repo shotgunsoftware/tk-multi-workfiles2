@@ -484,8 +484,13 @@ class FileOpenForm(QtGui.QWidget):
         if self._selected_file:
             info = self._file_model.get_file_info(self._selected_file.key)
             if info:
+                file_form = self._ui.file_browser_tabs.currentWidget()
                 file_versions, environment = info
-                file_actions = self._action_factory.get_actions(self._selected_file, file_versions, environment)
+                file_actions = self._action_factory.get_actions(self._selected_file, 
+                                                                file_versions, 
+                                                                environment,
+                                                                workfiles_visible=file_form.work_files_visible, 
+                                                                publishes_visible=file_form.publishes_visible)
         
         if not file_actions:
             # disable both the open and open options buttons:
@@ -524,8 +529,13 @@ class FileOpenForm(QtGui.QWidget):
         file_actions = []
         info = self._file_model.get_file_info(file.key)
         if info:
+            file_form = self._ui.file_browser_tabs.currentWidget()
             file_versions, environment = info
-            file_actions = self._action_factory.get_actions(file, file_versions, environment)
+            file_actions = self._action_factory.get_actions(file,
+                                                            file_versions, 
+                                                            environment,
+                                                            workfiles_visible=file_form.work_files_visible, 
+                                                            publishes_visible=file_form.publishes_visible)
         
         if not file_actions:
             return

@@ -16,24 +16,26 @@ from sgtk.platform.qt import QtCore, QtGui
 from .open_file_action import OpenFileAction
 
 from ..wrapper_dialog import WrapperDialog
+from ..open_file_form import OpenFileForm
 
 class InteractiveOpenAction(OpenFileAction):
 
-    def __init__(self):
+    def __init__(self, workfiles_visible, publishes_visible):
         """
         """
         OpenFileAction.__init__(self, "Open")
-
+        
+        self._workfiles_visible = workfiles_visible
+        self._publishes_visible = publishes_visible
 
     def execute(self, file, file_versions, environment, parent_ui):
         """
         """
         if not file:
-            return
+            return False
         
         # this is the smart action where all the logic goes
         # to decide what the actual action should be!
-        print "Executing action: %s for file %s" % (self.name, file)
 
         # get information about the max local & publish versions:
         local_versions = [v for v, f in file_versions.iteritems() if f.is_local]
@@ -42,34 +44,35 @@ class InteractiveOpenAction(OpenFileAction):
         max_publish_version = max(publish_versions) if publish_versions else None
         max_version = max(max_local_version, max_publish_version)
         
-        if file.is_local:
-            if file.version < max_local_version:
-                # TODO - what if this is also a publish and the publish _is_ the most recent?
-                # should it offer to open the work file or the publish?  Should it offer to
-                # continue working from either??
-                #
-                # The default behaviour may depend on what's visible in the UI, e.g.:
-                # - publishes !work files == default open the publish
-                # - work files !publishes == default open the work file
-                # - work files & publishes == ???
-                return self._open_previous_workfile(file, environment, parent_ui)
-            else:
-                # opening the most recent version of a work file!
-                latest_publish = None
-                if max_publish_version != None:
-                    latest_publish = file_versions[max_publish_version]
-                return self._open_workfile_with_check(file, latest_publish, environment, max_version+1, parent_ui)
+        if self._workfiles_visible and not self._publishes_visible:
+            # only work files are visible in the view
+            if file.is_local:
+                if file.version < max_local_version:
+                    return self._open_previous_workfile(file, environment, parent_ui)
+                else:
+                    # opening the most recent version of a work file!
+                    latest_publish = None
+                    if max_publish_version != None:
+                        latest_publish = file_versions[max_publish_version]
+                    return self._open_workfile_with_check(file, latest_publish, environment, max_version+1, parent_ui)
                 
-        elif file.is_published:
-            if file.version < max_publish_version:
-                # opening an old version of a publish!
-                return self._open_publish_read_only(file, environment, False, parent_ui)
-            else:
-                # opening the most recent version of a publish!
-                latest_work_file = None
-                if max_work_version != None:
-                    latest_work_file = file_versions[max_work_version]
-                self._open_publish_with_check(file, latest_work_file, environment, max_version+1, parent_ui)            
+        elif self._publishes_visible and not self._workfiles_visible:
+            # only publishes are visible in the view
+            if file.is_published:
+                if file.version < max_publish_version:
+                    # opening an old version of a publish!
+                    return self._open_previous_publish(file, environment, parent_ui)
+                else:
+                    # opening the most recent version of a publish!
+                    latest_work_file = None
+                    if max_local_version != None:
+                        latest_work_file = file_versions[max_local_version]
+                    return self._open_publish_with_check(file, latest_work_file, environment, max_version+1, parent_ui)
+        elif self._workfiles_visible and self._publishes_visible:
+            # both work files and publishes are visible!
+            pass
+        
+        return False
         
     def _open_workfile_with_check(self, work_file, publish_file, env, next_version, parent_ui):
         """
@@ -79,7 +82,6 @@ class InteractiveOpenAction(OpenFileAction):
 
         # different options depending if the publish file is more 
         # recent or not:
-        from .open_file_form import OpenFileForm        
         open_mode = OpenFileForm.OPEN_WORKFILE
         if publish_file and work_file.compare_with_publish(publish_file) < 0:
             # options are different if the publish and work files are the same path as there
@@ -113,9 +115,16 @@ class InteractiveOpenAction(OpenFileAction):
         Open a previous version of a work file - this just opens
         it directly without any file copying or validation
         """
-        # opening an old version of a work file - this currently does the previous behaviour
-        # of just opening the file with no copying...  Should it also prompt to ask the user
-        # if they want to continue working from this file (copy and continue)?
+        # Confirm how the previous work file should be opened:
+        # (TODO) expand this out to allow opening directly or option to continue 
+        # working as the next work file
+        answer = QtGui.QMessageBox.question(parent_ui, "Open Previous Work File?",
+                                            ("Continue opening the old work file\n\n    %s (v%d)\n\n"
+                                             "from the work area?" % (file.name, file.version)), 
+                                            QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+        if answer != QtGui.QMessageBox.Yes:
+            return False
+        
         return self._do_copy_and_open(None, file.path, file.version, False, env.context, parent_ui)
         
         
@@ -142,7 +151,6 @@ class InteractiveOpenAction(OpenFileAction):
             
         if work_file or publish_requires_copy:
             # show dialog with options to user:
-            from .open_file_form import OpenFileForm
             open_mode = OpenFileForm.OPEN_PUBLISH
             
             mode = OpenFileForm.OPEN_PUBLISH_MODE if publish_requires_copy else OpenFileForm.OPEN_PUBLISH_NO_READONLY_MODE 
@@ -157,10 +165,10 @@ class InteractiveOpenAction(OpenFileAction):
                 return self._open_publish_as_workfile(publish_file, env, next_version, parent_ui)
             elif open_mode == OpenFileForm.OPEN_PUBLISH_READONLY:
                 # open the published file read-only instead:
-                self._open_publish_read_only(publish_file, env, True, parent_ui)
+                return self._open_publish_read_only(publish_file, env, parent_ui)
             else:
                 return False
-        elif not work_file:
+        else:
             # just open the published file:
             return self._open_publish_as_workfile(publish_file, env, next_version, parent_ui)
 
@@ -224,14 +232,39 @@ class InteractiveOpenAction(OpenFileAction):
 
         return self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui)
         
-    def _open_publish_read_only(self, file, env, is_latest, parent_ui):
+    def _open_previous_publish(self, file, env, parent_ui):
+        """
+        Open a previous version of a publish file from the publish area
+        """
+        # confirm how the previous published file should be opened:
+        # (TODO) expand this out to allow opening directly or option to continue 
+        # working as the next work file
+        answer = QtGui.QMessageBox.question(parent_ui, "Open Previous Publish?",
+                                            ("Continue opening the old published file\n\n    %s (v%d)\n\n"
+                                             "from the publish area?" % (file.name, file.version)), 
+                                            QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+        if answer != QtGui.QMessageBox.Yes:
+            return False        
+        
+        return self._do_copy_and_open(src_path = None, 
+                                      dst_path = file.publish_path, 
+                                      version = file.version, 
+                                      read_only = True, 
+                                      new_ctx = env.context, 
+                                      parent_ui = parent_ui)
+        
+    def _open_publish_read_only(self, file, env, parent_ui):
         """
         Open a previous version of a publish file from the publish 
         area - this just opens it directly without any file copying 
         or validation
         """
-        return self._do_copy_and_open(None, file.publish_path, file.version if is_latest else None, 
-                                      True, env.context, parent_ui)
+        return self._do_copy_and_open(src_path = None, 
+                                      dst_path = file.publish_path, 
+                                      version = file.version,
+                                      read_only = True, 
+                                      new_ctx = env.context, 
+                                      parent_ui = parent_ui)
         
     def _open_publish_as_workfile(self, file, env, new_version, parent_ui):
         """

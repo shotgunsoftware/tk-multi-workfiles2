@@ -94,14 +94,21 @@ class WorkFiles(QtCore.QObject):#object):
         if not action:
             return
         
+        # get the file open form from the sender:
         form = self.sender()
         
-        print "Performing action: %s" % action
+        # some debug:
+        if file:
+            self._app.log_debug("Performing action '%s' on file '%s, v%03d'" % (action.label, file.name, file.version))
+        else:
+            self._app.log_debug("Performing action '%s'" % action.label)
+            
+        # execute the action:
         close_dialog = action.execute(file, file_versions, environment, form)
-        if close_dialog:
-            form = self.sender()
-            if form:
-                form.close() 
+        
+        # if this is successful then close the form:
+        if close_dialog and form:
+            form.close() 
         
     def _on_file_open_create_new_task(self, current_entity, current_step):
         """

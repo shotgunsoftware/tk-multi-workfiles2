@@ -29,7 +29,7 @@ class FileActionFactory(object):
         """
         pass
     
-    def get_actions(self, file, file_versions, environment):
+    def get_actions(self, file, file_versions, environment, workfiles_visible=True, publishes_visible=True):
         """
         """
         actions = []
@@ -37,10 +37,33 @@ class FileActionFactory(object):
         # always add the interactive 'open' action.  This is the
         # default/generic open action that gets run whenever someone
         # double-clicks on a file or just hits the 'Open' button
-        actions.append(InteractiveOpenAction())
+        actions.append(InteractiveOpenAction(workfiles_visible, publishes_visible))
 
         # ------------------------------------------------------------------
         actions.append(SeparatorFileAction())
+
+        """
+        Work files:
+        
+            if Is latest:
+                
+                - open
+                
+            if is previous:
+                
+                - open
+                - continue working from
+                
+            if is publish:
+            
+                - open from Publish area
+                - continue working from
+            
+        
+        
+        """
+
+
 
         # now add explicit file operations based off the selection:
         if file.is_local:
