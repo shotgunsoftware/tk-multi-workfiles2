@@ -18,23 +18,85 @@ from .open_file_action import OpenFileAction
 class OpenWorkfileAction(OpenFileAction):
     """
     """
-    def __init__(self, read_only=False):
+    def __init__(self, is_latest, version, read_only):
         """
         """
-        if read_only:
-            OpenFileAction.__init__(self, "Open Work File (Read-only)")
+        label = ""
+        if is_latest:
+            label = "Open"
         else:
-            OpenFileAction.__init__(self, "Open Work File")
-        self._read_only = read_only
-        
+            label = "Open v%03d" % version
+        if read_only:
+            label = "%s (Read-only)" % label
+            
+        OpenFileAction.__init__(self, label)
         
     def execute(self, file, file_versions, environment, parent_ui):
         """
         Handles opening a work file - this checks to see if the file
         is in another users sandbox before opening        
         """
-        if not file or not file.is_local or file.editable == self._read_only:
+        if not file or not file.is_local:
             return False
 
-        return self._do_copy_and_open(None, file.path, None, not file.editable, environment.context, parent_ui)
+        return self._do_copy_and_open(src_path = None, 
+                                      dst_path = file.path,
+                                      version = file.version, 
+                                      read_only = file.editable, 
+                                      new_ctx = environment.context, 
+                                      parent_ui = parent_ui)
+        
+class ContinueFromPreviousWorkFileAction(OpenFileAction):
+    """
+    """
+    def __init__(self, version):
+        OpenFileAction.__init__(self, "Continue Working (as v%03d)" % version)
+    
+    def execute(self, file, file_versions, environment, parent_ui):
+        pass
+    
+class CopyAndOpenFileInCurrentWorkAreaAction(OpenFileAction):
+    """
+    """
+    def __init__(self):
+        OpenFileAction.__init__(self, "Open in Current Work Area...")
+    
+    def execute(self, file, file_versions, environment, parent_ui):
+        pass
+    
+class OpenPublishAction(OpenFileAction):
+    """
+    """
+    def __init__(self, is_latest, version):
+        label = ""
+        if is_latest:
+            label = "Open from the Publish Area"
+        else:
+            label = "Open v%03d from the Publish Area" % version
+        
+        OpenFileAction.__init__(self, label)
+    
+    def execute(self, file, file_versions, environment, parent_ui):
+        pass
+
+    
+class ContinueFromPublishAction(OpenFileAction):
+    """
+    """
+    def __init__(self, version):
+        OpenFileAction.__init__(self, "Continue Working From Publish (as v%03d)" % version)
+    
+    def execute(self, file, file_versions, environment, parent_ui):
+        pass
+    
+class CopyAndOpenPublishInCurrentWorkAreaAction(OpenFileAction):
+    """
+    """
+    def __init__(self):
+        OpenFileAction.__init__(self, "Open Publish in Current Work Area...")
+    
+    def execute(self, file, file_versions, environment, parent_ui):
+        pass    
+    
+    
     

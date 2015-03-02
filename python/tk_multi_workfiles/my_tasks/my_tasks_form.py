@@ -39,6 +39,9 @@ class MyTasksForm(QtGui.QWidget):
         self._ui = Ui_MyTasksForm()
         self._ui.setupUi(self)
         
+        # tmp until we have a usable filter button!
+        self._ui.filter_btn.hide()
+        
         self._ui.search_ctrl.set_placeholder_text("Search My Tasks")
         
         # connect up controls:

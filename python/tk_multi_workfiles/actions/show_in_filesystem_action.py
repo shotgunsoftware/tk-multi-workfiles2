@@ -71,7 +71,7 @@ class ShowWorkFileInFileSystemAction(ShowInFileSystemAction):
     """
     """
     def __init__(self):
-        ShowInFileSystemAction.__init__(self, "Show Work File In File System")
+        ShowInFileSystemAction.__init__(self, "Show In File System")
         
     def execute(self, file, file_versions, environment, parent_ui):
         """

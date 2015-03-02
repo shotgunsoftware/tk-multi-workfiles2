@@ -41,7 +41,7 @@
       <number>1</number>
      </property>
      <item>
-      <widget class="QToolButton" name="toolButton">
+      <widget class="QToolButton" name="filter_btn">
        <property name="styleSheet">
         <string notr="true"/>
        </property>

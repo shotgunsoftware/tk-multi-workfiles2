@@ -19,13 +19,13 @@ class Ui_MyTasksForm(object):
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setContentsMargins(2, -1, 2, 1)
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.toolButton = QtGui.QToolButton(MyTasksForm)
-        self.toolButton.setStyleSheet("")
-        self.toolButton.setPopupMode(QtGui.QToolButton.MenuButtonPopup)
-        self.toolButton.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        self.toolButton.setAutoRaise(False)
-        self.toolButton.setObjectName("toolButton")
-        self.horizontalLayout.addWidget(self.toolButton)
+        self.filter_btn = QtGui.QToolButton(MyTasksForm)
+        self.filter_btn.setStyleSheet("")
+        self.filter_btn.setPopupMode(QtGui.QToolButton.MenuButtonPopup)
+        self.filter_btn.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self.filter_btn.setAutoRaise(False)
+        self.filter_btn.setObjectName("filter_btn")
+        self.horizontalLayout.addWidget(self.filter_btn)
         spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
         self.new_task_btn = QtGui.QPushButton(MyTasksForm)
@@ -55,7 +55,7 @@ class Ui_MyTasksForm(object):
 
     def retranslateUi(self, MyTasksForm):
         MyTasksForm.setWindowTitle(QtGui.QApplication.translate("MyTasksForm", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.toolButton.setText(QtGui.QApplication.translate("MyTasksForm", "Filter", None, QtGui.QApplication.UnicodeUTF8))
+        self.filter_btn.setText(QtGui.QApplication.translate("MyTasksForm", "Filter", None, QtGui.QApplication.UnicodeUTF8))
         self.new_task_btn.setText(QtGui.QApplication.translate("MyTasksForm", "+ New Task", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..search_widget import SearchWidget

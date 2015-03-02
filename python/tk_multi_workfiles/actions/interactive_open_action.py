@@ -48,6 +48,7 @@ class InteractiveOpenAction(OpenFileAction):
             # only work files are visible in the view
             if file.is_local:
                 if file.version < max_local_version:
+                    # opening an old version of work file:
                     return self._open_previous_workfile(file, environment, parent_ui)
                 else:
                     # opening the most recent version of a work file!
