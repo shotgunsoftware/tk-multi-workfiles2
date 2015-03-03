@@ -75,7 +75,7 @@ class FileOpenForm(QtGui.QWidget):
 
         # tmp - disable some controls that currently don't work!
         self._ui.new_file_btn.setEnabled(False)
-        self._ui.open_options_btn.hide()
+        #self._ui.open_options_btn.hide()
         
         # initialize task trees:
         self._initilize_task_trees()
