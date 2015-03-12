@@ -10,6 +10,9 @@
 
 """
 """
+import traceback
+import time
+import threading
 
 import sgtk
 from sgtk.platform.qt import QtCore
@@ -115,7 +118,7 @@ class RunnableTask(QtCore.QRunnable, QtCore.QObject):
         """
         if task not in self._upstream_tasks:
             return
-        
+
         #print "[%s] %s completed, res: %s" % (task.id, task._func.__name__, result)
 
         # disconnect from this task:
@@ -126,16 +129,16 @@ class RunnableTask(QtCore.QRunnable, QtCore.QObject):
         
         # if we have no more upstream tasks left then we can add this task to be processed:
         if not self._upstream_tasks:
-            #print "Upstream tasks completed - starting task [%s] %s with args %s" % (self.id, self._func.__name__, self._input_kwargs.keys())
-            
             # ok, so now we're ready to start this task!
-            QtCore.QThreadPool.globalInstance().start(self)
+            self.start()
         
     def _on_upstream_task_failed(self, task, msg):
         """
         """
         if task not in self._upstream_tasks:
             return
+
+        #print "[%s] %s failed" % (task.id, task._func.__name__)
 
         # clear out upstream tasks:
         self._upstream_tasks = []
@@ -148,6 +151,8 @@ class RunnableTask(QtCore.QRunnable, QtCore.QObject):
         """
         if task not in self._upstream_tasks:
             return
+
+        #print "[%s] %s skipped" % (task.id, task._func.__name__)
 
         # clear out upstream tasks:
         self._upstream_tasks = []
@@ -165,7 +170,13 @@ class RunnableTask(QtCore.QRunnable, QtCore.QObject):
         
         try:
             # run the function with the provided args
+            st = time.time()
             result = self._func(**self._input_kwargs) or {}
+            end = time.time()
+            app = sgtk.platform.current_bundle()
+            if app:
+                app.log_debug("[%0.2f] Task [%s] %s took %0.2fs" % (time.time(), self.id, self._func.__name__, end-st))
+            
             if not isinstance(result, dict):
                 # unsupported result type!
                 raise TankError("Non-dictionary result type '%s' returned from function '%s'!" 

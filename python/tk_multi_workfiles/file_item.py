@@ -93,6 +93,21 @@ class FileItem(object):
         self._key = key
         self._thumbnail_image = None
 
+    def update(self, path=None, publish_path=None, is_local=None, is_published=None, details=None):
+        """
+        """
+        if path != None:
+            self._path = path
+        if is_local != None:
+            self._is_local = is_local
+        if publish_path != None:
+            self._publish_path = None
+        if is_published != None:
+            self._is_published = is_published
+        if details != None:
+            self._details.update(dict([(k, v) for k, v in details.iteritems() if v != None]))
+            
+
     def __repr__(self):
         return "%s (v%d), is_local:%s, is_publish: %s" % (self.name, self.version, self.is_local, self.is_published)
 

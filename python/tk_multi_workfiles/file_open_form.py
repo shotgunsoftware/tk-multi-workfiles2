@@ -242,6 +242,7 @@ class FileOpenForm(QtGui.QWidget):
         
         # and extract the information we need from it:
         sg_data = task_item.get_sg_data()
+        entity = sg_data.get("entity", {})
         step = sg_data.get("step", {})
         step_name = step.get("name")
         task_name = sg_data.get("content")
@@ -249,6 +250,10 @@ class FileOpenForm(QtGui.QWidget):
         # build the search details:
         details = FileFinder.SearchDetails("%s - %s" % (step_name, task_name))
         details.task = {"type":"Task", "id":sg_data["id"]}
+        if entity:
+            details.entity = {"type":entity["type"], "id":entity["id"]}
+        if step:
+            details.step = {"type":step["type"], "id":step["id"]}
         details.is_leaf = True
         
         # refresh files:
