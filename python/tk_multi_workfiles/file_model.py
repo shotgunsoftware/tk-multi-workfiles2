@@ -352,7 +352,6 @@ class FileModel(QtGui.QStandardItemModel):
         parent_model_item = self._in_progress_searches[search_id]
         del(self._in_progress_searches[search_id])
 
-        # add files to model:
         new_rows = []
         for file in file_list:
             # create a new model item for this file:
@@ -375,6 +374,7 @@ class FileModel(QtGui.QStandardItemModel):
             info.items[file.version] = new_item
             info.environment = environment
 
+        # add files to model:
         if new_rows:
             # we have new rows so lets add them to the model:
             parent_model_item.appendRows(new_rows)

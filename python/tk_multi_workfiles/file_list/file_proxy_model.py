@@ -58,12 +58,8 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
         """
         file_item = item.data(FileModel.FILE_ITEM_ROLE)
         if file_item:
-            accepted = False
-            if file_item.is_local and self._show_workfiles:
-                accepted = True
-            if file_item.is_published and self._show_publishes:
-                accepted = True
-            if not accepted:
+            if (not (file_item.is_local and self._show_workfiles)
+                and not (file_item.is_published and self._show_publishes)):
                 return False
         
             if not self._show_all_versions:
@@ -75,7 +71,7 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
                                         if (item.is_local and self._show_workfiles) 
                                             or (item.is_published and self._show_publishes)]
                 
-                if not visible_versions or file_item.version != max(visible_versions):
+                if not (visible_versions and file_item.version == max(visible_versions)):
                     return False
                 
         # now compare text for item:

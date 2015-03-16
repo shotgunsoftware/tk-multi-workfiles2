@@ -295,16 +295,22 @@ class FileFinder(QtCore.QObject):
         """
         app = sgtk.platform.current_bundle()
 
-        st = time.time()
-        context = app.sgtk.context_from_entities(project = app.context.project, 
-                                                 entity = search_details.entity,
-                                                 step = search_details.step,
-                                                 task = search_details.task)
-        app.log_debug("time to build context: %0.4fs" % (time.time() - st))
-        
-        # TODO - cache templates for context - could also optimise if context matches the current work area (already
-        # have them!)
-        st = time.time()
+        # determine which method to use to construct a context from the search details.
+        # this depends on which entities have been populated!
+        if ((search_details.task and not (search_details.step and search_details.entity))
+            or (search_details.step and not search_details.entity)):
+            # use full context from entity method (slow as it will likely perform a Shotgun
+            # query!
+            context_entity = search_details.task or search_details.step or search_details.entity 
+            context = app.sgtk.context_from_entity(context_entity["type"], context_entity["id"])
+        else:
+            context = app.sgtk.context_from_entities(project = app.context.project, 
+                                                     entity = search_details.entity,
+                                                     step = search_details.step,
+                                                     task = search_details.task)
+
+        # TODO - cache templates per context!
+                
         templates_to_find = ["template_work", "template_publish", "template_work_area", "template_publish_area"]
         templates = {}
         if context == app.context:
@@ -313,7 +319,6 @@ class FileFinder(QtCore.QObject):
                 templates[template_name] = template
         else:
             templates = get_templates_for_context(app, context, templates_to_find)
-        app.    log_debug("time to get templates: %0.4fs" % (time.time() - st))
         
         env_details = EnvironmentDetails()
         env_details.context = context

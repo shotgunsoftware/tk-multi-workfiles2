@@ -172,35 +172,30 @@ configuration:
 
     # new for v2
     entities:
-        default_value:
-            - caption: Assets
-              entity_type: Asset
-              publish_filters: []
-              filters:
-              - ["project", "is", "{context.project}"]
-              hierarchy: [sg_asset_type, code]
-
-            - caption: Shots
-              entity_type: Shot
-              publish_filters: []
-              filters:
-              - ["project", "is", "{context.project}"]
-              hierarchy: [sg_sequence, code]
-
         type: list
         description: "This setting defines the different tabs that will show up on the left hand side.
                       Each tab represents a Shotgun query, grouped by some shotgun fields to form a tree. 
                       This setting is a list of dictionaries. Each dictionary in the list defines one tab,
-                      and should have they following keys: *caption* specifies the name of the tab, *entity_type*
+                      and should have the following keys: *caption* specifies the name of the tab, *entity_type*
                       specifies the shotgun entity type to display. *filters* is a list of standard API Shotgun 
-                      filters. *hierarchy* is a list of shotgun fields, defining the grouping of the tree.
-                      Optionally, you can specify a *publish_filters* key, containing shotgun API filters to
-                      apply to the publishes listing as it is being loaded in the main view." 
+                      filters. *hierarchy* is a list of shotgun fields relative to the entity type, defining the 
+                      grouping of the tree."
         allows_empty: False
         values:
-            type: dict
-            
-    show_my_tasks_view:
+          type: dict
+        default_value:
+        - caption: Assets
+          entity_type: Task
+          filters:
+          - [entity, type_is, Asset]
+          hierarchy: [entity.Asset.sg_asset_type, entity, step, content]
+        - caption: Shots
+          entity_type: Task
+          filters:
+          - [entity, type_is, Shot]
+          hierarchy: [entity.Shot.sg_sequence, entity, step, content]
+                          
+    show_my_tasks:
         type: bool
         description: Define if the My Tasks view should be visible or not.
         default: true

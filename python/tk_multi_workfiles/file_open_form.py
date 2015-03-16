@@ -139,7 +139,7 @@ class FileOpenForm(QtGui.QWidget):
         app = sgtk.platform.current_bundle()
 
         # set up 'My Tasks':
-        show_my_tasks = app.get_setting("show_my_tasks_view", True)
+        show_my_tasks = app.get_setting("show_my_tasks", True)
         if show_my_tasks:
             this_user = sgtk.util.get_current_user(app.sgtk)
             if this_user:
@@ -164,13 +164,14 @@ class FileOpenForm(QtGui.QWidget):
             filters = ent.get("filters")
             
             # resolve any magic tokens in the filter
-            resolved_filters = []
+            # Note, we always filter on the current project as the app needs templates
+            # in the config to be able to find files and there is currently no way to 
+            # get these from a config belonging to a different project!
+            resolved_filters = [["project", "is", app.context.project]]
             for filter in filters:
                 resolved_filter = []
                 for field in filter:
-                    if field == "{context.project}":
-                        field = app.context.project
-                    elif field == "{context.entity}":
+                    if field == "{context.entity}":
                         field = app.context.entity
                     elif field == "{context.step}":
                         field = app.context.step
@@ -339,7 +340,7 @@ class FileOpenForm(QtGui.QWidget):
         item_search_pairs = []
 
         # get the entities for this item:
-        item_entities = self._get_item_entities(entity_item)
+        item_entities = self._get_search_entities(entity_item)
         
         model = entity_item.model()
         model_entity_type = model.get_entity_type()
@@ -352,7 +353,7 @@ class FileOpenForm(QtGui.QWidget):
             # iterate over children:
             for ri in range(item.rowCount()):
                 child_item = item.child(ri)
-                child_item_entities = self._get_item_entities(child_item)
+                child_item_entities = self._get_search_entities(child_item)
                 for c_name, c_item, c_entity in child_item_entities:
                     if (c_item.rowCount() == 0
                         and c_entity 
@@ -366,8 +367,10 @@ class FileOpenForm(QtGui.QWidget):
                         
         return search_details
 
-    def _get_item_entities(self, item):
+    def _get_search_entities(self, item):
         """
+        Based on the current item, get the entities that should be used when
+        searching for files.
         """
         entities = []
         
