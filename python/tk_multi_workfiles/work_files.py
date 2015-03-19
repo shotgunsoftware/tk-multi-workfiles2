@@ -86,7 +86,27 @@ class WorkFiles(QtCore.QObject):#object):
         """
         """
         form.perform_action.connect(self._on_file_open_perform_action)
-        form.create_new_task.connect(self._on_file_open_create_new_task)
+        form.create_new_task.connect(self._on_create_new_task_OLD)
+
+    def __show_file_save_dlg(self):
+        """
+        """
+        try:
+            from .file_save_form import FileSaveForm
+            res, file_save_ui = self._app.engine.show_modal("File Save", self._app, FileSaveForm,
+                                                            self._init_file_save_form)
+            if res == QtGui.QDialog.Accepted:
+                print "do file save!"
+        except:
+            self._app.log_exception("Failed to create File Save dialog!")
+            return
+
+    def _init_file_save_form(self, form):
+        """
+        """
+        # create models needed by the form:
+        form.create_new_task.connect(self._on_create_new_task_NEW)
+        
         
     def _on_file_open_perform_action(self, action, file, file_versions, environment):
         """
@@ -109,14 +129,24 @@ class WorkFiles(QtCore.QObject):#object):
         # if this is successful then close the form:
         if close_dialog and form:
             form.close() 
+    
+    def _on_create_new_task_NEW(self, event):
+        """
+        """
+        event.task_created = self._on_create_new_task(event.entity, event.step)
+    
+    def _on_create_new_task_OLD(self, current_entity, current_step):
+        if self._on_create_new_task(current_entity, current_step):
+            parent_form = self.sender()
+            parent_form.refresh_all_async()
         
-    def _on_file_open_create_new_task(self, current_entity, current_step):
+    def _on_create_new_task(self, current_entity, current_step):
         """
         """
         if not current_entity:
-            return
+            return False
         
-        file_open_form = self.sender()
+        parent_form = self.sender()
         
         # get the current user:
         current_user = sgtk.util.get_current_user(self._app.sgtk)
@@ -125,44 +155,35 @@ class WorkFiles(QtCore.QObject):#object):
         from .new_task_form import NewTaskForm
         new_task_form = NewTaskForm(current_entity, current_step, current_user)
         
-        res = WrapperDialog.show_modal(new_task_form, "Create New Task", parent=file_open_form)
-        if res == QtGui.QDialog.Accepted:
-            # get details from new_task_form:
-            entity = new_task_form.entity
-            assigned_to = new_task_form.assigned_to
-            pipeline_step = new_task_form.pipeline_step
-            task_name = new_task_form.task_name
+        res = WrapperDialog.show_modal(new_task_form, "Create New Task", parent=parent_form)
+        if res != QtGui.QDialog.Accepted:
+            return False
         
-            # create the task:    
-            new_task = None
-            try:
-                new_task = self.create_new_task(task_name, pipeline_step, entity, assigned_to)
-            except TankError, e:
-                QtGui.QMessageBox.warning(parent_ui,
-                                      "Failed to create new task!",
-                                      ("Failed to create a new task '%s' for pipeline step '%s' on entity '%s %s':\n\n%s" 
-                                       % (task_name, pipeline_step.get("code"), entity["type"], entity["code"], e)))
-                return
-
-            # build folders for this new task - we have to do this to ensure
-            # that files found during the search are matched to the correct task
-            # TODO
-            
-            # trigger a refresh of all views in the file-open form:
-            file_open_form.refresh_all()
+        # get details from new_task_form:
+        entity = new_task_form.entity
+        assigned_to = new_task_form.assigned_to
+        pipeline_step = new_task_form.pipeline_step
+        task_name = new_task_form.task_name
     
-    def __show_file_save_dlg(self):
-        """
-        """
+        # create the task:    
+        new_task = None
         try:
-            from .test_form import TestForm
-            self._app.engine.show_dialog("TEST", self._app, TestForm)
-            
-            #from .file_save_form import FileSaveForm
-            #self._file_save_ui = self._app.engine.show_dialog("File Save", self._app, FileSaveForm)
-        except:
-            self._app.log_exception("Failed to create File Save dialog!")
-            return
+            new_task = self.create_new_task(task_name, pipeline_step, entity, assigned_to)
+        except TankError, e:
+            QtGui.QMessageBox.warning(parent_ui,
+                                  "Failed to create new task!",
+                                  ("Failed to create a new task '%s' for pipeline step '%s' on entity '%s %s':\n\n%s" 
+                                   % (task_name, pipeline_step.get("code"), entity["type"], entity["code"], e)))
+            return False
+
+        # build folders for this new task - we have to do this to ensure
+        # that files found during the search are matched to the correct task
+        # TODO
+        
+        # trigger a refresh of all views in the form:
+        #parent_form.refresh_all_async()
+        return new_task != None
+
     
     def __init__(self, app):
         """

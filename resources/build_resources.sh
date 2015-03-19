@@ -45,6 +45,7 @@ build_ui new_task_form
 build_ui file_item_form
 
 # new UI's:
+build_ui browser_form
 build_ui file_open_form
 build_ui file_save_form
 build_ui file_list_form
@@ -53,6 +54,7 @@ build_ui entity_tree_form
 build_ui navigation_widget
 build_ui breadcrumb_widget
 build_ui task_widget
+
 
 build_ui test_form
 

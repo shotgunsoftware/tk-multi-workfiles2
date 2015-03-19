@@ -29,7 +29,7 @@ class FileListForm(QtGui.QWidget):
     
     file_selected = QtCore.Signal(object)
     file_double_clicked = QtCore.Signal(object)
-    file_context_menu_requested = QtCore.Signal(object, object)
+    file_context_menu_requested = QtCore.Signal(object, QtCore.QPoint)
     
     def __init__(self, search_label, show_work_files=True, show_publishes=False, show_all_versions=False, parent=None):
         """

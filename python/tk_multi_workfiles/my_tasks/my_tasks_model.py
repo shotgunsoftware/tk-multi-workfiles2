@@ -20,9 +20,6 @@ ShotgunModel = shotgun_model.ShotgunModel
 class MyTasksModel(ShotgunModel):
     """
     """
-    _MAX_THUMB_WIDTH=512
-    _MAX_THUMB_HEIGHT=512
-    
     def __init__(self, filters, parent=None):
         """
         """

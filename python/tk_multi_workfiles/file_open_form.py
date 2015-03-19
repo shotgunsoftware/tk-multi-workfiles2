@@ -48,7 +48,7 @@ class FileOpenForm(QtGui.QWidget):
     
     @property
     def exit_code(self):
-        return self._exit_code    
+        return self._exit_code
     
     def __init__(self, init_callback, parent=None):
         """
@@ -106,7 +106,7 @@ class FileOpenForm(QtGui.QWidget):
         """
         pass
 
-    def refresh_all(self):
+    def refresh_all_async(self):
         """
         """
         # refresh the entity models:
