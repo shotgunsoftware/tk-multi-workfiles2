@@ -52,6 +52,25 @@ class BrowserForm(QtGui.QWidget):
         
         self._ui.file_browser_tabs.currentChanged.connect(self._on_file_tab_changed)
         
+    @property
+    def work_files_visible(self):
+        """
+        """
+        file_form = self._ui.file_browser_tabs.currentWidget()
+        if not file_form:
+            return False
+        return file_form.work_files_visible
+
+    @property
+    def publishes_visible(self):
+        """
+        """
+        file_form = self._ui.file_browser_tabs.currentWidget()
+        if not file_form:
+            return False
+        return file_form.publishes_visible
+
+        
     def closeEvent(self, event):
         """
         """
@@ -86,7 +105,7 @@ class BrowserForm(QtGui.QWidget):
             all_files_form.set_model(self._file_model)
             all_files_form.file_selected.connect(self._on_file_selected)
             all_files_form.file_double_clicked.connect(self._on_file_double_clicked)
-            all_files_form.file_context_menu_requested.connect(self.file_context_menu_requested)
+            all_files_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
             
             # create the workfiles proxy model & form:
             work_files_form = FileListForm("Work Files", show_work_files=True, show_publishes=False, parent=self)
@@ -94,7 +113,7 @@ class BrowserForm(QtGui.QWidget):
             self._ui.file_browser_tabs.addTab(work_files_form, "Working")
             work_files_form.file_selected.connect(self._on_file_selected)
             work_files_form.file_double_clicked.connect(self._on_file_double_clicked)
-            work_files_form.file_context_menu_requested.connect(self.file_context_menu_requested)
+            work_files_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
                 
             # create the publish proxy model & form:
             publishes_form = FileListForm("Publishes", show_work_files=False, show_publishes=True, parent=self)
@@ -102,10 +121,16 @@ class BrowserForm(QtGui.QWidget):
             self._ui.file_browser_tabs.addTab(publishes_form, "Publishes")
             publishes_form.file_selected.connect(self._on_file_selected)
             publishes_form.file_double_clicked.connect(self._on_file_double_clicked)
-            publishes_form.file_context_menu_requested.connect(self.file_context_menu_requested)            
+            publishes_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)            
             
             # create any user-sandbox/configured tabs:
             # (AD) TODO               
+    
+    def _on_file_context_menu_requested(self, file, pnt):
+        """
+        """
+        local_pnt = self.sender().mapTo(self, pnt)
+        self.file_context_menu_requested.emit(file, local_pnt)
     
     def _on_my_task_selected(self, idx):
         """

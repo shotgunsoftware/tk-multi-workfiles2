@@ -31,27 +31,12 @@ class Ui_FileOpenForm(object):
         self.horizontalLayout_3.addWidget(self.breadcrumbs)
         self.horizontalLayout_3.setStretch(1, 1)
         self.verticalLayout.addLayout(self.horizontalLayout_3)
-        self.splitter = QtGui.QSplitter(FileOpenForm)
-        self.splitter.setOrientation(QtCore.Qt.Horizontal)
-        self.splitter.setChildrenCollapsible(False)
-        self.splitter.setObjectName("splitter")
-        self.task_browser_tabs = QtGui.QTabWidget(self.splitter)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.task_browser_tabs.sizePolicy().hasHeightForWidth())
-        self.task_browser_tabs.setSizePolicy(sizePolicy)
-        self.task_browser_tabs.setMinimumSize(QtCore.QSize(300, 0))
-        self.task_browser_tabs.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.task_browser_tabs.setObjectName("task_browser_tabs")
-        self.file_browser_tabs = QtGui.QTabWidget(self.splitter)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(1)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.file_browser_tabs.sizePolicy().hasHeightForWidth())
-        self.file_browser_tabs.setSizePolicy(sizePolicy)
-        self.file_browser_tabs.setObjectName("file_browser_tabs")
-        self.verticalLayout.addWidget(self.splitter)
+        self.browser = BrowserForm(FileOpenForm)
+        self.browser.setStyleSheet("#browser {\n"
+"background-color: rgb(255, 128, 0);\n"
+"}")
+        self.browser.setObjectName("browser")
+        self.verticalLayout.addWidget(self.browser)
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.new_file_btn = QtGui.QPushButton(FileOpenForm)
@@ -75,7 +60,6 @@ class Ui_FileOpenForm(object):
         self.verticalLayout.setStretch(1, 1)
 
         self.retranslateUi(FileOpenForm)
-        self.file_browser_tabs.setCurrentIndex(-1)
         QtCore.QMetaObject.connectSlotsByName(FileOpenForm)
 
     def retranslateUi(self, FileOpenForm):
@@ -87,4 +71,5 @@ class Ui_FileOpenForm(object):
 
 from ..navigation_widget import NavigationWidget
 from ..breadcrumb_widget import BreadcrumbWidget
+from ..browser_form import BrowserForm
 from . import resources_rc

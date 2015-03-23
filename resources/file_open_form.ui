@@ -43,44 +43,12 @@ background-color: rgb(255, 128, 0);
     </layout>
    </item>
    <item>
-    <widget class="QSplitter" name="splitter">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+    <widget class="BrowserForm" name="browser" native="true">
+     <property name="styleSheet">
+      <string notr="true">#browser {
+background-color: rgb(255, 128, 0);
+}</string>
      </property>
-     <property name="childrenCollapsible">
-      <bool>false</bool>
-     </property>
-     <widget class="QTabWidget" name="task_browser_tabs">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>300</width>
-        <height>0</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>16777215</height>
-       </size>
-      </property>
-     </widget>
-     <widget class="QTabWidget" name="file_browser_tabs">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>1</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="currentIndex">
-       <number>-1</number>
-      </property>
-     </widget>
     </widget>
    </item>
    <item>
@@ -148,6 +116,12 @@ background-color: rgb(255, 128, 0);
    <class>BreadcrumbWidget</class>
    <extends>QWidget</extends>
    <header>..breadcrumb_widget</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>BrowserForm</class>
+   <extends>QWidget</extends>
+   <header>..browser_form</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
