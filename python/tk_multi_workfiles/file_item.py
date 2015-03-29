@@ -8,13 +8,18 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+import sgtk
+from sgtk.platform.qt import QtCore
+
 import os
 from datetime import datetime, timedelta
 
-class FileItem(object):
+class FileItem(QtCore.QObject):
     """
     Encapsulate details about a work file
     """
+    
+    data_changed = QtCore.Signal()
     
     @staticmethod
     def build_file_key(fields, template, ignore_fields = None):
@@ -85,6 +90,8 @@ class FileItem(object):
         """
         Construction
         """
+        QtCore.QObject.__init__(self)
+        
         self._path = path
         self._publish_path = publish_path
         self._is_local = is_local
@@ -96,17 +103,25 @@ class FileItem(object):
     def update(self, path=None, publish_path=None, is_local=None, is_published=None, details=None):
         """
         """
+        data_changed = False
         if path != None:
             self._path = path
+            data_changed = True
         if is_local != None:
             self._is_local = is_local
+            data_changed = True
         if publish_path != None:
             self._publish_path = None
+            data_changed = True
         if is_published != None:
             self._is_published = is_published
-        if details != None:
+            data_changed = True
+        if details:
             self._details.update(dict([(k, v) for k, v in details.iteritems() if v != None]))
+            data_changed = True
             
+        if data_changed:
+            self.data_changed.emit()
 
     def __repr__(self):
         return "%s (v%d), is_local:%s, is_publish: %s" % (self.name, self.version, self.is_local, self.is_published)
@@ -144,7 +159,8 @@ class FileItem(object):
     def thumbnail_path(self, value):
         if value != self._details.get("thumbnail"):
             self._details["thumbnail"] = value
-            self._thumbnail_image = None 
+            self._thumbnail_image = None
+            self.data_changed.emit()
 
     @property
     def thumbnail(self):
@@ -152,6 +168,7 @@ class FileItem(object):
     @thumbnail.setter
     def thumbnail(self, value):
         self._thumbnail_image = value
+        self.data_changed.emit()
 
     @property
     def key(self):

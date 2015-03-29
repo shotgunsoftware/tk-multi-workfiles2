@@ -65,7 +65,8 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
             if not self._show_all_versions:
                 src_model = self.sourceModel()
                 # need to check if this is the latest version of the file:
-                all_versions = src_model.get_file_versions(file_item.key)
+                env = item.data(FileModel.ENVIRONMENT_ROLE)
+                all_versions = src_model.get_file_versions(file_item.key, env)
                 
                 visible_versions = [v for v, item in all_versions.iteritems() 
                                         if (item.is_local and self._show_workfiles) 
@@ -125,16 +126,18 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
         if left_item.key != right_item.key:
             # items represent different files but we want to group all file versions together. 
             # Therefore, we find the maximum version for each file and compare those instead.
-            left_versions = self.sourceModel().get_file_versions(left_item.key)
-            right_versions = self.sourceModel().get_file_versions(right_item.key)
+            left_env = left_src_idx.data(FileModel.ENVIRONMENT_ROLE)
+            left_versions = self.sourceModel().get_file_versions(left_item.key, left_env)
+            right_env = right_src_idx.data(FileModel.ENVIRONMENT_ROLE)            
+            right_versions = self.sourceModel().get_file_versions(right_item.key, right_env)
             
-            max_left_version = left_versions[max(left_versions.keys())]
-            max_right_version = right_versions[max(right_versions.keys())]
-            
-            return max_left_version.compare(max_right_version) < 0
-        else:
-            # items represent the same file so lets just compare them:
-            return left_item.compare(right_item) < 0
+            if left_versions and right_versions:
+                max_left_version = left_versions[max(left_versions.keys())]
+                max_right_version = right_versions[max(right_versions.keys())]
+                return max_left_version.compare(max_right_version) < 0
+
+        # just compare the two files!
+        return left_item.compare(right_item) < 0
 
 
 

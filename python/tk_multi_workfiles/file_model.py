@@ -15,6 +15,88 @@ from sgtk import TankError
 
 from .find_files import FileFinder
 
+class _SearchCache(object):
+    """
+    """
+    class _CachedFileInfo(object):
+        def __init__(self):
+            self.versions = {}# file.version:file 
+            #self.items = {}
+            #self.environment = None
+
+    class _CacheEntry(object):
+        def __init__(self):
+            self.environment = None
+            self.file_info = {}# file.key:_CachedFileInfo()
+
+    def __init__(self):
+        """
+        """
+        self._cache = {}
+        
+    def add(self, environment, files):
+        """
+        """
+        # first build the cache entry from the list of files:
+        entry = _SearchCache._CacheEntry()
+        entry.environment = environment
+        for file in files:
+            entry.file_info.setdefault(file.key, _SearchCache._CachedFileInfo()).versions[file.version] = file
+        
+        # construct the key:
+        key = self._construct_key(environment.context.project, 
+                                  environment.context.entity, 
+                                  environment.context.step, 
+                                  environment.context.task, 
+                                  environment.context.user)
+        
+        self._cache[key] = entry
+    
+    def find_file_versions(self, file_key, ctx):
+        """
+        """
+        key = self._construct_key(ctx.project, ctx.entity, ctx.step, ctx.task, ctx.user)
+        #key = self._construct_key(project, entity, step, task, user)
+        entry = self._cache.get(key)
+        if not entry:
+            return {}
+        
+        file_info = entry.file_info.get(file_key)
+        if not file_info:
+            return {}
+        
+        return file_info.versions or {}
+        
+    def find(self, project=None, entity=None, step=None, task=None, user=None):
+        """
+        """
+        key = self._construct_key(project, entity, step, task, user)
+        entry = self._cache.get(key)
+        if not entry:
+            return None
+
+        files = []
+        for info in entry.file_info.values():
+            files.extend(info.versions.values())
+        
+        return (files, entry.environment)
+        
+    def _construct_key(self, project, entity, step, task, user):
+        """
+        """
+        # add in defaults for project and user if they aren't set:
+        app = sgtk.platform.current_bundle()
+        project = project or app.platform.current_engine().context.project
+        user = user or app.context.user
+        
+        key_parts = []
+        for item in [project, entity, step, task, user]:
+            part = None
+            if item:
+                part = (item["type"], item["id"])
+            key_parts.append(part)
+        return tuple(key_parts)
+
 class FileModel(QtGui.QStandardItemModel):
     """
     """
@@ -26,6 +108,7 @@ class FileModel(QtGui.QStandardItemModel):
     _BASE_ROLE = QtCore.Qt.UserRole + 32
     GROUP_NODE_ROLE = _BASE_ROLE + 1
     FILE_ITEM_ROLE = _BASE_ROLE + 2
+    ENVIRONMENT_ROLE = _BASE_ROLE + 6
     SEARCH_STATUS_ROLE = _BASE_ROLE + 3
     SEARCH_MSG_ROLE = _BASE_ROLE + 4
 
@@ -65,15 +148,22 @@ class FileModel(QtGui.QStandardItemModel):
     class _FileItem(_BaseItem):
         """
         """
-        def __init__(self, file_item):
+        def __init__(self, file_item, environment):
             """
             """
             FileModel._BaseItem.__init__(self, typ=FileModel.FILE_NODE_TYPE)
             self._file_item = file_item
+            if file_item:
+                file_item.data_changed.connect(self._on_file_data_changed)
+            self._environment = environment
             
         @property
         def file_item(self):
             return self._file_item
+        
+        @property
+        def environment(self):
+            return self._environment
     
         def data(self, role=QtCore.Qt.UserRole+1):
             """
@@ -82,6 +172,8 @@ class FileModel(QtGui.QStandardItemModel):
                 return "%s, v%0d" % (self._file_item.name, self._file_item.version)
             elif role == FileModel.FILE_ITEM_ROLE:
                 return self._file_item
+            elif role == FileModel.ENVIRONMENT_ROLE:
+                return self._environment
             else:
                 # just return the default implementation:
                 return FileModel._BaseItem.data(self, role)
@@ -93,11 +185,23 @@ class FileModel(QtGui.QStandardItemModel):
                 # do nothing as it can't be set!
                 pass
             elif role == FileModel.FILE_ITEM_ROLE:
+                if self._file_item:
+                    file_item.data_changed.disconnect(self._on_file_data_changed)
                 self._file_item = value
+                if self._file_item:
+                    file_item.data_changed.connect(self._on_file_data_changed)
+                self.emitDataChanged()
+            elif role == FileModel.ENVIRONMENT_ROLE:
+                self._environment = value
                 self.emitDataChanged()
             else:
                 # call the base implementation:
                 FileModel._BaseItem.setData(self, value, role) 
+    
+        def _on_file_data_changed(self):
+            """
+            """
+            self.emitDataChanged()    
     
     class _FolderItem(_BaseItem):
         """
@@ -105,17 +209,20 @@ class FileModel(QtGui.QStandardItemModel):
         def __init__(self, name, entity):
             FileModel._BaseItem.__init__(self, typ=FileModel.FOLDER_NODE_TYPE, text=name)
             self._entity = entity
-            
-        
     
     class _GroupItem(_BaseItem):
         """
         """
-        def __init__(self, name):
+        def __init__(self, name, environment=None):
             FileModel._BaseItem.__init__(self, typ=FileModel.GROUP_NODE_TYPE, text=name)
             
             self._search_status = FileModel.SEARCHING
-            self._search_msg = ""    
+            self._search_msg = ""
+            self._environment = environment
+    
+        @property
+        def environment(self):
+            return self._environment
     
         def set_search_status(self, status, msg=None):
             self._search_status = status
@@ -129,6 +236,8 @@ class FileModel(QtGui.QStandardItemModel):
                 return self._search_status
             elif role == FileModel.SEARCH_MSG_ROLE:
                 return self._search_msg
+            elif role == FileModel.ENVIRONMENT_ROLE:
+                return self._environment
             elif role == FileModel.GROUP_NODE_ROLE:
                 # always return true!
                 return True
@@ -145,13 +254,15 @@ class FileModel(QtGui.QStandardItemModel):
             elif role == FileModel.SEARCH_MSG_ROLE:
                 self._search_msg = value
                 self.emitDataChanged()
+            elif role == FileModel.ENVIRONMENT_ROLE:
+                self._environment = value
+                self.emitDataChanged()
             elif role == FileModel.GROUP_NODE_ROLE:
                 # can't be set!
                 pass
             else:
                 # call the base implementation:
                 FileModel._BaseItem.setData(self, value, role) 
-    
     
     def __init__(self, sg_data_retriever, parent=None):
         """
@@ -163,7 +274,9 @@ class FileModel(QtGui.QStandardItemModel):
         if self._sg_data_retriever:
             self._sg_data_retriever.work_completed.connect(self._on_data_retriever_work_completed)
             self._sg_data_retriever.work_failure.connect(self._on_data_retriever_work_failed)
-            
+        
+        self._search_cache = _SearchCache()
+        self._in_progress_searches = {}
         self._pending_thumbnail_requests = {}
         
         # we'll need a file finder to be able to find files:
@@ -171,37 +284,18 @@ class FileModel(QtGui.QStandardItemModel):
         self._finder.files_found.connect(self._on_finder_files_found)
         self._finder.search_failed.connect(self._on_finder_search_failed)
         
-        self._in_progress_searches = {}
-        
-        self._cache_dirty = True
-        self._file_item_cache = {}
-        
-    class _CacheInfo(object):
-        def __init__(self):
-            self.versions = {}
-            self.items = {}
-            self.environment = None
-        
-    def get_file_versions(self, key):
+    def get_file_versions(self, key, env):
         """
         """
-        # return the cached versions
-        cache_info = self._file_item_cache.get(key) 
-        return cache_info.versions if cache_info else {}
-
-    def get_file_info(self, key):
-        """
-        """
-        cache_info = self._file_item_cache.get(key)
-        if not cache_info:
-            return None
-        return (cache_info.versions, cache_info.environment)
+        return self._search_cache.find_file_versions(key, env.context)
         
-    def refresh_files(self, search_details):
+    def refresh_files(self, search_details, force=False):
         """
         Asynchronously refresh the list of files in the model based on the
         supplied filters and context.
         """
+        app = sgtk.platform.current_bundle()
+        
         # stop all previous searches:
         search_ids = self._in_progress_searches.keys()
         self._in_progress_searches = {}
@@ -209,8 +303,8 @@ class FileModel(QtGui.QStandardItemModel):
             self._finder.stop_search(id)
     
         # clear existing data from model:
+        # (TODO) make sure this is safe!
         self.clear()
-        self._file_item_cache = {}
         
         for search in search_details:
             # add a 'group' item to the model:
@@ -218,15 +312,11 @@ class FileModel(QtGui.QStandardItemModel):
             new_item.set_search_status(FileModel.SEARCHING)
             self.invisibleRootItem().appendRow(new_item)
             new_index = new_item.index()
-            
-            # start a search for this new group:
-            search_id = self._finder.begin_search(search)
-            self._in_progress_searches[search_id] = new_item
-            
+
             # emit signal that we have started a new search for this index:
             self.search_started.emit(new_index)
-            
-            # and add folder items for any children:
+
+            # add folder items for any children:
             for child in search.child_entities:
                 child_name = child.get("name", "Entity")
                 child_entity = child.get("entity")
@@ -235,21 +325,101 @@ class FileModel(QtGui.QStandardItemModel):
                 folder_item = FileModel._FolderItem(child_name, child_entity)
                 folder_item.setIcon(QtGui.QIcon(":/tk-multi-workfiles/folder_512x400.png"))
                 new_item.appendRow(folder_item)
+            
+            if not force:
+                # check to see if we already have results from this search in the cache:
+                cached_result = self._search_cache.find(app.context.project, search.entity, search.step, search.task)
+                if cached_result:
+                    # we have a cached result so lets just use this instead!
+                    files, environment = cached_result
+                    self._process_files(files, environment, new_item)
+                    new_item.setData(environment, FileModel.ENVIRONMENT_ROLE)
+                    new_item.set_search_status(FileModel.SEARCH_COMPLETED)
+                    self.files_found.emit(new_item.index())
+                    continue                    
+            
+            # start a search for this new group:
+            search_id = self._finder.begin_search(search)
+            self._in_progress_searches[search_id] = new_item
+        
+    def _process_files(self, files, environment, parent_item):
+        """
+        """
+        # update cache:
+        self._search_cache.add(environment, files)
+        
+        new_rows = []
+        for file in files:
+            # create a new model item for this file:
+            new_item = FileModel._FileItem(file, environment)
+            new_rows.append(new_item)
+
+            # if this is from a published file then we want to retrieve the thumbnail
+            # if one is available:                        
+            if file.is_published and file.thumbnail_path and not file.thumbnail:
+                # request the thumbnail using the data retriever:
+                request_id = self._sg_data_retriever.request_thumbnail(file.thumbnail_path, 
+                                                                       "PublishedFile", 
+                                                                       file.published_file_id,
+                                                                       "image")
+                self._pending_thumbnail_requests[request_id] = (file, environment)
+
+        # add new rows to model:
+        if new_rows:
+            # we have new rows so lets add them to the model:
+            parent_item.appendRows(new_rows)
+        
+    def _on_finder_files_found(self, search_id, file_list, environment):
+        """
+        Called when the finder has found some files.
+        """
+        if search_id not in self._in_progress_searches:
+            # ignore result
+            return
+        parent_item = self._in_progress_searches[search_id]
+        del(self._in_progress_searches[search_id])
+
+        # process files:
+        self._process_files(file_list, environment, parent_item)
+            
+        # update the parent group item to indicate that the search has been completed:
+        if isinstance(parent_item, FileModel._GroupItem):
+            parent_item.setData(environment, FileModel.ENVIRONMENT_ROLE)
+            parent_item.set_search_status(FileModel.SEARCH_COMPLETED)
+            
+        # emit signal indicating that the search has been completed:
+        self.files_found.emit(parent_item.index())
+    
+    def _on_finder_search_failed(self, search_id, error):
+        """
+        Called when the finder search fails for some reason!
+        """
+        if search_id not in self._in_progress_searches:
+            # ignore result
+            return
+        parent_item = self._in_progress_searches[search_id]
+        del(self._in_progress_searches[search_id])
+        
+        #print "SEARCH %d FAILED: %s" % (search_id, error)
+        
+        if isinstance(parent_item, FileModel._GroupItem):
+            parent_item.set_search_status(FileModel.SEARCH_FAILED, error)
+        
+        # emit signal:
+        self.search_failed.emit(parent_item.index(), error)        
         
     def _on_data_retriever_work_completed(self, uid, request_type, data):
         """
         """
-        if not uid in self._pending_thumbnail_requests:
+        if uid not in self._pending_thumbnail_requests:
             return
-        item = self._pending_thumbnail_requests[uid]
+        file, env = self._pending_thumbnail_requests[uid]
         del(self._pending_thumbnail_requests[uid])
         
         thumb_path = data.get("thumb_path")
         if not thumb_path:
             return
 
-        file = item.file_item
-        
         # create a pixmap for the path:
         thumb = self._build_thumbnail(thumb_path)
         if not thumb:
@@ -257,15 +427,12 @@ class FileModel(QtGui.QStandardItemModel):
 
         # update the thumbnail on the file for this item:
         file.thumbnail = thumb
-        item.emitDataChanged()
     
         # See of there are any work file versions of this file that don't have a
         # thumbnail that could make use of this thumbnail:
-        cache_info = self._file_item_cache.get(file.key)
-        if not cache_info:
-            return
+        file_versions = self.get_file_versions(file.key, env)
         
-        for v, file_version in sorted(cache_info.versions.iteritems(), reverse=True):
+        for v, file_version in sorted(file_versions.iteritems(), reverse=True):
             if (v > file_version.version 
                 or file_version.is_published 
                 or (not file_version.is_local)
@@ -275,7 +442,6 @@ class FileModel(QtGui.QStandardItemModel):
 
             # we can use the thumbnail for this version of the work file - yay!             
             file_version.thumbnail = thumb
-            cache_info.items[v].emitDataChanged()
 
     def _build_thumbnail(self, thumb_path):
         """
@@ -331,9 +497,6 @@ class FileModel(QtGui.QStandardItemModel):
             painter.end()
         
         return thumb_base
-        
-        
-        
     
     def _on_data_retriever_work_failed(self, uid, error_msg):
         """
@@ -341,68 +504,7 @@ class FileModel(QtGui.QStandardItemModel):
         if uid in self._pending_thumbnail_requests:
             del(self._pending_thumbnail_requests[uid])
         #print "Failed to find thumbnail for id %s: %s" % (uid, error_msg)        
-        
-    def _on_finder_files_found(self, search_id, file_list, environment):
-        """
-        Called when the finder has found some files.
-        """
-        if search_id not in self._in_progress_searches:
-            # ignore result
-            return
-        parent_model_item = self._in_progress_searches[search_id]
-        del(self._in_progress_searches[search_id])
 
-        new_rows = []
-        for file in file_list:
-            # create a new model item for this file:
-            new_item = FileModel._FileItem(file)
-            new_rows.append(new_item)
-
-            # if this is from a published file then we want to retrieve the thumbnail
-            # if one is available:                        
-            if file.is_published and file.thumbnail_path and not file.thumbnail:
-                # request the thumbnail using the data retriever:
-                request_id = self._sg_data_retriever.request_thumbnail(file.thumbnail_path, 
-                                                                       "PublishedFile", 
-                                                                       file.published_file_id,
-                                                                       "image")
-                self._pending_thumbnail_requests[request_id] = new_item
-
-            # add info to the cache indexed by the file key:
-            info = self._file_item_cache.setdefault(file.key, FileModel._CacheInfo())
-            info.versions[file.version] = file
-            info.items[file.version] = new_item
-            info.environment = environment
-
-        # add files to model:
-        if new_rows:
-            # we have new rows so lets add them to the model:
-            parent_model_item.appendRows(new_rows)
-            
-        # update the parent group item to indicate that the search has been completed:
-        if isinstance(parent_model_item, FileModel._GroupItem):
-            parent_model_item.set_search_status(FileModel.SEARCH_COMPLETED)
-            
-        # emit signal indicating that the search has been completed:
-        self.files_found.emit(parent_model_item.index())
-    
-    def _on_finder_search_failed(self, search_id, error):
-        """
-        Called when the finder search fails for some reason!
-        """
-        if search_id not in self._in_progress_searches:
-            # ignore result
-            return
-        parent_model_item = self._in_progress_searches[search_id]
-        del(self._in_progress_searches[search_id])
-        
-        #print "SEARCH %d FAILED: %s" % (search_id, error)
-        
-        if isinstance(parent_model_item, FileModel._GroupItem):
-            parent_model_item.set_search_status(FileModel.SEARCH_FAILED, error)
-        
-        # emit signal:
-        self.search_failed.emit(parent_model_item.index(), error)
 
 
 

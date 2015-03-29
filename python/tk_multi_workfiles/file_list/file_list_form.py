@@ -27,9 +27,9 @@ class FileListForm(QtGui.QWidget):
     """
     """
     
-    file_selected = QtCore.Signal(object)
-    file_double_clicked = QtCore.Signal(object)
-    file_context_menu_requested = QtCore.Signal(object, QtCore.QPoint)
+    file_selected = QtCore.Signal(object, object)
+    file_double_clicked = QtCore.Signal(object, object)
+    file_context_menu_requested = QtCore.Signal(object, object, QtCore.QPoint)
     
     def __init__(self, search_label, show_work_files=True, show_publishes=False, show_all_versions=False, parent=None):
         """
@@ -55,7 +55,7 @@ class FileListForm(QtGui.QWidget):
         self._ui.all_versions_cb.toggled.connect(self._on_show_all_versions_toggled)
         
         self._ui.file_list_view.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
-        self._ui.file_list_view.doubleClicked.connect(self._on_file_double_clicked)
+        self._ui.file_list_view.doubleClicked.connect(self._on_item_double_clicked)
         
         self._ui.file_list_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self._ui.file_list_view.customContextMenuRequested.connect(self._on_context_menu_requested)
@@ -85,11 +85,27 @@ class FileListForm(QtGui.QWidget):
         
         selected_indexes = selection_model.selectedIndexes()
         if len(selected_indexes) != 1:
-            return False
+            return None
                 
         file = selected_indexes[0].data(FileModel.FILE_ITEM_ROLE)
 
         return file
+
+    @property
+    def selected_file_environment(self):
+        """
+        """
+        selection_model = self._ui.file_list_view.selectionModel()
+        if not selection_model:
+            return None
+        
+        selected_indexes = selection_model.selectedIndexes()
+        if len(selected_indexes) != 1:
+            return None
+                
+        env = selected_indexes[0].data(FileModel.ENVIRONMENT_ROLE)
+
+        return env
 
     def set_model(self, model):
         """
@@ -129,11 +145,13 @@ class FileListForm(QtGui.QWidget):
         if not file:
             return
 
+        env = idx.data(FileModel.ENVIRONMENT_ROLE)
+
         # remap the point from the source widget:
         pnt = self.sender().mapTo(self, pnt)
         
         # emit a more specific signal:
-        self.file_context_menu_requested.emit(file, pnt)
+        self.file_context_menu_requested.emit(file, env, pnt)
         
     def _on_search_changed(self, search_text):
         """
@@ -155,12 +173,19 @@ class FileListForm(QtGui.QWidget):
         """
         self._filter_model.show_all_versions = checked
         
-    def _on_file_double_clicked(self, idx):
+    def _on_item_double_clicked(self, idx):
         """
         """
-        # map the index to the source model and emit signal:
-        idx = self._filter_model.mapToSource(idx)
-        self.file_double_clicked.emit(idx)
+        item_type = idx.data(FileModel.NODE_TYPE_ROLE)
+        if item_type == FileModel.FOLDER_NODE_TYPE:
+            # selection is a folder so move into that folder
+            # TODO
+            pass
+        elif item_type == FileModel.FILE_NODE_TYPE:
+            # this is a file so perform the default action for the file
+            selected_file = idx.data(FileModel.FILE_ITEM_ROLE)
+            env = idx.data(FileModel.ENVIRONMENT_ROLE)
+            self.file_double_clicked.emit(selected_file, env)        
         
     def _on_selection_changed(self, selected, deselected):
         """
@@ -172,8 +197,14 @@ class FileListForm(QtGui.QWidget):
             # extract the selected model index from the selection:
             selected_index = self._filter_model.mapToSource(selected_indexes[0])
             
-        # emit selection_changed signal:            
-        self.file_selected.emit(selected_index)        
+        selected_file = None
+        env = None
+        if selected_index:
+            # extract the file item from the index:
+            selected_file = selected_index.data(FileModel.FILE_ITEM_ROLE)
+            env = selected_index.data(FileModel.ENVIRONMENT_ROLE)
+
+        self.file_selected.emit(selected_file, env)
         
         
         

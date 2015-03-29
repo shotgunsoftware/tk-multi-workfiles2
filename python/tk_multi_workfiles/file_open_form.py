@@ -65,12 +65,17 @@ class FileOpenForm(FileOperationForm):
         self._ui.open_btn.clicked.connect(self._on_open)
         
         self._selected_file = None
+        self._selected_file_env = None
         self._default_open_action = None
         self._on_selected_file_changed()
 
         # call init callback:
         if init_callback:
             init_callback(self)
+            
+        app = sgtk.platform.current_bundle()
+        ctx_entity = app.context.task or app.context.step or app.context.entity
+        self._ui.browser.select_entity(ctx_entity["type"], ctx_entity["id"])
 
     def select_entity(self, entity):
         """
@@ -80,16 +85,18 @@ class FileOpenForm(FileOperationForm):
         # TODO
         pass
 
-    def _on_browser_file_selected(self, file):
+    def _on_browser_file_selected(self, file, env):
         """
         """
         self._selected_file = file
+        self._selected_file_env = env
         self._on_selected_file_changed()
     
-    def _on_browser_file_double_clicked(self, file):
+    def _on_browser_file_double_clicked(self, file, env):
         """
         """
         self._selected_file = file
+        self._selected_file_env = env
         self._on_selected_file_changed()
         self._on_open()
     
@@ -98,17 +105,15 @@ class FileOpenForm(FileOperationForm):
         """
         # get the available actions for this file:
         file_actions = []
-        if self._selected_file:
-            info = self._file_model.get_file_info(self._selected_file.key)
-            if info:
-                file_versions, environment = info
-                file_actions = self._action_factory.get_actions(
-                                            self._selected_file, 
-                                            file_versions, 
-                                            environment,
-                                            workfiles_visible=self._ui.browser.work_files_visible, 
-                                            publishes_visible=self._ui.browser.publishes_visible
-                                            )
+        if self._selected_file and self._selected_file_env:
+            file_versions = self._file_model.get_file_versions(self._selected_file.key, self._selected_file_env)
+            file_actions = self._action_factory.get_actions(
+                                        self._selected_file, 
+                                        file_versions, 
+                                        self._selected_file_env,
+                                        workfiles_visible=self._ui.browser.work_files_visible, 
+                                        publishes_visible=self._ui.browser.publishes_visible
+                                        )
         
         if not file_actions:
             # disable both the open and open options buttons:
@@ -132,12 +137,12 @@ class FileOpenForm(FileOperationForm):
                 menu = QtGui.QMenu(self._ui.open_options_btn)
                 self._ui.open_options_btn.setMenu(menu)
             menu.clear()
-            self._populate_open_menu(menu, self._selected_file, file_actions[1:])
+            self._populate_open_menu(menu, self._selected_file, self._selected_file_env, file_actions[1:])
         else:
             # just disable the button:
             self._ui.open_options_btn.setEnabled(False)
 
-    def _on_browser_context_menu_requested(self, file, pnt):
+    def _on_browser_context_menu_requested(self, file, env, pnt):
         """
         """
         if not file:
@@ -145,23 +150,21 @@ class FileOpenForm(FileOperationForm):
         
         # get the file actions:
         file_actions = []
-        info = self._file_model.get_file_info(file.key)
-        if info:
-            file_versions, environment = info
-            file_actions = self._action_factory.get_actions(
-                                            file,
-                                            file_versions, 
-                                            environment,
-                                            workfiles_visible=self._ui.browser.work_files_visible, 
-                                            publishes_visible=self._ui.browser.publishes_visible
-                                            )
+        file_versions = self._file_model.get_file_versions(file.key, env)
+        file_actions = self._action_factory.get_actions(
+                                        file,
+                                        file_versions, 
+                                        env,
+                                        workfiles_visible=self._ui.browser.work_files_visible, 
+                                        publishes_visible=self._ui.browser.publishes_visible
+                                        )
                                                     
         if not file_actions:
             return
 
         # build the context menu:
         context_menu = QtGui.QMenu(self.sender())
-        self._populate_open_menu(context_menu, file, file_actions[1:])
+        self._populate_open_menu(context_menu, file, env, file_actions[1:])
         
         # map the point to a global position:
         pnt = self.sender().mapToGlobal(pnt)
@@ -169,7 +172,7 @@ class FileOpenForm(FileOperationForm):
         # finally, show the context menu:
         context_menu.exec_(pnt)
 
-    def _populate_open_menu(self, menu, file, file_actions):
+    def _populate_open_menu(self, menu, file, env, file_actions):
         """
         """
         add_separators = False
@@ -183,7 +186,8 @@ class FileOpenForm(FileOperationForm):
                 add_separators = False
             else:
                 q_action = QtGui.QAction(action.label, menu)
-                q_action.triggered[()].connect(lambda a=action, f=file: self._on_open_action_triggered(a, f))
+                slot = lambda a=action, f=file, e=env: self._on_open_action_triggered(a, f, e)
+                q_action.triggered[()].connect(slot)
                 menu.addAction(q_action)
                 add_separators = True      
         
@@ -193,9 +197,11 @@ class FileOpenForm(FileOperationForm):
         if not self._default_open_action or not self._selected_file:
             return
         
-        self._on_open_action_triggered(self._default_open_action, self._selected_file)
+        self._on_open_action_triggered(self._default_open_action, 
+                                       self._selected_file,
+                                       self._selected_file_env)
 
-    def _on_open_action_triggered(self, action, file):
+    def _on_open_action_triggered(self, action, file, env):
         """
         """
         if (not action
@@ -205,14 +211,11 @@ class FileOpenForm(FileOperationForm):
             return
         
         # get the item info for the selected item:
-        info = self._file_model.get_file_info(file.key)
-        if not info:
-            return
-        file_versions, environment = info
+        file_versions = self._file_model.get_file_versions(file.key, env)
         
         # emit signal to perform the default action.  This may result in the dialog
         # being closed so no further work should be attempted after this call
-        self.perform_action.emit(action, file, file_versions, environment)
+        self.perform_action.emit(action, file, file_versions, env)
 
     def _on_cancel(self):
         """

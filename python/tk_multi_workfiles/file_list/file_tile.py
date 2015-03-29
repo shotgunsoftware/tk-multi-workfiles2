@@ -106,7 +106,7 @@ class FileTile(QtGui.QWidget):
     def set_thumbnail(self, thumb):
         """
         """
-        if not thumb:
+        if not thumb or not isinstance(thumb, QtGui.QPixmap):
             thumb = QtGui.QPixmap(":/tk-multi-workfiles/thumb_empty.png")
             
         self._ui.thumbnail.setPixmap(thumb)
