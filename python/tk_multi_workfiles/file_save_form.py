@@ -16,9 +16,11 @@ the list of current work files.
 
 import threading
 import os
+from itertools import chain
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
+from sgtk import TankError
 
 from .file_operation_form import FileOperationForm
 from .ui.file_save_form import Ui_FileSaveForm
@@ -28,258 +30,6 @@ from .scene_operation import get_current_path, save_file, SAVE_FILE_AS_ACTION
 from .environment_details import EnvironmentDetails
 from .file_item import FileItem
 from .find_files import FileFinder
-
-class SaveAsPreviewGenerator(QtCore.QObject):
-    """
-    """
-    generation_completed = QtCore.Signal(str, str)
-    
-    def __init__(self, parent):
-        QtCore.QObject.__init__(self, parent)
-
-        self._current_path = None
-        
-        app = sgtk.platform.current_bundle()
-        self._current_work_template = app.get_template("template_work")
-        self._current_publish_template = app.get_template("template_publish")
-
-        self._cached_files = {}
-        self._cache_lock = threading.Lock()
-        
-        self._running_task = None
-
-    def update(self, env, name, extension, version):
-        """
-        """
-        # stop previous preview update:
-        if self._running_task:
-            self._running_task.stop()
-            self._running_task = None
-        
-        # start new preview generation:
-        gen_task = RunnableTask(self._generate_path_task,
-                                upstream_tasks = [],
-                                environment = env,
-                                name = name,
-                                extension = extension,
-                                version = version)
-        
-        gen_task.completed.connect(self._on_path_generation_completed)
-        gen_task.failed.connect(self._on_path_generation_failed)
-
-        self._running_task = gen_task
-        
-        gen_task.start()
-        
-    
-    # -----------------------------------------------------------------------------
-    
-    def _generate_path_task(self, environment, name, extension, version):
-        """
-        """
-        result = self._generate_path(environment, name, extension, version)
-        return result
-    
-    # -----------------------------------------------------------------------------
-    
-    def _on_path_generation_completed(self, task, result):
-        """
-        """
-        if task != self._running_task:
-            return
-        self._running_task = None
-        
-        self.generation_completed.emit(result.get("path", ""), result.get("message", ""))
-        
-    def _on_path_generation_failed(self, task, msg):
-        """
-        """
-        if task != self._running_task:
-            return
-        self._running_task = None
-        
-        self.generation_completed.emit("", msg)
-
-    def _find_files(self, environment):
-        """
-        """
-        entity = None
-        if environment.context.entity:
-            entity = (environment.context.entity["type"], environment.context.entity["id"])
-        step = None
-        if environment.context.step:
-            step = (environment.context.step["type"], environment.context.step["id"])
-        task = None
-        if environment.context.task:
-            task = (environment.context.task["type"], environment.context.task["id"])
-        cache_key = (entity, step, task)
-        
-        files = None
-        self._cache_lock.acquire()
-        try:
-            files = self._cached_files.get(cache_key)
-        finally:
-            self._cache_lock.release()
-            
-        if files != None:
-            return files
-        
-        finder = FileFinder()
-        files = finder.find_files(environment.work_template, environment.publish_template, environment.context) or []
-
-        self._cache_lock.acquire()
-        try:
-            if not cache_key in self._cached_files:
-                self._cached_files[cache_key] = files
-            else:
-                files = self._cached_files[cache_key]
-        finally:
-            self._cache_lock.release()
-            
-        return files
-
-    def _generate_path(self, environment, new_name, new_extension, version):
-        """
-        """
-        new_work_path = ""
-        msg = None
-        can_reset_version = False
-
-        has_name_field = "name" in environment.work_template.keys
-        has_version_field = "version" in environment.work_template.keys
-        has_extension_field = "extension" in environment.work_template.keys
-
-        # validate name:
-        if has_name_field:
-            if not environment.work_template.is_optional("name") and not new_name:
-                msg = "You must enter a name!"
-                return {"message":msg}
-
-            if new_name and not environment.work_template.keys["name"].validate(new_name):
-                msg = "Your filename contains illegal characters!"
-                return {"message":msg}
-            
-        if has_extension_field:
-            if not environment.work_template.is_optional("extension") and not new_extension:
-                msg = "You must select a file extension!"
-                return {"message":msg}
-
-            if new_extension and not environment.work_template.keys["extension"].validate(new_extension):
-                msg = "Your selected extension is not legal!"
-                return {"message":msg}
-
-        # build fields dictionary to use for the new path:
-        fields = {}
-
-        # start with fields from context:
-        fields = environment.context.as_template_fields(environment.work_template)
-
-        # add in any additional fields from current path:
-        #base_template = self._current_publish_template if current_is_publish else self._current_work_template
-        #if current_path and base_template.validate(current_path):
-        #    template_fields = base_template.get_fields(self._current_path)
-        #    fields = dict(chain(template_fields.iteritems(), fields.iteritems()))
-        #else:
-        if has_version_field:
-            # just make sure there is a version
-            fields["version"] = version
-
-        # keep track of the current name:
-        current_name = fields.get("name")
-        current_ext = fields.get("extension")
-
-        # update 'name' field:
-        if new_name:
-            fields["name"] = new_name
-        else:
-            # clear the current name - it might be optional!:
-            if "name" in fields:
-                del fields["name"]
-
-        # update 'ext' field:
-        if new_extension:
-            fields["extension"] = new_extension
-        else:
-            # clear the current extension - it might be optional!:
-            if "extension" in fields:
-                del fields["extension"]
-
-        # if we haven't cached the file list already, do it now - note that this will be per-context/environment:
-        existing_files = self._find_files(environment)
-
-        # construct a file key that represents all versions of this publish/work file:
-        file_key = FileItem.build_file_key(fields, environment.work_template, 
-                                           environment.version_compare_ignore_fields + ["version"])
-
-        # find the max work file and publish versions:        
-        work_versions = [f.version for f in existing_files if f.is_local and f.key == file_key]
-        max_work_version = max(work_versions) if work_versions else 0
-        publish_versions = [f.version for f in existing_files if f.is_published and f.key == file_key]
-        max_publish_version = max(publish_versions) if publish_versions else 0
-        max_version = max(max_work_version, max_publish_version)
-        
-        current_is_publish = False
-        reset_version = False
-        
-        if has_version_field:
-            # get the current version:
-            current_version = fields.get("version")
-            
-            # now depending on what the source was 
-            # and if the name has been changed:
-            new_version = None
-            if (current_is_publish 
-                and ((not has_name_field) or new_name == current_name)
-                and ((not has_ext_field) or new_extension == current_ext)
-                ):
-                # we're ok to just copy publish across and version up
-                can_reset_version = False
-                new_version = max_version + 1 if max_version else 1
-                msg = None
-            else:
-                if max_version:
-                    # already have a publish and/or work file
-                    can_reset_version = False
-                    new_version = max_version + 1
-                    
-                    if max_work_version > max_publish_version:
-                        if has_name_field:
-                            msg = ("A work file with this name already exists.  If you proceed, your file "
-                                   "will use the next available version number.")
-                        else:
-                            msg = ("A previous version of this work file already exists.  If you proceed, "
-                                   "your file will use the next available version number.")
-    
-                    else:
-                        if has_name_field:
-                            msg = ("A publish file with this name already exists.  If you proceed, your file "
-                                   "will use the next available version number.")
-                        else:
-                            msg = ("A published version of this file already exists.  If you proceed, "
-                                   "your file will use the next available version number.")
-                        
-                else:
-                    # don't have an existing version
-                    can_reset_version = True
-                    msg = ""
-                    if reset_version:
-                        new_version = 1
-                        
-            if new_version:
-                fields["version"] = new_version
-
-        else:
-            # handle when version isn't in the work template:
-            if max_work_version > 0 and max_work_version >= max_publish_version:
-                msg = "A file with this name already exists.  If you proceed, the existing file will be overwritten."
-            elif max_publish_version:
-                msg = "A published version of this file already exists."
-                
-        # create the new path                
-        new_work_path = environment.work_template.apply_fields(fields)
-        
-        return {"path":new_work_path, "message":msg, "can_reset_version":can_reset_version}
-
 
 class FileSaveForm(FileOperationForm):
     """
@@ -304,12 +54,15 @@ class FileSaveForm(FileOperationForm):
         self._extension_choices = []
         
         try:
+            # doing this inside a try-except to ensure any exceptions raised don't 
+            # break the UI and crash the dcc horribly!
             self._init(init_callback)
         except:
             app.log_exception("Unhandled exception during File Save Form construction!")
         
     def _init(self, init_callback):
         """
+        Actual construction!
         """
         app = sgtk.platform.current_bundle()
 
@@ -325,6 +78,10 @@ class FileSaveForm(FileOperationForm):
         # define which controls are visible before initial show:        
         self._ui.nav_stacked_widget.setCurrentWidget(self._ui.location_page)
         self._ui.browser.hide()
+        self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.preview_page)
+        
+        self.layout().setStretch(0, 0)
+        self.layout().setStretch(3, 1)
         
         # resize to minimum:
         self.window().resize(self.minimumSizeHint())
@@ -389,6 +146,69 @@ class FileSaveForm(FileOperationForm):
         
         #self._on_name_changed()
         
+    def _generate_path(self, env, name, version, use_next_version, ext):
+        """
+        :returns:   Tuple containing (path, min_version)
+        :raises:    Error if something goes wrong!
+        """
+
+        # first make  sure the environment is complete:
+        if not env or not env.context:
+            raise TankError("Please select a work area to save into...")
+        elif not self._current_env.work_template:
+            raise TankError("Unable to save into this work area.  Please select a different work area!")
+
+        # build the fields dictionary from the environment:
+        fields = self._current_env.context.as_template_fields(self._current_env.work_template)
+        
+        name_is_used = "name" in self._current_env.work_template.keys
+        if name_is_used:
+            if not self._current_env.work_template.is_optional("name") and not name:
+                raise TankError("Name is required, please enter a valid name!")
+            if name:
+                if not self._current_env.work_template.keys["name"].validate(name):
+                    raise TankError("Name contains illegal characters!")
+                fields["name"] = name
+        
+        ext_is_used = "extension" in self._current_env.work_template.keys
+        if ext_is_used and ext != None:
+            fields["extension"] = ext
+
+        next_version = None
+        version_is_used = "version" in self._current_env.work_template.keys
+        if version_is_used:
+            # need a file key to find all versions so lets build it:
+            file_key = FileItem.build_file_key(fields, self._current_env.work_template, 
+                                               self._current_env.version_compare_ignore_fields + ["version"])
+
+            file_versions = self._file_model.get_file_versions(file_key, self._current_env)
+            if file_versions == None:
+                # fall back to finding the files manually.  
+                # TODO, this should be replaced by an access into the model!
+                finder = FileFinder()
+                try:
+                    files = finder.find_files(self._current_env.work_template, 
+                                              self._current_env.publish_template, 
+                                              self._current_env.context,
+                                              file_key) or []
+                except TankError, e:
+                    raise TankError("Failed to find files for this work area: %s" % e)
+                file_versions = [f.version for f in files]
+                
+            max_version = max(file_versions or [0])
+            next_version = max_version + 1
+
+            fields["version"] = next_version
+
+        # see if we can build a valid path from the fields:
+        path = None
+        try:
+            path = self._current_env.work_template.apply_fields(fields)
+        except TankError, e:
+            raise TankError("Failed to build a valid path: %s" % e)
+
+        return (path, next_version)
+        
     def _update(self):
         """
         """
@@ -398,86 +218,45 @@ class FileSaveForm(FileOperationForm):
         # avoid recursive updates!
         self._do_update = False
         try:
+            can_save = True
             error_msg = None
-            path = None
-            # if we don't have a valid environment then we can't do anything!
-            if not self._current_env or not self._current_env.context:
-                error_msg = "No work area selected"
-            elif not self._current_env.work_template:
-                error_msg = "Unable to save into this work area!"
-            else:
-                # got this far so we have a valid work area to save into.  
-                # Now lets update everything else.
-        
+            try:
                 # get the name, version and extension from the UI:
                 name = self._ui.name_edit.text()
                 version = self._ui.version_spinner.value()
+                use_next_version = self._ui.use_next_available_cb.isChecked()
                 ext_idx = self._ui.file_type_menu.currentIndex() 
                 ext = self._extension_choices[ext_idx] if ext_idx >= 0 else ""
+    
+                # generate the path and next version:
+                path, next_version = self._generate_path(self._current_env, name, version, use_next_version, ext)
                 
-                # build the fields dictionary from the environment:
-                fields = self._current_env.context.as_template_fields(self._current_env.work_template)
+                # update version controls:
+                if version < next_version or use_next_version:
+                    version = next_version
+                self._ui.version_spinner.setEnabled(not use_next_version)
+                self._update_version_spinner(version, next_version)
                 
-                name_is_used = "name" in self._current_env.work_template.keys
-                if name_is_used and name:
-                    fields["name"] = name
-                
-                ext_is_used = "extension" in self._current_env.work_template.keys
-                if ext_is_used and ext != None:
-                    fields["extension"] = ext
-        
-                version_is_used = "version" in self._current_env.work_template.keys
-                if version_is_used:
-                    
-                    # need a file key to find all versions so lets build it:
-                    file_key = FileItem.build_file_key(fields, self._current_env.work_template, 
-                                                       self._current_env.version_compare_ignore_fields + ["version"])
-                    
-                    # figure out the max version and if needed update the current version:
-                    use_next_available = self._ui.use_next_available_cb.isChecked()
-                    
-                    file_versions = self._file_model.get_file_versions(file_key, self._current_env)
-                    if file_versions == None:
-                        # fall back to finding the files manually.  
-                        # TODO, this should be replaced by an access into the model!
-                        finder = FileFinder()
-                        files = finder.find_files(self._current_env.work_template, 
-                                                  self._current_env.publish_template, 
-                                                  self._current_env.context,
-                                                  file_key) or []
-                        file_versions = [f.version for f in files]
-                    max_version = max(file_versions or [0])
-                    next_version = max_version + 1
-        
-                    # update the current version if needed:
-                    if version < next_version or use_next_available:
-                        version = next_version
-
-                    # update the spinner:
-                    self._ui.version_spinner.setEnabled(not use_next_available)
-                    self._update_version_spinner(version, next_version)
-                    
-                    fields["version"] = version
-        
-                # see if we can build a valid path from the fields:
-                try:
-                    path = self._current_env.work_template.apply_fields(fields)
-                except:
-                    error_msg = "Failed to build path"
-        
-            # and update preview:
-            can_save = True
-            if path:
+                # update path preview:
+                self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.preview_page)
                 path_preview, name_preview = os.path.split(path)
                 self._ui.file_name_preview.setText(name_preview)
                 self._ui.work_area_preview.setText(path_preview)
-            else:
-                # update error message:
+            except TankError, e:
+                # update warning preview:
+                error_msg = "%s" % e
                 can_save = False
-                print error_msg
-    
-            # enable/disable controls:
-            self._ui.save_btn.setEnabled(can_save)
+            except Exception, e:
+                error_msg = "Unknown error: %s" % e
+                can_save = False
+                # be sure to re-raise the exception:
+                raise
+            finally:
+                if not can_save:
+                    self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.warning_page)
+                    error_msg = "<p style='color:rgb(226, 146, 0)'>%s</p>" % error_msg
+                    self._ui.warning.setText(error_msg)
+                self._ui.save_btn.setEnabled(can_save)
         finally:
             self._do_update = True
 
@@ -714,6 +493,11 @@ class FileSaveForm(FileOperationForm):
             #self._ui.browser_stacked_widget.setCurrentWidget(self._ui.browser_page)
             self._ui.nav_stacked_widget.setCurrentWidget(self._ui.history_nav_page)
             self._ui.browser.show()
+            self.layout().setStretch(0, 1)
+            self.layout().setStretch(3, 0)
+            print "expand"
+            for i in range(self.layout().count()):
+                print self.layout().stretch(i)
             
             if self._last_expanded_sz == self._collapsed_size:
                 self._last_expanded_sz = QtCore.QSize(800, 800)
@@ -728,6 +512,12 @@ class FileSaveForm(FileOperationForm):
             self._ui.browser.hide()
             #self._ui.browser_stacked_widget.setCurrentWidget(self._ui.line_page)
             self._ui.nav_stacked_widget.setCurrentWidget(self._ui.location_page)
+            
+            self.layout().setStretch(0, 0)
+            self.layout().setStretch(3, 1)
+            print "contract"
+            for i in range(self.layout().count()):
+                print self.layout().stretch(i)
             
             # resize to minimum:
             min_size = self.minimumSizeHint()

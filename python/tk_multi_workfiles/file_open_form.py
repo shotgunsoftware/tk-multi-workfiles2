@@ -52,6 +52,8 @@ class FileOpenForm(FileOperationForm):
         # tmp - disable some controls that currently don't work!
         self._ui.new_file_btn.setEnabled(False)
         self._ui.open_options_btn.hide()
+        self._ui.history_btns.hide()
+        self._ui.breadcrumbs.hide()
         
         # initialize the browser widget:
         self._ui.browser.set_models(self._my_tasks_model, self._entity_models, self._file_model)
