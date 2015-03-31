@@ -59,7 +59,8 @@ class _SearchCache(object):
         #key = self._construct_key(project, entity, step, task, user)
         entry = self._cache.get(key)
         if not entry:
-            return {}
+            # return None as we don't have a cached result for this context!
+            return None
         
         file_info = entry.file_info.get(file_key)
         if not file_info:
@@ -430,7 +431,7 @@ class FileModel(QtGui.QStandardItemModel):
     
         # See of there are any work file versions of this file that don't have a
         # thumbnail that could make use of this thumbnail:
-        file_versions = self.get_file_versions(file.key, env)
+        file_versions = self.get_file_versions(file.key, env) or {}
         
         for v, file_version in sorted(file_versions.iteritems(), reverse=True):
             if (v > file_version.version 

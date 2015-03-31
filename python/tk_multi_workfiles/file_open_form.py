@@ -106,7 +106,7 @@ class FileOpenForm(FileOperationForm):
         # get the available actions for this file:
         file_actions = []
         if self._selected_file and self._selected_file_env:
-            file_versions = self._file_model.get_file_versions(self._selected_file.key, self._selected_file_env)
+            file_versions = self._file_model.get_file_versions(self._selected_file.key, self._selected_file_env) or {}
             file_actions = self._action_factory.get_actions(
                                         self._selected_file, 
                                         file_versions, 
@@ -150,7 +150,7 @@ class FileOpenForm(FileOperationForm):
         
         # get the file actions:
         file_actions = []
-        file_versions = self._file_model.get_file_versions(file.key, env)
+        file_versions = self._file_model.get_file_versions(file.key, env) or {}
         file_actions = self._action_factory.get_actions(
                                         file,
                                         file_versions, 
@@ -211,7 +211,7 @@ class FileOpenForm(FileOperationForm):
             return
         
         # get the item info for the selected item:
-        file_versions = self._file_model.get_file_versions(file.key, env)
+        file_versions = self._file_model.get_file_versions(file.key, env) or {}
         
         # emit signal to perform the default action.  This may result in the dialog
         # being closed so no further work should be attempted after this call

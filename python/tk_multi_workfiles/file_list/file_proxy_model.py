@@ -66,7 +66,7 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
                 src_model = self.sourceModel()
                 # need to check if this is the latest version of the file:
                 env = item.data(FileModel.ENVIRONMENT_ROLE)
-                all_versions = src_model.get_file_versions(file_item.key, env)
+                all_versions = src_model.get_file_versions(file_item.key, env) or {}
                 
                 visible_versions = [v for v, item in all_versions.iteritems() 
                                         if (item.is_local and self._show_workfiles) 
