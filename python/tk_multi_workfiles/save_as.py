@@ -174,7 +174,7 @@ class SaveAs(object):
                     try:
                         self.save_as(new_path)
                     except Exception, e:
-                        QtGui.QMessageBox.critical(None, "Failed to save file!", "Failed to save file:\n\n%s" % msg)
+                        QtGui.QMessageBox.critical(None, "Failed to save file!", "Failed to save file:\n\n%s" % e)
                         self._app.log_exception("Something went wrong while saving!")
                 
                 # ok, all done or cancelled        

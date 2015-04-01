@@ -71,7 +71,7 @@ class MyTasksForm(QtGui.QWidget):
     def select_task(self, task_id):
         """
         """
-        print "Selecting task %s" % task_id
+        #print "Selecting task %s" % task_id
         
         # track the selected task - this allows the task to be selected when
         # it appears in the model if the model hasn't been fully populated yet:

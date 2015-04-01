@@ -50,6 +50,7 @@ class FileSaveForm(FileOperationForm):
         self._exit_code = QtGui.QDialog.Rejected
         self._last_expanded_sz = QtCore.QSize(600, 600)
         self._current_env = None
+        self._current_path = ""
         self._do_update = True
         self._extension_choices = []
         
@@ -121,6 +122,16 @@ class FileSaveForm(FileOperationForm):
         self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)
         #self._ui.browser.file_context_menu_requested.connect(self._on_browser_context_menu_requested)
         self._ui.browser.work_area_changed.connect(self._on_browser_work_area_changed)
+
+    @property
+    def path(self):
+        """
+        """
+        return self._current_path
+
+    @property
+    def environment(self):
+        return self._current_env
 
     def _on_name_edited(self, txt):
         """
@@ -215,6 +226,8 @@ class FileSaveForm(FileOperationForm):
         if not self._do_update:
             return
         
+        self._current_path = None
+        
         # avoid recursive updates!
         self._do_update = False
         try:
@@ -229,7 +242,7 @@ class FileSaveForm(FileOperationForm):
                 ext = self._extension_choices[ext_idx] if ext_idx >= 0 else ""
     
                 # generate the path and next version:
-                path, next_version = self._generate_path(self._current_env, name, version, use_next_version, ext)
+                self._current_path, next_version = self._generate_path(self._current_env, name, version, use_next_version, ext)
                 
                 # update version controls:
                 if version < next_version or use_next_version:
@@ -239,7 +252,7 @@ class FileSaveForm(FileOperationForm):
                 
                 # update path preview:
                 self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.preview_page)
-                path_preview, name_preview = os.path.split(path)
+                path_preview, name_preview = os.path.split(self._current_path)
                 self._ui.file_name_preview.setText(name_preview)
                 self._ui.work_area_preview.setText(path_preview)
             except TankError, e:
@@ -369,12 +382,15 @@ class FileSaveForm(FileOperationForm):
         
         # get the fields for this file:
         fields = {}
-        if not file.is_local and file.is_published:
-            if self._current_env.publish_template:
-                fields = self._current_env.publish_template.get_fields(file.publish_path)
-        else:
-            if self._current_env.work_template:
-                fields = self._current_env.work_template.get_fields(file.path)
+        try:
+            if not file.is_local and file.is_published:
+                if self._current_env.publish_template:
+                    fields = self._current_env.publish_template.get_fields(file.publish_path)
+            else:
+                if self._current_env.work_template:
+                    fields = self._current_env.work_template.get_fields(file.path)
+        except:
+            pass
 
         # pull the current name/extension from the file:
         if name_is_used:
@@ -407,18 +423,38 @@ class FileSaveForm(FileOperationForm):
         app = sgtk.platform.current_bundle()
         
         # build context:
-        if ((task and not (step and entity))
-            or (step and not entity)):
-            # use full context from entity method (slow as it will likely perform a Shotgun
-            # query!
-            context_entity = task or step or entity 
-            context = app.sgtk.context_from_entity(context_entity["type"], context_entity["id"])
-        else:
-            context = app.sgtk.context_from_entities(project = app.context.project, 
-                                                     entity = entity,
-                                                     step = step,
-                                                     task = task)
-        
+        #if ((task and not (step and entity))
+        #    or (step and not entity)):
+        #    # use full context from entity method (slow as it will likely perform a Shotgun
+        #    # query!
+        #    context_entity = task or step or entity 
+        #    context = app.sgtk.context_from_entity(context_entity["type"], context_entity["id"])
+        #else:
+        entity_dict = {}
+        if task:
+            entity_dict = copy.deepcopy(task)
+            if app.context.project:
+                entity_dict["project"] = copy.deepcopy(app.context.project)
+            if entity:
+                entity_dict["entity"] = copy.deepcopy(entity)
+            if step:
+                entity_dict["step"] = copy.deepcopy(step)
+        elif step:
+            entity_dict = copy.deepcopy(step)
+            if app.context.project:
+                entity_dict["project"] = copy.deepcopy(app.context.project)
+        elif entity:
+            entity_dict = copy.deepcopy(entity)
+            if app.context.project:
+                entity_dict["project"] = copy.deepcopy(app.context.project)
+        elif app.context.project:
+            entity_dict = copy.deepcopy(app.context.project)
+        context = app.sgtk.context_from_entity_dictionary(entity_dict)
+        #context = app.sgtk.context_from_entities(project = app.context.project, 
+        #                                         entity = entity,
+        #                                         step = step,
+        #                                         task = task)
+    
         self._do_update = False
         try:
             env = EnvironmentDetails(context)
@@ -448,6 +484,7 @@ class FileSaveForm(FileOperationForm):
                 name = self._ui.name_edit.text()
                 name_is_optional = name_is_used and self._current_env.work_template.is_optional("name")
                 if not name and not name_is_optional:
+                    # lets populate name with a default value:
                     name = self._current_env.save_as_default_name or "scene"
                 self._ui.name_edit.setText(name)
 
@@ -551,5 +588,8 @@ class FileSaveForm(FileOperationForm):
     def _on_save(self):
         """
         """
+        if not self._current_env or not self._current_path:
+            return
+        
         self._exit_code = QtGui.QDialog.Accepted
         self.close()

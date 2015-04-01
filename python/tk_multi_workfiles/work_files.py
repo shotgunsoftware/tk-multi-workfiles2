@@ -31,6 +31,8 @@ from .file_filter import FileFilter
 from .find_files import FileFinder
 from .users import UserCache
 
+from .actions.save_as_file_action import SaveAsFileAction
+
 class WorkFiles(QtCore.QObject):#object):
     
     @staticmethod
@@ -93,10 +95,27 @@ class WorkFiles(QtCore.QObject):#object):
         """
         try:
             from .file_save_form import FileSaveForm
-            res, file_save_ui = self._app.engine.show_modal("File Save", self._app, FileSaveForm,
-                                                            self._init_file_save_form)
-            if res == QtGui.QDialog.Accepted:
-                print "do file save!"
+            
+            while True:
+                res, file_save_ui = self._app.engine.show_modal("File Save", self._app, FileSaveForm,
+                                                                self._init_file_save_form)
+                if res == QtGui.QDialog.Accepted:
+                    # great - we can save the file:
+                    new_path = file_save_ui.path
+                    env = file_save_ui.environment
+
+                    try:
+                        action = SaveAsFileAction()
+                        file = FileItem(new_path, None, True, False, None, {})
+                        print "Saving As %s" % new_path 
+                        action.execute(file, None, env, None)
+                        #self.save_as(new_path)
+                    except Exception, e:
+                        QtGui.QMessageBox.critical(None, "Failed to save file!", "Failed to save file:\n\n%s" % e)
+                        self._app.log_exception("Something went wrong while saving!")
+                
+                # all done!
+                break
         except:
             self._app.log_exception("Failed to create File Save dialog!")
             return

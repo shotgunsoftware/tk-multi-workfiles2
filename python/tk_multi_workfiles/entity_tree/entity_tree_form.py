@@ -85,7 +85,7 @@ class EntityTreeForm(QtGui.QWidget):
     def select_entity(self, entity_type, entity_id):
         """
         """
-        print "Selecting %s %s" % (entity_type, entity_id)
+        #print "Selecting %s %s" % (entity_type, entity_id)
         
         # track the selected entity - this allows the entity to be selected when
         # it appears in the model even if the model hasn't been fully populated yet:
