@@ -16,12 +16,13 @@ import threading
 
 import sgtk
 from sgtk.platform.qt import QtCore
+from sgtk import TankError
 
 class RunnableTask(QtCore.QRunnable, QtCore.QObject):
     """
     """
     completed = QtCore.Signal(object, object)
-    failed = QtCore.Signal(object, object)
+    failed = QtCore.Signal(object, object, object)
     skipped = QtCore.Signal(object)
 
     _next_task_id = 0
@@ -185,4 +186,7 @@ class RunnableTask(QtCore.QRunnable, QtCore.QObject):
             self.completed.emit(self, result)
         except Exception, e:
             tb = traceback.format_exc()
-            self.failed.emit(self, "%s, %s" % (str(e), tb))
+            self.failed.emit(self, str(e), tb)
+            
+            
+            

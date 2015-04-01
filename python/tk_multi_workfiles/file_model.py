@@ -21,8 +21,6 @@ class _SearchCache(object):
     class _CachedFileInfo(object):
         def __init__(self):
             self.versions = {}# file.version:file 
-            #self.items = {}
-            #self.environment = None
 
     class _CacheEntry(object):
         def __init__(self):
@@ -44,18 +42,17 @@ class _SearchCache(object):
             entry.file_info.setdefault(file.key, _SearchCache._CachedFileInfo()).versions[file.version] = file
         
         # construct the key:
-        key = self._construct_key(environment.context.project, 
-                                  environment.context.entity, 
-                                  environment.context.step, 
-                                  environment.context.task, 
-                                  environment.context.user)
+        key_entity = (environment.context.task or environment.context.step 
+                      or environment.context.entity or environment.context.project)
+        key = self._construct_key(key_entity, environment.context.user)
         
         self._cache[key] = entry
     
     def find_file_versions(self, file_key, ctx):
         """
         """
-        key = self._construct_key(ctx.project, ctx.entity, ctx.step, ctx.task, ctx.user)
+        key_entity = ctx.task or ctx.step or ctx.entity or ctx.project
+        key = self._construct_key(key_entity, ctx.user)
         #key = self._construct_key(project, entity, step, task, user)
         entry = self._cache.get(key)
         if not entry:
@@ -71,7 +68,8 @@ class _SearchCache(object):
     def find(self, project=None, entity=None, step=None, task=None, user=None):
         """
         """
-        key = self._construct_key(project, entity, step, task, user)
+        key_entity = task or step or entity or project
+        key = self._construct_key(key_entity, user)
         entry = self._cache.get(key)
         if not entry:
             return None
@@ -82,20 +80,16 @@ class _SearchCache(object):
         
         return (files, entry.environment)
         
-    def _construct_key(self, project, entity, step, task, user):
+    def _construct_key(self, entity, user):
         """
         """
         # add in defaults for project and user if they aren't set:
         app = sgtk.platform.current_bundle()
-        project = project or app.platform.current_engine().context.project
         user = user or app.context.user
-        
+
         key_parts = []
-        for item in [project, entity, step, task, user]:
-            part = None
-            if item:
-                part = (item["type"], item["id"])
-            key_parts.append(part)
+        key_parts.append((entity["type"], entity["id"]) if entity else None)
+        key_parts.append((user["type"], user["id"]) if user else None)
         return tuple(key_parts)
 
 class FileModel(QtGui.QStandardItemModel):

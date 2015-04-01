@@ -123,8 +123,6 @@ class EntityTreeForm(QtGui.QWidget):
         label = item.text()
         src_model = self._filter_model.sourceModel()
         entity = src_model.get_entity(item)
-        if entity:
-            entity = {"type":entity["type"], "id":entity["id"]}
         
         # get details for children:
         children = []
@@ -138,9 +136,6 @@ class EntityTreeForm(QtGui.QWidget):
             
             child_label = child_item.text()
             child_entity = src_model.get_entity(child_item)
-            if child_entity:
-                child_entity = {"type":child_entity["type"], "id":child_entity["id"]}
-            
             children.append({"label":child_label, "entity":child_entity})
             
             if self._collapse_steps_with_tasks and child_entity and child_entity["type"] == "Step":
@@ -153,8 +148,6 @@ class EntityTreeForm(QtGui.QWidget):
                     
                     grandchild_label = grandchild_item.text()
                     grandchild_entity = src_model.get_entity(grandchild_item)
-                    if grandchild_entity:
-                        grandchild_entity = {"type":grandchild_entity["type"], "id":grandchild_entity["id"]}
                     if grandchild_entity and grandchild_entity["type"] == "Task":
                         # found a task under a step so we can safely collapse tasks to steps!
                         collapsed_child_label = "%s - %s" % (child_label, grandchild_label)

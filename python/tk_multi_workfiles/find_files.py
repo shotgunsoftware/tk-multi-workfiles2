@@ -248,14 +248,14 @@ class FileFinder(QtCore.QObject):
         for id in self._searches.keys():
             self.stop_search(id)
     
-    def _on_search_failed(self, task, msg):
+    def _on_search_failed(self, task, msg, stack_trace):
         """
         """
         # clean up search intermediate data:
         self.stop_search(task.id)
         
         # emit signal:
-        self.search_failed.emit(task.id, msg)
+        self.search_failed.emit(task.id, "%s, %s" % (msg, stack_trace))
         
     def _on_search_completed(self, task, result):
         """
@@ -286,41 +286,9 @@ class FileFinder(QtCore.QObject):
         """
         app = sgtk.platform.current_bundle()
 
-        # determine which method to use to construct a context from the search details.
-        # this depends on which entities have been populated!
-        #if ((search_details.task and not (search_details.step and search_details.entity))
-        #    or (search_details.step and not search_details.entity)):
-        #    # use full context from entity method (slow as it will likely perform a Shotgun
-        #    # query!
-        #    context_entity = search_details.task or search_details.step or search_details.entity 
-        #    context = app.sgtk.context_from_entity(context_entity["type"], context_entity["id"])
-        #else:
-            
-        # (AD) temp - just to get it working with the new core api!
-        entity_dict = {}
-        if search_details.task:
-            entity_dict = copy.deepcopy(search_details.task)
-            if app.context.project:
-                entity_dict["project"] = copy.deepcopy(app.context.project)
-            if search_details.entity:
-                entity_dict["entity"] = copy.deepcopy(search_details.entity)
-            if search_details.step:
-                entity_dict["step"] = copy.deepcopy(search_details.step)
-        elif search_details.step:
-            entity_dict = copy.deepcopy(search_details.step)
-            if app.context.project:
-                entity_dict["project"] = copy.deepcopy(app.context.project)
-        elif search_details.entity:
-            entity_dict = copy.deepcopy(search_details.entity)
-            if app.context.project:
-                entity_dict["project"] = copy.deepcopy(app.context.project)
-        elif app.context.project:
-            entity_dict = copy.deepcopy(app.context.project)
-        context = app.sgtk.context_from_entity_dictionary(entity_dict)
-        #context = app.sgtk.context_from_entities(project = app.context.project, 
-        #                                         entity = search_details.entity,
-        #                                         step = search_details.step,
-        #                                         task = search_details.task)
+        # build a context from the search details:
+        ctx_entity = search_details.task or search_details.step or search_details.entity or app.context.project
+        context = app.sgtk.context_from_entity_dictionary(ctx_entity)
 
         # build the environment details instance for this context:
         env_details = EnvironmentDetails(context)

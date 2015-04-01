@@ -98,17 +98,17 @@ class MyTasksForm(QtGui.QWidget):
         # extract the selected model index from the selection:
         src_idx = self._filter_model.mapToSource(idx)
         if not src_idx.isValid():
-            return (None, None, None)
+        return (None, None, None)
         
         # get the item for the specified index from the source model:
         item = src_idx.model().itemFromIndex(src_idx)
         
         # and extract the information we need from it:
-        sg_data = item.get_sg_data()
+        task = item.get_sg_data()
 
-        entity = sg_data.get("entity", {})        
-        step = sg_data.get("step", {})
-        task = {"type":"Task", "id":sg_data["id"], "content":sg_data["content"]}
+        entity = task.get("entity", {})        
+        step = task.get("step", {})
+        #task = {"type":"Task", "id":sg_data["id"], "content":sg_data["content"]}
 
         return (entity, step, task)
         

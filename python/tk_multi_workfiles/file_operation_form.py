@@ -133,7 +133,10 @@ class FileOperationForm(QtGui.QWidget):
             hierarchy = ent.get("hierarchy")
             
             # create an entity model for this query:
-            model = ShotgunEntityModel(entity_type, resolved_filters, hierarchy, parent=self)
+            fields = ["image", "description", "project", "name", "code"]
+            if entity_type == "Task":
+                fields += ["step", "entity", "content", "sg_status_list", "task_assignees"]
+            model = ShotgunEntityModel(entity_type, resolved_filters, hierarchy, parent=self, fields=fields)
             entity_models.append((caption, model))
             model.async_refresh()
             

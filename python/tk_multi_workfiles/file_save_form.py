@@ -51,8 +51,8 @@ class FileSaveForm(FileOperationForm):
         self._last_expanded_sz = QtCore.QSize(600, 600)
         self._current_env = None
         self._current_path = ""
-        self._do_update = True
         self._extension_choices = []
+        self._preview_task = None
         
         try:
             # doing this inside a try-except to ensure any exceptions raised don't 
@@ -90,6 +90,7 @@ class FileSaveForm(FileOperationForm):
 
         # default state for the version controls is to use the next available version:
         self._ui.use_next_available_cb.setChecked(True)
+        self._ui.version_spinner.setEnabled(False)
 
         # initialize the browser:
         self._ui.browser.set_models(self._my_tasks_model, self._entity_models, self._file_model)
@@ -102,7 +103,7 @@ class FileSaveForm(FileOperationForm):
         current_file = self._get_current_file(env)
         self._on_work_area_changed(env)
         self._on_selected_file_changed(current_file)
-        self._update()
+        self._start_preview_update()
 
         # execute the init callback:
         if init_callback:
@@ -136,27 +137,94 @@ class FileSaveForm(FileOperationForm):
     def _on_name_edited(self, txt):
         """
         """
-        self._update()
+        self._start_preview_update()
 
     def _on_name_return_pressed(self):
         #self._on_continue()
         pass
     
     def _on_version_value_changed(self, value):
-        self._update()
+        self._start_preview_update()
         
     def _on_extension_current_index_changed(self, value):
-        self._update()
+        self._start_preview_update()
         #self._update_preview()
 
     def _on_use_next_available_version_toggled(self, checked):
         """
         """
-        #self._ui.version_spinner.setEnabled(not checked)
-        self._update()
+        self._ui.version_spinner.setEnabled(not checked)
+        self._start_preview_update()
         
         #self._on_name_changed()
         
+    def _start_preview_update(self):
+        """
+        """
+        # stop previous running task:
+        if self._preview_task:
+            self._preview_task.stop()
+            self._preview_task = None
+
+        # clear the current path - this will ensure hitting save doesn't 
+        # do anything whilst we're updating the path
+        self._current_path = None
+        
+        # get the name, version and extension from the UI:
+        name = self._ui.name_edit.text()
+        version = self._ui.version_spinner.value()
+        use_next_version = self._ui.use_next_available_cb.isChecked()
+        ext_idx = self._ui.file_type_menu.currentIndex() 
+        ext = self._extension_choices[ext_idx] if ext_idx >= 0 else ""
+
+        self._preview_task = RunnableTask(self._generate_path,
+                                          env = self._current_env,
+                                          name = name,
+                                          version = version,
+                                          use_next_version = use_next_version,
+                                          ext = ext)
+        self._preview_task.completed.connect(self._on_preview_generation_complete)
+        self._preview_task.failed.connect(self._on_preview_generation_failed)
+        
+        self._preview_task.start()
+
+    def _on_preview_generation_complete(self, task, result):
+        """
+        """
+        if task != self._preview_task:
+            return
+        self._preview_task = None
+        
+        self._current_path = result["path"]
+        version = result["version"]
+        next_version = result["next_version"]
+        use_next_version = result["use_next_version"]
+
+        # update version controls:
+        self._update_version_spinner(version, next_version)
+        
+        # update path preview:
+        self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.preview_page)
+        path_preview, name_preview = os.path.split(self._current_path)
+        self._ui.file_name_preview.setText(name_preview)
+        self._ui.work_area_preview.setText(path_preview)
+
+        self._ui.save_btn.setEnabled(True)
+
+    def _on_preview_generation_failed(self, task, msg, stack_trace):
+        """
+        """
+        if task != self._preview_task:
+            return
+        self._preview_task = None
+        self._current_path = None
+        
+        self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.warning_page)
+        error_msg = "<p style='color:rgb(226, 146, 0)'>Warning: %s</p>" % msg
+        self._ui.warning.setText(error_msg)
+        
+        self._ui.save_btn.setEnabled(False)
+    
     def _generate_path(self, env, name, version, use_next_version, ext):
         """
         :returns:   Tuple containing (path, min_version)
@@ -166,112 +234,64 @@ class FileSaveForm(FileOperationForm):
         # first make  sure the environment is complete:
         if not env or not env.context:
             raise TankError("Please select a work area to save into...")
-        elif not self._current_env.work_template:
+        elif not env.work_template:
             raise TankError("Unable to save into this work area.  Please select a different work area!")
 
         # build the fields dictionary from the environment:
-        fields = self._current_env.context.as_template_fields(self._current_env.work_template)
+        fields = env.context.as_template_fields(env.work_template)
         
-        name_is_used = "name" in self._current_env.work_template.keys
+        name_is_used = "name" in env.work_template.keys
         if name_is_used:
-            if not self._current_env.work_template.is_optional("name") and not name:
+            if not env.work_template.is_optional("name") and not name:
                 raise TankError("Name is required, please enter a valid name!")
             if name:
-                if not self._current_env.work_template.keys["name"].validate(name):
+                if not env.work_template.keys["name"].validate(name):
                     raise TankError("Name contains illegal characters!")
                 fields["name"] = name
         
-        ext_is_used = "extension" in self._current_env.work_template.keys
+        ext_is_used = "extension" in env.work_template.keys
         if ext_is_used and ext != None:
             fields["extension"] = ext
 
         next_version = None
-        version_is_used = "version" in self._current_env.work_template.keys
+        version_is_used = "version" in env.work_template.keys
         if version_is_used:
             # need a file key to find all versions so lets build it:
-            file_key = FileItem.build_file_key(fields, self._current_env.work_template, 
-                                               self._current_env.version_compare_ignore_fields + ["version"])
+            file_key = FileItem.build_file_key(fields, env.work_template, 
+                                               env.version_compare_ignore_fields + ["version"])
 
-            file_versions = self._file_model.get_file_versions(file_key, self._current_env)
+            file_versions = self._file_model.get_file_versions(file_key, env)
             if file_versions == None:
                 # fall back to finding the files manually.  
                 # TODO, this should be replaced by an access into the model!
                 finder = FileFinder()
                 try:
-                    files = finder.find_files(self._current_env.work_template, 
-                                              self._current_env.publish_template, 
-                                              self._current_env.context,
+                    files = finder.find_files(env.work_template, 
+                                              env.publish_template, 
+                                              env.context,
                                               file_key) or []
                 except TankError, e:
                     raise TankError("Failed to find files for this work area: %s" % e)
                 file_versions = [f.version for f in files]
-                
+
             max_version = max(file_versions or [0])
             next_version = max_version + 1
 
-            fields["version"] = next_version
+            # update version:
+            version = next_version if use_next_version else max(version, next_version)
+            fields["version"] = version 
 
         # see if we can build a valid path from the fields:
         path = None
         try:
-            path = self._current_env.work_template.apply_fields(fields)
+            path = env.work_template.apply_fields(fields)
         except TankError, e:
             raise TankError("Failed to build a valid path: %s" % e)
 
-        return (path, next_version)
-        
-    def _update(self):
-        """
-        """
-        if not self._do_update:
-            return
-        
-        self._current_path = None
-        
-        # avoid recursive updates!
-        self._do_update = False
-        try:
-            can_save = True
-            error_msg = None
-            try:
-                # get the name, version and extension from the UI:
-                name = self._ui.name_edit.text()
-                version = self._ui.version_spinner.value()
-                use_next_version = self._ui.use_next_available_cb.isChecked()
-                ext_idx = self._ui.file_type_menu.currentIndex() 
-                ext = self._extension_choices[ext_idx] if ext_idx >= 0 else ""
-    
-                # generate the path and next version:
-                self._current_path, next_version = self._generate_path(self._current_env, name, version, use_next_version, ext)
-                
-                # update version controls:
-                if version < next_version or use_next_version:
-                    version = next_version
-                self._ui.version_spinner.setEnabled(not use_next_version)
-                self._update_version_spinner(version, next_version)
-                
-                # update path preview:
-                self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.preview_page)
-                path_preview, name_preview = os.path.split(self._current_path)
-                self._ui.file_name_preview.setText(name_preview)
-                self._ui.work_area_preview.setText(path_preview)
-            except TankError, e:
-                # update warning preview:
-                error_msg = "%s" % e
-                can_save = False
-            except Exception, e:
-                error_msg = "Unknown error: %s" % e
-                can_save = False
-                # be sure to re-raise the exception:
-                raise
-            finally:
-                if not can_save:
-                    self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.warning_page)
-                    error_msg = "<p style='color:rgb(226, 146, 0)'>%s</p>" % error_msg
-                    self._ui.warning.setText(error_msg)
-                self._ui.save_btn.setEnabled(can_save)
-        finally:
-            self._do_update = True
+        return {"path":path, 
+                "version":version, 
+                "next_version":next_version,
+                "use_next_version":use_next_version}
 
     def _update_version_spinner(self, version, min_version, block_signals=True):
         """
@@ -354,18 +374,16 @@ class FileSaveForm(FileOperationForm):
     def _on_browser_file_selected(self, file, env):
         """
         """
-        self._do_update = False
-        try:
-            self._on_work_area_changed(env)
-            self._on_selected_file_changed(file)
-        finally:
-            self._do_update = True
-        self._update()
+        self._on_work_area_changed(env)
+        self._on_selected_file_changed(file)
+        self._start_preview_update()
     
     def _on_browser_file_double_clicked(self, file, env):
         """
         """
         self._on_browser_file_selected(file, env)
+        # TODO: this won't actually work until the preview has 
+        # been updated!
         self._on_save()
 
     def _on_selected_file_changed(self, file):
@@ -415,54 +433,18 @@ class FileSaveForm(FileOperationForm):
                 # TODO try to get extension from path?
                 pass
 
-
-
     def _on_browser_work_area_changed(self, entity, step, task):
         """
         """
         app = sgtk.platform.current_bundle()
-        
-        # build context:
-        #if ((task and not (step and entity))
-        #    or (step and not entity)):
-        #    # use full context from entity method (slow as it will likely perform a Shotgun
-        #    # query!
-        #    context_entity = task or step or entity 
-        #    context = app.sgtk.context_from_entity(context_entity["type"], context_entity["id"])
-        #else:
-        entity_dict = {}
-        if task:
-            entity_dict = copy.deepcopy(task)
-            if app.context.project:
-                entity_dict["project"] = copy.deepcopy(app.context.project)
-            if entity:
-                entity_dict["entity"] = copy.deepcopy(entity)
-            if step:
-                entity_dict["step"] = copy.deepcopy(step)
-        elif step:
-            entity_dict = copy.deepcopy(step)
-            if app.context.project:
-                entity_dict["project"] = copy.deepcopy(app.context.project)
-        elif entity:
-            entity_dict = copy.deepcopy(entity)
-            if app.context.project:
-                entity_dict["project"] = copy.deepcopy(app.context.project)
-        elif app.context.project:
-            entity_dict = copy.deepcopy(app.context.project)
-        context = app.sgtk.context_from_entity_dictionary(entity_dict)
-        #context = app.sgtk.context_from_entities(project = app.context.project, 
-        #                                         entity = entity,
-        #                                         step = step,
-        #                                         task = task)
-    
-        self._do_update = False
-        try:
-            env = EnvironmentDetails(context)
-            self._on_work_area_changed(env)
-        finally:
-            self._do_update = True
-            
-        self._update()
+
+        ctx_entity = task or step or entity or app.context.project
+        context = app.sgtk.context_from_entity_dictionary(ctx_entity)
+
+        env = EnvironmentDetails(context)
+        self._on_work_area_changed(env)
+
+        self._start_preview_update()
 
     def _on_work_area_changed(self, env):
         """
@@ -517,8 +499,6 @@ class FileSaveForm(FileOperationForm):
             self._ui.version_label.setVisible(version_is_used)
             self._ui.version_spinner.setVisible(version_is_used)
             self._ui.use_next_available_cb.setVisible(version_is_used)
-
-
         
     def _on_expand_toggled(self, checked):
         """
@@ -532,9 +512,6 @@ class FileSaveForm(FileOperationForm):
             self._ui.browser.show()
             self.layout().setStretch(0, 1)
             self.layout().setStretch(3, 0)
-            print "expand"
-            for i in range(self.layout().count()):
-                print self.layout().stretch(i)
             
             if self._last_expanded_sz == self._collapsed_size:
                 self._last_expanded_sz = QtCore.QSize(800, 800)
@@ -552,9 +529,6 @@ class FileSaveForm(FileOperationForm):
             
             self.layout().setStretch(0, 0)
             self.layout().setStretch(3, 1)
-            print "contract"
-            for i in range(self.layout().count()):
-                print self.layout().stretch(i)
             
             # resize to minimum:
             min_size = self.minimumSizeHint()

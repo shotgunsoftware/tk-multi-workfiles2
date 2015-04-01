@@ -25,14 +25,14 @@ class MyTasksModel(ShotgunModel):
         """
         ShotgunModel.__init__(self, parent=parent, download_thumbs=True)
         
-        fields = ["image", "sg_status_list", "description", "entity", "content", "step"]
+        fields = ["image", "sg_status_list", "description", "entity", "content", "step", "project"]
         self._load_data("Task", filters, ["id"], fields)
     
     def async_refresh(self):
         """
         Trigger an asynchronous refresh of the model
         """
-        self._refresh_data()      
+        self._refresh_data()
     
     def _populate_default_thumbnail(self, item):
         """
