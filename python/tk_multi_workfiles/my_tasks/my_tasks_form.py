@@ -25,8 +25,8 @@ from ..ui.my_tasks_form import Ui_MyTasksForm
 class MyTasksForm(QtGui.QWidget):
     """
     """
-    task_selected = QtCore.Signal(object, object, object)
-    create_new_task = QtCore.Signal(object, object, object)
+    task_selected = QtCore.Signal(object)# task
+    create_new_task = QtCore.Signal(object, object)# entity, step
     
     def __init__(self, model, parent=None):
         """
@@ -71,46 +71,38 @@ class MyTasksForm(QtGui.QWidget):
     def select_task(self, task_id):
         """
         """
-        #print "Selecting task %s" % task_id
-        
         # track the selected task - this allows the task to be selected when
         # it appears in the model if the model hasn't been fully populated yet:
         self._current_task_id = task_id
         return self._select_current_task(clear_filter=True, 
                                          clear_selection_if_not_found=True)
-        
-    def get_selected_task_details(self):
+
+    def get_selected_task(self):
         """
         """
         # get the currently selected index:
         selected_indexes = self._ui.task_tree.selectionModel().selectedIndexes()
         if len(selected_indexes) != 1:
-            return (None, None, None)
+            return None
         
-        return self._get_task_details(selected_indexes[0])
-        
+        return self._get_task(selected_indexes[0])
+
     # ------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------
         
-    def _get_task_details(self, idx):
+    def _get_task(self, idx):
         """
         """
         # extract the selected model index from the selection:
         src_idx = self._filter_model.mapToSource(idx)
         if not src_idx.isValid():
-        return (None, None, None)
+            return (None, None, None)
         
         # get the item for the specified index from the source model:
         item = src_idx.model().itemFromIndex(src_idx)
         
         # and extract the information we need from it:
-        task = item.get_sg_data()
-
-        entity = task.get("entity", {})        
-        step = task.get("step", {})
-        #task = {"type":"Task", "id":sg_data["id"], "content":sg_data["content"]}
-
-        return (entity, step, task)
+        return item.get_sg_data()
         
     def _select_current_task(self, clear_filter, clear_selection_if_not_found):
         """
@@ -179,11 +171,11 @@ class MyTasksForm(QtGui.QWidget):
     def _on_selection_changed(self, selected, deselected):
         """
         """
-        # get the task details for the selection:
-        entity = step = task = None
+        # get the task for the current selection:
+        task = None
         selected_indexes = selected.indexes()
         if len(selected_indexes) == 1:
-            entity, step, task = self._get_task_details(selected_indexes[0])
+            task = self._get_task(selected_indexes[0])
         
         # update the UI:
         self._update_ui(task != None)
@@ -191,8 +183,8 @@ class MyTasksForm(QtGui.QWidget):
         # make sure we track the current task:
         self._current_task_id = task["id"] if task else None
             
-        # emit selection_changed signal:            
-        self.task_selected.emit(entity, step, task)
+        # emit selection_changed signal:
+        self.task_selected.emit(task)
         
     def _on_model_rows_inserted(self, parent, first, last):
         """
@@ -215,12 +207,12 @@ class MyTasksForm(QtGui.QWidget):
     def _on_new_task(self):
         """
         """
-        entity, step, task = self.get_selected_task_details()
-        if not task:
-            return
-        
-        self.create_new_task.emit(entity, step, task)
-        
-        
-        
-                
+        task = self.get_selected_task()
+        if task:
+            entity = task.get("entity")
+            if not entity:
+                # can't create a new task without an entity!
+                return
+            step = task.get("step")
+            
+            self.create_new_task.emit(entity, step)

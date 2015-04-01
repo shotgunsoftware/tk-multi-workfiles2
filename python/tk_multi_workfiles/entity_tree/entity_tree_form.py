@@ -30,8 +30,8 @@ class EntityTreeForm(QtGui.QWidget):
     """
     """
     
-    entity_selected = QtCore.Signal(object)
-    create_new_task = QtCore.Signal(object)
+    entity_selected = QtCore.Signal(object)# selection details
+    create_new_task = QtCore.Signal(object, object)# entity, step
     
     def __init__(self, entity_model, search_label, parent=None):
         """
@@ -85,8 +85,6 @@ class EntityTreeForm(QtGui.QWidget):
     def select_entity(self, entity_type, entity_id):
         """
         """
-        #print "Selecting %s %s" % (entity_type, entity_id)
-        
         # track the selected entity - this allows the entity to be selected when
         # it appears in the model even if the model hasn't been fully populated yet:
         self._current_entity = {"type":entity_type, "id":entity_id}
@@ -265,8 +263,13 @@ class EntityTreeForm(QtGui.QWidget):
         if len(selected_indexes) == 1:
             item = self._item_from_index(selected_indexes[0])
             entity = self._filter_model.sourceModel().get_entity(item)
-            if entity and entity.get("type") in ("Step", "Task"):
-                enable_new_tasks = True
+            #if entity and entity.get("type") in ("Step", "Task"):
+            if entity and entity["type"] != "Step":
+                if entity["type"] == "Task":
+                    if entity.get("entity"):
+                        enable_new_tasks = True
+                else:
+                    enable_new_tasks = True
 
         self._ui.new_task_btn.setEnabled(enable_new_tasks)
         
@@ -359,7 +362,6 @@ class EntityTreeForm(QtGui.QWidget):
     def _on_item_expanded(self, idx):
         """
         """
-        #print "expanding item %s" % idx
         item = self._item_from_index(idx)
         if not item:
             return
@@ -368,7 +370,6 @@ class EntityTreeForm(QtGui.QWidget):
     def _on_item_collapsed(self, idx):
         """
         """
-        #print "collapsing item"
         item = self._item_from_index(idx)
         if not item:
             return
@@ -388,11 +389,25 @@ class EntityTreeForm(QtGui.QWidget):
         
         # extract the selected model index from the selection:
         selected_index = self._filter_model.mapToSource(selected_indexes[0])
-        
-        self.create_new_task.emit(selected_index)        
-    
-    
-    
-    
-    
-        
+
+        # determine the currently selected entity:
+        entity_model = selected_index.model()
+        entity_item = entity_model.itemFromIndex(selected_index)
+        entity = entity_model.get_entity(entity_item)
+        if not entity:
+            return
+
+        if entity["type"] == "Step":
+            # can't create tasks on steps!
+            return
+
+        step = None
+        if entity["type"] == "Task":
+            step = entity.get("step")
+            entity = entity.get("entity")
+            if not entity:
+                return
+
+        # and emit the signal for this entity:
+        self.create_new_task.emit(entity, step)
+

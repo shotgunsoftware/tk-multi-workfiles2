@@ -22,7 +22,6 @@ from .entity_tree.entity_tree_form import EntityTreeForm
 from .my_tasks.my_tasks_form import MyTasksForm
 from .file_list.file_list_form import FileListForm
 
-from .find_files import FileFinder
 from .file_model import FileModel
 
 
@@ -35,7 +34,7 @@ class BrowserForm(QtGui.QWidget):
     """
     create_new_task = QtCore.Signal(object, object)# entity, step
     
-    work_area_changed = QtCore.Signal(object, object, object)# entity, step, task
+    work_area_changed = QtCore.Signal(object)#, object, object)# entity, step, task
     
     file_selected = QtCore.Signal(object, object)# file, env
     file_double_clicked = QtCore.Signal(object, object)# file, env
@@ -92,14 +91,14 @@ class BrowserForm(QtGui.QWidget):
             self._my_tasks_form = MyTasksForm(my_tasks_model, self)
             self._my_tasks_form.task_selected.connect(self._on_my_task_selected)
             self._ui.task_browser_tabs.addTab(self._my_tasks_form, "My Tasks")
-            self._my_tasks_form.create_new_task.connect(self._on_create_new_my_task)        
+            self._my_tasks_form.create_new_task.connect(self.create_new_task)        
         
         for caption, model in entity_models:
             # create new entity form:
             entity_form = EntityTreeForm(model, caption, self)
             entity_form.entity_selected.connect(self._on_entity_selected)
             self._ui.task_browser_tabs.addTab(entity_form, caption)
-            entity_form.create_new_task.connect(self._on_create_new_entity_task)        
+            entity_form.create_new_task.connect(self.create_new_task)        
 
         if file_model:
             # attach file model to the file views:
@@ -147,8 +146,8 @@ class BrowserForm(QtGui.QWidget):
         # finally trigger the signal that should be emitted based on the currently 
         # visible tab
         if isinstance(first_widget_found, MyTasksForm):
-            entity, step, task = first_widget_found.get_selected_task_details()
-            self._on_my_task_selected(entity, step, task)
+            task = first_widget_found.get_selected_task()
+            self._on_my_task_selected(task)
         elif isinstance(first_widget_found, EntityTreeForm):
             # (TODO)
             pass
@@ -196,21 +195,20 @@ class BrowserForm(QtGui.QWidget):
         local_pnt = self.sender().mapTo(self, pnt)
         self.file_context_menu_requested.emit(file, env, local_pnt)
     
-    def _on_my_task_selected(self, entity, step, task):
+    def _on_my_task_selected(self, task):
         """
         """
-        print "my-task selected"
+        #print "my-task selected"
         
         search_details = []
         if task:
             search_label = task.get("content")
+            step = task.get("step")
             if step:
                 search_label = "%s - %s" % (step.get("name"), search_label) 
 
-            details = FileFinder.SearchDetails(search_label)        
-            details.entity = entity
-            details.task = task
-            details.step = step
+            details = FileModel.SearchDetails(search_label)        
+            details.entity = task
             details.is_leaf = True
             search_details.append(details)
 
@@ -225,7 +223,7 @@ class BrowserForm(QtGui.QWidget):
         self._file_model.refresh_files(search_details)
         
         # emit work-area-changed signal:
-        self.work_area_changed.emit(entity, step, task)
+        self.work_area_changed.emit(task)
         
         
     def _on_entity_selected(self, selection_details):
@@ -234,7 +232,7 @@ class BrowserForm(QtGui.QWidget):
         this selection, a list of publishes and work files can then be found
         which will be used to populate the main file grid/details view.
         """
-        print "entity selected"
+        #print "entity selected"
 
         search_details = []
         
@@ -243,44 +241,27 @@ class BrowserForm(QtGui.QWidget):
             label = selection_details["label"]
             primary_entity = selection_details["entity"]
             children = selection_details["children"]
+            # TODO - this needs fixing.
             is_leaf = primary_entity and primary_entity["type"] == "Task"
             
-            primary_details = FileFinder.SearchDetails(label)
-            if primary_entity:
-                if primary_entity["type"] == "Task":
-                    primary_details.task = primary_entity
-                elif primary_entity["type"] == "Step":
-                    primary_details.step = primary_entity
-                else:
-                    primary_details.entity = primary_entity
+            primary_details = FileModel.SearchDetails(label)
+            primary_details.entity = primary_entity
             primary_details.is_leaf = is_leaf
             search_details.append(primary_details)
             
             for child_details in children:
                 label = child_details["label"]
                 entity = child_details["entity"]
+                # TODO - and here!
                 is_leaf = entity and entity["type"] == "Task"
                 if not is_leaf:
                     primary_details.child_entities.append({"name":label, "entity":entity})
                 else:
-                    details = FileFinder.SearchDetails(label)
-                    if entity["type"] == "Task":
-                        details.task = entity
-                    elif entity["type"] == "Step":
-                        details.step = entity
-                    else:
-                        details.entity = entity
+                    details = FileModel.SearchDetails(label)
+                    details.entity = entity
                     details.is_leaf = is_leaf
                     search_details.append(details)
-        
-        """
-        # get the item for the specified index:
-        entity_item = idx.model().itemFromIndex(idx)
-        
-        # first get searches for the entity item:
-        search_details = self._get_item_searches(entity_item)
-        """
-        
+
         # update selection in other tabs to match:
         primary_entity = primary_entity or {}
         self._update_selected_entity(primary_entity.get("type"), primary_entity.get("id"), skip_current=True)
@@ -289,11 +270,10 @@ class BrowserForm(QtGui.QWidget):
         self._file_model.refresh_files(search_details)    
 
         # emit work-area-changed signal:
-        if len(search_details) == 1:
-            details = search_details[0]
-            self.work_area_changed.emit(details.entity, details.step, details.task)
+        if len(search_details) > 0:
+            self.work_area_changed.emit(search_details[0].entity)
         else:
-            self.work_area_changed.emit(None, None, None)
+            self.work_area_changed.emit(None)
 
     def _get_item_searches(self, entity_item):
         """
@@ -366,7 +346,7 @@ class BrowserForm(QtGui.QWidget):
         app = sgtk.platform.current_bundle()
         model = item.model()
         
-        details = FileFinder.SearchDetails(name)
+        details = FileModel.SearchDetails(name)
         
         entity_type = entity["type"]
         if item.rowCount() == 0 and entity_type == model.get_entity_type():
@@ -400,45 +380,6 @@ class BrowserForm(QtGui.QWidget):
                 parent_item = parent_item.parent()
 
         return details
-
-    def _on_create_new_my_task(self, entity, step, task):
-        """
-        """
-        # emit the signal for this task:
-        self.create_new_task.emit(entity, step)
-                
-    def _on_create_new_entity_task(self, idx):
-        """
-        """
-        if not idx.isValid():
-            # can't create a new task if we don't have one
-            # available to base it on
-            return
-        
-        entity_form = self.sender()
-        entity_model = idx.model()
-        entity_item = entity_model.itemFromIndex(idx)
-        
-        # determine the currently selected entity:
-        entity = entity_model.get_entity(entity_item)
-        if not entity:
-            return
-        
-        if entity.get("type") == "Step":
-            # can't create tasks on steps!
-            return
-        
-        # if this is a task then assume that the user wants to create a new task
-        # for the selected task's linked entity
-        step = None
-        if entity.get("type") == "Task":
-            step = entity.get("step")
-            entity = entity.get("entity")
-            if not entity:
-                return
-                        
-        # and emit the signal for this task:
-        self.create_new_task.emit(entity, step)
     
     def _on_file_tab_changed(self, idx):
         """

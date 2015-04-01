@@ -433,17 +433,15 @@ class FileSaveForm(FileOperationForm):
                 # TODO try to get extension from path?
                 pass
 
-    def _on_browser_work_area_changed(self, entity, step, task):
+    def _on_browser_work_area_changed(self, entity):#, step, task):
         """
         """
-        app = sgtk.platform.current_bundle()
-
-        ctx_entity = task or step or entity or app.context.project
-        context = app.sgtk.context_from_entity_dictionary(ctx_entity)
-
-        env = EnvironmentDetails(context)
+        env = None
+        if entity:
+            app = sgtk.platform.current_bundle()
+            context = app.sgtk.context_from_entity_dictionary(entity)
+            env = EnvironmentDetails(context)
         self._on_work_area_changed(env)
-
         self._start_preview_update()
 
     def _on_work_area_changed(self, env):

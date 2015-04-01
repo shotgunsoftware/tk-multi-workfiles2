@@ -32,23 +32,6 @@ class FileFinder(QtCore.QObject):
     """
     Helper class to find work and publish files for a specified context and set of templates
     """
-    class SearchDetails(object):
-        def __init__(self, name=None):
-            self.entity = None
-            self.step = None
-            self.task = None
-            self.child_entities = []
-            self.name = name
-            self.is_leaf = False
-            
-        def __repr__(self):
-            return ("%s\n"
-                    " - Entity: %s\n"
-                    " - Task: %s\n"
-                    " - Step: %s\n"
-                    " - Is leaf: %s\n%s"
-                    % (self.name, self.entity, self.task, self.step, self.is_leaf, self.child_entities))       
-    
     class _FileNameMap(object):
         """
         """
@@ -158,7 +141,7 @@ class FileFinder(QtCore.QObject):
         self._searches = {}
         self._task_id_map = {}
      
-    def begin_search(self, search_details, force=False):
+    def begin_search(self, entity, force=False):
         """
         [publishes from Shotgun] ->  
                 [find_templates] -> [build publishes list] ->
@@ -166,47 +149,35 @@ class FileFinder(QtCore.QObject):
         """
         app = sgtk.platform.current_bundle()
         
-        # first, construct filters and context from search details:
-        publish_filters = []
-        if search_details.entity:
-            publish_filters.append(["entity", "is", search_details.entity])
-        if search_details.task:
-            publish_filters.append(["task", "is", search_details.task])
-        elif search_details.step:
-            publish_filters.append(["task.Task.step", "is", search_details.step])
-            
-        #context_entity = search_details.task or search_details.entity or search_details.step
-        
         # name map to ensure unique names for all files with the same key!
         name_map = FileFinder._FileNameMap()
         
         # build task chain for search:
-        find_templates_task = RunnableTask(self._task_find_templates, 
-                                   search_details=search_details)
+        construct_environment_task = RunnableTask(self._task_construct_environment, 
+                                                  entity=entity)
         
         # tasks needed to find and filter publishes:
         find_publishes_task = RunnableTask(self._task_find_publishes,
-                                           upstream_tasks = [find_templates_task], 
-                                           publish_filters = publish_filters, 
+                                           upstream_tasks = [construct_environment_task], 
                                            force = force)
         filter_publishes_task = RunnableTask(self._task_filter_publishes, 
-                                             upstream_tasks = [find_templates_task, find_publishes_task])
+                                             upstream_tasks = [construct_environment_task, find_publishes_task])
         build_publish_items_task = RunnableTask(self._task_build_publish_items, 
-                                             upstream_tasks = [find_templates_task, filter_publishes_task],
+                                             upstream_tasks = [construct_environment_task, filter_publishes_task],
                                              name_map = name_map)
 
         # tasks required to find and filter work files:
         find_work_files_task = RunnableTask(self._task_find_work_files, 
-                                            upstream_tasks = [find_templates_task])
+                                            upstream_tasks = [construct_environment_task])
         filter_work_files_task = RunnableTask(self._task_filter_work_files,
-                                              upstream_tasks = [find_templates_task, find_work_files_task])
+                                              upstream_tasks = [construct_environment_task, find_work_files_task])
         build_work_items_task = RunnableTask(self._task_build_work_items, 
-                                             upstream_tasks = [find_templates_task, filter_work_files_task],
+                                             upstream_tasks = [construct_environment_task, filter_work_files_task],
                                              name_map = name_map)        
         
         # final aggregate task to ensure that all files are aggregated correctly:
         aggregate_files_task = RunnableTask(self._task_aggregate_files,
-                                    upstream_tasks = [find_templates_task, build_work_items_task, build_publish_items_task])
+                                    upstream_tasks = [construct_environment_task, build_work_items_task, build_publish_items_task])
         
         self._task_id_map[build_publish_items_task.id] = aggregate_files_task.id
         self._task_id_map[build_work_items_task.id] = aggregate_files_task.id 
@@ -281,25 +252,33 @@ class FileFinder(QtCore.QObject):
     ################################################################################################
     ################################################################################################
     
-    def _task_find_templates(self, search_details, **kwargs):
+    def _task_construct_environment(self, entity, **kwargs):
         """
         """
         app = sgtk.platform.current_bundle()
+        env_details = None
+        if entity:
+            # build a context from the search details:
+            context = app.sgtk.context_from_entity_dictionary(entity)
 
-        # build a context from the search details:
-        ctx_entity = search_details.task or search_details.step or search_details.entity or app.context.project
-        context = app.sgtk.context_from_entity_dictionary(ctx_entity)
-
-        # build the environment details instance for this context:
-        env_details = EnvironmentDetails(context)
+            # build the environment details instance for this context:
+            env_details = EnvironmentDetails(context)
 
         return {"environment":env_details}
     
-    def _task_find_publishes(self, publish_filters, force, **kwargs):
+    def _task_find_publishes(self, environment, force, **kwargs):
         """
         """
         sg_publishes = []
-        if publish_filters:
+        if environment and environment.context:
+            publish_filters = []
+            if environment.context.entity:
+                publish_filters.append(["entity", "is", environment.context.entity])
+            if environment.context.task:
+                publish_filters.append(["task", "is", environment.context.task])
+            elif environment.context.step:
+                publish_filters.append(["task.Task.step", "is", environment.context.step])
+
             sg_publishes = self._find_publishes(publish_filters, force)
             
         return {"sg_publishes":sg_publishes}

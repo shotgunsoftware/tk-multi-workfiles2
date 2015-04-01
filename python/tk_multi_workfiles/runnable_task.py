@@ -145,7 +145,7 @@ class RunnableTask(QtCore.QRunnable, QtCore.QObject):
         self._upstream_tasks = []
         
         # if any upstream task failed then this task has also failed!
-        self.failed.emit(self, msg)
+        self.failed.emit(self, msg, "")
 
     def _on_upstream_task_skipped(self, task):
         """

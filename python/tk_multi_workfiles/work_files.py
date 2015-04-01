@@ -88,7 +88,7 @@ class WorkFiles(QtCore.QObject):#object):
         """
         """
         form.perform_action.connect(self._on_file_open_perform_action)
-        form.create_new_task.connect(self._on_create_new_task_OLD)
+        form.create_new_task.connect(self._on_create_new_task)
 
     def __show_file_save_dlg(self):
         """
@@ -124,7 +124,7 @@ class WorkFiles(QtCore.QObject):#object):
         """
         """
         # create models needed by the form:
-        form.create_new_task.connect(self._on_create_new_task_NEW)
+        form.create_new_task.connect(self._on_create_new_task)
         
         
     def _on_file_open_perform_action(self, action, file, file_versions, environment):
@@ -149,17 +149,12 @@ class WorkFiles(QtCore.QObject):#object):
         if close_dialog and form:
             form.close() 
     
-    def _on_create_new_task_NEW(self, event):
+    def _on_create_new_task(self, event):
         """
         """
-        event.task_created = self._on_create_new_task(event.entity, event.step)
-    
-    def _on_create_new_task_OLD(self, current_entity, current_step):
-        if self._on_create_new_task(current_entity, current_step):
-            parent_form = self.sender()
-            parent_form.refresh_all_async()
+        event.task_created = self._create_new_task(event.entity, event.step)
         
-    def _on_create_new_task(self, current_entity, current_step):
+    def _create_new_task(self, current_entity, current_step):
         """
         """
         if not current_entity:

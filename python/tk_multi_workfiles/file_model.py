@@ -65,11 +65,10 @@ class _SearchCache(object):
         
         return file_info.versions or {}
         
-    def find(self, project=None, entity=None, step=None, task=None, user=None):
+    def find(self, entity, user=None):
         """
         """
-        key_entity = task or step or entity or project
-        key = self._construct_key(key_entity, user)
+        key = self._construct_key(entity, user)
         entry = self._cache.get(key)
         if not entry:
             return None
@@ -95,6 +94,21 @@ class _SearchCache(object):
 class FileModel(QtGui.QStandardItemModel):
     """
     """
+    class SearchDetails(object):
+        def __init__(self, name=None):
+            self.entity = None
+            self.child_entities = []
+            self.name = name
+            self.is_leaf = False
+            
+        def __repr__(self):
+            return ("%s\n"
+                    " - Entity: %s\n"
+                    " - Task: %s\n"
+                    " - Step: %s\n"
+                    " - Is leaf: %s\n%s"
+                    % (self.name, self.entity, self.task, self.step, self.is_leaf, self.child_entities))
+    
     # signals
     search_started = QtCore.Signal(object)
     files_found = QtCore.Signal(object)
@@ -320,10 +334,15 @@ class FileModel(QtGui.QStandardItemModel):
                 folder_item = FileModel._FolderItem(child_name, child_entity)
                 folder_item.setIcon(QtGui.QIcon(":/tk-multi-workfiles/folder_512x400.png"))
                 new_item.appendRow(folder_item)
-            
+
+            if not search.entity:
+                # done!
+                new_item.set_search_status(FileModel.SEARCH_COMPLETED)
+                continue
+
             if not force:
                 # check to see if we already have results from this search in the cache:
-                cached_result = self._search_cache.find(app.context.project, search.entity, search.step, search.task)
+                cached_result = self._search_cache.find(search.entity)
                 if cached_result:
                     # we have a cached result so lets just use this instead!
                     files, environment = cached_result
@@ -331,10 +350,10 @@ class FileModel(QtGui.QStandardItemModel):
                     new_item.setData(environment, FileModel.ENVIRONMENT_ROLE)
                     new_item.set_search_status(FileModel.SEARCH_COMPLETED)
                     self.files_found.emit(new_item.index())
-                    continue                    
+                    continue
             
             # start a search for this new group:
-            search_id = self._finder.begin_search(search)
+            search_id = self._finder.begin_search(search.entity)
             self._in_progress_searches[search_id] = new_item
         
     def _process_files(self, files, environment, parent_item):
