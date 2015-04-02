@@ -315,15 +315,15 @@ class FileSaveForm(FileOperationForm):
         finally:
             self._ui.file_type_menu.blockSignals(signals_blocked)
 
-    def _populate_extension_menu(self, extensions, labels, block_signals=True):
+    def _populate_extension_menu(self, extensions, block_signals=True):
         """
         """
         signals_blocked = self._ui.file_type_menu.blockSignals(block_signals)
         try:
             self._ui.file_type_menu.clear()
-            for label in labels:
+            for label in extensions.values():
                 self._ui.file_type_menu.addItem(label)
-            self._extension_choices = extensions
+            self._extension_choices = extensions.keys()
         finally:
             self._ui.file_type_menu.blockSignals(signals_blocked)
         
@@ -477,18 +477,21 @@ class FileSaveForm(FileOperationForm):
             ext_is_used = "extension" in self._current_env.work_template.keys
             if ext_is_used:
                 ext_key = self._current_env.work_template.keys["extension"]
-                ext_choices = ext_key.choices
-                ext_labels = ext_key.choice_labels
+                #ext_choices = ext_key.choices
+                #ext_labels = ext_key.choice_labels
+                
+                ext_choices = ext_key.labelled_choices
+                
                 ext = ext_key.default
                 
                 current_ext_idx = self._ui.file_type_menu.currentIndex()
                 current_ext = ""
                 if current_ext_idx >= 0 and current_ext_idx < len(self._extension_choices):
                     current_ext = self._extension_choices[current_ext_idx]
-                if current_ext in ext_choices:
+                if current_ext in ext_choices.keys():
                     ext = current_ext
 
-                self._populate_extension_menu(ext_choices, ext_labels)
+                self._populate_extension_menu(ext_choices)#, ext_labels)
                 self._update_extension_menu(ext)
 
             self._ui.file_type_label.setVisible(ext_is_used)

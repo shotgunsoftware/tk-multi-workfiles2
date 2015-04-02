@@ -213,7 +213,7 @@ description: "Using this app you can change the current work area and
               
 # Required minimum versions for this item to run
 requires_shotgun_version:
-requires_core_version: "v0.15.0"
+requires_core_version: "v0.15.19"
 requires_engine_version: 
 
 # the engines that this app can operate in:
@@ -222,6 +222,6 @@ supported_engines:
 # the frameworks required to run this app
 frameworks:
     - {"name": "tk-framework-widget", "version": "v0.2.x"}
-    - {"name": "tk-framework-shotgunutils", "version": "v2.x.x"}
-    - {"name": "tk-framework-qtwidgets", "version": "v1.x.x"}    
+    - {"name": "tk-framework-shotgunutils", "version": "v3.x.x"}
+    - {"name": "tk-framework-qtwidgets", "version": "v2.x.x"}    
     

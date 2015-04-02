@@ -25,10 +25,10 @@ class MultiWorkFiles(tank.platform.Application):
         """
         self.__tk_multi_workfiles = self.import_module("tk_multi_workfiles")
 
-        application_has_scenes = True
-        if self.engine.name == "tk-mari":
-            # Mari doesn't have the concept of a current scene!
-            application_has_scenes = False
+        #application_has_scenes = True
+        #if self.engine.name == "tk-mari":
+        #    # Mari doesn't have the concept of a current scene!
+        #    application_has_scenes = False
 
         # register commands:
         #
@@ -66,30 +66,30 @@ class MultiWorkFiles(tank.platform.Application):
         # currently, we have done basic QA on nuke and maya so we limit these options to 
         # those two engines for now. 
         
-        SUPPORTED_ENGINES = ["tk-nuke", "tk-maya", "tk-3dsmax"]
-        
-        if self.engine.has_ui and not hasattr(tank, '_tk_multi_workfiles_launch_at_startup'):
-
-            # this is the very first time we run this app
-            tank._tk_multi_workfiles_launch_at_startup = True
-
-            if self.get_setting('launch_at_startup'):
-                # show the file manager UI
-                if self.engine.name in SUPPORTED_ENGINES:            
-                    self.show_file_manager_dlg()
-                else:
-                    self.log_warning("Sorry, the launch at startup option is currently not supported "
-                                     "in this engine! You can currently only use it with the following "
-                                     "engines: %s" % ", ".join(SUPPORTED_ENGINES))
-                            
-            elif self.get_setting('launch_change_work_area_at_startup') and can_change_work_area:
-                # show the change work area UI
-                if self.engine.name in SUPPORTED_ENGINES:
-                    self.show_change_work_area_dlg(False)
-                else:
-                    self.log_warning("Sorry, the launch at startup option is currently not supported "
-                                     "in this engine! You can currently only use it with the following "
-                                     "engines: %s" % ", ".join(SUPPORTED_ENGINES))
+        #SUPPORTED_ENGINES = ["tk-nuke", "tk-maya", "tk-3dsmax"]
+        #
+        #if self.engine.has_ui and not hasattr(tank, '_tk_multi_workfiles_launch_at_startup'):
+        #
+        #    # this is the very first time we run this app
+        #    tank._tk_multi_workfiles_launch_at_startup = True
+        #
+        #    if self.get_setting('launch_at_startup'):
+        #        # show the file manager UI
+        #        if self.engine.name in SUPPORTED_ENGINES:            
+        #            self.show_file_manager_dlg()
+        #        else:
+        #            self.log_warning("Sorry, the launch at startup option is currently not supported "
+        #                             "in this engine! You can currently only use it with the following "
+        #                             "engines: %s" % ", ".join(SUPPORTED_ENGINES))
+        #                    
+        #    elif self.get_setting('launch_change_work_area_at_startup') and can_change_work_area:
+        #        # show the change work area UI
+        #        if self.engine.name in SUPPORTED_ENGINES:
+        #            self.show_change_work_area_dlg(False)
+        #        else:
+        #            self.log_warning("Sorry, the launch at startup option is currently not supported "
+        #                             "in this engine! You can currently only use it with the following "
+        #                             "engines: %s" % ", ".join(SUPPORTED_ENGINES))
 
     def destroy_app(self):
         self.log_debug("Destroying tk-multi-workfiles")
@@ -104,45 +104,45 @@ class MultiWorkFiles(tank.platform.Application):
         """
         self.__tk_multi_workfiles.WorkFiles.show_file_save_dlg()        
         
-    def show_file_manager_dlg(self):
-        """
-        Show the file manager dialog
-        """
-        tk_multi_workfiles = self.import_module("tk_multi_workfiles")
-        tk_multi_workfiles.WorkFiles.show_file_manager_dlg(self)
-        
-    def show_change_work_area_dlg(self, enable_start_new=True):
-        """
-        Show a dialog for the user to change the current Work Area
-        """
-        tk_multi_workfiles = self.import_module("tk_multi_workfiles")
-        tk_multi_workfiles.WorkFiles.show_change_work_area_dlg(self, enable_start_new)
-
-    def show_save_as_dlg(self):
-        """
-        If save as is available, show the save as dialog.
-        """
-        if self._can_save_as:
-            tk_multi_workfiles = self.import_module("tk_multi_workfiles")
-            return tk_multi_workfiles.SaveAs.show_save_as_dlg(self)
-        else:
-            return False
-
-    def show_change_version_dlg(self):
-        """
-        If save as is available, show the change version dialog.
-        """
-        if self._can_change_version:
-            tk_multi_workfiles = self.import_module("tk_multi_workfiles")
-            return tk_multi_workfiles.Versioning.show_change_version_dlg(self)
-        else:
-            return False
-
-    def can_save_as(self):
-        """
-        Returns True if save-as is available, False otherwise.
-        """
-        return self._can_save_as
+    #def show_file_manager_dlg(self):
+    #    """
+    #    Show the file manager dialog
+    #    """
+    #    tk_multi_workfiles = self.import_module("tk_multi_workfiles")
+    #    tk_multi_workfiles.WorkFiles.show_file_manager_dlg(self)
+    #    
+    #def show_change_work_area_dlg(self, enable_start_new=True):
+    #    """
+    #    Show a dialog for the user to change the current Work Area
+    #    """
+    #    tk_multi_workfiles = self.import_module("tk_multi_workfiles")
+    #    tk_multi_workfiles.WorkFiles.show_change_work_area_dlg(self, enable_start_new)
+    #
+    #def show_save_as_dlg(self):
+    #    """
+    #    If save as is available, show the save as dialog.
+    #    """
+    #    if self._can_save_as:
+    #        tk_multi_workfiles = self.import_module("tk_multi_workfiles")
+    #        return tk_multi_workfiles.SaveAs.show_save_as_dlg(self)
+    #    else:
+    #        return False
+    #
+    #def show_change_version_dlg(self):
+    #    """
+    #    If save as is available, show the change version dialog.
+    #    """
+    #    if self._can_change_version:
+    #        tk_multi_workfiles = self.import_module("tk_multi_workfiles")
+    #        return tk_multi_workfiles.Versioning.show_change_version_dlg(self)
+    #    else:
+    #        return False
+    #
+    #def can_save_as(self):
+    #    """
+    #    Returns True if save-as is available, False otherwise.
+    #    """
+    #    return self._can_save_as
         
     @property
     def shotgun(self):

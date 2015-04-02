@@ -77,9 +77,6 @@ class WorkFiles(QtCore.QObject):#object):
             from .file_open_form import FileOpenForm
             res, file_open_ui = self._app.engine.show_modal("File Open", self._app, FileOpenForm, 
                                                             self._init_file_open_form)
-            if res == QtGui.QDialog.Accepted:
-                print "Lets open a file!"
-                
         except:
             self._app.log_exception("Failed to create File Open dialog!")
             return
@@ -107,7 +104,7 @@ class WorkFiles(QtCore.QObject):#object):
                     try:
                         action = SaveAsFileAction()
                         file = FileItem(new_path, None, True, False, None, {})
-                        print "Saving As %s" % new_path 
+                        #print "Saving As %s" % new_path 
                         action.execute(file, None, env, None)
                         #self.save_as(new_path)
                     except Exception, e:
