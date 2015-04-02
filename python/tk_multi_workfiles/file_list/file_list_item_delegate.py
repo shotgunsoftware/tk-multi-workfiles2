@@ -20,6 +20,7 @@ GroupedListViewItemDelegate = views.GroupedListViewItemDelegate
 from ..file_model import FileModel
 from .file_group_widget import FileGroupWidget
 from .file_tile import FileTile
+from ..util import get_model_data, get_model_str
 
 class FileListItemDelegate(GroupedListViewItemDelegate):
 
@@ -53,7 +54,7 @@ class FileListItemDelegate(GroupedListViewItemDelegate):
         is_editable = True
         not_editable_reason = None
         
-        file_item = model_index.data(FileModel.FILE_ITEM_ROLE)
+        file_item = get_model_data(model_index, FileModel.FILE_ITEM_ROLE)
         if file_item:
             # build label:
             label = "<b>%s, v%03d</b>" % (file_item.name, file_item.version)
@@ -68,8 +69,8 @@ class FileListItemDelegate(GroupedListViewItemDelegate):
             is_editable = file_item.editable
             not_editable_reason = file_item.not_editable_reason
         else:
-            label = model_index.data()
-            icon = model_index.data(QtCore.Qt.DecorationRole)
+            label = get_model_str(model_index)
+            icon = get_model_data(model_index, QtCore.Qt.DecorationRole)
 
         # update widget:
         widget.title = label

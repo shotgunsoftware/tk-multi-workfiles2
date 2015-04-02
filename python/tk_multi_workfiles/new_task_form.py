@@ -11,6 +11,8 @@
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
+from .util import value_to_str
+
 class NewTaskForm(QtGui.QWidget):
     """
     Form for requesting details needed to create
@@ -103,29 +105,9 @@ class NewTaskForm(QtGui.QWidget):
     
     @property
     def task_name(self):
-        return self._safe_to_string(self._ui.task_name.text())
+        return value_to_str(self._ui.task_name.text())
 
     def _on_create_btn_clicked(self):
         self._exit_code = QtGui.QDialog.Accepted
         self.close()
-
-    def _safe_to_string(self, value):
-        """
-        Safely convert the value to a string - handles
-        QtCore.QString if usign PyQt
-        """
-        if isinstance(value, basestring):
-            # it's a string anyway so just return
-            return value
-        
-        if hasattr(QtCore, "QString"):
-            # running PyQt!
-            if isinstance(value, QtCore.QString):
-                # QtCore.QString inherits from str but supports 
-                # unicode, go figure!  Lets play safe and return
-                # a utf-8 string
-                return str(value.toUtf8())
-        
-        # For everything else, just return as string
-        return str(value)
 

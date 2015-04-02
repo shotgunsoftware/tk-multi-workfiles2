@@ -13,6 +13,8 @@ import os
 import tank
 from tank.platform.qt import QtCore, QtGui
 
+from .util import value_to_str
+
 class SaveAsForm(QtGui.QWidget):
     """
     UI for saving the current tank work file
@@ -131,31 +133,7 @@ class SaveAsForm(QtGui.QWidget):
     
     def _get_new_name(self):
         name_str = self._ui.name_edit.text() or ""
-        return self._safe_to_str(name_str).strip()
-    
-    def _safe_to_str(self, value):
-        """
-        safely convert the value to a string - handles
-        QtCore.QString if usign PyQt
-        """
-        if isinstance(value, unicode):
-            # encode to str utf-8
-            return value.encode("utf-8")
-        
-        elif isinstance(value, str):
-            # it's a string anyway so just return
-            return value
-        
-        elif hasattr(QtCore, "QString"):
-            # running PyQt!
-            if isinstance(value, QtCore.QString):
-                # QtCore.QString inherits from str but supports 
-                # unicode, go figure!  Lets play safe and return
-                # a utf-8 string
-                return str(value.toUtf8())
-        
-        # For everything else, just return as string
-        return str(value)
+        return value_to_str(name_str).strip()
     
     def _should_reset_version(self):
         return self._reset_version

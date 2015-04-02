@@ -18,19 +18,40 @@ import sgtk
 from sgtk.platform.qt import QtCore
 from sgtk import TankError
 
-class RunnableTask(QtCore.QRunnable, QtCore.QObject):
+class RunnableTask(QtCore.QRunnable):#, QtCore.QObject):
     """
     """
-    completed = QtCore.Signal(object, object)
-    failed = QtCore.Signal(object, object, object)
-    skipped = QtCore.Signal(object)
+    class _Signals(QtCore.QObject):
+        """
+        """
+        completed = QtCore.Signal(object, object)
+        failed = QtCore.Signal(object, object, object)
+        skipped = QtCore.Signal(object)
+        
+        def __init__(self, parent=None):
+            """
+            """
+            QtCore.QObject.__init__(self, parent)
+
+    @property
+    def completed(self):
+        return self._signals.completed
+    @property
+    def failed(self):
+        return self._signals.failed
+    @property
+    def skipped(self):
+        return self._signals.skipped
 
     _next_task_id = 0
     def __init__(self, func, upstream_tasks=None, **kwargs):
         """
         """
         QtCore.QRunnable.__init__(self)
-        QtCore.QObject.__init__(self)
+        
+        self._signals = RunnableTask._Signals()
+        
+        #QtCore.QObject.__init__(self)
         
         self._func = func
         self._input_kwargs = kwargs

@@ -16,6 +16,7 @@ from ..file_model import FileModel
 models = sgtk.platform.import_framework("tk-framework-qtwidgets", "models")
 HierarchicalFilteringProxyModel = models.HierarchicalFilteringProxyModel
 
+from ..util import get_model_data, get_model_str
 
 class FileProxyModel(HierarchicalFilteringProxyModel):
     """
@@ -56,7 +57,7 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
     def _is_item_accepted(self, item, parent_accepted):
         """
         """
-        file_item = item.data(FileModel.FILE_ITEM_ROLE)
+        file_item = get_model_data(item, FileModel.FILE_ITEM_ROLE)
         if file_item:
             if (not (file_item.is_local and self._show_workfiles)
                 and not (file_item.is_published and self._show_publishes)):
@@ -65,7 +66,7 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
             if not self._show_all_versions:
                 src_model = self.sourceModel()
                 # need to check if this is the latest version of the file:
-                env = item.data(FileModel.ENVIRONMENT_ROLE)
+                env = get_model_data(item, FileModel.ENVIRONMENT_ROLE)
                 all_versions = src_model.get_file_versions(file_item.key, env) or {}
                 
                 visible_versions = [v for v, item in all_versions.iteritems() 
@@ -107,17 +108,24 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
                 return right_src_idx.row() < left_src_idx.row()
 
         # get the items:        
-        left_item = left_src_idx.data(FileModel.FILE_ITEM_ROLE)
-        right_item = right_src_idx.data(FileModel.FILE_ITEM_ROLE)
+        left_item = get_model_data(left_src_idx, FileModel.FILE_ITEM_ROLE)
+        right_item = get_model_data(right_src_idx, FileModel.FILE_ITEM_ROLE)
+        if hasattr(QtCore, "QVariant"):
+            # damned PyQt!
+            if isinstance(left_item, QtCore.QVariant):
+                left_item = left_item.toPyObject()
+            if isinstance(right_item, QtCore.QVariant):
+                right_item = right_item.toPyObject()
 
         # handle the case where one or both items are not file items:
         if not left_item:
             if not right_item:
                 # sort in alphabetical order:
+                is_less_than = get_model_str(left_src_idx).lower() < get_model_str(right_src_idx).lower()
                 if self.sortOrder() == QtCore.Qt.AscendingOrder:
-                    return left_src_idx.data().lower() < right_src_idx.data().lower()
+                    return is_less_than
                 else:
-                    return right_src_idx.data().lower() < left_src_idx.data().lower()
+                    return not is_less_than
             else:
                 return False
         elif not right_item:
@@ -126,9 +134,9 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
         if left_item.key != right_item.key:
             # items represent different files but we want to group all file versions together. 
             # Therefore, we find the maximum version for each file and compare those instead.
-            left_env = left_src_idx.data(FileModel.ENVIRONMENT_ROLE)
+            left_env = get_model_data(left_src_idx, FileModel.ENVIRONMENT_ROLE)
             left_versions = self.sourceModel().get_file_versions(left_item.key, left_env)
-            right_env = right_src_idx.data(FileModel.ENVIRONMENT_ROLE)            
+            right_env = get_model_data(right_src_idx, FileModel.ENVIRONMENT_ROLE)            
             right_versions = self.sourceModel().get_file_versions(right_item.key, right_env)
             
             if left_versions and right_versions:

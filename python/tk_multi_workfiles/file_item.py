@@ -57,7 +57,8 @@ class FileItem(QtCore.QObject):
                                 as the key in a dictionary (e.g. a string).
         """
         # default ignore keys to just 'version':
-        ignore_fields = ignore_fields or ["version"]
+        ignore_fields = ignore_fields or []#["version"]
+        ignore_fields += ["version", "extension"]
 
         # populate the file key from the fields passed in that are included in
         # the template, skipping the ignore fields:

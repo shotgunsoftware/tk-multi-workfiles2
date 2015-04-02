@@ -31,6 +31,8 @@ from .environment_details import EnvironmentDetails
 from .file_item import FileItem
 from .find_files import FileFinder
 
+from .util import value_to_str
+
 class FileSaveForm(FileOperationForm):
     """
     UI for saving a work file
@@ -171,7 +173,7 @@ class FileSaveForm(FileOperationForm):
         self._current_path = None
         
         # get the name, version and extension from the UI:
-        name = self._ui.name_edit.text()
+        name = value_to_str(self._ui.name_edit.text())
         version = self._ui.version_spinner.value()
         use_next_version = self._ui.use_next_available_cb.isChecked()
         ext_idx = self._ui.file_type_menu.currentIndex() 
@@ -416,7 +418,7 @@ class FileSaveForm(FileOperationForm):
             name_is_optional = name_is_used and self._current_env.work_template.is_optional("name")
             if not name and not name_is_optional:
                 # need to use either the current name if we have it or the default if we don't!
-                current_name = self._ui.name_edit.text()
+                current_name = value_to_str(self._ui.name_edit.text())
                 default_name = self._current_env.save_as_default_name
                 name = current_name or default_name or "scene"
 
@@ -461,7 +463,7 @@ class FileSaveForm(FileOperationForm):
             name_is_used = "name" in self._current_env.work_template.keys
             if name_is_used:
                 # try to set something valid for the name:
-                name = self._ui.name_edit.text()
+                name = value_to_str(self._ui.name_edit.text())
                 name_is_optional = name_is_used and self._current_env.work_template.is_optional("name")
                 if not name and not name_is_optional:
                     # lets populate name with a default value:

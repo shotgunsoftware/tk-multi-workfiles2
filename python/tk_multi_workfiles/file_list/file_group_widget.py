@@ -22,6 +22,7 @@ SpinnerWidget = spinner_widget.SpinnerWidget
 
 from ..file_model import FileModel
 from ..ui.file_group_widget import Ui_FileGroupWidget
+from ..util import get_model_data, get_model_str
 
 class FileGroupWidget(GroupWidgetBase):
     """
@@ -61,11 +62,11 @@ class FileGroupWidget(GroupWidgetBase):
     def set_item(self, model_idx):
         """
         """
-        label = model_idx.data()
+        label = get_model_str(model_idx)
         self._ui.expand_check_box.setText(label)
         
         # update if the spinner should be visible or not:
-        search_status = model_idx.data(FileModel.SEARCH_STATUS_ROLE)
+        search_status = get_model_data(model_idx, FileModel.SEARCH_STATUS_ROLE)
         if search_status == None:
             search_status = FileModel.SEARCH_COMPLETED
             
@@ -79,7 +80,7 @@ class FileGroupWidget(GroupWidgetBase):
             if not model_idx.model().hasChildren(model_idx):
                 search_msg = "No files found!"
         elif search_status == FileModel.SEARCH_FAILED:
-            search_msg = model_idx.data(FileModel.SEARCH_MSG_ROLE) or ""
+            search_msg = get_model_str(model_idx, FileModel.SEARCH_MSG_ROLE)
         self._ui.msg_label.setText(search_msg)
                         
         self._show_msg = bool(search_msg)

@@ -132,7 +132,7 @@ class FileModel(QtGui.QStandardItemModel):
         def __init__(self, typ, text=None):
             """
             """
-            QtGui.QStandardItem.__init__(self, text)
+            QtGui.QStandardItem.__init__(self, text or "")
             self._type = typ
             
         def data(self, role=QtCore.Qt.UserRole+1):
