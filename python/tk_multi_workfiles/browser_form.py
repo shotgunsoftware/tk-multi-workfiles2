@@ -134,7 +134,7 @@ class BrowserForm(QtGui.QWidget):
     def initialize(self, env, file):
         """
         """
-        if not env or not env.context or not file:
+        if not env or not env.context:
             return
         
         # update the selected entity in the various task/entity trees:
@@ -155,9 +155,10 @@ class BrowserForm(QtGui.QWidget):
         self._file_model.refresh_files([details])
         
         # Finally, select the file in the file views:
-        for ti in range(self._ui.file_browser_tabs.count()):
-            widget = self._ui.file_browser_tabs.widget(ti)
-            widget.select_file(file, env)
+        if file:
+            for ti in range(self._ui.file_browser_tabs.count()):
+                widget = self._ui.file_browser_tabs.widget(ti)
+                widget.select_file(file, env)
 
     def select_file(self, file, env):
         """

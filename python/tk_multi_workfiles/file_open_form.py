@@ -18,6 +18,7 @@ from sgtk.platform.qt import QtCore, QtGui
 
 from .actions.file_action import SeparatorFileAction
 from .actions.file_action_factory import FileActionFactory
+from .actions.new_file_action import NewFileAction
 
 from .file_operation_form import FileOperationForm
 from .ui.file_open_form import Ui_FileOpenForm
@@ -72,7 +73,6 @@ class FileOpenForm(FileOperationForm):
         self._ui.open_options_btn.setEnabled(False)
 
         # tmp - disable some controls that currently don't work!
-        self._ui.new_file_btn.setEnabled(False)
         self._ui.open_options_btn.hide()
         self._ui.history_btns.hide()
         self._ui.breadcrumbs.hide()
@@ -83,8 +83,9 @@ class FileOpenForm(FileOperationForm):
         current_file = self._get_current_file(env)
         self._ui.browser.initialize(env, current_file)
 
-
+        # initialize the UI
         self._on_selected_file_changed()
+        self._update_new_file_btn()
 
         # call init callback:
         if init_callback:
@@ -95,9 +96,11 @@ class FileOpenForm(FileOperationForm):
         self._ui.browser.file_selected.connect(self._on_browser_file_selected)
         self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)
         self._ui.browser.file_context_menu_requested.connect(self._on_browser_context_menu_requested)
+        self._ui.browser.work_area_changed.connect(self._on_browser_work_area_changed)
 
         self._ui.cancel_btn.clicked.connect(self._on_cancel)
         self._ui.open_btn.clicked.connect(self._on_open)
+        self._ui.new_file_btn.clicked.connect(self._on_new_file)
         
     def select_entity(self, entity):
         """
@@ -113,6 +116,22 @@ class FileOpenForm(FileOperationForm):
         self._selected_file = file
         self._selected_file_env = env
         self._on_selected_file_changed()
+        self._update_new_file_btn()
+    
+    def _on_browser_work_area_changed(self, entity):
+        """
+        """
+        env_details = None
+        if entity:
+            # (AD) - we need to build a context and construct the environment details 
+            # instance for it but this may be slow enough that we should thread it...
+            # Keep an eye on it and consider threading if it's noticeably slow!
+            app = sgtk.platform.current_bundle()
+            context = app.sgtk.context_from_entity_dictionary(entity)
+            env_details = EnvironmentDetails(context)
+        
+        self._selected_file_env = env_details
+        self._update_new_file_btn()
     
     def _on_browser_file_double_clicked(self, file, env):
         """
@@ -142,7 +161,7 @@ class FileOpenForm(FileOperationForm):
             self._ui.open_btn.setEnabled(False)
             self._ui.open_options_btn.setEnabled(False)
             return
-        
+
         # update the open button:
         self._ui.open_btn.setEnabled(True)
         self._ui.open_btn.setText(file_actions[0].label)
@@ -163,6 +182,14 @@ class FileOpenForm(FileOperationForm):
         else:
             # just disable the button:
             self._ui.open_options_btn.setEnabled(False)
+
+    def _update_new_file_btn(self):
+        """
+        """
+        if self._selected_file_env and NewFileAction.can_do_new_file(self._selected_file_env):
+            self._ui.new_file_btn.setEnabled(True)
+        else:
+            self._ui.new_file_btn.setEnabled(False)
 
     def _on_browser_context_menu_requested(self, file, env, pnt):
         """
@@ -245,6 +272,18 @@ class FileOpenForm(FileOperationForm):
         """
         self._exit_code = QtGui.QDialog.Rejected
         self.close()
+
+    def _on_new_file(self):
+        """
+        """
+        if not self._selected_file_env or not NewFileAction.can_do_new_file(self._selected_file_env):
+            return
+        
+        new_file_action = NewFileAction()
+        
+        # emit signal to perform the action.  This may result in the dialog
+        # being closed so no further work should be attempted after this call
+        self.perform_action.emit(new_file_action, None, None, self._selected_file_env)
 
 
 
