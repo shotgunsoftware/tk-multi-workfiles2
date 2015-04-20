@@ -8,6 +8,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+import weakref
 
 import sgtk
 from sgtk.platform.qt import QtGui, QtCore
@@ -18,9 +19,14 @@ from .find_files import FileFinder
 class _SearchCache(object):
     """
     """
+    class _CachedFileVersionInfo(object):
+        def __init__(self, file, model_item_ref=None):
+            self.file = file
+            self.model_item_ref = model_item_ref
+    
     class _CachedFileInfo(object):
         def __init__(self):
-            self.versions = {}# file.version:file 
+            self.versions = {}# file.version:_CachedFileVersionInfo #file 
 
     class _CacheEntry(object):
         def __init__(self):
@@ -32,14 +38,15 @@ class _SearchCache(object):
         """
         self._cache = {}
         
-    def add(self, environment, files):
+    def add(self, environment, files_and_items):
         """
         """
         # first build the cache entry from the list of files:
         entry = _SearchCache._CacheEntry()
         entry.environment = environment
-        for file in files:
-            entry.file_info.setdefault(file.key, _SearchCache._CachedFileInfo()).versions[file.version] = file
+        for file, item in files_and_items:
+            version_info = _SearchCache._CachedFileVersionInfo(file, weakref.ref(item))
+            entry.file_info.setdefault(file.key, _SearchCache._CachedFileInfo()).versions[file.version] = version_info
         
         # construct the key:
         key_entity = (environment.context.task or environment.context.step 
@@ -53,7 +60,6 @@ class _SearchCache(object):
         """
         key_entity = ctx.task or ctx.step or ctx.entity or ctx.project
         key = self._construct_key(key_entity, ctx.user)
-        #key = self._construct_key(project, entity, step, task, user)
         entry = self._cache.get(key)
         if not entry:
             # return None as we don't have a cached result for this context!
@@ -63,8 +69,28 @@ class _SearchCache(object):
         if not file_info:
             return {}
         
-        return file_info.versions or {}
+        return dict([(v, info.file) for v, info in file_info.versions.iteritems()])
+
+    def find_item_for_file(self, file_key, file_version, ctx):
+        """
+        """
+        key_entity = ctx.task or ctx.step or ctx.entity or ctx.project
+        key = self._construct_key(key_entity, ctx.user)
+        entry = self._cache.get(key)
+        if not entry:
+            # return None as we don't have a cached result for this context!
+            return None
         
+        file_info = entry.file_info.get(file_key)
+        if not file_info:
+            return None
+        
+        version_info = file_info.versions.get(file_version)
+        if version_info == None or not version_info.model_item_ref:
+            return None
+        
+        return version_info.model_item_ref()
+
     def find(self, entity, user=None):
         """
         """
@@ -74,8 +100,8 @@ class _SearchCache(object):
             return None
 
         files = []
-        for info in entry.file_info.values():
-            files.extend(info.versions.values())
+        for file_info in entry.file_info.values():
+            files.extend([version_info.file for version_info in file_info.versions.values()])
         
         return (files, entry.environment)
         
@@ -297,7 +323,16 @@ class FileModel(QtGui.QStandardItemModel):
         """
         """
         return self._search_cache.find_file_versions(key, env.context)
+
+    def item_from_file(self, file, env):
+        """
+        """
+        if not file or not env:
+            return None
         
+        # find the item using the cache:
+        return self._search_cache.find_item_for_file(file.key, file.version, env.context)
+
     def refresh_files(self, search_details, force=False):
         """
         Asynchronously refresh the list of files in the model based on the
@@ -359,9 +394,6 @@ class FileModel(QtGui.QStandardItemModel):
     def _process_files(self, files, environment, parent_item):
         """
         """
-        # update cache:
-        self._search_cache.add(environment, files)
-        
         new_rows = []
         for file in files:
             # create a new model item for this file:
@@ -377,6 +409,10 @@ class FileModel(QtGui.QStandardItemModel):
                                                                        file.published_file_id,
                                                                        "image")
                 self._pending_thumbnail_requests[request_id] = (file, environment)
+
+        # update cache:
+        files_and_items = zip(files, new_rows)
+        self._search_cache.add(environment, files_and_items)
 
         # add new rows to model:
         if new_rows:

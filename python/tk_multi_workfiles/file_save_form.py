@@ -96,13 +96,12 @@ class FileSaveForm(FileOperationForm):
 
         # initialize the browser:
         self._ui.browser.set_models(self._my_tasks_model, self._entity_models, self._file_model)
-        ctx_entity = app.context.task or app.context.step or app.context.entity or {}
-        self._ui.browser.select_entity(ctx_entity.get("type"), ctx_entity.get("id"))
-        # file:
 
         # setup for first run:
         env = EnvironmentDetails(app.context)
         current_file = self._get_current_file(env)
+        self._ui.browser.initialize(env, current_file)
+        
         self._on_work_area_changed(env)
         self._on_selected_file_changed(current_file)
         self._start_preview_update()
@@ -326,52 +325,6 @@ class FileSaveForm(FileOperationForm):
             self._extension_choices = extensions.keys()
         finally:
             self._ui.file_type_menu.blockSignals(signals_blocked)
-        
-    def _get_current_file(self, env):
-        """
-        """
-        app = sgtk.platform.current_bundle()
-        
-        # get the current file path:
-        try:
-            current_path = get_current_path(app, SAVE_FILE_AS_ACTION, env.context)
-        except Exception, e:
-            return None
-        
-        if not current_path:
-            return None
-        
-        # figure out if it's a publish or a work file:
-        is_publish = ((not env.work_template or env.work_template.validate(current_path))
-                      and env.publish_template != env.work_template
-                      and env.publish_template and env.publish_template.validate(current_path))
-
-        # build fields dictionary and construct key: 
-        fields = env.context.as_template_fields(env.work_template)
-        base_template = env.publish_template if is_publish else env.work_template
-        if base_template.validate(current_path):
-            template_fields = base_template.get_fields(current_path)
-            fields = dict(chain(template_fields.iteritems(), fields.iteritems()))
-
-        file_key = FileItem.build_file_key(fields, env.work_template, 
-                                           env.version_compare_ignore_fields + ["version"])
-
-        # extract details from the fields:
-        details = {}
-        for key_name in ["name", "version"]:
-            if key_name in fields:
-                details[key_name] = fields[key_name]
-
-        # build the file item (note that this will be a very minimal FileItem instance)!
-        file_item = FileItem(path = current_path if not is_publish else None,
-                             publish_path = current_path if is_publish else None,
-                             is_local = not is_publish,
-                             is_published = is_publish,
-                             details = fields,
-                             key = file_key)
-        
-        return file_item
-
         
     def _on_browser_file_selected(self, file, env):
         """

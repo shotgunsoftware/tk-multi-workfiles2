@@ -22,6 +22,8 @@ from .actions.file_action_factory import FileActionFactory
 from .file_operation_form import FileOperationForm
 from .ui.file_open_form import Ui_FileOpenForm
 
+from .environment_details import EnvironmentDetails
+
 class FileOpenForm(FileOperationForm):
     """
     UI for opening a publish or work file.  Presents a list of available files to the user
@@ -41,13 +43,33 @@ class FileOpenForm(FileOperationForm):
         
         self._exit_code = QtGui.QDialog.Rejected
         
+        self._selected_file = None
+        self._selected_file_env = None
+        self._default_open_action = None
+        
         # create the action factory - this is used to generate actions
         # for the selected file
         self._action_factory = FileActionFactory()
+
+        try:
+            # doing this inside a try-except to ensure any exceptions raised don't 
+            # break the UI and crash the dcc horribly!
+            self._init(init_callback)
+        except:
+            app.log_exception("Unhandled exception during File Save Form construction!")
+
+    def _init(self, init_callback):
+        """
+        """
+        app = sgtk.platform.current_bundle()
         
         # set up the UI
         self._ui = Ui_FileOpenForm()
         self._ui.setupUi(self)
+
+        # start by dissabling buttons:
+        self._ui.open_btn.setEnabled(False)
+        self._ui.open_options_btn.setEnabled(False)
 
         # tmp - disable some controls that currently don't work!
         self._ui.new_file_btn.setEnabled(False)
@@ -57,28 +79,26 @@ class FileOpenForm(FileOperationForm):
         
         # initialize the browser widget:
         self._ui.browser.set_models(self._my_tasks_model, self._entity_models, self._file_model)
-        self._ui.browser.create_new_task.connect(self._on_create_new_task)
-        self._ui.browser.file_selected.connect(self._on_browser_file_selected)
-        self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)
-        self._ui.browser.file_context_menu_requested.connect(self._on_browser_context_menu_requested)
+        env = EnvironmentDetails(app.context)
+        current_file = self._get_current_file(env)
+        self._ui.browser.initialize(env, current_file)
 
-        # hook up all other controls:
-        self._ui.cancel_btn.clicked.connect(self._on_cancel)
-        self._ui.open_btn.clicked.connect(self._on_open)
-        
-        self._selected_file = None
-        self._selected_file_env = None
-        self._default_open_action = None
+
         self._on_selected_file_changed()
 
         # call init callback:
         if init_callback:
             init_callback(self)
             
-        app = sgtk.platform.current_bundle()
-        ctx_entity = app.context.task or app.context.step or app.context.entity
-        self._ui.browser.select_entity(ctx_entity["type"], ctx_entity["id"])
+        # hook up signals on controls:
+        self._ui.browser.create_new_task.connect(self._on_create_new_task)
+        self._ui.browser.file_selected.connect(self._on_browser_file_selected)
+        self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)
+        self._ui.browser.file_context_menu_requested.connect(self._on_browser_context_menu_requested)
 
+        self._ui.cancel_btn.clicked.connect(self._on_cancel)
+        self._ui.open_btn.clicked.connect(self._on_open)
+        
     def select_entity(self, entity):
         """
         :param entity:  The entity or task to select in the current tree/my tasks view.  If it can't be found

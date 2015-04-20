@@ -108,7 +108,7 @@ class BrowserForm(QtGui.QWidget):
             all_files_form = FileListForm("All Files", show_work_files=True, show_publishes=True, parent=self)
             self._ui.file_browser_tabs.addTab(all_files_form, "All")
             all_files_form.set_model(self._file_model)
-            all_files_form.file_selected.connect(self.file_selected)
+            all_files_form.file_selected.connect(self._on_file_selected)
             all_files_form.file_double_clicked.connect(self.file_double_clicked)
             all_files_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
             
@@ -116,7 +116,7 @@ class BrowserForm(QtGui.QWidget):
             work_files_form = FileListForm("Work Files", show_work_files=True, show_publishes=False, parent=self)
             work_files_form.set_model(self._file_model)
             self._ui.file_browser_tabs.addTab(work_files_form, "Working")
-            work_files_form.file_selected.connect(self.file_selected)
+            work_files_form.file_selected.connect(self._on_file_selected)
             work_files_form.file_double_clicked.connect(self.file_double_clicked)
             work_files_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
                 
@@ -124,70 +124,73 @@ class BrowserForm(QtGui.QWidget):
             publishes_form = FileListForm("Publishes", show_work_files=False, show_publishes=True, parent=self)
             publishes_form.set_model(self._file_model)
             self._ui.file_browser_tabs.addTab(publishes_form, "Publishes")
-            publishes_form.file_selected.connect(self.file_selected)
+            publishes_form.file_selected.connect(self._on_file_selected)
             publishes_form.file_double_clicked.connect(self.file_double_clicked)
             publishes_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
             
             # create any user-sandbox/configured tabs:
             # (AD) TODO
     
-    def select_entity(self, entity_type, entity_id, switch_tabs=True):
+    def initialize(self, env, file):
         """
         """
-        first_widget_found = self._update_selected_entity(entity_type, entity_id)
-        if not first_widget_found:
-            # didn't find the entity anywhere so nothing more to do!
+        if not env or not env.context or not file:
             return
         
-        # if we need to, switch tabs to the first one we found that contains the entity: 
-        if switch_tabs:
-            self._ui.task_browser_tabs.setCurrentWidget(first_widget_found)
-            
-        # finally trigger the signal that should be emitted based on the currently 
-        # visible tab
-        if isinstance(first_widget_found, MyTasksForm):
-            task = first_widget_found.get_selected_task()
-            self._on_my_task_selected(task)
-        elif isinstance(first_widget_found, EntityTreeForm):
-            # (TODO)
-            pass
-             
-            
-    def _update_selected_entity(self, entity_type, entity_id, skip_current=False):
+        # update the selected entity in the various task/entity trees:
+        ctx_entity = env.context.task or env.context.step or env.context.entity
+        if not ctx_entity:
+            return
+        
+        self._update_selected_entity(ctx_entity["type"], ctx_entity["id"], skip_current=False)
+        
+        # now start a search based off the entity:
+        search_label = ctx_entity.get("name")
+        if ctx_entity["type"] == "Task" and env.context.step:
+            search_label = "%s - %s" % (env.context.step.get("name"), search_label)
+        
+        details = FileModel.SearchDetails(search_label)
+        details.entity = ctx_entity
+        details.is_leaf = True
+        self._file_model.refresh_files([details])
+        
+        # Finally, select the file in the file views:
+        for ti in range(self._ui.file_browser_tabs.count()):
+            widget = self._ui.file_browser_tabs.widget(ti)
+            widget.select_file(file, env)
+
+    def select_file(self, file, env):
         """
         """
-        # get the list of tab widgets ensuring the current widget is always 
-        # first in the list
+        for ti in range(self._ui.file_browser_tabs.count()):
+            widget = self._ui.file_browser_tabs.widget(ti)
+            widget.select_file(file, env)
+
+            
+    def _update_selected_entity(self, entity_type, entity_id, skip_current=True):
+        """
+        """
         current_widget = self._ui.task_browser_tabs.currentWidget()
-        widgets = [current_widget]
-        for ti in range(self._ui.task_browser_tabs.count()):
-            widget = self._ui.task_browser_tabs.widget(ti)
-            if widget != current_widget:
-                widgets.append(widget)
 
         # loop through all widgets and update the selection in each one:
-        first_widget_found = None
-        for widget in widgets:
+        for ti in range(self._ui.task_browser_tabs.count()):
+            widget = self._ui.task_browser_tabs.widget(ti)
+            
             if skip_current and widget == current_widget:
                 continue
             
-            selected_entity = False
+            # block signals to avoid recursion
             signals_blocked = widget.blockSignals(True)
             try:
                 if isinstance(widget, MyTasksForm):
                     if entity_type == "Task":
-                        selected_entity = widget.select_task(entity_id)
+                        widget.select_task(entity_id)
                     else:
                         widget.select_task(None)
                 elif isinstance(widget, EntityTreeForm):
-                    selected_entity = widget.select_entity(entity_type, entity_id)
+                    widget.select_entity(entity_type, entity_id)
             finally:
                 widget.blockSignals(signals_blocked)
-
-            if selected_entity and not first_widget_found:
-                first_widget_found = widget
-                
-        return first_widget_found
     
     def _on_file_context_menu_requested(self, file, env, pnt):
         """
@@ -213,11 +216,11 @@ class BrowserForm(QtGui.QWidget):
             search_details.append(details)
 
             # update selection in other tabs to match:
-            self._update_selected_entity("Task", task["id"], skip_current=True)
+            self._update_selected_entity("Task", task["id"])
             
         else:
             # update selection in other tabs to match:
-            self._update_selected_entity(None, None, skip_current=True)
+            self._update_selected_entity(None, None)
         
         # refresh files:
         self._file_model.refresh_files(search_details)
@@ -264,7 +267,7 @@ class BrowserForm(QtGui.QWidget):
 
         # update selection in other tabs to match:
         primary_entity = primary_entity or {}
-        self._update_selected_entity(primary_entity.get("type"), primary_entity.get("id"), skip_current=True)
+        self._update_selected_entity(primary_entity.get("type"), primary_entity.get("id"))
 
         # refresh files:
         self._file_model.refresh_files(search_details)    
@@ -380,6 +383,28 @@ class BrowserForm(QtGui.QWidget):
                 parent_item = parent_item.parent()
 
         return details
+    
+    def _on_file_selected(self, file, env, selection_mode):
+        """
+        """
+        if selection_mode == FileListForm.USER_SELECTED:
+            # user changed the selection so try to change the selection in all other 
+            # file tabs to match:
+            for wi in range(self._ui.file_browser_tabs.count()):
+                widget = self._ui.file_browser_tabs.widget(wi)
+                if widget == self.sender():
+                    continue
+                
+                # block signals to avoid recursion:
+                signals_blocked = widget.blockSignals(True)
+                try:
+                    widget.select_file(file, env)
+                finally:
+                    widget.blockSignals(False)
+            
+        # always emit a file selected signal to allow calling code
+        # to react to a visible change in the selection
+        self.file_selected.emit(file, env)
     
     def _on_file_tab_changed(self, idx):
         """

@@ -12,6 +12,7 @@
 Base class for the file-open & file-save forms.  Contains common code for setting up
 models etc. and common signals/operations (e.g creating a task)
 """
+from itertools import chain
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
@@ -23,6 +24,9 @@ shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "sho
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 from .file_model import FileModel
 from .my_tasks.my_tasks_model import MyTasksModel
+
+from .scene_operation import get_current_path, save_file, SAVE_FILE_AS_ACTION
+from .file_item import FileItem
 
 class FileOperationForm(QtGui.QWidget):
     """
@@ -148,5 +152,51 @@ class FileOperationForm(QtGui.QWidget):
         create_event = FileOperationForm.CreateNewTaskEvent(entity, step)
         self.create_new_task.emit(create_event)
         if create_event.task_created:
-            self._refresh_all_async()    
+            self._refresh_all_async()
+
+    def _get_current_file(self, env):
+        """
+        """
+        app = sgtk.platform.current_bundle()
+        
+        # get the current file path:
+        try:
+            current_path = get_current_path(app, SAVE_FILE_AS_ACTION, env.context)
+        except Exception, e:
+            return None
+        
+        if not current_path:
+            return None
+        
+        # figure out if it's a publish or a work file:
+        is_publish = ((not env.work_template or env.work_template.validate(current_path))
+                      and env.publish_template != env.work_template
+                      and env.publish_template and env.publish_template.validate(current_path))
+
+        # build fields dictionary and construct key: 
+        fields = env.context.as_template_fields(env.work_template)
+        base_template = env.publish_template if is_publish else env.work_template
+        if base_template.validate(current_path):
+            template_fields = base_template.get_fields(current_path)
+            fields = dict(chain(template_fields.iteritems(), fields.iteritems()))
+
+        file_key = FileItem.build_file_key(fields, env.work_template, 
+                                           env.version_compare_ignore_fields + ["version"])
+
+        # extract details from the fields:
+        details = {}
+        for key_name in ["name", "version"]:
+            if key_name in fields:
+                details[key_name] = fields[key_name]
+
+        # build the file item (note that this will be a very minimal FileItem instance)!
+        file_item = FileItem(path = current_path if not is_publish else None,
+                             publish_path = current_path if is_publish else None,
+                             is_local = not is_publish,
+                             is_published = is_publish,
+                             details = fields,
+                             key = file_key)
+        
+        return file_item
+
     
