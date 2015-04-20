@@ -415,9 +415,8 @@ class BrowserForm(QtGui.QWidget):
         form = self._ui.file_browser_tabs.widget(idx)
         if form and isinstance(form, FileListForm):
             # get the selected file from the form:
-            selected_file = form.selected_file
-            env = form.selected_file_environment
-            
+            selected_file, env = form.selected_file
+
         # update the selected file:
         self.file_selected.emit(selected_file, env)
 

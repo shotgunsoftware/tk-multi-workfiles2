@@ -225,7 +225,7 @@ class MyTasksForm(QtGui.QWidget):
         self._current_item_ref = weakref.ref(item) if item else None
 
         if self._current_item_ref:
-            # clear the task-to-select sa the current item now takes precedence
+            # clear the task-to-select as the current item now takes precedence
             self._task_id_to_select = None
 
         # emit selection_changed signal:

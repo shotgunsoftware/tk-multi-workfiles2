@@ -9,6 +9,8 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
+Custom widget that can display a list of work files/publishes in a couple of
+different views with options to show all versions or just the latest.
 """
 import weakref
 
@@ -20,7 +22,7 @@ GroupedListView = views.GroupedListView
 
 from ..file_model import FileModel
 from ..ui.file_list_form import Ui_FileListForm
-#from .group_header_widget import GroupHeaderWidget
+
 from .file_proxy_model import FileProxyModel
 from .file_list_item_delegate import FileListItemDelegate
 
@@ -28,8 +30,8 @@ from ..util import get_model_data
 
 class FileListForm(QtGui.QWidget):
     """
+    Main file list form class
     """
-
     # Selection mode.
     # - USER_SELECTED:   The user manually changed the selected file by clicking or navigating
     #                    using the mouse.
@@ -37,17 +39,31 @@ class FileListForm(QtGui.QWidget):
     #                    asyncronous data load, etc.
     (USER_SELECTED, SYSTEM_SELECTED) = range(2)
 
+    # Signal emitted whenever the selected file changes in one of the file views
     file_selected = QtCore.Signal(object, object, int)# file, env, selection mode
+
+    # Signal emitted whenever a file is double-clicked
     file_double_clicked = QtCore.Signal(object, object)# file, env
+
+    # Signal emitted whenever a context menu is required for a file
     file_context_menu_requested = QtCore.Signal(object, object, QtCore.QPoint)# file, env, pos
 
     def __init__(self, search_label, show_work_files=True, show_publishes=False, show_all_versions=False, parent=None):
         """
         Construction
+        
+        :param search_label:    The hint label to be displayed on the search control
+        :show_work_files:       True if work files should be displayed in this control, otherwise False
+        :show_publishes:        True if publishes should be displayed in this control, otherwise False
+        :show_all_versions:     True if all versions should be shown in this control, otherwise False.  This
+                                is this initial state for the view
+        :param parent:          The parent QWidget for this control
         """
         QtGui.QWidget.__init__(self, parent)
 
+        # keep track of the file to select when/if it appears in the attached model
         self._file_to_select = None
+        # and keep track of the currently selected item
         self._current_item_ref = None
 
         self._show_work_files = show_work_files
@@ -79,63 +95,68 @@ class FileListForm(QtGui.QWidget):
     @property
     def work_files_visible(self):
         """
+        Property to use to inspect if work files are visible in the current view or not
+
+        :returns:   True if work files are visible, otherwise False
         """
         return self._show_work_files
 
     @property
     def publishes_visible(self):
         """
+        Property to use to inspect if publishes are visible in the current view or not
+
+        :returns:   True if publishes are visible, otherwise False
         """
         return self._show_publishes
 
     @property
     def selected_file(self):
         """
+        Property to use to query the file and the environment details for that file 
+        that are currently selected in the control.
+
+        :returns:   A tuple containing (FileItem, EnvironmentDetails) or (None, None)
+                    if nothing is selected.
         """
+        selected_file = None
+        env_details = None
+
         selection_model = self._ui.file_list_view.selectionModel()
-        if not selection_model:
-            return None
-        
-        selected_indexes = selection_model.selectedIndexes()
-        if len(selected_indexes) != 1:
-            return None
-                
-        file = get_model_data(selected_indexes[0], FileModel.FILE_ITEM_ROLE)
+        if selection_model:
+            selected_indexes = selection_model.selectedIndexes()
+            if len(selected_indexes) == 1:
+                selected_file = get_model_data(selected_indexes[0], FileModel.FILE_ITEM_ROLE)
+                env_details = get_model_data(selected_indexes[0], FileModel.ENVIRONMENT_ROLE)
 
-        return file
-
-    @property
-    def selected_file_environment(self):
-        """
-        """
-        selection_model = self._ui.file_list_view.selectionModel()
-        if not selection_model:
-            return None
-        
-        selected_indexes = selection_model.selectedIndexes()
-        if len(selected_indexes) != 1:
-            return None
-                
-        env = get_model_data(selected_indexes[0], FileModel.ENVIRONMENT_ROLE)
-
-        return env
+        return (selected_file, env_details)
 
     def select_file(self, file, env):
         """
+        Select the specified file in the control views if possible.
+
+        :param file:    The file to select
+        :param env:     The environment details for the file to select
         """
+        # reset the current selection and get the previously selected item:
         prev_selected_item = self._reset_selection()
-        
+
+        # update the internal tracking info:
         self._file_to_select = (file, env)
-        #self._ui.file_list_view.selectionModel().reset()
         self._current_item_ref = None
-        
+
+        # update the selection - this will emit a file_selected signal if
+        # the selection is changed as a result of the overall call to select_file
         self._update_selection(prev_selected_item)
-        
+
     def set_model(self, model):
         """
+        Set the current file model for the control
+
+        :param model:    The FileModel model to attach to the control to
         """
         show_all_versions = self._ui.all_versions_cb.isChecked()
-        
+
         # create a filter model around the source model:
         self._filter_model = FileProxyModel(show_work_files=self._show_work_files, 
                                             show_publishes=self._show_publishes,
@@ -151,7 +172,7 @@ class FileListForm(QtGui.QWidget):
         # connect the views to the filtered model:        
         self._ui.file_list_view.setModel(self._filter_model)
         self._ui.file_details_view.setModel(self._filter_model)
-        
+
         # connect to the selection model:
         selection_model = self._ui.file_list_view.selectionModel()
         if selection_model:
@@ -162,6 +183,14 @@ class FileListForm(QtGui.QWidget):
 
     def _update_selection(self, prev_selected_item=None):
         """
+        Update the selection to either the to-be-selected file if set or the current item if known.  The 
+        current item is the item that was last selected but which may no longer be visible in the view due 
+        to filtering.  This allows it to be tracked so that the selection state is correctly restored when 
+        it becomes visible again.
+
+        :param prev_selected_item:  The item that was previously selected (if any).  If, at the end of this
+                                    method the selection is different then a file_selected signal will be
+                                    emitted
         """
         # we want to make sure we don't emit any signals whilst we are 
         # manipulating the selection:
@@ -170,7 +199,7 @@ class FileListForm(QtGui.QWidget):
             # try to get the item to select:
             item = None
             if self._file_to_select:
-                # we know about an entity we should try to select:
+                # we know about a file we should try to select:
                 src_model = self._filter_model.sourceModel()
                 file, env = self._file_to_select
                 item = src_model.item_from_file(file, env)
@@ -182,7 +211,7 @@ class FileListForm(QtGui.QWidget):
                 # try to get an index from the current filtered model:
                 idx = self._filter_model.mapFromSource(item.index())
                 if idx.isValid():
-                    # make sure the item is expanded and visible in the tree:
+                    # make sure the item is expanded and visible in the list:
                     self._ui.file_list_view.scrollTo(idx)
 
                     # select the item:
@@ -191,50 +220,67 @@ class FileListForm(QtGui.QWidget):
         finally:
             self.blockSignals(signals_blocked)
 
+            # if the selection is different to the previously selected item then we
+            # will emit a file_selected signal:
             selected_item = self._get_selected_item()
             if id(selected_item) != id(prev_selected_item):
                 # emit a selection changed signal:
                 selected_file = None
-                env = None
+                env_details = None
                 if selected_item:
                     # extract the file item from the index:
                     selected_file = get_model_data(selected_item, FileModel.FILE_ITEM_ROLE)
-                    env = get_model_data(selected_item, FileModel.ENVIRONMENT_ROLE)
+                    env_details = get_model_data(selected_item, FileModel.ENVIRONMENT_ROLE)
 
-                self.file_selected.emit(selected_file, env, FileListForm.SYSTEM_SELECTED)
-
+                # emit the signal
+                self.file_selected.emit(selected_file, env_details, FileListForm.SYSTEM_SELECTED)
 
     def _on_context_menu_requested(self, pnt):
         """
+        Slot triggered when a context menu has been requested from one of the file views.  This
+        will collect information about the item under the cursor and emit a file_context_menu_requested
+        signal.
+
+        :param pnt: The position for the context menu relative to the source widget
         """
         # get the item under the point:
         idx = self._ui.file_list_view.indexAt(pnt)
         if not idx or not idx.isValid():
             return
-        
+
         # get the file from the index:
         file = get_model_data(idx, FileModel.FILE_ITEM_ROLE)
         if not file:
             return
 
-        env = get_model_data(idx, FileModel.ENVIRONMENT_ROLE)
+        # ...and the env details:
+        env_details = get_model_data(idx, FileModel.ENVIRONMENT_ROLE)
 
         # remap the point from the source widget:
         pnt = self.sender().mapTo(self, pnt)
-        
+
         # emit a more specific signal:
-        self.file_context_menu_requested.emit(file, env, pnt)
-        
+        self.file_context_menu_requested.emit(file, env_details, pnt)
+
     def _on_view_toggled(self, checked):
         """
+        Signal triggered when the view radio-button is toggled.  Changes the current view
+        to the respective one.
+
+        :param checked: Ignored by this method!
         """
         if self._ui.details_radio_btn.isChecked():
+            # show the details view:
             self._ui.view_pages.setCurrentWidget(self._ui.details_page)
         else:
+            # show the grouped list view:
             self._ui.view_pages.setCurrentWidget(self._ui.list_page)
 
     def _get_selected_item(self):
         """
+        Get the currently selected item.
+
+        :returns:   The currently selected model item if any
         """
         item = None
         indexes = self._ui.file_list_view.selectionModel().selectedIndexes()
@@ -245,6 +291,10 @@ class FileListForm(QtGui.QWidget):
 
     def _reset_selection(self):
         """
+        Reset the current selection, returning the currently selected item if any.  This
+        doesn't result in any signals being emitted by the current selection model.
+
+        :returns:   The selected item before the selection was reset if any
         """
         prev_selected_item = self._get_selected_item()
         # reset the current selection without emitting any signals:
@@ -260,13 +310,17 @@ class FileListForm(QtGui.QWidget):
         :param first:       The first row id inserted
         :param last:        The last row id inserted
         """
-        # try to select the current task from the new items in the model:
+        # try to select the current file from the new items in the model:
         prev_selected_item = self._get_selected_item()
         self._update_selection(prev_selected_item)
 
     def _on_search_changed(self, search_text):
         """
+        Slot triggered when the search text has been changed.
+
+        :param search_text: The new search text
         """
+        # reset the current selection and get the previously selected item:
         prev_selected_item = self._reset_selection()
         try:
             # update the proxy filter search text:
@@ -278,11 +332,14 @@ class FileListForm(QtGui.QWidget):
 
     def _on_show_all_versions_toggled(self, checked):
         """
+        Slot triggered when the show-all-versions checkbox is checked.
+
+        :param checked: True if the checkbox has been checked, otherwise False
         """
-        # reset the current selection without emitting any signals:
+        # reset the current selection and get the previously selected item:
         prev_selected_item = self._reset_selection()
-        #self._ui.file_list_view.selectionModel().reset()
         try:
+            # update the filter model:
             self._filter_model.show_all_versions = checked
         finally:
             # and update the selection - this will restore the original selection if possible.
@@ -290,21 +347,30 @@ class FileListForm(QtGui.QWidget):
 
     def _on_item_double_clicked(self, idx):
         """
+        Slot triggered when an item has been double-clicked in a view.  This will
+        emit a signal appropriate to the item that was double-clicked.
+
+        :param idx:    The model index of the item that was double-clicked
         """
         item_type = get_model_data(idx, FileModel.NODE_TYPE_ROLE)
         if item_type == FileModel.FOLDER_NODE_TYPE:
-            # selection is a folder so move into that folder
+            # selection is a folder/child so move into it
             # TODO
             pass
         elif item_type == FileModel.FILE_NODE_TYPE:
             # this is a file so perform the default action for the file
             selected_file = get_model_data(idx, FileModel.FILE_ITEM_ROLE)
-            env = get_model_data(idx, FileModel.ENVIRONMENT_ROLE)
-            self.file_double_clicked.emit(selected_file, env)        
-        
+            env_details = get_model_data(idx, FileModel.ENVIRONMENT_ROLE)
+            self.file_double_clicked.emit(selected_file, env_details)
+
     def _on_selection_changed(self, selected, deselected):
         """
+        Slot triggered when the selection changes
+
+        :param selected:    QItemSelection containing any newly selected indexes
+        :param deselected:  QItemSelection containing any newly deselected indexes
         """
+        # get the item that was selected:
         item = None
         selected_indexes = selected.indexes()
         if len(selected_indexes) == 1:
@@ -312,19 +378,19 @@ class FileListForm(QtGui.QWidget):
             selected_index = self._filter_model.mapToSource(selected_indexes[0])
             item = self._filter_model.sourceModel().itemFromIndex(selected_index)
 
+        # get the file and env details for this item:
         selected_file = None
-        env = None
+        env_details = None
         if item:
             # extract the file item from the index:
             selected_file = get_model_data(item, FileModel.FILE_ITEM_ROLE)
-            env = get_model_data(item, FileModel.ENVIRONMENT_ROLE)
+            env_details = get_model_data(item, FileModel.ENVIRONMENT_ROLE)
 
         self._current_item_ref = weakref.ref(item) if item else None
         if self._current_item_ref:
+            # clear the file-to-select as the current item now takes precedence
             self._file_to_select = None
 
-        self.file_selected.emit(selected_file, env, FileListForm.USER_SELECTED)
-        
-        
-        
-        
+        # emit file selected signal:
+        self.file_selected.emit(selected_file, env_details, FileListForm.USER_SELECTED)
+
