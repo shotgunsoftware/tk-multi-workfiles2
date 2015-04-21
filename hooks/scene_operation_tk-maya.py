@@ -64,7 +64,7 @@ class SceneOperation(Hook):
             # do new scene as Maya doesn't like opening 
             # the scene it currently has open!   
             cmds.file(new=True, force=True) 
-            cmds.file(file_path, open=True)
+            cmds.file(file_path, open=True, force=True)
         elif operation == "save":
             # save the current scene:
             cmds.file(save=True)
