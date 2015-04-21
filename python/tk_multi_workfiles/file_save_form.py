@@ -74,9 +74,9 @@ class FileSaveForm(FileOperationForm):
         self._ui.setupUi(self)
 
         # temp
-        self._ui.history_btns.hide()
-        self._ui.breadcrumbs.hide()
-        self._ui.location_label.hide()
+        #self._ui.history_btns.hide()
+        #self._ui.breadcrumbs.hide()
+        #self._ui.location_label.hide()
 
         # define which controls are visible before initial show:        
         self._ui.nav_stacked_widget.setCurrentWidget(self._ui.location_page)

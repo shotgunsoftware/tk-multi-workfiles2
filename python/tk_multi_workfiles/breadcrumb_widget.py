@@ -28,5 +28,11 @@ class BreadcrumbWidget(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         
         # set up the UI
-        self.__ui = Ui_BreadcrumbWidget()
-        self.__ui.setupUi(self)
+        self._ui = Ui_BreadcrumbWidget()
+        self._ui.setupUi(self)
+        
+        
+    def set(self, path):
+        """
+        """
+        pass

@@ -6,14 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>126</width>
-    <height>42</height>
+    <width>113</width>
+    <height>38</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0">
+  <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,0,1">
    <property name="spacing">
     <number>0</number>
    </property>
@@ -21,70 +21,51 @@
     <number>0</number>
    </property>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
+    <spacer name="horizontalSpacer_2">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>0</width>
+       <height>0</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0,0">
      <property name="spacing">
       <number>2</number>
      </property>
      <item>
-      <widget class="QToolButton" name="navigation_prev">
+      <widget class="QToolButton" name="nav_home_btn">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="minimumSize">
         <size>
-         <width>40</width>
-         <height>40</height>
+         <width>39</width>
+         <height>36</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>40</width>
-         <height>40</height>
+         <width>39</width>
+         <height>36</height>
         </size>
        </property>
-       <property name="toolTip">
-        <string>&lt;i&gt;Go back&lt;/i&gt; in the folder history.</string>
+       <property name="baseSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
        </property>
        <property name="styleSheet">
-        <string notr="true">QToolButton{
-   border: none;
-   background-color: none;
-   background-repeat: no-repeat;
-   background-position: center center;
-   background-image: url(:/tk-multi-workfiles/left_arrow.png);
-}
-
-QToolButton:disabled{
-   background-image: url(:/tk-multi-workfiles/left_arrow_disabled.png);
-}
-
-QToolButton:hover{
-background-image: url(:/tk-multi-workfiles/left_arrow_hover.png);
-}
-
-QToolButton:Pressed {
-background-image: url(:/tk-multi-workfiles/left_arrow_pressed.png);
-}
-</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QToolButton" name="navigation_home">
-       <property name="minimumSize">
-        <size>
-         <width>40</width>
-         <height>40</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>40</width>
-         <height>40</height>
-        </size>
-       </property>
-       <property name="toolTip">
-        <string>Clicking the &lt;i&gt;home button&lt;/i&gt; will take you to the location that best matches your current work area.</string>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">QToolButton{
+        <string notr="true">#nav_home_btn{
    border: none;
    background-color: none;
    background-repeat: no-repeat;
@@ -92,36 +73,105 @@ background-image: url(:/tk-multi-workfiles/left_arrow_pressed.png);
    background-image: url(:/tk-multi-workfiles/home.png);
 }
 
-QToolButton:hover{
+#nav_home_btn:disabled{
+   background-image: url(:/tk-multi-workfiles/home_disabled.png);
+}
+
+#nav_home_btn:hover{
 background-image: url(:/tk-multi-workfiles/home_hover.png);
 }
 
-QToolButton:Pressed {
+#nav_home_btn:Pressed {
 background-image: url(:/tk-multi-workfiles/home_pressed.png);
 }
 </string>
        </property>
+       <property name="text">
+        <string/>
+       </property>
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="navigation_next">
+      <widget class="QToolButton" name="nav_prev_btn">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="minimumSize">
         <size>
-         <width>40</width>
-         <height>40</height>
+         <width>34</width>
+         <height>36</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>40</width>
-         <height>40</height>
+         <width>34</width>
+         <height>36</height>
         </size>
        </property>
-       <property name="toolTip">
-        <string>&lt;i&gt;Go forward&lt;/i&gt; in the folder history.</string>
+       <property name="baseSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
        </property>
        <property name="styleSheet">
-        <string notr="true">QToolButton{
+        <string notr="true">#nav_prev_btn{
+   border: none;
+   background-color: none;
+   background-repeat: no-repeat;
+   background-position: center center;
+   background-image: url(:/tk-multi-workfiles/left_arrow.png);
+}
+
+#nav_prev_btn:disabled{
+   background-image: url(:/tk-multi-workfiles/left_arrow_disabled.png);
+}
+
+#nav_prev_btn:hover{
+background-image: url(:/tk-multi-workfiles/left_arrow_hover.png);
+}
+
+#nav_prev_btn:Pressed {
+background-image: url(:/tk-multi-workfiles/left_arrow_pressed.png);
+}
+</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="nav_next_btn">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>34</width>
+         <height>36</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>34</width>
+         <height>36</height>
+        </size>
+       </property>
+       <property name="baseSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">#nav_next_btn{
    border: none;
    background-color: none;
    background-repeat: no-repeat;
@@ -129,19 +179,21 @@ background-image: url(:/tk-multi-workfiles/home_pressed.png);
    background-image: url(:/tk-multi-workfiles/right_arrow.png);
 }
 
-QToolButton:disabled{
+#nav_next_btn:disabled{
    background-image: url(:/tk-multi-workfiles/right_arrow_disabled.png);
 }
 
-
-QToolButton:hover{
+#nav_next_btn:hover{
 background-image: url(:/tk-multi-workfiles/right_arrow_hover.png);
 }
 
-QToolButton:Pressed {
+#nav_next_btn:Pressed {
 background-image: url(:/tk-multi-workfiles/right_arrow_pressed.png);
 }
 </string>
+       </property>
+       <property name="text">
+        <string/>
        </property>
       </widget>
      </item>
@@ -155,7 +207,7 @@ background-image: url(:/tk-multi-workfiles/right_arrow_pressed.png);
      <property name="sizeHint" stdset="0">
       <size>
        <width>0</width>
-       <height>20</height>
+       <height>0</height>
       </size>
      </property>
     </spacer>

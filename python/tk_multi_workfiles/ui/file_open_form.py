@@ -16,13 +16,13 @@ class Ui_FileOpenForm(object):
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.history_btns = NavigationWidget(FileOpenForm)
-        self.history_btns.setMinimumSize(QtCore.QSize(100, 50))
-        self.history_btns.setStyleSheet("#history_btns {\n"
+        self.nav = NavigationWidget(FileOpenForm)
+        self.nav.setMinimumSize(QtCore.QSize(80, 30))
+        self.nav.setStyleSheet("#history_btns {\n"
 "background-color: rgb(255, 128, 0);\n"
 "}")
-        self.history_btns.setObjectName("history_btns")
-        self.horizontalLayout_3.addWidget(self.history_btns)
+        self.nav.setObjectName("nav")
+        self.horizontalLayout_3.addWidget(self.nav)
         self.breadcrumbs = BreadcrumbWidget(FileOpenForm)
         self.breadcrumbs.setStyleSheet("#breadcrumbs {\n"
 "background-color: rgb(255, 128, 0);\n"

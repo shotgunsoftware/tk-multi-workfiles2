@@ -54,7 +54,7 @@
             <number>1</number>
            </property>
            <property name="currentIndex">
-            <number>0</number>
+            <number>1</number>
            </property>
            <widget class="QWidget" name="location_page">
             <layout class="QHBoxLayout" name="horizontalLayout_5">
@@ -82,7 +82,7 @@
               <widget class="NavigationWidget" name="history_btns" native="true">
                <property name="minimumSize">
                 <size>
-                 <width>60</width>
+                 <width>80</width>
                  <height>30</height>
                 </size>
                </property>

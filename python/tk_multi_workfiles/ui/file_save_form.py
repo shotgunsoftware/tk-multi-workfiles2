@@ -11,7 +11,7 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_FileSaveForm(object):
     def setupUi(self, FileSaveForm):
         FileSaveForm.setObjectName("FileSaveForm")
-        FileSaveForm.resize(837, 553)
+        FileSaveForm.resize(979, 656)
         self.verticalLayout = QtGui.QVBoxLayout(FileSaveForm)
         self.verticalLayout.setSpacing(4)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -47,7 +47,7 @@ class Ui_FileSaveForm(object):
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.history_btns = NavigationWidget(self.history_nav_page)
-        self.history_btns.setMinimumSize(QtCore.QSize(60, 30))
+        self.history_btns.setMinimumSize(QtCore.QSize(80, 30))
         self.history_btns.setStyleSheet("#history_btns {\n"
 "background-color: rgb(255, 128, 0);\n"
 "}")
@@ -197,7 +197,7 @@ class Ui_FileSaveForm(object):
         self.feedback_stacked_widget.addWidget(self.warning_page)
         self.verticalLayout_2.addWidget(self.feedback_stacked_widget)
         self.verticalLayout.addLayout(self.verticalLayout_2)
-        spacerItem2 = QtGui.QSpacerItem(20, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        spacerItem2 = QtGui.QSpacerItem(20, 5, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem2)
         self.break_line = QtGui.QFrame(FileSaveForm)
         self.break_line.setFrameShape(QtGui.QFrame.HLine)
@@ -217,10 +217,10 @@ class Ui_FileSaveForm(object):
         self.save_btn.setObjectName("save_btn")
         self.horizontalLayout_4.addWidget(self.save_btn)
         self.verticalLayout.addLayout(self.horizontalLayout_4)
-        self.verticalLayout.setStretch(4, 1)
+        self.verticalLayout.setStretch(0, 1)
 
         self.retranslateUi(FileSaveForm)
-        self.nav_stacked_widget.setCurrentIndex(0)
+        self.nav_stacked_widget.setCurrentIndex(1)
         self.feedback_stacked_widget.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(FileSaveForm)
 

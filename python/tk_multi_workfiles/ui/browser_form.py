@@ -11,7 +11,7 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_BrowserForm(object):
     def setupUi(self, BrowserForm):
         BrowserForm.setObjectName("BrowserForm")
-        BrowserForm.resize(723, 485)
+        BrowserForm.resize(982, 616)
         self.horizontalLayout = QtGui.QHBoxLayout(BrowserForm)
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout.setObjectName("horizontalLayout")

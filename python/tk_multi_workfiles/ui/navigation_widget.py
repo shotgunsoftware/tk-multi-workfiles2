@@ -11,43 +11,26 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_NavigationWidget(object):
     def setupUi(self, NavigationWidget):
         NavigationWidget.setObjectName("NavigationWidget")
-        NavigationWidget.resize(126, 42)
+        NavigationWidget.resize(113, 38)
         self.horizontalLayout = QtGui.QHBoxLayout(NavigationWidget)
         self.horizontalLayout.setSpacing(0)
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout.setObjectName("horizontalLayout")
+        spacerItem = QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.horizontalLayout.addItem(spacerItem)
         self.horizontalLayout_2 = QtGui.QHBoxLayout()
         self.horizontalLayout_2.setSpacing(2)
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.navigation_prev = QtGui.QToolButton(NavigationWidget)
-        self.navigation_prev.setMinimumSize(QtCore.QSize(40, 40))
-        self.navigation_prev.setMaximumSize(QtCore.QSize(40, 40))
-        self.navigation_prev.setStyleSheet("QToolButton{\n"
-"   border: none;\n"
-"   background-color: none;\n"
-"   background-repeat: no-repeat;\n"
-"   background-position: center center;\n"
-"   background-image: url(:/tk-multi-workfiles/left_arrow.png);\n"
-"}\n"
-"\n"
-"QToolButton:disabled{\n"
-"   background-image: url(:/tk-multi-workfiles/left_arrow_disabled.png);\n"
-"}\n"
-"\n"
-"QToolButton:hover{\n"
-"background-image: url(:/tk-multi-workfiles/left_arrow_hover.png);\n"
-"}\n"
-"\n"
-"QToolButton:Pressed {\n"
-"background-image: url(:/tk-multi-workfiles/left_arrow_pressed.png);\n"
-"}\n"
-"")
-        self.navigation_prev.setObjectName("navigation_prev")
-        self.horizontalLayout_2.addWidget(self.navigation_prev)
-        self.navigation_home = QtGui.QToolButton(NavigationWidget)
-        self.navigation_home.setMinimumSize(QtCore.QSize(40, 40))
-        self.navigation_home.setMaximumSize(QtCore.QSize(40, 40))
-        self.navigation_home.setStyleSheet("QToolButton{\n"
+        self.nav_home_btn = QtGui.QToolButton(NavigationWidget)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.nav_home_btn.sizePolicy().hasHeightForWidth())
+        self.nav_home_btn.setSizePolicy(sizePolicy)
+        self.nav_home_btn.setMinimumSize(QtCore.QSize(39, 36))
+        self.nav_home_btn.setMaximumSize(QtCore.QSize(39, 36))
+        self.nav_home_btn.setBaseSize(QtCore.QSize(0, 0))
+        self.nav_home_btn.setStyleSheet("#nav_home_btn{\n"
 "   border: none;\n"
 "   background-color: none;\n"
 "   background-repeat: no-repeat;\n"
@@ -55,20 +38,63 @@ class Ui_NavigationWidget(object):
 "   background-image: url(:/tk-multi-workfiles/home.png);\n"
 "}\n"
 "\n"
-"QToolButton:hover{\n"
+"#nav_home_btn:disabled{\n"
+"   background-image: url(:/tk-multi-workfiles/home_disabled.png);\n"
+"}\n"
+"\n"
+"#nav_home_btn:hover{\n"
 "background-image: url(:/tk-multi-workfiles/home_hover.png);\n"
 "}\n"
 "\n"
-"QToolButton:Pressed {\n"
+"#nav_home_btn:Pressed {\n"
 "background-image: url(:/tk-multi-workfiles/home_pressed.png);\n"
 "}\n"
 "")
-        self.navigation_home.setObjectName("navigation_home")
-        self.horizontalLayout_2.addWidget(self.navigation_home)
-        self.navigation_next = QtGui.QToolButton(NavigationWidget)
-        self.navigation_next.setMinimumSize(QtCore.QSize(40, 40))
-        self.navigation_next.setMaximumSize(QtCore.QSize(40, 40))
-        self.navigation_next.setStyleSheet("QToolButton{\n"
+        self.nav_home_btn.setText("")
+        self.nav_home_btn.setObjectName("nav_home_btn")
+        self.horizontalLayout_2.addWidget(self.nav_home_btn)
+        self.nav_prev_btn = QtGui.QToolButton(NavigationWidget)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.nav_prev_btn.sizePolicy().hasHeightForWidth())
+        self.nav_prev_btn.setSizePolicy(sizePolicy)
+        self.nav_prev_btn.setMinimumSize(QtCore.QSize(34, 36))
+        self.nav_prev_btn.setMaximumSize(QtCore.QSize(34, 36))
+        self.nav_prev_btn.setBaseSize(QtCore.QSize(0, 0))
+        self.nav_prev_btn.setStyleSheet("#nav_prev_btn{\n"
+"   border: none;\n"
+"   background-color: none;\n"
+"   background-repeat: no-repeat;\n"
+"   background-position: center center;\n"
+"   background-image: url(:/tk-multi-workfiles/left_arrow.png);\n"
+"}\n"
+"\n"
+"#nav_prev_btn:disabled{\n"
+"   background-image: url(:/tk-multi-workfiles/left_arrow_disabled.png);\n"
+"}\n"
+"\n"
+"#nav_prev_btn:hover{\n"
+"background-image: url(:/tk-multi-workfiles/left_arrow_hover.png);\n"
+"}\n"
+"\n"
+"#nav_prev_btn:Pressed {\n"
+"background-image: url(:/tk-multi-workfiles/left_arrow_pressed.png);\n"
+"}\n"
+"")
+        self.nav_prev_btn.setText("")
+        self.nav_prev_btn.setObjectName("nav_prev_btn")
+        self.horizontalLayout_2.addWidget(self.nav_prev_btn)
+        self.nav_next_btn = QtGui.QToolButton(NavigationWidget)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.nav_next_btn.sizePolicy().hasHeightForWidth())
+        self.nav_next_btn.setSizePolicy(sizePolicy)
+        self.nav_next_btn.setMinimumSize(QtCore.QSize(34, 36))
+        self.nav_next_btn.setMaximumSize(QtCore.QSize(34, 36))
+        self.nav_next_btn.setBaseSize(QtCore.QSize(0, 0))
+        self.nav_next_btn.setStyleSheet("#nav_next_btn{\n"
 "   border: none;\n"
 "   background-color: none;\n"
 "   background-repeat: no-repeat;\n"
@@ -76,32 +102,31 @@ class Ui_NavigationWidget(object):
 "   background-image: url(:/tk-multi-workfiles/right_arrow.png);\n"
 "}\n"
 "\n"
-"QToolButton:disabled{\n"
+"#nav_next_btn:disabled{\n"
 "   background-image: url(:/tk-multi-workfiles/right_arrow_disabled.png);\n"
 "}\n"
 "\n"
-"\n"
-"QToolButton:hover{\n"
+"#nav_next_btn:hover{\n"
 "background-image: url(:/tk-multi-workfiles/right_arrow_hover.png);\n"
 "}\n"
 "\n"
-"QToolButton:Pressed {\n"
+"#nav_next_btn:Pressed {\n"
 "background-image: url(:/tk-multi-workfiles/right_arrow_pressed.png);\n"
 "}\n"
 "")
-        self.navigation_next.setObjectName("navigation_next")
-        self.horizontalLayout_2.addWidget(self.navigation_next)
+        self.nav_next_btn.setText("")
+        self.nav_next_btn.setObjectName("nav_next_btn")
+        self.horizontalLayout_2.addWidget(self.nav_next_btn)
         self.horizontalLayout.addLayout(self.horizontalLayout_2)
-        spacerItem = QtGui.QSpacerItem(0, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.horizontalLayout.addItem(spacerItem)
+        spacerItem1 = QtGui.QSpacerItem(0, 0, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.horizontalLayout.addItem(spacerItem1)
+        self.horizontalLayout.setStretch(0, 1)
+        self.horizontalLayout.setStretch(2, 1)
 
         self.retranslateUi(NavigationWidget)
         QtCore.QMetaObject.connectSlotsByName(NavigationWidget)
 
     def retranslateUi(self, NavigationWidget):
         NavigationWidget.setWindowTitle(QtGui.QApplication.translate("NavigationWidget", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.navigation_prev.setToolTip(QtGui.QApplication.translate("NavigationWidget", "<i>Go back</i> in the folder history.", None, QtGui.QApplication.UnicodeUTF8))
-        self.navigation_home.setToolTip(QtGui.QApplication.translate("NavigationWidget", "Clicking the <i>home button</i> will take you to the location that best matches your current work area.", None, QtGui.QApplication.UnicodeUTF8))
-        self.navigation_next.setToolTip(QtGui.QApplication.translate("NavigationWidget", "<i>Go forward</i> in the folder history.", None, QtGui.QApplication.UnicodeUTF8))
 
 from . import resources_rc

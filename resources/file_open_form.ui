@@ -17,11 +17,11 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,1">
      <item>
-      <widget class="NavigationWidget" name="history_btns" native="true">
+      <widget class="NavigationWidget" name="nav" native="true">
        <property name="minimumSize">
         <size>
-         <width>100</width>
-         <height>50</height>
+         <width>80</width>
+         <height>30</height>
         </size>
        </property>
        <property name="styleSheet">

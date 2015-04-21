@@ -74,14 +74,17 @@ class FileOpenForm(FileOperationForm):
 
         # tmp - disable some controls that currently don't work!
         self._ui.open_options_btn.hide()
-        self._ui.history_btns.hide()
-        self._ui.breadcrumbs.hide()
+        #self._ui.history_btns.hide()
+        #self._ui.breadcrumbs.hide()
         
         # initialize the browser widget:
         self._ui.browser.set_models(self._my_tasks_model, self._entity_models, self._file_model)
         env = EnvironmentDetails(app.context)
         current_file = self._get_current_file(env)
         self._ui.browser.initialize(env, current_file)
+
+        # initialize the navigation controls and breadcrumbs:
+        self._ui.nav.add_destination("%s" % env.context, env)
 
         # initialize the UI
         self._on_selected_file_changed()
@@ -102,6 +105,8 @@ class FileOpenForm(FileOperationForm):
         self._ui.open_btn.clicked.connect(self._on_open)
         self._ui.new_file_btn.clicked.connect(self._on_new_file)
         
+        self._ui.nav.navigate.connect(self._on_navigate)
+        
     def select_entity(self, entity):
         """
         :param entity:  The entity or task to select in the current tree/my tasks view.  If it can't be found
@@ -109,6 +114,11 @@ class FileOpenForm(FileOperationForm):
         """
         # TODO
         pass
+
+    def _on_navigate(self, destination):
+        """
+        """
+        print "Navigating to destination: %s" % destination
 
     def _on_browser_file_selected(self, file, env):
         """
@@ -132,6 +142,8 @@ class FileOpenForm(FileOperationForm):
         
         self._selected_file_env = env_details
         self._update_new_file_btn()
+        
+        self._ui.nav.add_destination("%s" % env_details.context, env_details)
     
     def _on_browser_file_double_clicked(self, file, env):
         """
