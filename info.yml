@@ -200,6 +200,10 @@ configuration:
         description: Define if the My Tasks view should be visible or not.
         default: true
 
+    custom_actions_hook:
+        type: hook
+        default_value: "{self}/custom_actions.py"
+        description: Hook which contains all custom action methods.
 
 # the Shotgun fields that this app needs in order to operate correctly
 requires_shotgun_fields:

@@ -134,16 +134,15 @@ class FileActionFactory(object):
             actions.append(NewFileAction())
             
         # query for any custom actions:
-        custom_actions = []
-        # TODO - implement custom actions hook
-
+        custom_actions = CustomFileAction.get_action_details(file, file_versions, environment, 
+                                                          workfiles_visible, publishes_visible)
         if custom_actions:
             # ------------------------------------------------------------------
             actions.append(SeparatorFileAction())
         for action_dict in custom_actions:
             name = action_dict.get("name")
-            label = action_dict.get("label") or name
-            custom_action = CustomFileAction(name, label)
+            label = action_dict.get("caption") or name
+            custom_action = CustomFileAction(name, label, workfiles_visible, publishes_visible)
             actions.append(custom_action)
         
         # finally add the 'show in' actions:
