@@ -99,31 +99,6 @@ class EntityTreeForm(QtGui.QWidget):
         if selection_model:
             selection_model.selectionChanged.connect(self._on_selection_changed)
 
-    """
-    Startup
-    
-    - query the current context and file
-    - select the task/entity in all trees - don't care if selection actually works or not though
-    - update file model with search for context
-    - select file in view - again, don't care if selection actually works or not
-    
-    - 'location' shown in breadcrumb view will be the current context
-    -- this is the same logic that it would use when a task is selected in My Tasks:
-        Entity -> Task -> Step (if we have all three)
-    - file info shown in Save details is set to that of the current file regardless if the file
-      is selected in the view or not.
-    
-    - This means we can always start in a sensible state!
-    
-    Questions
-    - Can we intelligently choose the right tree to switch to on start (My Tasks, Assets, Shots, etc.) based
-      off the filter/hierarchy settings?
-    
-    So:
-    - Don't want signals emitted when select_entity is used.
-    
-    """
-
     def select_entity(self, entity_type, entity_id):
         """
         Select the specified entity in the tree.  If the tree is still being populated then the selection
@@ -133,35 +108,59 @@ class EntityTreeForm(QtGui.QWidget):
 
         :param entity_type: The type of the entity to select
         :param entity_id:   The id of the entity to select
-        :returns:           True if an item representing the entity is selected, otherwise False
         """
         # track the selected entity - this allows the entity to be selected when
         # it appears in the model even if the model hasn't been fully populated yet:
         self._entity_to_select = {"type":entity_type, "id":entity_id}
 
         # reset the current selection without emitting a signal:
-        self._ui.entity_tree.selectionModel().reset()
+        prev_selected_item = self._reset_selection()
         self._current_item_ref = None
         self._update_ui()
 
         # try to update the selection to reflect the change:
-        return self._update_selection(clear_filter_if_not_found=True)
+        self._update_selection(prev_selected_item)
 
-    #def get_selection_details(self):
-    #    """
-    #    Get details of the currently selected item.
-    #
-    #    :returns:   {"label":label, "entity":entity, "children":[children]}
-    #    """
-    #    # get the currently selected index:
-    #    selected_indexes = self._ui.entity_tree.selectionModel().selectedIndexes()
-    #    if len(selected_indexes) != 1:
-    #        return {}
-    #
-    #    return self._get_entity_details(selected_indexes[0])
+    def get_selection_details(self):
+        """
+        Get details of the currently selected item.
+    
+        :returns:   {"label":label, "entity":entity, "children":[children]}
+        """
+        # get the currently selected index:
+        selected_indexes = self._ui.entity_tree.selectionModel().selectedIndexes()
+        if len(selected_indexes) != 1:
+            return {}
+    
+        return self._get_entity_details(selected_indexes[0])
 
     # ------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------
+
+    def _get_selected_item(self):
+        """
+        Get the currently selected item.
+
+        :returns:   The currently selected model item if any
+        """
+        item = None
+        indexes = self._ui.entity_tree.selectionModel().selectedIndexes()
+        if len(indexes) == 1:
+            item = self._item_from_index(indexes[0])
+        return item
+
+    def _reset_selection(self):
+        """
+        Reset the current selection, returning the currently selected item if any.  This
+        doesn't result in any signals being emitted by the current selection model.
+
+        :returns:   The selected item before the selection was reset if any
+        """
+        prev_selected_item = self._get_selected_item()
+        # reset the current selection without emitting any signals:
+        self._ui.entity_tree.selectionModel().reset()
+        self._update_ui()
+        return prev_selected_item
 
     def _get_entity_details(self, idx):
         """
@@ -247,14 +246,13 @@ class EntityTreeForm(QtGui.QWidget):
         :param search_text: The new search text
         """
         # reset the current selection without emitting any signals:
-        self._ui.entity_tree.selectionModel().reset()
-        self._update_ui()
+        prev_selected_item = self._reset_selection()
         try:
             # update the proxy filter search text:
             self._update_filter(search_text)
         finally:
             # and update the selection - this will restore the original selection if possible.
-            self._update_selection(clear_filter_if_not_found=False)
+            self._update_selection(prev_selected_item)
 
     def _on_my_tasks_only_toggled(self, checked):
         """
@@ -263,13 +261,12 @@ class EntityTreeForm(QtGui.QWidget):
         :param checked: True if the checkbox has been checked, otherwise False 
         """
         # reset the current selection without emitting any signals:
-        self._ui.entity_tree.selectionModel().reset()
-        self._update_ui()
+        prev_selected_item = self._reset_selection()
         try:
             self._filter_model.only_show_my_tasks = checked
         finally:
             # and update the selection - this will restore the original selection if possible.
-            self._update_selection(clear_filter_if_not_found=False)
+            self._update_selection(prev_selected_item)
 
     def _update_filter(self, search_text):
         """
@@ -280,17 +277,12 @@ class EntityTreeForm(QtGui.QWidget):
         filter_reg_exp = QtCore.QRegExp(search_text, QtCore.Qt.CaseInsensitive, QtCore.QRegExp.FixedString)
         self._filter_model.setFilterRegExp(filter_reg_exp)
         
-    def _update_selection(self, clear_filter_if_not_found):
+    def _update_selection(self, prev_selected_item):
         """
         Update the selection to either the to-be-selected entity if set or the current item if known.  The 
         current item is the item that was last selected but which may no longer be visible in the view due 
         to filtering.  This allows it to be tracked so that the selection state is correctly restored when 
         it becomes visible again.
-
-        :param clear_filter_if_not_found:       If True and the item to select isn't currently visible then
-                                                the filter will be cleared before trying to select the item 
-                                                again
-        :returns:                               True if the item is found and selected, otherwise False
         """
         # we want to make sure we don't emit any signals whilst we are 
         # manipulating the selection:
@@ -310,18 +302,6 @@ class EntityTreeForm(QtGui.QWidget):
             if item:
                 # try to get an index from the current filtered model:
                 idx = self._filter_model.mapFromSource(item.index())
-                if not idx.isValid() and clear_filter_if_not_found:
-                    # lets try clearing the filter and looking again:
-                    self._update_filter("")
-                    signals_blocked = self._ui.search_ctrl.blockSignals(True)
-                    try:
-                        self._ui.search_ctrl.clear()
-                    finally:
-                        self._ui.search_ctrl.blockSignals(signals_blocked)
-
-                    # take another look for the index in the filtered model:
-                    idx = self._filter_model.mapFromSource(item.index())
-
                 if idx.isValid():
                     # make sure the item is expanded and visible in the tree:
                     self._ui.entity_tree.scrollTo(idx)
@@ -330,11 +310,20 @@ class EntityTreeForm(QtGui.QWidget):
                     selection_flags = QtGui.QItemSelectionModel.Clear | QtGui.QItemSelectionModel.SelectCurrent 
                     self._ui.entity_tree.selectionModel().select(idx, selection_flags)
 
-                    return True
-
-            return False
         finally:
             self.blockSignals(signals_blocked)
+
+            # if the selection is different to the previously selected item then we
+            # will emit an entity_selected signal:
+            selected_item = self._get_selected_item()
+            if id(selected_item) != id(prev_selected_item):
+                # emit a selection changed signal:
+                selection_details = None
+                if selected_item:
+                    selection_details = self._get_entity_details(selected_item.index())
+
+                # emit the signal
+                self.entity_selected.emit(selection_details)
 
     def _update_ui(self):
         """

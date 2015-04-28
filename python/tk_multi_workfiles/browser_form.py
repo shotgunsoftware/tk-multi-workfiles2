@@ -27,15 +27,20 @@ from .file_model import FileModel
 
 from .ui.browser_form import Ui_BrowserForm
 
+from .breadcrumb_widget import Breadcrumb
 
 class BrowserForm(QtGui.QWidget):
     """
     UI for saving a work file
     """
+    class _EntityTabBreadcrumb(Breadcrumb):
+        def __init__(self, label, tab_index):
+            Breadcrumb.__init__(self, label)
+            self.tab_index = tab_index
+
     create_new_task = QtCore.Signal(object, object)# entity, step
-    
-    work_area_changed = QtCore.Signal(object)#, object, object)# entity, step, task
-    
+    work_area_changed = QtCore.Signal(object)# entity
+    breadcrumbs_dropped = QtCore.Signal(list)# breadcrumbs
     file_selected = QtCore.Signal(object, object)# file, env
     file_double_clicked = QtCore.Signal(object, object)# file, env
     file_context_menu_requested = QtCore.Signal(object, object, QtCore.QPoint)# file, env, pnt
@@ -56,7 +61,7 @@ class BrowserForm(QtGui.QWidget):
         
         self._ui.file_browser_tabs.currentChanged.connect(self._on_file_tab_changed)
         self._ui.task_browser_tabs.currentChanged.connect(self._on_task_tab_changed)
-        
+
     @property
     def work_files_visible(self):
         """
@@ -75,7 +80,6 @@ class BrowserForm(QtGui.QWidget):
             return False
         return file_form.publishes_visible
 
-        
     def closeEvent(self, event):
         """
         """
@@ -134,6 +138,12 @@ class BrowserForm(QtGui.QWidget):
     def initialize(self, env, file):
         """
         """
+        self.select_environment(env)
+        self.select_file(file, env)
+    
+    def select_environment(self, env):
+        """
+        """
         if not env or not env.context:
             return
         
@@ -153,12 +163,6 @@ class BrowserForm(QtGui.QWidget):
         details.entity = ctx_entity
         details.is_leaf = True
         self._file_model.refresh_files([details])
-        
-        # Finally, select the file in the file views:
-        if file:
-            for ti in range(self._ui.file_browser_tabs.count()):
-                widget = self._ui.file_browser_tabs.widget(ti)
-                widget.select_file(file, env)
 
     def select_file(self, file, env):
         """
@@ -166,6 +170,46 @@ class BrowserForm(QtGui.QWidget):
         for ti in range(self._ui.file_browser_tabs.count()):
             widget = self._ui.file_browser_tabs.widget(ti)
             widget.select_file(file, env)
+
+    def navigate_to_breadcrumbs(self, crumbs):
+        """
+        """
+        if not crumbs or not isinstance(crumbs[0], BrowserForm._EntityTabBreadcrumb):
+            return
+
+        # change the entity tabs to the correct index:
+        self._ui.task_browser_tabs.setCurrentIndex(crumbs[0].tab_index)
+        
+        # update the widget selection:
+
+    def _drop_breadcrumbs(self):
+        """
+        """
+        breadcrumbs = []
+
+        tab_index = self._ui.task_browser_tabs.currentIndex()
+        tab_label = self._ui.task_browser_tabs.tabText(tab_index)
+        breadcrumbs.append(BrowserForm._EntityTabBreadcrumb(tab_label, tab_index))
+        
+        widget = self._ui.task_browser_tabs.widget(tab_index)
+        if isinstance(widget, MyTasksForm):
+            # get the task from the form:
+            task = widget.get_selected_task()
+            if task:
+                entity = task.get("entity")
+                if entity:
+                    breadcrumbs.append(Breadcrumb("<b>%s</b> %s" % (entity["type"], entity.get("name"))))
+                step = task.get("step")
+                if step:
+                    breadcrumbs.append(Breadcrumb("<b>Step</b> %s" % step.get("name")))
+                breadcrumbs.append(Breadcrumb("<b>Task</b> %s" % task.get("content")))
+
+        #widget_breadcrumbs = [1]#widget.get_breadcrumbs()
+        #for widget_crumb in widget_breadcrumbs:
+        #    crumb = BrowserForm._EntityTabBreadcrumb(tab_index)
+        #    breadcrumbs.append(crumb)
+        
+        self.breadcrumbs_dropped.emit(breadcrumbs)
 
             
     def _update_selected_entity(self, entity_type, entity_id, skip_current=True):
@@ -180,18 +224,18 @@ class BrowserForm(QtGui.QWidget):
             if skip_current and widget == current_widget:
                 continue
             
-            # block signals to avoid recursion
-            signals_blocked = widget.blockSignals(True)
-            try:
-                if isinstance(widget, MyTasksForm):
-                    if entity_type == "Task":
-                        widget.select_task(entity_id)
-                    else:
-                        widget.select_task(None)
-                elif isinstance(widget, EntityTreeForm):
-                    widget.select_entity(entity_type, entity_id)
-            finally:
-                widget.blockSignals(signals_blocked)
+            # block signals to avoid recursion (ad - think this is in the wrong place!)
+            #signals_blocked = widget.blockSignals(True)
+            #try:
+            if isinstance(widget, MyTasksForm):
+                if entity_type == "Task":
+                    widget.select_task(entity_id)
+                else:
+                    widget.select_task(None)
+            elif isinstance(widget, EntityTreeForm):
+                widget.select_entity(entity_type, entity_id)
+            #finally:
+            #    widget.blockSignals(signals_blocked)
     
     def _on_file_context_menu_requested(self, file, env, pnt):
         """
@@ -202,8 +246,10 @@ class BrowserForm(QtGui.QWidget):
     def _on_my_task_selected(self, task):
         """
         """
-        #print "my-task selected"
-        
+        # ignore if the sender isn't the current tab:
+        if self._ui.task_browser_tabs.currentWidget() != self.sender():
+            return
+
         search_details = []
         if task:
             search_label = task.get("content")
@@ -218,25 +264,27 @@ class BrowserForm(QtGui.QWidget):
 
             # update selection in other tabs to match:
             self._update_selected_entity("Task", task["id"])
-            
+
         else:
             # update selection in other tabs to match:
             self._update_selected_entity(None, None)
-        
+
         # refresh files:
         self._file_model.refresh_files(search_details)
-        
+
         # emit work-area-changed signal:
         self.work_area_changed.emit(task)
-        
-        
+        self._drop_breadcrumbs()
+
     def _on_entity_selected(self, selection_details):
         """
         Called when something has been selected in an entity tree view.  From 
         this selection, a list of publishes and work files can then be found
         which will be used to populate the main file grid/details view.
         """
-        #print "entity selected"
+        # ignore if the sender isn't the current tab:
+        if self._ui.task_browser_tabs.currentWidget() != self.sender():
+            return
 
         search_details = []
         
@@ -278,6 +326,7 @@ class BrowserForm(QtGui.QWidget):
             self.work_area_changed.emit(search_details[0].entity)
         else:
             self.work_area_changed.emit(None)
+        self._drop_breadcrumbs()
 
     def _get_item_searches(self, entity_item):
         """
@@ -384,10 +433,14 @@ class BrowserForm(QtGui.QWidget):
                 parent_item = parent_item.parent()
 
         return details
-    
+
     def _on_file_selected(self, file, env, selection_mode):
         """
         """
+        # ignore if the sender isn't the current file tab:
+        if self._ui.file_browser_tabs.currentWidget() != self.sender():
+            return
+
         if selection_mode == FileListForm.USER_SELECTED:
             # user changed the selection so try to change the selection in all other 
             # file tabs to match:
@@ -395,7 +448,7 @@ class BrowserForm(QtGui.QWidget):
                 widget = self._ui.file_browser_tabs.widget(wi)
                 if widget == self.sender():
                     continue
-                
+
                 # block signals to avoid recursion:
                 signals_blocked = widget.blockSignals(True)
                 try:
@@ -429,8 +482,10 @@ class BrowserForm(QtGui.QWidget):
         form = self._ui.task_browser_tabs.widget(idx)
         if form:
             if isinstance(form, MyTasksForm):
-                pass
+                if form.get_selected_task():
+                    self._drop_breadcrumbs()
             elif isinstance(form, EntityTreeForm):
-                pass
+                if form.get_selection_details():
+                    self._drop_breadcrumbs()
             
             

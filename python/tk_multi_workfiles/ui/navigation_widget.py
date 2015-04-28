@@ -11,7 +11,7 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_NavigationWidget(object):
     def setupUi(self, NavigationWidget):
         NavigationWidget.setObjectName("NavigationWidget")
-        NavigationWidget.resize(113, 38)
+        NavigationWidget.resize(119, 38)
         self.horizontalLayout = QtGui.QHBoxLayout(NavigationWidget)
         self.horizontalLayout.setSpacing(0)
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)

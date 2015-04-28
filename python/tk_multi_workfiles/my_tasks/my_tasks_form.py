@@ -96,12 +96,11 @@ class MyTasksForm(QtGui.QWidget):
         self._task_id_to_select = task_id
 
         # reset the current selection without emitting a signal:
-        self._ui.task_tree.selectionModel().reset()
+        prev_selected_item = self._reset_selection()
         self._current_item_ref = None
-        self._update_ui()
 
         # try to update the selection:
-        return self._update_selection(clear_filter_if_not_found=True)
+        self._update_selection(prev_selected_item)
 
     def get_selected_task(self):
         """
@@ -110,16 +109,36 @@ class MyTasksForm(QtGui.QWidget):
         :returns:   A Shotgun entity dictionary with details about the currently
                     selected task
         """
-        # get the currently selected index:
-        selected_indexes = self._ui.task_tree.selectionModel().selectedIndexes()
-        if len(selected_indexes) != 1:
-            return None
-
-        item = self._item_from_index(selected_indexes[0])
+        item = self._get_selected_item()
         return item.get_sg_data() if item else None
 
     # ------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------
+
+    def _get_selected_item(self):
+        """
+        Get the currently selected item.
+
+        :returns:   The currently selected model item if any
+        """
+        item = None
+        indexes = self._ui.task_tree.selectionModel().selectedIndexes()
+        if len(indexes) == 1:
+            item = self._item_from_index(indexes[0])
+        return item
+
+    def _reset_selection(self):
+        """
+        Reset the current selection, returning the currently selected item if any.  This
+        doesn't result in any signals being emitted by the current selection model.
+
+        :returns:   The selected item before the selection was reset if any
+        """
+        prev_selected_item = self._get_selected_item()
+        # reset the current selection without emitting any signals:
+        self._ui.task_tree.selectionModel().reset()
+        self._update_ui()
+        return prev_selected_item
 
     def _item_from_index(self, idx):
         """
@@ -132,17 +151,12 @@ class MyTasksForm(QtGui.QWidget):
         src_idx = self._filter_model.mapToSource(idx)
         return self._filter_model.sourceModel().itemFromIndex(src_idx)
 
-    def _update_selection(self, clear_filter_if_not_found):
+    def _update_selection(self, prev_selected_item=None):
         """
         Update the selection to either the to-be-selected task if set or the current item if known.  The 
         current item is the item that was last selected but which may no longer be visible in the view due 
         to filtering.  This allows it to be tracked so that the selection state is correctly restored when 
         it becomes visible again.
-
-        :param clear_filter_if_not_found:       If True and the item to select isn't currently visible then
-                                                the filter will be cleared before trying to select the item 
-                                                again
-        :returns:                               True if the item is found and selected, otherwise False
         """
         # we want to make sure we don't emit any signals whilst we are 
         # manipulating the selection:
@@ -160,18 +174,6 @@ class MyTasksForm(QtGui.QWidget):
             if item:
                 # try to get an index from the current filtered model:
                 idx = self._filter_model.mapFromSource(item.index())
-                if not idx.isValid() and clear_filter_if_not_found:
-                    # lets try clearing the filter and looking again:
-                    self._update_filter("")
-                    signals_blocked = self._ui.search_ctrl.blockSignals(True)
-                    try:
-                        self._ui.search_ctrl.clear()
-                    finally:
-                        self._ui.search_ctrl.blockSignals(signals_blocked)
-
-                    # take another look for the index in the filtered model:
-                    idx = self._filter_model.mapFromSource(item.index())
-
                 if idx.isValid():
                     # scroll to the item in the list:
                     self._ui.task_tree.scrollTo(idx)
@@ -180,11 +182,20 @@ class MyTasksForm(QtGui.QWidget):
                     selection_flags = QtGui.QItemSelectionModel.Clear | QtGui.QItemSelectionModel.SelectCurrent
                     self._ui.task_tree.selectionModel().select(idx, selection_flags)
 
-                    return True
-
-            return False
         finally:
             self.blockSignals(signals_blocked)
+
+            # if the selection is different to the previously selected item then we
+            # will emit a task_selected signal:
+            selected_item = self._get_selected_item()
+            if id(selected_item) != id(prev_selected_item):
+                # emit a selection changed signal:
+                task = None
+                if selected_item:
+                    task = selected_item.get_sg_data()
+
+                # emit the signal
+                self.task_selected.emit(task)
 
     def _on_search_changed(self, search_text):
         """
@@ -194,14 +205,15 @@ class MyTasksForm(QtGui.QWidget):
         """
         # clear the selection before changing anything - reset clears the selection
         # without emitting any signals:
-        self._ui.task_tree.selectionModel().reset()
-        self._update_ui()
+        prev_selected_item = self._reset_selection()
+        #self._ui.task_tree.selectionModel().reset()
+        #self._update_ui()
         try:
             # update the proxy filter search text:
             self._update_filter(search_text)
         finally:
             # and update the selection - this will restore the original selection if possible.
-            self._update_selection(clear_filter_if_not_found=False)
+            self._update_selection(prev_selected_item)
                 
     def _on_selection_changed(self, selected, deselected):
         """
@@ -241,7 +253,8 @@ class MyTasksForm(QtGui.QWidget):
         :param last:        The last row id inserted
         """
         # try to select the current task from the new items in the model:
-        self._update_selection(clear_filter_if_not_found=False)
+        prev_selected_item = self._get_selected_item()
+        self._update_selection(prev_selected_item)
 
     def _update_ui(self):
         """

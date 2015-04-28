@@ -25,6 +25,8 @@ from .ui.file_open_form import Ui_FileOpenForm
 
 from .environment_details import EnvironmentDetails
 
+from .breadcrumb_widget import Breadcrumb
+
 class FileOpenForm(FileOperationForm):
     """
     UI for opening a publish or work file.  Presents a list of available files to the user
@@ -47,6 +49,8 @@ class FileOpenForm(FileOperationForm):
         self._selected_file = None
         self._selected_file_env = None
         self._default_open_action = None
+        
+        self._navigating = False
         
         # create the action factory - this is used to generate actions
         # for the selected file
@@ -76,15 +80,27 @@ class FileOpenForm(FileOperationForm):
         self._ui.open_options_btn.hide()
         #self._ui.history_btns.hide()
         #self._ui.breadcrumbs.hide()
+            
+        # hook up signals on controls:
+        self._ui.browser.create_new_task.connect(self._on_create_new_task)
+        self._ui.browser.file_selected.connect(self._on_browser_file_selected)
+        self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)
+        self._ui.browser.file_context_menu_requested.connect(self._on_browser_context_menu_requested)
+        self._ui.browser.work_area_changed.connect(self._on_browser_work_area_changed)
+        self._ui.browser.breadcrumbs_dropped.connect(self._on_browser_dropped_breadcrumbs)
+
+        self._ui.cancel_btn.clicked.connect(self._on_cancel)
+        self._ui.open_btn.clicked.connect(self._on_open)
+        self._ui.new_file_btn.clicked.connect(self._on_new_file)
+        
+        self._ui.nav.navigate.connect(self._on_navigate)
+        self._ui.nav.home_clicked.connect(self._on_navigate_home)
         
         # initialize the browser widget:
         self._ui.browser.set_models(self._my_tasks_model, self._entity_models, self._file_model)
         env = EnvironmentDetails(app.context)
         current_file = self._get_current_file(env)
         self._ui.browser.initialize(env, current_file)
-
-        # initialize the navigation controls and breadcrumbs:
-        self._ui.nav.add_destination("%s" % env.context, env)
 
         # initialize the UI
         self._on_selected_file_changed()
@@ -93,19 +109,6 @@ class FileOpenForm(FileOperationForm):
         # call init callback:
         if init_callback:
             init_callback(self)
-            
-        # hook up signals on controls:
-        self._ui.browser.create_new_task.connect(self._on_create_new_task)
-        self._ui.browser.file_selected.connect(self._on_browser_file_selected)
-        self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)
-        self._ui.browser.file_context_menu_requested.connect(self._on_browser_context_menu_requested)
-        self._ui.browser.work_area_changed.connect(self._on_browser_work_area_changed)
-
-        self._ui.cancel_btn.clicked.connect(self._on_cancel)
-        self._ui.open_btn.clicked.connect(self._on_open)
-        self._ui.new_file_btn.clicked.connect(self._on_new_file)
-        
-        self._ui.nav.navigate.connect(self._on_navigate)
         
     def select_entity(self, entity):
         """
@@ -118,7 +121,42 @@ class FileOpenForm(FileOperationForm):
     def _on_navigate(self, destination):
         """
         """
-        print "Navigating to destination: %s" % destination
+        if isinstance(destination, EnvironmentDetails):
+            # add in some placeholder breadcrumbs that represent the environment context.
+            # these will be replaced as soon as something is selected in the app (either manually
+            # or by this process selecting something!)
+            env = destination
+
+            breadcrumbs = []
+            #if env.context.project:
+            #    breadcrumbs.append(Breadcrumb("<b>Project</b> %s" % env.context.project["name"]))
+            if env.context.entity:
+                breadcrumbs.append(Breadcrumb("<b>%s</b> %s" % (env.context.entity["type"], env.context.entity["name"])))
+            if env.context.step:
+                breadcrumbs.append(Breadcrumb("<b>Step</b> %s" % env.context.step["name"]))
+            if env.context.task:
+                breadcrumbs.append(Breadcrumb("<b>Task</b> %s" % env.context.task["name"]))
+
+            self._ui.breadcrumbs.set(breadcrumbs)
+            self._navigating = True
+            try:
+                self._ui.browser.select_environment(env)
+            finally:
+                self._navigating = False
+        #else:
+        #    self._ui.breadcrumbs.set(destination)
+        #    signals_blocked = self._ui.browser.blockSignals(True)
+        #    try:
+        #        self._ui.browser.navigate_to_breadcrumbs(destination)
+        #    finally:
+        #        self._ui.browser.blockSignals(signals_blocked)
+
+    def _on_navigate_home(self):
+        """
+        """
+        app = sgtk.platform.current_bundle()
+        env = EnvironmentDetails(app.context)
+        self._on_navigate(env)
 
     def _on_browser_file_selected(self, file, env):
         """
@@ -127,10 +165,17 @@ class FileOpenForm(FileOperationForm):
         self._selected_file_env = env
         self._on_selected_file_changed()
         self._update_new_file_btn()
-    
+
+    def _on_browser_dropped_breadcrumbs(self, breadcrumbs):
+        """
+        """
+        self._ui.breadcrumbs.set(breadcrumbs)
+            
     def _on_browser_work_area_changed(self, entity):
         """
         """
+        #print "WORK AREA CHANGED: %s" % entity
+        
         env_details = None
         if entity:
             # (AD) - we need to build a context and construct the environment details 
@@ -142,8 +187,9 @@ class FileOpenForm(FileOperationForm):
         
         self._selected_file_env = env_details
         self._update_new_file_btn()
-        
-        self._ui.nav.add_destination("%s" % env_details.context, env_details)
+
+        if not self._navigating:
+            self._ui.nav.add_destination("Unknown", env_details)
     
     def _on_browser_file_double_clicked(self, file, env):
         """

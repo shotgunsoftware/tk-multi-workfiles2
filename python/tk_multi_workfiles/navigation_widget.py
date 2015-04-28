@@ -21,6 +21,7 @@ class NavigationWidget(QtGui.QWidget):
     """
     """
     navigate = QtCore.Signal(object)
+    home_clicked = QtCore.Signal()
 
     class _DestinationInfo(object):
         def __init__(self, label, destination):
@@ -40,7 +41,7 @@ class NavigationWidget(QtGui.QWidget):
         self._ui = Ui_NavigationWidget()
         self._ui.setupUi(self)
 
-        self._ui.nav_home_btn.clicked.connect(self._on_nav_home_clicked)
+        self._ui.nav_home_btn.clicked.connect(self.home_clicked)
         self._ui.nav_prev_btn.clicked.connect(self._on_nav_prev_clicked)
         self._ui.nav_next_btn.clicked.connect(self._on_nav_next_clicked)
         
@@ -52,17 +53,6 @@ class NavigationWidget(QtGui.QWidget):
         new_destination_info = NavigationWidget._DestinationInfo(label, destination)
         self._destinations = self._destinations[:self._current_idx+1] + [new_destination_info]
         self._current_idx = len(self._destinations)-1
-        self._update_ui()
-        
-    def _on_nav_home_clicked(self):
-        """
-        """
-        if not self._destinations:
-            return
-
-        self._current_idx = 0
-        destination_info = self._destinations[self._current_idx]
-        self.navigate.emit(destination_info.destination)
         self._update_ui()
 
     def _on_nav_prev_clicked(self):

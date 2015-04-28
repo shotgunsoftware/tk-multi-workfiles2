@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>200</width>
-    <height>23</height>
+    <width>396</width>
+    <height>26</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,37 +18,9 @@
     <number>0</number>
    </property>
    <item>
-    <widget class="QLabel" name="label">
+    <widget class="QLabel" name="path_label">
      <property name="text">
-      <string>I</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QLabel" name="label_4">
-     <property name="text">
-      <string>&lt;span style='color:#2C93E2'&gt;&amp;#9656;&lt;/span&gt;</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QLabel" name="label_2">
-     <property name="text">
-      <string>Am</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QLabel" name="label_5">
-     <property name="text">
-      <string>&lt;span style='color:#2C93E2'&gt;&amp;#9656;&lt;/span&gt;</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QLabel" name="label_3">
-     <property name="text">
-      <string>Groot</string>
+      <string>I &lt;span style='color:#2C93E2'&gt;&amp;#9656;&lt;/span&gt; Am &lt;span style='color:#2C93E2'&gt;&amp;#9656;&lt;/span&gt; Groot</string>
      </property>
     </widget>
    </item>

@@ -17,6 +17,14 @@ from sgtk.platform.qt import QtCore, QtGui
 
 from .ui.breadcrumb_widget import Ui_BreadcrumbWidget
 
+class Breadcrumb(object):
+    def __init__(self, label):
+        self._label = label
+
+    @property
+    def label(self):
+        return self._label
+
 class BreadcrumbWidget(QtGui.QWidget):
     """
     """
@@ -31,8 +39,13 @@ class BreadcrumbWidget(QtGui.QWidget):
         self._ui = Ui_BreadcrumbWidget()
         self._ui.setupUi(self)
         
+        self._ui.path_label.setText("")
         
-    def set(self, path):
+    def set(self, breadcrumbs):
         """
         """
-        pass
+        # build a single path from the list of crumbs:
+        path = "<span style='color:#2C93E2'> &#9656; </span>".join([crumb.label for crumb in breadcrumbs])
+        
+        # and update the label:
+        self._ui.path_label.setText(path)
