@@ -46,13 +46,13 @@ class Ui_FileSaveForm(object):
         self.horizontalLayout = QtGui.QHBoxLayout(self.history_nav_page)
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.history_btns = NavigationWidget(self.history_nav_page)
-        self.history_btns.setMinimumSize(QtCore.QSize(80, 30))
-        self.history_btns.setStyleSheet("#history_btns {\n"
+        self.nav = NavigationWidget(self.history_nav_page)
+        self.nav.setMinimumSize(QtCore.QSize(80, 30))
+        self.nav.setStyleSheet("#history_btns {\n"
 "background-color: rgb(255, 128, 0);\n"
 "}")
-        self.history_btns.setObjectName("history_btns")
-        self.horizontalLayout.addWidget(self.history_btns)
+        self.nav.setObjectName("nav")
+        self.horizontalLayout.addWidget(self.nav)
         self.nav_stacked_widget.addWidget(self.history_nav_page)
         self.horizontalLayout_3.addWidget(self.nav_stacked_widget)
         self.gridLayout_2.addLayout(self.horizontalLayout_3, 0, 0, 1, 1)

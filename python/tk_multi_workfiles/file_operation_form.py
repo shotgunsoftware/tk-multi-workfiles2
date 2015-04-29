@@ -28,6 +28,8 @@ from .my_tasks.my_tasks_model import MyTasksModel
 from .scene_operation import get_current_path, save_file, SAVE_FILE_AS_ACTION
 from .file_item import FileItem
 
+from .environment_details import EnvironmentDetails
+
 class FileOperationForm(QtGui.QWidget):
     """
     """
@@ -154,15 +156,22 @@ class FileOperationForm(QtGui.QWidget):
         if create_event.task_created:
             self._refresh_all_async()
 
-    def _get_current_file(self, env):
+    def _get_current_file(self):
         """
         """
         app = sgtk.platform.current_bundle()
-        
+
+        # build environment details for this context:
+        try:
+            env = EnvironmentDetails(app.context)
+        except Exception, e:
+            return None
+
         # get the current file path:
         try:
             current_path = get_current_path(app, SAVE_FILE_AS_ACTION, env.context)
         except Exception, e:
+            print "B"
             return None
         
         if not current_path:

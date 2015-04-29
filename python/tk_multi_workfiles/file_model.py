@@ -324,14 +324,14 @@ class FileModel(QtGui.QStandardItemModel):
         """
         return self._search_cache.find_file_versions(key, env.context)
 
-    def item_from_file(self, file, env):
+    def item_from_file(self, file, context):
         """
         """
-        if not file or not env:
+        if not file or not context:
             return None
         
         # find the item using the cache:
-        return self._search_cache.find_item_for_file(file.key, file.version, env.context)
+        return self._search_cache.find_item_for_file(file.key, file.version, context)
 
     def refresh_files(self, search_details, force=False):
         """

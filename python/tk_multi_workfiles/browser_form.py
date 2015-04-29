@@ -39,7 +39,7 @@ class BrowserForm(QtGui.QWidget):
             self.tab_index = tab_index
 
     create_new_task = QtCore.Signal(object, object)# entity, step
-    work_area_changed = QtCore.Signal(object)# entity
+    work_area_changed = QtCore.Signal(object, list)# entity, breadcrumbs
     breadcrumbs_dropped = QtCore.Signal(list)# breadcrumbs
     file_selected = QtCore.Signal(object, object)# file, env
     file_double_clicked = QtCore.Signal(object, object)# file, env
@@ -131,87 +131,68 @@ class BrowserForm(QtGui.QWidget):
             publishes_form.file_selected.connect(self._on_file_selected)
             publishes_form.file_double_clicked.connect(self.file_double_clicked)
             publishes_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
-            
-            # create any user-sandbox/configured tabs:
-            # (AD) TODO
-    
-    def initialize(self, env, file):
+
+    def select_work_area(self, context):
         """
         """
-        self.select_environment(env)
-        self.select_file(file, env)
-    
-    def select_environment(self, env):
-        """
-        """
-        if not env or not env.context:
+        if not context:
             return
-        
+
         # update the selected entity in the various task/entity trees:
-        ctx_entity = env.context.task or env.context.step or env.context.entity
+        ctx_entity = context.task or context.step or context.entity
         if not ctx_entity:
             return
-        
+
         self._update_selected_entity(ctx_entity["type"], ctx_entity["id"], skip_current=False)
-        
-        # now start a search based off the entity:
+
+        # now start a new file search based off the entity:
         search_label = ctx_entity.get("name")
-        if ctx_entity["type"] == "Task" and env.context.step:
-            search_label = "%s - %s" % (env.context.step.get("name"), search_label)
-        
+        if ctx_entity["type"] == "Task" and context.step:
+            search_label = "%s - %s" % (context.step.get("name"), search_label)
+
         details = FileModel.SearchDetails(search_label)
         details.entity = ctx_entity
         details.is_leaf = True
         self._file_model.refresh_files([details])
 
-    def select_file(self, file, env):
+    def select_file(self, file, context):
         """
         """
+        # try to select the file in all file browser tabs:
         for ti in range(self._ui.file_browser_tabs.count()):
             widget = self._ui.file_browser_tabs.widget(ti)
-            widget.select_file(file, env)
+            widget.select_file(file, context)
 
-    def navigate_to_breadcrumbs(self, crumbs):
+    def navigate_to(self, breadcrumb_trail):
         """
         """
-        if not crumbs or not isinstance(crumbs[0], BrowserForm._EntityTabBreadcrumb):
+        if not breadcrumb_trail or not isinstance(breadcrumb_trail[0], BrowserForm._EntityTabBreadcrumb):
             return
 
         # change the entity tabs to the correct index:
-        self._ui.task_browser_tabs.setCurrentIndex(crumbs[0].tab_index)
-        
-        # update the widget selection:
+        self._ui.task_browser_tabs.setCurrentIndex(breadcrumb_trail[0].tab_index)
 
-    def _drop_breadcrumbs(self):
+        # update the widget navigation:
+        self._ui.task_browser_tabs.currentWidget().navigate_to(breadcrumb_trail[1:])
+
+    # ------------------------------------------------------------------------------------------
+    # protected methods
+
+    def _emit_work_area_changed(self, entity, child_breadcrumb_trail):
         """
         """
-        breadcrumbs = []
+        # build breadcrumb trail for the current selection in the UI:
+        breadcrumb_trail = []
 
         tab_index = self._ui.task_browser_tabs.currentIndex()
         tab_label = self._ui.task_browser_tabs.tabText(tab_index)
-        breadcrumbs.append(BrowserForm._EntityTabBreadcrumb(tab_label, tab_index))
-        
-        widget = self._ui.task_browser_tabs.widget(tab_index)
-        if isinstance(widget, MyTasksForm):
-            # get the task from the form:
-            task = widget.get_selected_task()
-            if task:
-                entity = task.get("entity")
-                if entity:
-                    breadcrumbs.append(Breadcrumb("<b>%s</b> %s" % (entity["type"], entity.get("name"))))
-                step = task.get("step")
-                if step:
-                    breadcrumbs.append(Breadcrumb("<b>Step</b> %s" % step.get("name")))
-                breadcrumbs.append(Breadcrumb("<b>Task</b> %s" % task.get("content")))
+        breadcrumb_trail.append(BrowserForm._EntityTabBreadcrumb(tab_label, tab_index))
 
-        #widget_breadcrumbs = [1]#widget.get_breadcrumbs()
-        #for widget_crumb in widget_breadcrumbs:
-        #    crumb = BrowserForm._EntityTabBreadcrumb(tab_index)
-        #    breadcrumbs.append(crumb)
-        
-        self.breadcrumbs_dropped.emit(breadcrumbs)
+        # append child breadcrumbs:
+        breadcrumb_trail.extend(child_breadcrumb_trail)
 
-            
+        self.work_area_changed.emit(entity, breadcrumb_trail)
+
     def _update_selected_entity(self, entity_type, entity_id, skip_current=True):
         """
         """
@@ -243,7 +224,7 @@ class BrowserForm(QtGui.QWidget):
         local_pnt = self.sender().mapTo(self, pnt)
         self.file_context_menu_requested.emit(file, env, local_pnt)
     
-    def _on_my_task_selected(self, task):
+    def _on_my_task_selected(self, task, breadcrumb_trail):
         """
         """
         # ignore if the sender isn't the current tab:
@@ -273,10 +254,9 @@ class BrowserForm(QtGui.QWidget):
         self._file_model.refresh_files(search_details)
 
         # emit work-area-changed signal:
-        self.work_area_changed.emit(task)
-        self._drop_breadcrumbs()
+        self._emit_work_area_changed(task, breadcrumb_trail)
 
-    def _on_entity_selected(self, selection_details):
+    def _on_entity_selected(self, selection_details, breadcrumb_trail):
         """
         Called when something has been selected in an entity tree view.  From 
         this selection, a list of publishes and work files can then be found
@@ -319,14 +299,10 @@ class BrowserForm(QtGui.QWidget):
         self._update_selected_entity(primary_entity.get("type"), primary_entity.get("id"))
 
         # refresh files:
-        self._file_model.refresh_files(search_details)    
+        self._file_model.refresh_files(search_details)
 
         # emit work-area-changed signal:
-        if len(search_details) > 0:
-            self.work_area_changed.emit(search_details[0].entity)
-        else:
-            self.work_area_changed.emit(None)
-        self._drop_breadcrumbs()
+        self._emit_work_area_changed(primary_entity or None, breadcrumb_trail)
 
     def _get_item_searches(self, entity_item):
         """
@@ -452,7 +428,7 @@ class BrowserForm(QtGui.QWidget):
                 # block signals to avoid recursion:
                 signals_blocked = widget.blockSignals(True)
                 try:
-                    widget.select_file(file, env)
+                    widget.select_file(file, env.context if env else None)
                 finally:
                     widget.blockSignals(False)
             
@@ -477,15 +453,17 @@ class BrowserForm(QtGui.QWidget):
     def _on_task_tab_changed(self, idx):
         """
         """
-        selected_idx = None
-        
         form = self._ui.task_browser_tabs.widget(idx)
-        if form:
-            if isinstance(form, MyTasksForm):
-                if form.get_selected_task():
-                    self._drop_breadcrumbs()
-            elif isinstance(form, EntityTreeForm):
-                if form.get_selection_details():
-                    self._drop_breadcrumbs()
-            
-            
+        if isinstance(form, MyTasksForm):
+            # retrieve the selected task from the form and emit a work-area changed signal:
+            task, breadcrumb_trail = form.get_selection()
+            #self._drop_breadcrumbs()
+            self._emit_work_area_changed(task, breadcrumb_trail)
+        elif isinstance(form, EntityTreeForm):
+            # retrieve the selection from the form and emit a work-area changed signal:
+            selection, breadcrumb_trail = form.get_selection()
+            selected_entity = selection.get("entity") if selection else None
+            self._emit_work_area_changed(selected_entity, breadcrumb_trail)
+
+
+

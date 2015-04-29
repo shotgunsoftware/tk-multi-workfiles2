@@ -24,13 +24,22 @@ from .my_task_item_delegate import MyTaskItemDelegate
 from ..entity_proxy_model import EntityProxyModel
 from ..ui.my_tasks_form import Ui_MyTasksForm
 
+from ..breadcrumb_widget import Breadcrumb
+
 class MyTasksForm(QtGui.QWidget):
     """
     My Tasks widget class
     """
 
+    class _TaskBreadcrumb(Breadcrumb):
+        """
+        """
+        def __init__(self, label, task_id):
+            Breadcrumb.__init__(self, label)
+            self.task_id = task_id
+
     # Signal emitted when a task is selected in the tree
-    task_selected = QtCore.Signal(object)# task
+    task_selected = QtCore.Signal(object, list)# task, breadcrumb trail
 
     # Signal emitted when the 'New Task' button is clicked
     create_new_task = QtCore.Signal(object, object)# entity, step
@@ -102,15 +111,34 @@ class MyTasksForm(QtGui.QWidget):
         # try to update the selection:
         self._update_selection(prev_selected_item)
 
-    def get_selected_task(self):
+    def get_selection(self):
         """
-        Get the currently selected task
+        Get the currently selected task as well as the breadcrumb trail that represents 
+        the path for the selection.
 
-        :returns:   A Shotgun entity dictionary with details about the currently
-                    selected task
+        :returns:   A Tuple containing the task and breadcrumb trail of the current selection:
+                        (task, breadcrumb_trail)
+
+                    - task is a Shotgun entity dictionary
+                    - breadcrumb_trail is a list of Breadcrumb instances
         """
         item = self._get_selected_item()
-        return item.get_sg_data() if item else None
+        task = item.get_sg_data() if item else None
+        breadcrumb_trail = self._build_breadcrumb_trail()
+        return (task, breadcrumb_trail)
+
+    def navigate_to(self, breadcrumb_trail):
+        """
+        Update the selection to match the specified breadcrumb trail
+
+        :param breadcrumb_trail:    A list of Breadcrumb instances that represent
+                                    an item in the task list.
+        """
+        task_id_to_select = None
+        if breadcrumb_trail and isinstance(breadcrumb_trail[-1], MyTasksForm._TaskBreadcrumb):
+            task_id_to_select = breadcrumb_trail[-1].task_id
+
+        self.select_task(task_id_to_select)
 
     # ------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------
@@ -195,7 +223,8 @@ class MyTasksForm(QtGui.QWidget):
                     task = selected_item.get_sg_data()
 
                 # emit the signal
-                self.task_selected.emit(task)
+                self._emit_task_selected(task)
+                #self.task_selected.emit(task)
 
     def _on_search_changed(self, search_text):
         """
@@ -241,7 +270,8 @@ class MyTasksForm(QtGui.QWidget):
             self._task_id_to_select = None
 
         # emit selection_changed signal:
-        self.task_selected.emit(task)
+        self._emit_task_selected(task)
+        #self.task_selected.emit(task)
         
     def _on_filter_model_rows_inserted(self, parent, first, last):
         """
@@ -283,7 +313,8 @@ class MyTasksForm(QtGui.QWidget):
         information from the widget and raises a uniform signal for containing code
         """
         # get the currently selected task:
-        task = self.get_selected_task()
+        item = self._get_selected_item()
+        task = item.get_sg_data() if item else None
         if not task:
             return
 
@@ -293,3 +324,28 @@ class MyTasksForm(QtGui.QWidget):
         step = task.get("step")
 
         self.create_new_task.emit(entity, step)
+
+    def _build_breadcrumb_trail(self):
+        """
+        """
+        breadcrumbs = []
+        item = self._get_selected_item()
+        task = item.get_sg_data() if item else None
+        if task:
+            entity = task.get("entity")
+            if entity:
+                breadcrumbs.append(Breadcrumb("<b>%s</b> %s" % (entity["type"], entity["name"])))
+            step = task.get("step")
+            if step:
+                breadcrumbs.append(Breadcrumb("<b>Step</b> %s" % step["name"]))
+
+            # finally, add task breadcrumb:
+            breadcrumbs.append(MyTasksForm._TaskBreadcrumb("<b>Task</b> %s" % task["content"], task["id"]))
+
+        return breadcrumbs
+
+    def _emit_task_selected(self, task):
+        """
+        """
+        breadcrumbs = self._build_breadcrumb_trail()
+        self.task_selected.emit(task, breadcrumbs)

@@ -15,6 +15,7 @@ class Ui_FileOpenForm(object):
         self.verticalLayout = QtGui.QVBoxLayout(FileOpenForm)
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
+        self.horizontalLayout_3.setSpacing(12)
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.nav = NavigationWidget(FileOpenForm)
         self.nav.setMinimumSize(QtCore.QSize(80, 30))

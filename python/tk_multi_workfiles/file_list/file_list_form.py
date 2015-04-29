@@ -131,18 +131,18 @@ class FileListForm(QtGui.QWidget):
 
         return (selected_file, env_details)
 
-    def select_file(self, file, env):
+    def select_file(self, file, context):
         """
         Select the specified file in the control views if possible.
 
         :param file:    The file to select
-        :param env:     The environment details for the file to select
+        :param context: The work area the file to select should be found in
         """
         # reset the current selection and get the previously selected item:
         prev_selected_item = self._reset_selection()
 
         # update the internal tracking info:
-        self._file_to_select = (file, env)
+        self._file_to_select = (file, context)
         self._current_item_ref = None
 
         # update the selection - this will emit a file_selected signal if
@@ -201,8 +201,8 @@ class FileListForm(QtGui.QWidget):
             if self._file_to_select:
                 # we know about a file we should try to select:
                 src_model = self._filter_model.sourceModel()
-                file, env = self._file_to_select
-                item = src_model.item_from_file(file, env)
+                file, context = self._file_to_select
+                item = src_model.item_from_file(file, context)
             elif self._current_item_ref:
                 # no item to select but we do know about a current item:
                 item = self._current_item_ref()

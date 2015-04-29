@@ -60,6 +60,9 @@ class EnvironmentDetails(object):
         resolved_settings = {}
         try:
             resolved_settings = self._get_settings_for_context(self._context, templates_to_find, settings_to_find)
+        except:
+            # (TODO) - propogate problems up - maybe add an is_valid() method?
+            pass
         finally:
             # update the templates and settings regarless if an exception was raised.
             #

@@ -46,6 +46,7 @@ class BreadcrumbWidget(QtGui.QWidget):
         """
         # build a single path from the list of crumbs:
         path = "<span style='color:#2C93E2'> &#9656; </span>".join([crumb.label for crumb in breadcrumbs])
+        path = "<big>%s</big>" % path
         
         # and update the label:
         self._ui.path_label.setText(path)

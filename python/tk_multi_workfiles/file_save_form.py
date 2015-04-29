@@ -74,8 +74,6 @@ class FileSaveForm(FileOperationForm):
         self._ui.setupUi(self)
 
         # temp
-        #self._ui.history_btns.hide()
-        #self._ui.breadcrumbs.hide()
         #self._ui.location_label.hide()
 
         # define which controls are visible before initial show:        
@@ -99,8 +97,9 @@ class FileSaveForm(FileOperationForm):
 
         # setup for first run:
         env = EnvironmentDetails(app.context)
-        current_file = self._get_current_file(env)
-        self._ui.browser.initialize(env, current_file)
+        current_file = self._get_current_file()
+        self._ui.browser.select_work_area(app.context)
+        self._ui.browser.select_file(current_file, app.context)
         
         self._on_work_area_changed(env)
         self._on_selected_file_changed(current_file)
@@ -124,6 +123,9 @@ class FileSaveForm(FileOperationForm):
         self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)
         #self._ui.browser.file_context_menu_requested.connect(self._on_browser_context_menu_requested)
         self._ui.browser.work_area_changed.connect(self._on_browser_work_area_changed)
+        
+        self._ui.nav.navigate.connect(self._on_navigate)
+        self._ui.nav.home_clicked.connect(self._on_navigate_home)
 
     @property
     def path(self):
@@ -340,6 +342,46 @@ class FileSaveForm(FileOperationForm):
         # TODO: this won't actually work until the preview has 
         # been updated!
         self._on_save()
+
+    def _on_navigate(self, destination):
+        """
+        """
+        # destination is a tuple of context, breadcrumbs
+        context, breadcrumbs = destination if destination else (None, [])
+
+        if breadcrumbs:
+            # awesome, just navigate to the breadcrumbs:
+            self._ui.breadcrumbs.set(breadcrumbs)
+            self._navigating = True
+            try:
+                self._ui.browser.navigate_to(breadcrumbs)
+            finally:
+                self._navigating = False
+
+        elif context:
+            # build breadcrumbs that represent the context:
+            breadcrumbs = []
+            if context.entity:
+                breadcrumbs.append(Breadcrumb("<b>%s</b> %s" % (context.entity["type"], context.entity["name"])))
+            if context.step:
+                breadcrumbs.append(Breadcrumb("<b>Step</b> %s" % context.step["name"]))
+            if context.task:
+                breadcrumbs.append(Breadcrumb("<b>Task</b> %s" % context.task["name"]))
+            self._ui.breadcrumbs.set(breadcrumbs)
+
+            # select the work area in the browser:
+            self._navigating = True
+            try:
+                self._ui.browser.select_work_area(context)
+            finally:
+                self._navigating = False
+
+    def _on_navigate_home(self):
+        """
+        Navigate to the current work area
+        """
+        app = sgtk.platform.current_bundle()
+        self._on_navigate((app.context, []))
 
     def _on_selected_file_changed(self, file):
         """

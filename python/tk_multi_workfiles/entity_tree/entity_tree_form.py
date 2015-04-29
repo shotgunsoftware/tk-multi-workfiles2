@@ -26,13 +26,25 @@ ShotgunModelOverlayWidget = overlay_module.ShotgunModelOverlayWidget
 from ..ui.entity_tree_form import Ui_EntityTreeForm
 from .entity_tree_proxy_model import EntityTreeProxyModel
 
+from ..breadcrumb_widget import Breadcrumb
+
+from ..util import get_model_data, get_model_str
+
 class EntityTreeForm(QtGui.QWidget):
     """
     Entity tree widget class
     """
+    class _EntityBreadcrumb(Breadcrumb):
+        """
+        """
+        def __init__(self, label, entity):
+            """
+            """
+            Breadcrumb.__init__(self, label)
+            self.entity = entity
 
     # Signal emitted when an entity is selected in the tree.
-    entity_selected = QtCore.Signal(object)# selection details
+    entity_selected = QtCore.Signal(object, list)# selection details, breadcrumbs
 
     # Signal emitted when the 'New Task' button is clicked.
     create_new_task = QtCore.Signal(object, object)# entity, step
@@ -103,7 +115,7 @@ class EntityTreeForm(QtGui.QWidget):
         """
         Select the specified entity in the tree.  If the tree is still being populated then the selection
         will happen when an item representing the entity appears in the model.
-        
+
         Note that this doesn't emit an entity_selected signal.
 
         :param entity_type: The type of the entity to select
@@ -121,18 +133,81 @@ class EntityTreeForm(QtGui.QWidget):
         # try to update the selection to reflect the change:
         self._update_selection(prev_selected_item)
 
-    def get_selection_details(self):
+    def get_selection(self):
         """
-        Get details of the currently selected item.
-    
-        :returns:   {"label":label, "entity":entity, "children":[children]}
+        Get the currently selected item as well as the breadcrumb trail that represents 
+        the path for the selection.
+
+        :returns:   A Tuple containing the details and breadcrumb trail of the current selection:
+                        (selection_details, breadcrumb_trail)
+
+                    - selection_details is a dictionary containing:
+                      {"label":label, "entity":entity, "children":[children]}
+                    - breadcrumb_trail is a list of Breadcrumb instances
         """
+        selection_details = {}
+        breadcrumb_trail = []
+
         # get the currently selected index:
         selected_indexes = self._ui.entity_tree.selectionModel().selectedIndexes()
-        if len(selected_indexes) != 1:
-            return {}
-    
-        return self._get_entity_details(selected_indexes[0])
+        if len(selected_indexes) == 1:
+            selection_details = self._get_entity_details(selected_indexes[0])
+            breadcrumb_trail = self._build_breadcrumb_trail()
+
+        return (selection_details, breadcrumb_trail)
+
+    def navigate_to(self, breadcrumb_trail):
+        """
+        Update the selection to match the specified breadcrumb trail
+
+        :param breadcrumb_trail:    A list of Breadcrumb instances that represent
+                                    an item in the tree.
+        """
+        if not breadcrumb_trail:
+            return
+
+        # figure out the item in the tree to select from the breadcrumb trail:
+        #
+        src_model = self._filter_model.sourceModel()
+        current_item = src_model.invisibleRootItem()
+
+        for crumb in breadcrumb_trail:
+            # look for an item under the current item that this breadcrumb represents:
+            found_item = None
+            if isinstance(crumb, EntityTreeForm._EntityBreadcrumb):
+                # look for a child item that represents the entity:
+                for row in range(current_item.rowCount()):
+                    child_item = current_item.child(row)
+                    sg_entity = src_model.get_entity(child_item)
+                    if (sg_entity["type"] == crumb.entity["type"]
+                        and sg_entity["id"] == crumb.entity["id"]):
+                        found_item = child_item
+                        break
+            else:
+                # look for a child item that has the same label:
+                for row in range(current_item.rowCount()):
+                    child_item = current_item.child(row)
+                    if get_model_str(child_item) == crumb.label:
+                        found_item = child_item
+                        break
+
+            if not found_item:
+                # stop traversal!
+                break
+            else:
+                # check to see if the item is visible in the current filtered model:
+                filtered_idx = self._filter_model.mapFromSource(found_item.index())
+                if not filtered_idx.isValid():
+                    # stop traversal!
+                    break
+
+            # iterate down to the next level:
+            current_item = found_item
+
+        # finally, select the item in the tree:
+        idx_to_select = self._filter_model.mapFromSource(current_item.index())
+        selection_flags = QtGui.QItemSelectionModel.Clear | QtGui.QItemSelectionModel.SelectCurrent
+        self._ui.entity_tree.selectionModel().select(idx_to_select, selection_flags)
 
     # ------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------
@@ -323,7 +398,8 @@ class EntityTreeForm(QtGui.QWidget):
                     selection_details = self._get_entity_details(selected_item.index())
 
                 # emit the signal
-                self.entity_selected.emit(selection_details)
+                self._emit_entity_selected(selection_details)
+                #self.entity_selected.emit(selection_details)
 
     def _update_ui(self):
         """
@@ -347,7 +423,7 @@ class EntityTreeForm(QtGui.QWidget):
 
     def _on_selection_changed(self, selected, deselected):
         """
-        Slot triggered when the selection changes
+        Slot triggered when the selection changes due to user action
 
         :param selected:    QItemSelection containing any newly selected indexes
         :param deselected:  QItemSelection containing any newly deselected indexes
@@ -372,7 +448,8 @@ class EntityTreeForm(QtGui.QWidget):
             self._entity_to_select = None
 
         # emit selection_changed signal:
-        self.entity_selected.emit(selection_details)
+        self._emit_entity_selected(selection_details)
+        #self.entity_selected.emit(selection_details)
 
     def _on_filter_model_rows_inserted(self, parent_idx, first, last):
         """
@@ -523,4 +600,38 @@ class EntityTreeForm(QtGui.QWidget):
 
         # and emit the signal for this entity:
         self.create_new_task.emit(entity, step)
+
+    def _build_breadcrumb_trail(self):
+        """
+        """
+        breadcrumbs = []
+
+        selected_indexes = self._ui.entity_tree.selectionModel().selectedIndexes()
+        if len(selected_indexes) != 1:
+            return {}
+
+        src_model = self._filter_model.sourceModel()
+
+        # now, walk up the tree
+        idx = self._filter_model.mapToSource(selected_indexes[0])
+        while idx.isValid():
+            entity = src_model.get_entity(src_model.itemFromIndex(idx))
+            if entity:
+                name_token = "content" if entity["type"] == "Task" else "name"
+                label = "<b>%s</b> %s" % (entity["type"], entity.get(name_token))
+                breadcrumbs.append(EntityTreeForm._EntityBreadcrumb(label, entity))
+            else:
+                label = get_model_str(idx)
+                breadcrumbs.append(Breadcrumb(label))
+
+            idx = idx.parent()
+
+        # return reversed list:
+        return breadcrumbs[::-1]
+
+    def _emit_entity_selected(self, entity_details):
+        """
+        """
+        breadcrumbs = self._build_breadcrumb_trail()
+        self.entity_selected.emit(entity_details, breadcrumbs)
 

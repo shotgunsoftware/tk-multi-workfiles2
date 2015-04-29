@@ -143,7 +143,7 @@ class FileItem(QtCore.QObject):
         
     @property
     def version(self):
-        return self._details.get("version")
+        return self._details.get("version", 0)
     
     @property
     def entity(self):

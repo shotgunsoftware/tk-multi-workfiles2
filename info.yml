@@ -198,7 +198,7 @@ configuration:
     show_my_tasks:
         type: bool
         description: Define if the My Tasks view should be visible or not.
-        default: true
+        default_value: True
 
     custom_actions_hook:
         type: hook
@@ -209,11 +209,9 @@ configuration:
 requires_shotgun_fields:
 
 # More verbose description of this item 
-display_name: "Manage your Work Files"
-description: "Using this app you can change the current work area and 
-              browse work files and publishes.  The app additionally 
-              provides 'Save As' and 'Change Version' commands for 
-              managing work files"
+display_name: "Manage your Work Files 2"
+description: "Using this app you can change browse, open and save 
+              your Work Files and Publishes."
               
 # Required minimum versions for this item to run
 requires_shotgun_version:
