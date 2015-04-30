@@ -55,13 +55,24 @@ class NavigationWidget(QtGui.QWidget):
         self._current_idx = len(self._destinations)-1
         self._update_ui()
 
+    def peek_current_destination(self):
+        """
+        """
+        if self._current_idx < len(self._destinations):
+            return self._destinations[self._current_idx]
+        else:
+            return None
+
+    # ------------------------------------------------------------------------------------------
+    # Protected methods
+
     def _on_nav_prev_clicked(self):
         """
         """
-        if not self._destinations or self._current_idx == 0:
+        if self._current_idx < 1:
             return
 
-        self._current_idx = self._current_idx - 1
+        self._current_idx -= 1
         destination_info = self._destinations[self._current_idx]
         self.navigate.emit(destination_info.destination)
         self._update_ui()
@@ -72,7 +83,7 @@ class NavigationWidget(QtGui.QWidget):
         if self._current_idx >= (len(self._destinations) - 1):
             return
 
-        self._current_idx = self._current_idx + 1
+        self._current_idx += 1
         destination_info = self._destinations[self._current_idx]
         self.navigate.emit(destination_info.destination)
         self._update_ui()
@@ -80,7 +91,7 @@ class NavigationWidget(QtGui.QWidget):
     def _update_ui(self):
         """
         """
-        self._ui.nav_home_btn.setEnabled(len(self._destinations) > 0)
+        self._ui.nav_home_btn.setEnabled(True)
         self._ui.nav_prev_btn.setEnabled(self._current_idx > 0)
         self._ui.nav_next_btn.setEnabled(self._current_idx < (len(self._destinations) - 1))
 

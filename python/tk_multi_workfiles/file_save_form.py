@@ -31,6 +31,7 @@ from .environment_details import EnvironmentDetails
 from .file_item import FileItem
 from .find_files import FileFinder
 
+from .breadcrumb_widget import Breadcrumb
 from .util import value_to_str
 
 class FileSaveForm(FileOperationForm):
@@ -55,6 +56,7 @@ class FileSaveForm(FileOperationForm):
         self._current_path = ""
         self._extension_choices = []
         self._preview_task = None
+        self._navigating = False
         
         try:
             # doing this inside a try-except to ensure any exceptions raised don't 
@@ -92,23 +94,6 @@ class FileSaveForm(FileOperationForm):
         self._ui.use_next_available_cb.setChecked(True)
         self._ui.version_spinner.setEnabled(False)
 
-        # initialize the browser:
-        self._ui.browser.set_models(self._my_tasks_model, self._entity_models, self._file_model)
-
-        # setup for first run:
-        env = EnvironmentDetails(app.context)
-        current_file = self._get_current_file()
-        self._ui.browser.select_work_area(app.context)
-        self._ui.browser.select_file(current_file, app.context)
-        
-        self._on_work_area_changed(env)
-        self._on_selected_file_changed(current_file)
-        self._start_preview_update()
-
-        # execute the init callback:
-        if init_callback:
-            init_callback(self)
-
         # hook up signals on controls:
         self._ui.cancel_btn.clicked.connect(self._on_cancel)
         self._ui.save_btn.clicked.connect(self._on_save)
@@ -126,6 +111,24 @@ class FileSaveForm(FileOperationForm):
         
         self._ui.nav.navigate.connect(self._on_navigate)
         self._ui.nav.home_clicked.connect(self._on_navigate_home)
+
+        # start the preview update:
+        self._start_preview_update()
+
+        # initialize the browser:
+        self._ui.browser.set_models(self._my_tasks_model, self._entity_models, self._file_model)
+        env = EnvironmentDetails(app.context)
+        current_file = self._get_current_file()
+        self._ui.browser.select_work_area(app.context)
+        self._ui.browser.select_file(current_file, app.context)
+        
+        #self._on_work_area_changed(env)
+        #self._on_selected_file_changed(current_file)
+
+        # execute the init callback:
+        if init_callback:
+            init_callback(self)
+
 
     @property
     def path(self):
@@ -343,45 +346,26 @@ class FileSaveForm(FileOperationForm):
         # been updated!
         self._on_save()
 
-    def _on_navigate(self, destination):
+    def _on_navigate(self, breadcrumb_trail):
         """
         """
-        # destination is a tuple of context, breadcrumbs
-        context, breadcrumbs = destination if destination else (None, [])
+        if not breadcrumb_trail:
+            return
 
-        if breadcrumbs:
-            # awesome, just navigate to the breadcrumbs:
-            self._ui.breadcrumbs.set(breadcrumbs)
-            self._navigating = True
-            try:
-                self._ui.browser.navigate_to(breadcrumbs)
-            finally:
-                self._navigating = False
-
-        elif context:
-            # build breadcrumbs that represent the context:
-            breadcrumbs = []
-            if context.entity:
-                breadcrumbs.append(Breadcrumb("<b>%s</b> %s" % (context.entity["type"], context.entity["name"])))
-            if context.step:
-                breadcrumbs.append(Breadcrumb("<b>Step</b> %s" % context.step["name"]))
-            if context.task:
-                breadcrumbs.append(Breadcrumb("<b>Task</b> %s" % context.task["name"]))
-            self._ui.breadcrumbs.set(breadcrumbs)
-
-            # select the work area in the browser:
-            self._navigating = True
-            try:
-                self._ui.browser.select_work_area(context)
-            finally:
-                self._navigating = False
+        # awesome, just navigate to the breadcrumbs:
+        self._ui.breadcrumbs.set(breadcrumb_trail)
+        self._navigating = True
+        try:
+            self._ui.browser.navigate_to(breadcrumb_trail)
+        finally:
+            self._navigating = False
 
     def _on_navigate_home(self):
         """
         Navigate to the current work area
         """
         app = sgtk.platform.current_bundle()
-        self._on_navigate((app.context, []))
+        self._ui.browser.select_work_area(app.context)
 
     def _on_selected_file_changed(self, file):
         """
@@ -430,7 +414,7 @@ class FileSaveForm(FileOperationForm):
                 # TODO try to get extension from path?
                 pass
 
-    def _on_browser_work_area_changed(self, entity):#, step, task):
+    def _on_browser_work_area_changed(self, entity, breadcrumbs):#, step, task):
         """
         """
         env = None
@@ -440,6 +424,11 @@ class FileSaveForm(FileOperationForm):
             env = EnvironmentDetails(context)
         self._on_work_area_changed(env)
         self._start_preview_update()
+
+        if not self._navigating:
+            destination_label = breadcrumbs[-1].label if breadcrumbs else "..."
+            self._ui.nav.add_destination(destination_label, breadcrumbs)
+        self._ui.breadcrumbs.set(breadcrumbs)
 
     def _on_work_area_changed(self, env):
         """

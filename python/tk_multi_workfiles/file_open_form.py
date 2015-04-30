@@ -102,8 +102,8 @@ class FileOpenForm(FileOperationForm):
         self._ui.browser.select_file(current_file, app.context)
 
         # initialize the UI
-        self._on_selected_file_changed()
-        self._update_new_file_btn()
+        #self._on_selected_file_changed()
+        #self._update_new_file_btn()
 
         # call init callback:
         if init_callback:
@@ -135,8 +135,7 @@ class FileOpenForm(FileOperationForm):
 
         if not self._navigating:
             destination_label = breadcrumbs[-1].label if breadcrumbs else "..."
-            self._ui.nav.add_destination(destination_label, (env_details.context if env_details else None, breadcrumbs))
-
+            self._ui.nav.add_destination(destination_label, breadcrumbs)
         self._ui.breadcrumbs.set(breadcrumbs)
     
     def _on_browser_file_double_clicked(self, file, env):
@@ -147,45 +146,27 @@ class FileOpenForm(FileOperationForm):
         self._on_selected_file_changed()
         self._on_open()
 
-    def _on_navigate(self, destination):
+    def _on_navigate(self, breadcrumb_trail):
         """
         """
-        # destination is a tuple of context, breadcrumbs
-        context, breadcrumbs = destination if destination else (None, [])
+        if not breadcrumb_trail:
+            return
 
-        if breadcrumbs:
-            # awesome, just navigate to the breadcrumbs:
-            self._ui.breadcrumbs.set(breadcrumbs)
-            self._navigating = True
-            try:
-                self._ui.browser.navigate_to(breadcrumbs)
-            finally:
-                self._navigating = False
-
-        elif context:
-            # build breadcrumbs that represent the context:
-            breadcrumbs = []
-            if context.entity:
-                breadcrumbs.append(Breadcrumb("<b>%s</b> %s" % (context.entity["type"], context.entity["name"])))
-            if context.step:
-                breadcrumbs.append(Breadcrumb("<b>Step</b> %s" % context.step["name"]))
-            if context.task:
-                breadcrumbs.append(Breadcrumb("<b>Task</b> %s" % context.task["name"]))
-            self._ui.breadcrumbs.set(breadcrumbs)
-
-            # select the work area in the browser:
-            self._navigating = True
-            try:
-                self._ui.browser.select_work_area(context)
-            finally:
-                self._navigating = False
+        # awesome, just navigate to the breadcrumbs:
+        self._ui.breadcrumbs.set(breadcrumb_trail)
+        self._navigating = True
+        try:
+            self._ui.browser.navigate_to(breadcrumb_trail)
+        finally:
+            self._navigating = False
 
     def _on_navigate_home(self):
         """
         Navigate to the current work area
         """
+        # navigate to the current work area in the browser:
         app = sgtk.platform.current_bundle()
-        self._on_navigate((app.context, []))
+        self._ui.browser.select_work_area(app.context)
 
     def _on_selected_file_changed(self):
         """

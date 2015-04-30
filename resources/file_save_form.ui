@@ -39,10 +39,45 @@
        <item row="0" column="0">
         <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0">
          <property name="spacing">
-          <number>-1</number>
+          <number>1</number>
          </property>
          <item>
           <widget class="QCheckBox" name="expand_checkbox">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>16</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">#expand_checkbox::indicator {
+width: 14;
+height: 14;
+}
+
+#expand_checkbox::indicator::unchecked {
+	image: url(:/tk-multi-workfiles/tree_arrow_collapsed.png);
+
+}
+
+#expand_checkbox::indicator::unchecked::hover {
+	image: url(:/tk-multi-workfiles/tree_arrow_collapsed.png);
+}
+
+#expand_checkbox::indicator::checked {
+    image: url(:/tk-multi-workfiles/tree_arrow_expanded.png);
+}
+
+/*#expand_checkbox::indicator::checked::hover {
+    image: url(:/tk-multi-workfiles/grid_view_checked_hover.png);
+}*/</string>
+           </property>
            <property name="text">
             <string/>
            </property>
@@ -64,7 +99,7 @@
              <item>
               <widget class="QLabel" name="location_label">
                <property name="text">
-                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Location:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                <string>&lt;big&gt;&lt;b&gt;Location:&lt;/b&gt;&lt;/big&gt;</string>
                </property>
                <property name="alignment">
                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>

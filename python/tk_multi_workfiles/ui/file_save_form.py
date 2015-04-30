@@ -22,9 +22,36 @@ class Ui_FileSaveForm(object):
         self.gridLayout_2 = QtGui.QGridLayout()
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
-        self.horizontalLayout_3.setSpacing(-1)
+        self.horizontalLayout_3.setSpacing(1)
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.expand_checkbox = QtGui.QCheckBox(FileSaveForm)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Maximum)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.expand_checkbox.sizePolicy().hasHeightForWidth())
+        self.expand_checkbox.setSizePolicy(sizePolicy)
+        self.expand_checkbox.setMaximumSize(QtCore.QSize(16777215, 16))
+        self.expand_checkbox.setStyleSheet("#expand_checkbox::indicator {\n"
+"width: 14;\n"
+"height: 14;\n"
+"}\n"
+"\n"
+"#expand_checkbox::indicator::unchecked {\n"
+"    image: url(:/tk-multi-workfiles/tree_arrow_collapsed.png);\n"
+"\n"
+"}\n"
+"\n"
+"#expand_checkbox::indicator::unchecked::hover {\n"
+"    image: url(:/tk-multi-workfiles/tree_arrow_collapsed.png);\n"
+"}\n"
+"\n"
+"#expand_checkbox::indicator::checked {\n"
+"    image: url(:/tk-multi-workfiles/tree_arrow_expanded.png);\n"
+"}\n"
+"\n"
+"/*#expand_checkbox::indicator::checked::hover {\n"
+"    image: url(:/tk-multi-workfiles/grid_view_checked_hover.png);\n"
+"}*/")
         self.expand_checkbox.setText("")
         self.expand_checkbox.setObjectName("expand_checkbox")
         self.horizontalLayout_3.addWidget(self.expand_checkbox)
@@ -226,7 +253,7 @@ class Ui_FileSaveForm(object):
 
     def retranslateUi(self, FileSaveForm):
         FileSaveForm.setWindowTitle(QtGui.QApplication.translate("FileSaveForm", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.location_label.setText(QtGui.QApplication.translate("FileSaveForm", "<html><head/><body><p><span style=\" font-weight:600;\">Location:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
+        self.location_label.setText(QtGui.QApplication.translate("FileSaveForm", "<big><b>Location:</b></big>", None, QtGui.QApplication.UnicodeUTF8))
         self.version_label.setText(QtGui.QApplication.translate("FileSaveForm", "<html><head/><body><p><span style=\" font-weight:600;\">Version #:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.name_label.setText(QtGui.QApplication.translate("FileSaveForm", "<html><head/><body><p><span style=\" font-weight:600;\">Name:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.file_type_label.setText(QtGui.QApplication.translate("FileSaveForm", "<html><head/><body><p><span style=\" font-weight:600;\">File Type:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
