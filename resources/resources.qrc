@@ -1,5 +1,5 @@
 <RCC>
-  <qresource prefix="tk-multi-workfiles">
+  <qresource prefix="tk-multi-workfiles2">
     <file>publish_icon.png</file>
     <file>folder_512x400.png</file>
     <file>tree_arrow_large_collapsed.png</file>

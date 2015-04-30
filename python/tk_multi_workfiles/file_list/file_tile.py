@@ -31,14 +31,14 @@ class FileTile(QtGui.QWidget):
         self._publish_icon = QtGui.QLabel(self)
         self._publish_icon.setMinimumSize(16, 16)
         self._publish_icon.setAlignment(QtCore.Qt.AlignCenter)
-        self._publish_icon.setPixmap(QtGui.QPixmap(":/tk-multi-workfiles/publish_icon.png"))
+        self._publish_icon.setPixmap(QtGui.QPixmap(":/tk-multi-workfiles2/publish_icon.png"))
         self._publish_icon.hide()
 
         # not sure I like this - think I preferred it when it was over on the right of the tile!
         self._lock_icon = QtGui.QLabel(self)
         self._lock_icon.setMinimumSize(16, 16)
         self._lock_icon.setAlignment(QtCore.Qt.AlignCenter)
-        self._lock_icon.setPixmap(QtGui.QPixmap(":/tk-multi-workfiles/padlock.png"))
+        self._lock_icon.setPixmap(QtGui.QPixmap(":/tk-multi-workfiles2/padlock.png"))
         self._lock_icon.hide()
 
         rhs_layout = QtGui.QVBoxLayout(self)
@@ -107,7 +107,7 @@ class FileTile(QtGui.QWidget):
         """
         """
         if not thumb or not isinstance(thumb, QtGui.QPixmap):
-            thumb = QtGui.QPixmap(":/tk-multi-workfiles/thumb_empty.png")
+            thumb = QtGui.QPixmap(":/tk-multi-workfiles2/thumb_empty.png")
             
         self._ui.thumbnail.setPixmap(thumb)
         

@@ -68,7 +68,7 @@ border-radius: 3px;
          <enum>Qt::AutoText</enum>
         </property>
         <property name="pixmap">
-         <pixmap resource="resources.qrc">:/tk-multi-workfiles/thumb_empty.png</pixmap>
+         <pixmap resource="resources.qrc">:/tk-multi-workfiles2/thumb_empty.png</pixmap>
         </property>
         <property name="scaledContents">
          <bool>true</bool>

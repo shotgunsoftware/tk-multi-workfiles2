@@ -37,7 +37,7 @@ class Ui_FileTile(object):
         self.thumbnail.setStyleSheet("")
         self.thumbnail.setText("")
         self.thumbnail.setTextFormat(QtCore.Qt.AutoText)
-        self.thumbnail.setPixmap(QtGui.QPixmap(":/tk-multi-workfiles/thumb_empty.png"))
+        self.thumbnail.setPixmap(QtGui.QPixmap(":/tk-multi-workfiles2/thumb_empty.png"))
         self.thumbnail.setScaledContents(True)
         self.thumbnail.setAlignment(QtCore.Qt.AlignCenter)
         self.thumbnail.setObjectName("thumbnail")

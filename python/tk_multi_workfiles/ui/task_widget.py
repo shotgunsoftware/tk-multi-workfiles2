@@ -80,7 +80,7 @@ class Ui_TaskWidget(object):
         self.jump_btn.setMaximumSize(QtCore.QSize(24, 24))
         self.jump_btn.setText("")
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/tk-multi-workfiles/search.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/tk-multi-workfiles2/search.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.jump_btn.setIcon(icon)
         self.jump_btn.setFlat(True)
         self.jump_btn.setObjectName("jump_btn")

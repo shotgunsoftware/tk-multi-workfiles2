@@ -20,14 +20,14 @@ from .actions.file_action import SeparatorFileAction
 from .actions.file_action_factory import FileActionFactory
 from .actions.new_file_action import NewFileAction
 
-from .file_operation_form import FileOperationForm
+from .file_form_base import FileFormBase
 from .ui.file_open_form import Ui_FileOpenForm
 
 from .environment_details import EnvironmentDetails
 
 from .breadcrumb_widget import Breadcrumb
 
-class FileOpenForm(FileOperationForm):
+class FileOpenForm(FileFormBase):
     """
     UI for opening a publish or work file.  Presents a list of available files to the user
     so that they can choose one to open in addition to any other user-definable actions.
@@ -44,7 +44,7 @@ class FileOpenForm(FileOperationForm):
         """
         app = sgtk.platform.current_bundle()
         
-        FileOperationForm.__init__(self, parent)
+        FileFormBase.__init__(self, parent)
         
         self._exit_code = QtGui.QDialog.Rejected
         

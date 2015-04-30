@@ -47,13 +47,13 @@ class Ui_EntityTreeForm(object):
 "QTreeView::branch:has-children:!has-siblings:closed,\n"
 "QTreeView::branch:closed:has-children:has-siblings  {\n"
 "        border-image: none;\n"
-"        image: url(:/tk-multi-workfiles/tree_arrow_collapsed.png);\n"
+"        image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);\n"
 "}\n"
 " \n"
 "QTreeView::branch:open:has-children:!has-siblings,\n"
 "QTreeView::branch:open:has-children:has-siblings   {\n"
 "        border-image: none;\n"
-"        image: url(:/tk-multi-workfiles/tree_arrow_expanded.png);\n"
+"        image: url(:/tk-multi-workfiles2/tree_arrow_expanded.png);\n"
 "}")
         self.entity_tree.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
         self.entity_tree.setProperty("showDropIndicator", False)

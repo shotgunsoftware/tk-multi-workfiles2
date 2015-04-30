@@ -70,19 +70,19 @@
    background-color: none;
    background-repeat: no-repeat;
    background-position: center center;
-   background-image: url(:/tk-multi-workfiles/home.png);
+   background-image: url(:/tk-multi-workfiles2/home.png);
 }
 
 #nav_home_btn:disabled{
-   background-image: url(:/tk-multi-workfiles/home_disabled.png);
+   background-image: url(:/tk-multi-workfiles2/home_disabled.png);
 }
 
 #nav_home_btn:hover{
-background-image: url(:/tk-multi-workfiles/home_hover.png);
+background-image: url(:/tk-multi-workfiles2/home_hover.png);
 }
 
 #nav_home_btn:Pressed {
-background-image: url(:/tk-multi-workfiles/home_pressed.png);
+background-image: url(:/tk-multi-workfiles2/home_pressed.png);
 }
 </string>
        </property>
@@ -123,19 +123,19 @@ background-image: url(:/tk-multi-workfiles/home_pressed.png);
    background-color: none;
    background-repeat: no-repeat;
    background-position: center center;
-   background-image: url(:/tk-multi-workfiles/left_arrow.png);
+   background-image: url(:/tk-multi-workfiles2/left_arrow.png);
 }
 
 #nav_prev_btn:disabled{
-   background-image: url(:/tk-multi-workfiles/left_arrow_disabled.png);
+   background-image: url(:/tk-multi-workfiles2/left_arrow_disabled.png);
 }
 
 #nav_prev_btn:hover{
-background-image: url(:/tk-multi-workfiles/left_arrow_hover.png);
+background-image: url(:/tk-multi-workfiles2/left_arrow_hover.png);
 }
 
 #nav_prev_btn:Pressed {
-background-image: url(:/tk-multi-workfiles/left_arrow_pressed.png);
+background-image: url(:/tk-multi-workfiles2/left_arrow_pressed.png);
 }
 </string>
        </property>
@@ -176,19 +176,19 @@ background-image: url(:/tk-multi-workfiles/left_arrow_pressed.png);
    background-color: none;
    background-repeat: no-repeat;
    background-position: center center;
-   background-image: url(:/tk-multi-workfiles/right_arrow.png);
+   background-image: url(:/tk-multi-workfiles2/right_arrow.png);
 }
 
 #nav_next_btn:disabled{
-   background-image: url(:/tk-multi-workfiles/right_arrow_disabled.png);
+   background-image: url(:/tk-multi-workfiles2/right_arrow_disabled.png);
 }
 
 #nav_next_btn:hover{
-background-image: url(:/tk-multi-workfiles/right_arrow_hover.png);
+background-image: url(:/tk-multi-workfiles2/right_arrow_hover.png);
 }
 
 #nav_next_btn:Pressed {
-background-image: url(:/tk-multi-workfiles/right_arrow_pressed.png);
+background-image: url(:/tk-multi-workfiles2/right_arrow_pressed.png);
 }
 </string>
        </property>

@@ -62,20 +62,20 @@ height: 14;
 }
 
 #expand_checkbox::indicator::unchecked {
-	image: url(:/tk-multi-workfiles/tree_arrow_collapsed.png);
+	image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);
 
 }
 
 #expand_checkbox::indicator::unchecked::hover {
-	image: url(:/tk-multi-workfiles/tree_arrow_collapsed.png);
+	image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);
 }
 
 #expand_checkbox::indicator::checked {
-    image: url(:/tk-multi-workfiles/tree_arrow_expanded.png);
+    image: url(:/tk-multi-workfiles2/tree_arrow_expanded.png);
 }
 
 /*#expand_checkbox::indicator::checked::hover {
-    image: url(:/tk-multi-workfiles/grid_view_checked_hover.png);
+    image: url(:/tk-multi-workfiles2/grid_view_checked_hover.png);
 }*/</string>
            </property>
            <property name="text">

@@ -162,7 +162,7 @@ background-color: rgb(32,32, 32);
         </property>
         <property name="icon">
          <iconset resource="resources.qrc">
-          <normaloff>:/tk-multi-workfiles/search.png</normaloff>:/tk-multi-workfiles/search.png</iconset>
+          <normaloff>:/tk-multi-workfiles2/search.png</normaloff>:/tk-multi-workfiles2/search.png</iconset>
         </property>
         <property name="flat">
          <bool>true</bool>

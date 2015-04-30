@@ -367,7 +367,7 @@ class FileModel(QtGui.QStandardItemModel):
                 
                 # add a folder item to the model:
                 folder_item = FileModel._FolderItem(child_name, child_entity)
-                folder_item.setIcon(QtGui.QIcon(":/tk-multi-workfiles/folder_512x400.png"))
+                folder_item.setIcon(QtGui.QIcon(":/tk-multi-workfiles2/folder_512x400.png"))
                 new_item.appendRow(folder_item)
 
             if not search.entity:

@@ -30,7 +30,7 @@ from .file_item import FileItem
 
 from .environment_details import EnvironmentDetails
 
-class FileOperationForm(QtGui.QWidget):
+class FileFormBase(QtGui.QWidget):
     """
     """
     class CreateNewTaskEvent(object):
@@ -151,7 +151,7 @@ class FileOperationForm(QtGui.QWidget):
     def _on_create_new_task(self, entity, step):
         """
         """
-        create_event = FileOperationForm.CreateNewTaskEvent(entity, step)
+        create_event = FileFormBase.CreateNewTaskEvent(entity, step)
         self.create_new_task.emit(create_event)
         if create_event.task_created:
             self._refresh_all_async()

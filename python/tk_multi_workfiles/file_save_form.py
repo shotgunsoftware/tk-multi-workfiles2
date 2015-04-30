@@ -22,7 +22,7 @@ import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 from sgtk import TankError
 
-from .file_operation_form import FileOperationForm
+from .file_form_base import FileFormBase
 from .ui.file_save_form import Ui_FileSaveForm
 
 from .runnable_task import RunnableTask
@@ -34,7 +34,7 @@ from .find_files import FileFinder
 from .breadcrumb_widget import Breadcrumb
 from .util import value_to_str
 
-class FileSaveForm(FileOperationForm):
+class FileSaveForm(FileFormBase):
     """
     UI for saving a work file
     """
@@ -48,7 +48,7 @@ class FileSaveForm(FileOperationForm):
         """
         app = sgtk.platform.current_bundle()
         
-        FileOperationForm.__init__(self, parent)
+        FileFormBase.__init__(self, parent)
 
         self._exit_code = QtGui.QDialog.Rejected
         self._last_expanded_sz = QtCore.QSize(600, 600)

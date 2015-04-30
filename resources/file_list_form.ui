@@ -69,19 +69,19 @@ height: 24;
 }
 
 #grid_radio_btn::indicator::unchecked {
-	image: url(:/tk-multi-workfiles/grid_view_unchecked.png);
+	image: url(:/tk-multi-workfiles2/grid_view_unchecked.png);
 }
 
 #grid_radio_btn::indicator::unchecked::hover {
-	image: url(:/tk-multi-workfiles/grid_view_unchecked_hover.png);
+	image: url(:/tk-multi-workfiles2/grid_view_unchecked_hover.png);
 }
 
 #grid_radio_btn::indicator::checked {
-    image: url(:/tk-multi-workfiles/grid_view_checked.png);
+    image: url(:/tk-multi-workfiles2/grid_view_checked.png);
 }
 
 /*#grid_radio_btn::indicator::checked::hover {
-    image: url(:/tk-multi-workfiles/grid_view_checked_hover.png);
+    image: url(:/tk-multi-workfiles2/grid_view_checked_hover.png);
 }*/</string>
          </property>
          <property name="text">
@@ -119,19 +119,19 @@ height: 24;
 }
 
 #details_radio_btn::indicator::unchecked {
-	image: url(:/tk-multi-workfiles/details_view_unchecked.png);
+	image: url(:/tk-multi-workfiles2/details_view_unchecked.png);
 }
 
 #details_radio_btn::indicator::unchecked::hover {
-	image: url(:/tk-multi-workfiles/details_view_unchecked_hover.png);
+	image: url(:/tk-multi-workfiles2/details_view_unchecked_hover.png);
 }
 
 #details_radio_btn::indicator::checked {
-    image: url(:/tk-multi-workfiles/details_view_checked.png);
+    image: url(:/tk-multi-workfiles2/details_view_checked.png);
 }
 
 /*#details_radio_btn::indicator::checked::hover {
-    image: url(:/tk-multi-workfiles/details_view_checked_hover.png);
+    image: url(:/tk-multi-workfiles2/details_view_checked_hover.png);
 }*/</string>
          </property>
          <property name="text">

@@ -53,20 +53,20 @@ font: 14px;
 }
 
 #expand_check_box::indicator::unchecked {
-	image: url(:/tk-multi-workfiles/tree_arrow_collapsed.png);
+	image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);
 
 }
 
 #expand_check_box::indicator::unchecked::hover {
-	image: url(:/tk-multi-workfiles/tree_arrow_collapsed.png);
+	image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);
 }
 
 #expand_check_box::indicator::checked {
-    image: url(:/tk-multi-workfiles/tree_arrow_expanded.png);
+    image: url(:/tk-multi-workfiles2/tree_arrow_expanded.png);
 }
 
 /*#grid_radio_btn::indicator::checked::hover {
-    image: url(:/tk-multi-workfiles/grid_view_checked_hover.png);
+    image: url(:/tk-multi-workfiles2/grid_view_checked_hover.png);
 }*/</string>
        </property>
        <property name="text">
