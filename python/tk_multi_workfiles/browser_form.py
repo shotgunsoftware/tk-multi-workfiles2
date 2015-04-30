@@ -24,6 +24,7 @@ from .file_list.file_list_form import FileListForm
 
 from .file_model import FileModel
 
+from .util import value_to_str
 
 from .ui.browser_form import Ui_BrowserForm
 
@@ -188,7 +189,7 @@ class BrowserForm(QtGui.QWidget):
         breadcrumb_trail = []
 
         tab_index = self._ui.task_browser_tabs.currentIndex()
-        tab_label = self._ui.task_browser_tabs.tabText(tab_index)
+        tab_label = value_to_str(self._ui.task_browser_tabs.tabText(tab_index))
         breadcrumb_trail.append(BrowserForm._EntityTabBreadcrumb(tab_label, tab_index))
 
         # append child breadcrumbs:
