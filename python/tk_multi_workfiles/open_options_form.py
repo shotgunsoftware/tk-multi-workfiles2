@@ -12,10 +12,10 @@ import os
 import shutil
 import urlparse
         
-import tank
-from tank.platform.qt import QtCore, QtGui
+import sgtk
+from sgtk.platform.qt import QtCore, QtGui
 
-shotgun_data = tank.platform.import_framework("tk-framework-shotgunutils", "shotgun_data")
+shotgun_data = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_data")
 
 class OpenOptionsForm(QtGui.QWidget):
     """

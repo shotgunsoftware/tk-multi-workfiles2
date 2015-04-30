@@ -11,10 +11,10 @@
 import os
 from pyfbsdk import FBApplication
 
-import tank
-from tank import Hook
-from tank import TankError
-from tank.platform.qt import QtGui
+import sgtk
+from sgtk import Hook
+from sgtk import TankError
+from sgtk.platform.qt import QtGui
 
 class SceneOperation(Hook):
     """

@@ -11,9 +11,9 @@
 import os
 from Py3dsMax import mxs
 
-import tank
-from tank import Hook
-from tank import TankError
+import sgtk
+from sgtk import Hook
+from sgtk import TankError
 
 class SceneOperation(Hook):
     """

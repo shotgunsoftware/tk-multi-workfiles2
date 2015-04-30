@@ -10,8 +10,8 @@
 
 import sys
 
-import tank
-from tank.platform.qt import QtCore, QtGui 
+import sgtk
+from sgtk.platform.qt import QtCore, QtGui 
 
 class WrapperDialog(QtGui.QDialog):
 
@@ -41,7 +41,7 @@ class WrapperDialog(QtGui.QDialog):
     
     def clean_up(self):
         # ensure that dialog is safey cleaned up when running nuke on a Mac
-        if sys.platform == "darwin" and tank.platform.current_engine().name == "tk-nuke":
+        if sys.platform == "darwin" and sgtk.platform.current_engine().name == "tk-nuke":
             self.deleteLater()
     
     def __enter__(self):

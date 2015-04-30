@@ -11,8 +11,8 @@
 import os
 import photoshop
 
-from tank import Hook
-from tank import TankError
+from sgtk import Hook
+from sgtk import TankError
 
 class SceneOperation(Hook):
     """
