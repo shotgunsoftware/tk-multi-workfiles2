@@ -47,9 +47,6 @@ class WorkFiles(QtCore.QObject):#object):
         # user cache used to cache Shotgun user details:
         #self._user_cache = UserCache(self._app)
 
-        # determine if changing work area should be available based on the sg_entity_types setting:
-        #self._can_change_workarea = (len(self._app.get_setting("sg_entity_types", [])) > 0)
-
     def __show_file_open_dlg(self):
         """
         """

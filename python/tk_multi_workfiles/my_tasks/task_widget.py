@@ -58,8 +58,6 @@ class TaskWidget(QtGui.QWidget):
         desc_style = self._build_style_string("other_label", self._desc_styles["selected" if selected else "normal"])
         self._ui.other_label.setStyleSheet(desc_style)
         
-        self._ui.jump_btn.setVisible(selected)
-        
     def set_thumbnail(self, thumb):
         """
         """

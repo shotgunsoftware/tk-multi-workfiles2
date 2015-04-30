@@ -264,7 +264,7 @@ class FileSaveForm(FileFormBase):
         if version_is_used:
             # need a file key to find all versions so lets build it:
             file_key = FileItem.build_file_key(fields, env.work_template, 
-                                               env.version_compare_ignore_fields + ["version"])
+                                               env.version_compare_ignore_fields)
 
             file_versions = self._file_model.get_file_versions(file_key, env)
             if file_versions == None:

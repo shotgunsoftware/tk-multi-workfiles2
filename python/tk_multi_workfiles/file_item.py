@@ -56,8 +56,9 @@ class FileItem(QtCore.QObject):
         :returns:               An immutable 'key' that can be used for comparison and
                                 as the key in a dictionary (e.g. a string).
         """
-        # default ignore keys to just 'version':
-        ignore_fields = ignore_fields or []#["version"]
+        ignore_fields = ignore_fields or []
+        # always want to ignore 'version' and 'extension' if they are present in the fields
+        # dicrionary
         ignore_fields += ["version", "extension"]
 
         # populate the file key from the fields passed in that are included in

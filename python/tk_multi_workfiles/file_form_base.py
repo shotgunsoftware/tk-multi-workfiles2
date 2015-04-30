@@ -171,12 +171,11 @@ class FileFormBase(QtGui.QWidget):
         try:
             current_path = get_current_path(app, SAVE_FILE_AS_ACTION, env.context)
         except Exception, e:
-            print "B"
             return None
-        
+
         if not current_path:
             return None
-        
+
         # figure out if it's a publish or a work file:
         is_publish = ((not env.work_template or env.work_template.validate(current_path))
                       and env.publish_template != env.work_template
@@ -190,7 +189,7 @@ class FileFormBase(QtGui.QWidget):
             fields = dict(chain(template_fields.iteritems(), fields.iteritems()))
 
         file_key = FileItem.build_file_key(fields, env.work_template, 
-                                           env.version_compare_ignore_fields + ["version"])
+                                           env.version_compare_ignore_fields)
 
         # extract details from the fields:
         details = {}
