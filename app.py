@@ -103,41 +103,7 @@ class MultiWorkFiles(tank.platform.Application):
         """
         """
         self.__tk_multi_workfiles.WorkFiles.show_file_save_dlg()        
-        
-    #def show_file_manager_dlg(self):
-    #    """
-    #    Show the file manager dialog
-    #    """
-    #    tk_multi_workfiles = self.import_module("tk_multi_workfiles")
-    #    tk_multi_workfiles.WorkFiles.show_file_manager_dlg(self)
-    #    
-    #def show_change_work_area_dlg(self, enable_start_new=True):
-    #    """
-    #    Show a dialog for the user to change the current Work Area
-    #    """
-    #    tk_multi_workfiles = self.import_module("tk_multi_workfiles")
-    #    tk_multi_workfiles.WorkFiles.show_change_work_area_dlg(self, enable_start_new)
-    #
-    #def show_save_as_dlg(self):
-    #    """
-    #    If save as is available, show the save as dialog.
-    #    """
-    #    if self._can_save_as:
-    #        tk_multi_workfiles = self.import_module("tk_multi_workfiles")
-    #        return tk_multi_workfiles.SaveAs.show_save_as_dlg(self)
-    #    else:
-    #        return False
-    #
-    #def show_change_version_dlg(self):
-    #    """
-    #    If save as is available, show the change version dialog.
-    #    """
-    #    if self._can_change_version:
-    #        tk_multi_workfiles = self.import_module("tk_multi_workfiles")
-    #        return tk_multi_workfiles.Versioning.show_change_version_dlg(self)
-    #    else:
-    #        return False
-    #
+
     #def can_save_as(self):
     #    """
     #    Returns True if save-as is available, False otherwise.
