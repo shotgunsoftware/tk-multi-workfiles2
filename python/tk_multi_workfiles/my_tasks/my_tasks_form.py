@@ -44,7 +44,7 @@ class MyTasksForm(QtGui.QWidget):
     # Signal emitted when the 'New Task' button is clicked
     create_new_task = QtCore.Signal(object, object)# entity, step
 
-    def __init__(self, model, parent=None):
+    def __init__(self, model, allow_task_creation, parent=None):
         """
         Construction
 
@@ -66,23 +66,30 @@ class MyTasksForm(QtGui.QWidget):
         self._ui.filter_btn.hide()
 
         self._ui.search_ctrl.set_placeholder_text("Search My Tasks")
-        self._ui.new_task_btn.setEnabled(False)
+        
+        # enable/hide the new task button depending if task creation is allowed:
+        if allow_task_creation:
+            self._ui.new_task_btn.clicked.connect(self._on_new_task)
+            self._ui.new_task_btn.setEnabled(False)
+        else:
+            self._ui.new_task_btn.hide()
 
         # connect up controls:
         self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
-        self._ui.new_task_btn.clicked.connect(self._on_new_task)
 
         # create the overlay 'busy' widget:
         self._overlay_widget = ShotgunModelOverlayWidget(None, self._ui.task_tree)
         self._overlay_widget.set_model(model)
 
         # create a filter proxy model between the source model and the task tree view:
-        self._filter_model = EntityProxyModel(["content", {"entity":"name"}], self)
+        filter_fields = ["content", {"entity":"name"}]
+        filter_fields.extend(model.extra_display_fields)
+        self._filter_model = EntityProxyModel(filter_fields, self)
         self._filter_model.rowsInserted.connect(self._on_filter_model_rows_inserted)
         self._filter_model.setSourceModel(model)
         self._ui.task_tree.setModel(self._filter_model)
 
-        item_delegate = MyTaskItemDelegate(self._ui.task_tree)
+        item_delegate = MyTaskItemDelegate(model.extra_display_fields, self._ui.task_tree)
         self._ui.task_tree.setItemDelegate(item_delegate)
 
         # connect to the selection model for the tree view:

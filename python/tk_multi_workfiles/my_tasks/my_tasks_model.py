@@ -20,12 +20,16 @@ ShotgunModel = shotgun_model.ShotgunModel
 class MyTasksModel(ShotgunModel):
     """
     """
-    def __init__(self, filters, parent=None):
+    def __init__(self, filters, extra_display_fields, parent=None):
         """
         """
         ShotgunModel.__init__(self, parent=parent, download_thumbs=True)
-        
+
+        self.extra_display_fields = extra_display_fields or []
+
         fields = ["image", "sg_status_list", "description", "entity", "content", "step", "project"]
+        fields.extend(self.extra_display_fields)
+
         self._load_data("Task", filters, ["id"], fields)
     
     def async_refresh(self):

@@ -49,7 +49,7 @@ class EntityTreeForm(QtGui.QWidget):
     # Signal emitted when the 'New Task' button is clicked.
     create_new_task = QtCore.Signal(object, object)# entity, step
 
-    def __init__(self, entity_model, search_label, parent=None):
+    def __init__(self, entity_model, search_label, allow_task_creation, parent=None):
         """
         Construction
 
@@ -81,17 +81,22 @@ class EntityTreeForm(QtGui.QWidget):
         
         # connect up controls:
         self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
-        
-        if entity_model and entity_model.get_entity_type() == "Task":
+
+        # enable/hide the my-tasks-only button if we are showing tasks:
+        have_tasks = (entity_model and entity_model.get_entity_type() == "Task")
+        if have_tasks:
+            self._ui.my_tasks_cb.toggled.connect(self._on_my_tasks_only_toggled)
+        else:
+            self._ui.my_tasks_cb.hide()
+
+        # enable/hide the new task button if we have tasks and task creation is allowed:
+        if have_tasks and allow_task_creation:
             # enable and connect the new task button
             self._ui.new_task_btn.clicked.connect(self._on_new_task)
             self._ui.new_task_btn.setEnabled(False)
-            self._ui.my_tasks_cb.toggled.connect(self._on_my_tasks_only_toggled)
         else:
-            # disable and hide the new task button
             self._ui.new_task_btn.hide()
-            self._ui.my_tasks_cb.hide()
-            
+
         self._ui.entity_tree.expanded.connect(self._on_item_expanded)
         self._ui.entity_tree.collapsed.connect(self._on_item_collapsed)
         

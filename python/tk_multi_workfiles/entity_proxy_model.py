@@ -70,7 +70,7 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
         else:
             # e.g. "one"
             val = sg_data.get(compare_fields)
-            if val and reg_exp.indexIn(val) != -1:
+            if val != None and reg_exp.indexIn(str(val)) != -1:
                 return True
             
         return False

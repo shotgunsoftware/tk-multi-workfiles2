@@ -86,20 +86,22 @@ class FileFormBase(QtGui.QWidget):
         """
         app = sgtk.platform.current_bundle()
 
-        # set up 'My Tasks':
         show_my_tasks = app.get_setting("show_my_tasks", True)
         if not show_my_tasks:
             return None
-        
+
         this_user = sgtk.util.get_current_user(app.sgtk)
         if not this_user:
             return None
-        
+
         # filter my tasks based on the current project and user:
         filters = [["project", "is", app.context.project],
                    ["task_assignees", "is", this_user]]
-        
-        model = MyTasksModel(filters, self)
+
+        # get any extra display fields we'll need to retrieve:
+        extra_display_fields = app.get_setting("my_tasks_extra_display_fields")
+
+        model = MyTasksModel(filters, extra_display_fields, self)
         model.async_refresh()
         return model 
         

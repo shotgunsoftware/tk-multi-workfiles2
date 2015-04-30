@@ -12,6 +12,21 @@
 
 # expected fields in the configuration file for this app
 configuration:
+
+    # Startup options
+    #
+
+    launch_at_startup:
+        type: bool
+        description: A flag whether to launch the UI at application startup.
+                     This option is not supported on all engines because of 
+                     differences in the way some platforms start up. Currently, only maya 
+                     nuke and 3ds Max support this option.
+        default_value: False
+
+    # templates
+    #
+
     template_work:
         type: template
         fields: context, [name], [version], [extension], *
@@ -36,93 +51,44 @@ configuration:
                      disk
         allows_empty: True
 
-    allow_task_creation:
-        type: bool
-        description: Controls whether new tasks can be created from the app.
-        default_value: True
-
-    launch_at_startup:
-        type: bool
-        description: A flag whether to launch the UI at application startup.
-                     This option is not supported on all engines because of 
-                     differences in the way some platforms start up. Currently, only maya 
-                     nuke and 3ds Max support this option.
-        default_value: False
+    # Hooks
+    #
 
     hook_scene_operation:
         type: hook
         parameters: [operation, file_path, context, parent_action, file_version, read_only]
-        default_value: "scene_operation_{engine_name}"
+        default_value: "{self}/scene_operation_{engine_name}.py"
         description: All the application specific scene operations (open, save etc) that 
                      the app needs to carry out are collected together in this hook.
         
     hook_copy_file:
         type: hook
         parameters: [source_path, target_path]
-        default_value: copy_file
+        default_value: "{self}/copy_file.py"
         description: Specify a hook that will be used to copy the file 'source_path' 
                      to 'target_path'.
 
     hook_filter_work_files:
         type: hook
         parameters: [work_files]
-        default_value: filter_work_files
+        default_value: "{self}/filter_work_files.py"
         description: Specify a hook that, if needed, can filter the raw list of work files found
                      for the current work area 
 
     hook_filter_publishes:
         type: hook
         parameters: [publishes]
-        default_value: filter_publishes
+        default_value: "{self}/filter_publishes.py"
         description: Specify a hook that, if needed, can filter the raw list of publishes returned
                      from Shotgun for the current Work area.
-           
-    file_extensions:
-        type: list
-        description: List of file extensions to be shown in the work files view. If
-                     empty then all files that match the template will be shown.
-        values:
-            type: str
-        allows_empty: True
-        default_value: []   
-  
-    saveas_default_name:
-      type: str
-      description: The default name that gets used by when saving a work file using the
-                   save-as command
-      default_value: scene
 
-    saveas_prefer_version_up:
-      type: bool
-      description: Control how the save-as command determines the inital name to be used.  If 
-                   set to True then the name from the current scene will be used and the version 
-                   incremented.  If False then a new unique name will be used and the version 
-                   reset
-      default_value: False
+    custom_actions_hook:
+        type: hook
+        default_value: "{self}/custom_actions.py"
+        description: Hook which contains all custom action methods.
 
-    task_extra_display_fields:
-      type: list
-      description: List of the fields to use to display with the task name in the task browser.
-      values:
-        type: str
-      allows_empty: True
-      default_value: []
-      
-    version_compare_ignore_fields:
-      type: list
-      description:  A list of fields that should be ignored when comparing files to
-                    determine if they are different versions of the same file.  If 
-                    this is left empty then only the version field will be ignored.
-                    Care should be taken when specifying fields to ignore as Toolkit 
-                    will expect the version to be unique across files that have 
-                    different values for those fields and will error if this isn't the
-                    case.
-      values:
-        type: str
-      allows_empty: True
-      default_value: []
-
-    # new for v2
+    # General preferences
+    #
     entities:
         type: list
         description: "This setting defines the different tabs that will show up on the left hand side.
@@ -146,16 +112,64 @@ configuration:
           filters:
           - [entity, type_is, Shot]
           hierarchy: [entity.Shot.sg_sequence, entity, step, content]
-                          
+
     show_my_tasks:
         type: bool
         description: Define if the My Tasks view should be visible or not.
         default_value: True
 
-    custom_actions_hook:
-        type: hook
-        default_value: "{self}/custom_actions.py"
-        description: Hook which contains all custom action methods.
+    my_tasks_extra_display_fields:
+      type: list
+      description: List of additional fields to display with the task in the My Tasks list.
+      values:
+        type: str
+      allows_empty: True
+      default_value: []
+
+    file_extensions:
+        type: list
+        description: List of file extensions to be shown in the work files view. If
+                     empty then all files that match the template will be shown.
+        values:
+            type: str
+        allows_empty: True
+        default_value: []
+
+    version_compare_ignore_fields:
+      type: list
+      description:  A list of fields that should be ignored when comparing files to
+                    determine if they are different versions of the same file.  If 
+                    this is left empty then only the version field will be ignored.
+                    Care should be taken when specifying fields to ignore as Toolkit 
+                    will expect the version to be unique across files that have 
+                    different values for those fields and will error if this isn't the
+                    case.
+      values:
+        type: str
+      allows_empty: True
+      default_value: []
+
+    allow_task_creation:
+        type: bool
+        description: Controls whether new tasks can be created from the app.
+        default_value: True
+
+    # Save specific options
+    #
+
+    saveas_default_name:
+      type: str
+      description: The default name that gets used by when saving a work file using the
+                   save-as command
+      default_value: scene
+
+    saveas_prefer_version_up:
+      type: bool
+      description: Control how the save-as command determines the inital name to be used.  If 
+                   set to True then the name from the current scene will be used and the version 
+                   incremented.  If False then a new unique name will be used and the version 
+                   reset
+      default_value: False
 
 # the Shotgun fields that this app needs in order to operate correctly
 requires_shotgun_fields:

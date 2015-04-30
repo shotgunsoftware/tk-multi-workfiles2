@@ -90,19 +90,22 @@ class BrowserForm(QtGui.QWidget):
     def set_models(self, my_tasks_model, entity_models, file_model):
         """
         """
+        app = sgtk.platform.current_bundle()
+        allow_task_creation = app.get_setting("allow_task_creation")
+
         if my_tasks_model:
             # create my tasks form:
-            self._my_tasks_form = MyTasksForm(my_tasks_model, self)
+            self._my_tasks_form = MyTasksForm(my_tasks_model, allow_task_creation, self)
             self._my_tasks_form.task_selected.connect(self._on_my_task_selected)
             self._ui.task_browser_tabs.addTab(self._my_tasks_form, "My Tasks")
-            self._my_tasks_form.create_new_task.connect(self.create_new_task)        
+            self._my_tasks_form.create_new_task.connect(self.create_new_task)
         
         for caption, model in entity_models:
             # create new entity form:
-            entity_form = EntityTreeForm(model, caption, self)
+            entity_form = EntityTreeForm(model, caption, allow_task_creation, self)
             entity_form.entity_selected.connect(self._on_entity_selected)
             self._ui.task_browser_tabs.addTab(entity_form, caption)
-            entity_form.create_new_task.connect(self.create_new_task)        
+            entity_form.create_new_task.connect(self.create_new_task)
 
         if file_model:
             # attach file model to the file views:

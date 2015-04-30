@@ -25,10 +25,11 @@ from .task_widget import TaskWidget
 class MyTaskItemDelegate(WidgetDelegate):
     """
     """
-    def __init__(self, view):
+    def __init__(self, extra_display_fields, view):
         """
         """
         WidgetDelegate.__init__(self, view)
+        self._extra_display_fields = extra_display_fields
         
         self._paint_widget = None
         self._widget_sz = None
@@ -109,7 +110,8 @@ class MyTaskItemDelegate(WidgetDelegate):
         widget.set_task(task_name, task_type_icon)
         
         # set 'other' info:
-        other_text = None
+        other_data = [str(sg_data.get(field)) for field in self._extra_display_fields]
+        other_text = ", ".join(other_data)
         widget.set_other(other_text)
                 
         # finally, update the selected state of the widget:
