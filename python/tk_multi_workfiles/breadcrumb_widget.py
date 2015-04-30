@@ -39,6 +39,7 @@ class BreadcrumbWidget(QtGui.QWidget):
         self._ui = Ui_BreadcrumbWidget()
         self._ui.setupUi(self)
         
+        self._ui.path_label.elide_mode = QtCore.Qt.ElideLeft
         self._ui.path_label.setText("")
         
     def set(self, breadcrumbs):

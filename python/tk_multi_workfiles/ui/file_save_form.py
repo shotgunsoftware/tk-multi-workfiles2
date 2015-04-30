@@ -11,7 +11,7 @@ from sgtk.platform.qt import QtCore, QtGui
 class Ui_FileSaveForm(object):
     def setupUi(self, FileSaveForm):
         FileSaveForm.setObjectName("FileSaveForm")
-        FileSaveForm.resize(979, 656)
+        FileSaveForm.resize(975, 664)
         self.verticalLayout = QtGui.QVBoxLayout(FileSaveForm)
         self.verticalLayout.setSpacing(4)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -118,11 +118,6 @@ class Ui_FileSaveForm(object):
         self.version_label.setIndent(-1)
         self.version_label.setObjectName("version_label")
         self.file_controls_grid.addWidget(self.version_label, 1, 0, 1, 1)
-        self.name_edit = QtGui.QLineEdit(FileSaveForm)
-        self.name_edit.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.name_edit.setFrame(True)
-        self.name_edit.setObjectName("name_edit")
-        self.file_controls_grid.addWidget(self.name_edit, 0, 1, 1, 1)
         self.name_label = QtGui.QLabel(FileSaveForm)
         self.name_label.setMinimumSize(QtCore.QSize(0, 0))
         self.name_label.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
@@ -156,6 +151,17 @@ class Ui_FileSaveForm(object):
         spacerItem1 = QtGui.QSpacerItem(0, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_6.addItem(spacerItem1)
         self.file_controls_grid.addLayout(self.horizontalLayout_6, 2, 1, 1, 1)
+        self.horizontalLayout_8 = QtGui.QHBoxLayout()
+        self.horizontalLayout_8.setSpacing(0)
+        self.horizontalLayout_8.setObjectName("horizontalLayout_8")
+        self.name_edit = QtGui.QLineEdit(FileSaveForm)
+        self.name_edit.setMaximumSize(QtCore.QSize(260, 16777215))
+        self.name_edit.setFrame(True)
+        self.name_edit.setObjectName("name_edit")
+        self.horizontalLayout_8.addWidget(self.name_edit)
+        spacerItem2 = QtGui.QSpacerItem(0, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.horizontalLayout_8.addItem(spacerItem2)
+        self.file_controls_grid.addLayout(self.horizontalLayout_8, 0, 1, 1, 1)
         self.file_controls_grid.setColumnMinimumWidth(0, 80)
         self.file_controls_grid.setColumnStretch(1, 1)
         self.verticalLayout_2.addLayout(self.file_controls_grid)
@@ -180,7 +186,12 @@ class Ui_FileSaveForm(object):
         self.file_name_preview.setIndent(-1)
         self.file_name_preview.setObjectName("file_name_preview")
         self.preview_grid.addWidget(self.file_name_preview, 0, 1, 1, 1)
-        self.work_area_preview = QtGui.QLabel(self.preview_page)
+        self.work_area_preview = ElidedLabel(self.preview_page)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.work_area_preview.sizePolicy().hasHeightForWidth())
+        self.work_area_preview.setSizePolicy(sizePolicy)
         self.work_area_preview.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
         self.work_area_preview.setWordWrap(True)
         self.work_area_preview.setIndent(-1)
@@ -224,8 +235,8 @@ class Ui_FileSaveForm(object):
         self.feedback_stacked_widget.addWidget(self.warning_page)
         self.verticalLayout_2.addWidget(self.feedback_stacked_widget)
         self.verticalLayout.addLayout(self.verticalLayout_2)
-        spacerItem2 = QtGui.QSpacerItem(20, 5, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
-        self.verticalLayout.addItem(spacerItem2)
+        spacerItem3 = QtGui.QSpacerItem(20, 5, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        self.verticalLayout.addItem(spacerItem3)
         self.break_line = QtGui.QFrame(FileSaveForm)
         self.break_line.setFrameShape(QtGui.QFrame.HLine)
         self.break_line.setFrameShadow(QtGui.QFrame.Sunken)
@@ -234,8 +245,8 @@ class Ui_FileSaveForm(object):
         self.horizontalLayout_4 = QtGui.QHBoxLayout()
         self.horizontalLayout_4.setContentsMargins(12, 8, 12, 12)
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
-        spacerItem3 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.horizontalLayout_4.addItem(spacerItem3)
+        spacerItem4 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.horizontalLayout_4.addItem(spacerItem4)
         self.cancel_btn = QtGui.QPushButton(FileSaveForm)
         self.cancel_btn.setObjectName("cancel_btn")
         self.horizontalLayout_4.addWidget(self.cancel_btn)
@@ -248,7 +259,7 @@ class Ui_FileSaveForm(object):
 
         self.retranslateUi(FileSaveForm)
         self.nav_stacked_widget.setCurrentIndex(1)
-        self.feedback_stacked_widget.setCurrentIndex(1)
+        self.feedback_stacked_widget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(FileSaveForm)
 
     def retranslateUi(self, FileSaveForm):
@@ -257,11 +268,10 @@ class Ui_FileSaveForm(object):
         self.version_label.setText(QtGui.QApplication.translate("FileSaveForm", "<html><head/><body><p><span style=\" font-weight:600;\">Version #:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.name_label.setText(QtGui.QApplication.translate("FileSaveForm", "<html><head/><body><p><span style=\" font-weight:600;\">Name:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.file_type_label.setText(QtGui.QApplication.translate("FileSaveForm", "<html><head/><body><p><span style=\" font-weight:600;\">File Type:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
-        self.use_next_available_cb.setText(QtGui.QApplication.translate("FileSaveForm", "Use Next Available Version", None, QtGui.QApplication.UnicodeUTF8))
+        self.use_next_available_cb.setText(QtGui.QApplication.translate("FileSaveForm", "Use Next Available Version Number", None, QtGui.QApplication.UnicodeUTF8))
         self.preview_label.setText(QtGui.QApplication.translate("FileSaveForm", "<html><head/><body><p><span style=\" font-weight:600;\">Preview:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.file_name_preview.setText(QtGui.QApplication.translate("FileSaveForm", "preview", None, QtGui.QApplication.UnicodeUTF8))
-        self.work_area_preview.setText(QtGui.QApplication.translate("FileSaveForm", "one\n"
-"two", None, QtGui.QApplication.UnicodeUTF8))
+        self.work_area_preview.setText(QtGui.QApplication.translate("FileSaveForm", ".../work/area", None, QtGui.QApplication.UnicodeUTF8))
         self.work_area_label.setText(QtGui.QApplication.translate("FileSaveForm", "<html><head/><body><p><span style=\" font-weight:600;\">Work Area:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.warning.setText(QtGui.QApplication.translate("FileSaveForm", "warning", None, QtGui.QApplication.UnicodeUTF8))
         self.warning_label.setText(QtGui.QApplication.translate("FileSaveForm", "<html><head/><body><p><span style=\" font-weight:600;\">Preview:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
@@ -270,5 +280,6 @@ class Ui_FileSaveForm(object):
 
 from ..navigation_widget import NavigationWidget
 from ..breadcrumb_widget import BreadcrumbWidget
+from ..elided_label import ElidedLabel
 from ..browser_form import BrowserForm
 from . import resources_rc

@@ -82,6 +82,8 @@ class FileSaveForm(FileFormBase):
         self._ui.nav_stacked_widget.setCurrentWidget(self._ui.location_page)
         self._ui.browser.hide()
         self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.preview_page)
+        self._ui.work_area_preview.elide_mode = QtCore.Qt.ElideLeft
+        self._ui.work_area_preview.setText("")
         
         self.layout().setStretch(0, 0)
         self.layout().setStretch(3, 1)
