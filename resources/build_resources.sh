@@ -48,6 +48,7 @@ build_ui task_widget
 build_ui file_tile
 build_ui group_header_widget
 build_ui file_group_widget
+build_ui open_options_form
 build_ui new_task_form
 
 # build resources

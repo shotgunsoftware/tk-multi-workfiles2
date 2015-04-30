@@ -17,7 +17,7 @@ from tank.platform.qt import QtCore, QtGui
 
 shotgun_data = tank.platform.import_framework("tk-framework-shotgunutils", "shotgun_data")
 
-class OpenFileForm(QtGui.QWidget):
+class OpenOptionsForm(QtGui.QWidget):
     """
     UI for changing the version of the current work file
     """
@@ -55,8 +55,8 @@ class OpenFileForm(QtGui.QWidget):
         self._publish_requires_copy = publish_requires_copy
         
         # set up the UI
-        from .ui.open_file_form import Ui_OpenFileForm
-        self._ui = Ui_OpenFileForm()
+        from .ui.open_options_form import Ui_OpenOptionsForm
+        self._ui = Ui_OpenOptionsForm()
         self._ui.setupUi(self)
         
         clr = QtGui.QApplication.palette().color(QtGui.QPalette.Window)
@@ -113,7 +113,7 @@ class OpenFileForm(QtGui.QWidget):
         
         # title:
         title_str = ""
-        if self._mode == OpenFileForm.OPEN_WORKFILE_MODE:
+        if self._mode == OpenOptionsForm.OPEN_WORKFILE_MODE:
             title_str = "A more recent Published version of this file is available!"
         else:
             if self._work_file:
@@ -126,7 +126,7 @@ class OpenFileForm(QtGui.QWidget):
         if self._work_file:
             wf_title_str = ""
             wf_tooltip_str = ""
-            if self._mode == OpenFileForm.OPEN_WORKFILE_MODE:
+            if self._mode == OpenOptionsForm.OPEN_WORKFILE_MODE:
                 wf_title_str = "Open the older Work File instead?"
                 wf_tooltip_str = "Click to open the older Work File"
             else:
@@ -148,7 +148,7 @@ class OpenFileForm(QtGui.QWidget):
         pf_title_str = ""
         pf_tooltip_str = ""
         pf_ro_title_str = ""
-        if self._mode == OpenFileForm.OPEN_WORKFILE_MODE:
+        if self._mode == OpenOptionsForm.OPEN_WORKFILE_MODE:
             pf_title_str = "Continue working from the latest Publish?"
             pf_tooltip_str = "Click to open the latest Publish"
         else:
@@ -187,7 +187,7 @@ class OpenFileForm(QtGui.QWidget):
         self._ui.verticalLayout.setEnabled(False)
         try:
             ordered_widgets = []
-            if self._mode == OpenFileForm.OPEN_PUBLISH_MODE:
+            if self._mode == OpenOptionsForm.OPEN_PUBLISH_MODE:
                 ordered_widgets = [self._ui.work_file_frame,
                                    self._ui.or_label_a,
                                    self._ui.publish_frame,
@@ -201,7 +201,7 @@ class OpenFileForm(QtGui.QWidget):
                     
                 QtGui.QWidget.setTabOrder(self._ui.work_file_frame, self._ui.publish_frame)
                 QtGui.QWidget.setTabOrder(self._ui.publish_frame, self._ui.publish_ro_frame)
-            elif self._mode == OpenFileForm.OPEN_PUBLISH_NO_READONLY_MODE:
+            elif self._mode == OpenOptionsForm.OPEN_PUBLISH_NO_READONLY_MODE:
                 ordered_widgets = [self._ui.work_file_frame,
                                    self._ui.or_label_a,
                                    self._ui.publish_frame,
@@ -246,22 +246,22 @@ class OpenFileForm(QtGui.QWidget):
         """
         if event.key() == QtCore.Qt.Key_Return or event.key() == QtCore.Qt.Key_Enter:
             if self._ui.publish_frame.hasFocus():
-                self._exit(OpenFileForm.OPEN_PUBLISH)
+                self._exit(OpenOptionsForm.OPEN_PUBLISH)
             elif self._ui.work_file_frame.hasFocus():
-                self._exit(OpenFileForm.OPEN_WORKFILE)
+                self._exit(OpenOptionsForm.OPEN_WORKFILE)
             elif self._ui.publish_ro_frame.hasFocus():
-                self._exit(OpenFileForm.OPEN_PUBLISH_READONLY)
+                self._exit(OpenOptionsForm.OPEN_PUBLISH_READONLY)
 
         QtGui.QWidget.keyPressEvent(self, event)
         
     def _on_publish_mouse_press_event(self, event):
-        self._exit(OpenFileForm.OPEN_PUBLISH)
+        self._exit(OpenOptionsForm.OPEN_PUBLISH)
         
     def _on_publish_ro_mouse_press_event(self, event):
-        self._exit(OpenFileForm.OPEN_PUBLISH_READONLY)
+        self._exit(OpenOptionsForm.OPEN_PUBLISH_READONLY)
         
     def _on_work_file_mouse_press_event(self, event):
-        self._exit(OpenFileForm.OPEN_WORKFILE)        
+        self._exit(OpenOptionsForm.OPEN_WORKFILE)        
         
     def _on_cancel(self):
         """

@@ -16,7 +16,7 @@ from sgtk.platform.qt import QtCore, QtGui
 from .open_file_action import OpenFileAction
 
 from ..wrapper_dialog import WrapperDialog
-from ..open_file_form import OpenFileForm
+from ..open_options_form import OpenOptionsForm
 
 class InteractiveOpenAction(OpenFileAction):
 
@@ -86,7 +86,7 @@ class InteractiveOpenAction(OpenFileAction):
 
         # different options depending if the publish file is more 
         # recent or not:
-        open_mode = OpenFileForm.OPEN_WORKFILE
+        open_mode = OpenOptionsForm.OPEN_WORKFILE
         if publish_file and work_file.compare_with_publish(publish_file) < 0:
             # options are different if the publish and work files are the same path as there
             # doesn't need to be the option of opening the publish read-only.
@@ -96,15 +96,15 @@ class InteractiveOpenAction(OpenFileAction):
                 if "version" not in env.publish_template.keys:
                     publish_requires_copy = False
             
-            form = OpenFileForm(self._app, work_file, publish_file, OpenFileForm.OPEN_WORKFILE_MODE, 
+            form = OpenOptionsForm(self._app, work_file, publish_file, OpenOptionsForm.OPEN_WORKFILE_MODE, 
                                 next_version, publish_requires_copy)
             open_mode = WrapperDialog.show_modal(form, "Found a More Recent Publish!", parent=parent_ui)
             
-        if open_mode == OpenFileForm.OPEN_WORKFILE:
+        if open_mode == OpenOptionsForm.OPEN_WORKFILE:
             # open the work file:
             if not self._open_workfile(work_file, env, parent_ui):
                 return False
-        elif open_mode == OpenFileForm.OPEN_PUBLISH:
+        elif open_mode == OpenOptionsForm.OPEN_PUBLISH:
             # open the published file instead:
             if not self._open_publish_as_workfile(publish_file, env, next_version, parent_ui):
                 return False
@@ -155,19 +155,19 @@ class InteractiveOpenAction(OpenFileAction):
             
         if work_file or publish_requires_copy:
             # show dialog with options to user:
-            open_mode = OpenFileForm.OPEN_PUBLISH
+            open_mode = OpenOptionsForm.OPEN_PUBLISH
             
-            mode = OpenFileForm.OPEN_PUBLISH_MODE if publish_requires_copy else OpenFileForm.OPEN_PUBLISH_NO_READONLY_MODE 
-            form = OpenFileForm(self._app, work_file, publish_file, mode, next_version, publish_requires_copy)
+            mode = OpenOptionsForm.OPEN_PUBLISH_MODE if publish_requires_copy else OpenOptionsForm.OPEN_PUBLISH_NO_READONLY_MODE 
+            form = OpenOptionsForm(self._app, work_file, publish_file, mode, next_version, publish_requires_copy)
             open_mode = WrapperDialog.show_modal(form, dlg_title, parent=parent_ui)
                 
-            if open_mode == OpenFileForm.OPEN_WORKFILE:
+            if open_mode == OpenOptionsForm.OPEN_WORKFILE:
                 # open the work file:
                 return self._open_workfile(work_file, env, parent_ui)
-            elif open_mode == OpenFileForm.OPEN_PUBLISH:
+            elif open_mode == OpenOptionsForm.OPEN_PUBLISH:
                 # open the published file instead:
                 return self._open_publish_as_workfile(publish_file, env, next_version, parent_ui)
-            elif open_mode == OpenFileForm.OPEN_PUBLISH_READONLY:
+            elif open_mode == OpenOptionsForm.OPEN_PUBLISH_READONLY:
                 # open the published file read-only instead:
                 return self._open_publish_read_only(publish_file, env, parent_ui)
             else:
