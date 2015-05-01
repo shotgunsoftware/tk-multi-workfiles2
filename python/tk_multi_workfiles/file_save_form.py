@@ -79,8 +79,8 @@ class FileSaveForm(FileFormBase):
         #self._ui.location_label.hide()
 
         # define which controls are visible before initial show:        
-        self._ui.nav_stacked_widget.setCurrentWidget(self._ui.location_page)
         self._ui.browser.hide()
+        self._ui.nav.hide()
         self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.preview_page)
         self._ui.work_area_preview.elide_mode = QtCore.Qt.ElideLeft
         self._ui.work_area_preview.setText("")
@@ -495,13 +495,12 @@ class FileSaveForm(FileFormBase):
         if checked:
             if self._collapsed_size == None or not self._collapsed_size.isValid():
                 self._collapsed_size = self.size()
-                
-            #self._ui.browser_stacked_widget.setCurrentWidget(self._ui.browser_page)
-            self._ui.nav_stacked_widget.setCurrentWidget(self._ui.history_nav_page)
+
             self._ui.browser.show()
+            self._ui.nav.show()
             self.layout().setStretch(0, 1)
             self.layout().setStretch(3, 0)
-            
+
             if self._last_expanded_sz == self._collapsed_size:
                 self._last_expanded_sz = QtCore.QSize(800, 800)
 
@@ -513,9 +512,8 @@ class FileSaveForm(FileFormBase):
             #print self._last_expanded_sz
             
             self._ui.browser.hide()
-            #self._ui.browser_stacked_widget.setCurrentWidget(self._ui.line_page)
-            self._ui.nav_stacked_widget.setCurrentWidget(self._ui.location_page)
-            
+            self._ui.nav.hide()
+
             self.layout().setStretch(0, 0)
             self.layout().setStretch(3, 1)
             

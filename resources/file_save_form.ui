@@ -35,9 +35,18 @@
       <number>4</number>
      </property>
      <item>
-      <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1" columnminimumwidth="80,0">
+      <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,1">
+       <item row="0" column="2">
+        <widget class="BreadcrumbWidget" name="breadcrumbs" native="true">
+         <property name="styleSheet">
+          <string notr="true">#breadcrumbs {
+background-color: rgb(255, 128, 0);
+}</string>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="0">
-        <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0">
+        <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0">
          <property name="spacing">
           <number>1</number>
          </property>
@@ -83,61 +92,18 @@ height: 14;
            </property>
           </widget>
          </item>
-         <item>
-          <widget class="QStackedWidget" name="nav_stacked_widget">
-           <property name="lineWidth">
-            <number>1</number>
-           </property>
-           <property name="currentIndex">
-            <number>0</number>
-           </property>
-           <widget class="QWidget" name="location_page">
-            <layout class="QHBoxLayout" name="horizontalLayout_5">
-             <property name="margin">
-              <number>0</number>
-             </property>
-             <item>
-              <widget class="QLabel" name="location_label">
-               <property name="text">
-                <string>&lt;big&gt;&lt;b&gt;Location:&lt;/b&gt;&lt;/big&gt;</string>
-               </property>
-               <property name="alignment">
-                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-           <widget class="QWidget" name="history_nav_page">
-            <layout class="QHBoxLayout" name="horizontalLayout">
-             <property name="margin">
-              <number>0</number>
-             </property>
-             <item>
-              <widget class="NavigationWidget" name="nav" native="true">
-               <property name="minimumSize">
-                <size>
-                 <width>80</width>
-                 <height>30</height>
-                </size>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">#nav {
-background-color: rgb(255, 128, 0);
-}</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </widget>
-         </item>
         </layout>
        </item>
        <item row="0" column="1">
-        <widget class="BreadcrumbWidget" name="breadcrumbs" native="true">
+        <widget class="NavigationWidget" name="nav" native="true">
+         <property name="minimumSize">
+          <size>
+           <width>80</width>
+           <height>30</height>
+          </size>
+         </property>
          <property name="styleSheet">
-          <string notr="true">#breadcrumbs {
+          <string notr="true">#nav {
 background-color: rgb(255, 128, 0);
 }</string>
          </property>
@@ -299,7 +265,7 @@ background-color: rgb(255, 128, 0);
         </layout>
        </item>
        <item row="0" column="1">
-        <layout class="QHBoxLayout" name="horizontalLayout_8">
+        <layout class="QHBoxLayout" name="horizontalLayout_8" stretch="1,0">
          <property name="spacing">
           <number>0</number>
          </property>

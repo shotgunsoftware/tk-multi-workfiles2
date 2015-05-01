@@ -10,11 +10,40 @@
 
 """
 """
-
+import threading
 import sgtk
 from sgtk import TankError
 
 class EnvironmentDetails(object):
+    
+    class _SettingsCache(object):
+        def __init__(self):
+            self._cache = {}
+            self._lock = threading.Lock()
+        
+        def get(self, engine_name, app_name, context):
+            """
+            """
+            self._lock.acquire()
+            try:
+                settings_by_context = self._cache.get((engine_name, app_name), [])
+                for ctx, settings in settings_by_context:
+                    if ctx == context:
+                        return settings
+            finally:
+                self._lock.release()
+        
+        def add(self, engine_name, app_name, context, settings):
+            """
+            """
+            self._lock.acquire()
+            try:
+                self._cache.setdefault((engine_name, app_name), list()).append((context, settings))
+            finally:
+                self._lock.release()
+    
+    settings_cache = _SettingsCache() 
+    
     def __init__(self, ctx=None):
         """
         """
@@ -131,10 +160,20 @@ class EnvironmentDetails(object):
         if not context:
             return
         
-        # find settings for all instances of app in 
-        # the environment picked for the given context:
-        other_settings = sgtk.platform.find_app_settings(app.engine.name, app.name, app.sgtk, context)
-        
+        # first look in the cache:
+        other_settings = EnvironmentDetails.settings_cache.get(app.engine.name, app.name, context)
+        if other_settings == None:
+            try:
+                # find settings for all instances of app in 
+                # the environment picked for the given context:
+                other_settings = sgtk.platform.find_app_settings(app.engine.name, app.name, app.sgtk, context)
+                if not other_settings:
+                    # for backwards compatibility, look for settings for the 'tk-multi-workfiles' app as well
+                    other_settings = sgtk.platform.find_app_settings(app.engine.name, "tk-multi-workfiles", app.sgtk, context)
+            finally:
+                # make sure the cache is updated:
+                EnvironmentDetails.settings_cache.add(app.engine.name, app.name, context, other_settings or {})
+
         if len(other_settings) == 1:
             return other_settings[0].get("settings")
     
@@ -146,9 +185,12 @@ class EnvironmentDetails(object):
         if len(settings_by_engine) != 1:
             return
             
-        # ok, so have a single engine but multiple apps
-        # lets try to find an app with the same instance
-        # name:
+        # ok, so have a single engine but multiple apps lets try 
+        # to find an app with the same instance name.
+
+        # first, get the instance name of the current app - we
+        # have to look through all engine apps to find this as
+        # the app itself doesn't know
         app_instance_name = None
         for instance_name, engine_app in app.engine.apps.iteritems():
             if engine_app == app:
@@ -157,7 +199,11 @@ class EnvironmentDetails(object):
         if not app_instance_name:
             return
     
+        # now look for settings for this specific instance in the engine settings:
         for engine_name, engine_settings in settings_by_engine.iteritems():
             for settings in engine_settings:
                 if settings.get("app_instance") == app_instance_name:
                     return settings.get("settings")
+
+
+
