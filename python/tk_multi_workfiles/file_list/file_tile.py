@@ -117,12 +117,6 @@ class FileTile(QtGui.QWidget):
     def _set_label_image(self, label, image, w, h):
         """
         """
-        """
-        CANVAS_WIDTH = 512
-        CANVAS_HEIGHT = 400
-        CORNER_RADIUS = 10
-        """        
-        
         if not image:
             # make sure it's cleared
             label.setPixmap(None)

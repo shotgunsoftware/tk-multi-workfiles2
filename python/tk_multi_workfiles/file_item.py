@@ -260,7 +260,7 @@ class FileItem(QtCore.QObject):
         if self.modified_by and "name" in self.modified_by:
             details_str += self.modified_by["name"]#("Updated by %s" % self.modified_by["name"])
         else:
-            details_str += "<i>Unknown</i>"#"Updated by: <i>Unknown</i>"   
+            details_str += "<i>Unknown</i>"   
 
         details_str += "<br>"
         

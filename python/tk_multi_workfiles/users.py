@@ -13,21 +13,25 @@ Implementation of the user cache storing Shotgun user information
 """
 import os
 import sys
+import threading
+import sgtk
 
 class UserCache(object):
     """
     A cache of user information retrieved from Shotgun as needed
     """    
-    def __init__(self, app):
+    def __init__(self):
         """
         Construction
         """
-        self.__app = app
+        self._app = sgtk.platform.current_bundle()
+        
+        self._cache_lock = threading.Lock()
         self.__user_details_by_login = {}
         self.__user_details_by_id = {}
         
         self.__sg_fields = ["id", "type", "email", "login", "name", "image"]
-    
+
     def get_user_details_for_id(self, id):
         """
         Get the user details for the specified user entity id.
@@ -54,7 +58,8 @@ class UserCache(object):
         user_details = {}
         users_to_fetch = set()
         for user_id in ids:
-            details = self.__user_details_by_id.get(user_id)
+            details = self._get_user_for_id(user_id)
+            #details = self.__user_details_by_id.get(user_id)
             if details:
                 user_details[id] = details
             elif details == None:
@@ -65,7 +70,7 @@ class UserCache(object):
             # get user details from shotgun:
             sg_users = []
             try:
-                sg_users = self.__app.shotgun.find("HumanUser", [["id", "in"] + list(users_to_fetch)], self.__sg_fields)
+                sg_users = self._app.shotgun.find("HumanUser", [["id", "in"] + list(users_to_fetch)], self.__sg_fields)
             except:
                 sg_users = []
                 
@@ -75,8 +80,9 @@ class UserCache(object):
                 user_id = sg_user.get("id")
                 if user_id not in users_to_fetch:
                     continue
-                self.__user_details_by_id[user_id] = sg_user
-                self.__user_details_by_login[sg_user["login"]] = sg_user
+                self._cache_user(sg_user["login"], user_id, sg_user)
+                #self.__user_details_by_id[user_id] = sg_user
+                #self.__user_details_by_login[sg_user["login"]] = sg_user
                 users_found.add(user_id)
                 
                 user_details[user_id] = sg_user
@@ -85,7 +91,8 @@ class UserCache(object):
             for user in users_to_fetch:
                 if user_id not in users_found:
                     # store empty dictionary to differenctiate from 'None'
-                    self.__user_details_by_id[user_id] = {}
+                    self._cache_user(None, user_id, {})
+                    #self.__user_details_by_id[user_id] = {}
                     user_details[user_id] = {}
                     
         return user_details
@@ -98,6 +105,7 @@ class UserCache(object):
         :param path:    The path to find the last modified user for
         :returns:       A  Shotgun entity dictionary for the HumanUser that last modified the path
         """
+        
         login_name = None
         if sys.platform == "win32":
             # TODO: add windows support..
@@ -110,10 +118,41 @@ class UserCache(object):
                 pass
         
         if login_name:
-            return self.__get_user_details_for_login(login_name)
+            sg_user = self.__get_user_details_for_login(login_name)
+            return sg_user
         
         return None
-    
+
+    def _get_user_for_id(self, id):
+        """
+        """
+        self._cache_lock.acquire()
+        try:
+            return self.__user_details_by_id.get(id)
+        finally:
+            self._cache_lock.release()
+
+    def _get_user_for_login(self, login):
+        """
+        """
+        self._cache_lock.acquire()
+        try:
+            return self.__user_details_by_login.get(login)
+        finally:
+            self._cache_lock.release()
+            
+    def _cache_user(self, login, id, details):
+        """
+        """
+        self._cache_lock.acquire()
+        try:
+            if login != None:
+                self.__user_details_by_login[login] = details
+            if id != None:
+                self.__user_details_by_id[id] = details
+        finally:
+            self._cache_lock.release()
+
     def __get_user_details_for_login(self, login_name):
         """
         Get the shotgun HumanUser entry for the specified login name
@@ -122,15 +161,21 @@ class UserCache(object):
         :returns:           A Shotgun entity dictionary for the HumanUser entity found
         """
         # first look to see if we've already found it:
-        sg_user = self.__user_details_by_login.get(login_name)
+        sg_user = self._get_user_for_login(login_name)
+        #sg_user = self.__user_details_by_login.get(login_name)
         if not sg_user:
+            # have to do a Shotgun lookup:
             try:
-                sg_user = self.__app.shotgun.find_one("HumanUser", [["login", "is", login_name]], self.__sg_fields)
-            except:
+                sg_user = self._app.shotgun.find_one("HumanUser", [["login", "is", login_name]], self.__sg_fields)
+            except Exception:
                 sg_user = {}
-            self.__user_details_by_login[login_name] = sg_user
-            if sg_user:
-                self.__user_details_by_id[sg_user["id"]] = sg_user
+                
+            self._cache_user(login_name, sg_user.get("id"), sg_user)
+            #self.__user_details_by_login[login_name] = sg_user
+            #if sg_user:
+            #    self.__user_details_by_id[sg_user["id"]] = sg_user
         return sg_user
     
+# single global instance of the user cache
+g_user_cache = UserCache()
     

@@ -41,11 +41,7 @@ class WorkFiles(QtCore.QObject):#object):
         Construction
         """
         QtCore.QObject.__init__(self, None)
-
         self._app = app
-
-        # user cache used to cache Shotgun user details:
-        #self._user_cache = UserCache(self._app)
 
     def __show_file_open_dlg(self):
         """

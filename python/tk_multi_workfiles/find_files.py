@@ -22,7 +22,7 @@ from tank_vendor.shotgun_api3 import sg_timezone
 from sgtk import TankError
 
 from .file_item import FileItem
-from .users import UserCache
+from .users import g_user_cache
 
 from .sg_published_files_model import SgPublishedFilesModel
 from .runnable_task import RunnableTask
@@ -136,7 +136,6 @@ class FileFinder(QtCore.QObject):
         QtCore.QObject.__init__(self, parent)
         
         self.__app = app or sgtk.platform.current_bundle()
-        self.__user_cache = user_cache or UserCache(app)
         
         self._searches = {}
         self._task_id_map = {}
@@ -484,9 +483,9 @@ class FileFinder(QtCore.QObject):
             # file modified details:
             if not file_details["modified_at"]:
                 file_details["modified_at"] = datetime.fromtimestamp(os.path.getmtime(work_path), tz=sg_timezone.local)
-            if not file_details["modified_by"]:                
+            if not file_details["modified_by"]:
                 # TODO - user cache probably isn't thread safe!
-                file_details["modified_by"] = self.__user_cache.get_file_last_modified_user(work_path)
+                file_details["modified_by"] = g_user_cache.get_file_last_modified_user(work_path)
             
             # make sure all files with the same key have the same name:
             file_details["name"] = name_map.get_name(file_key, work_path, work_template, wf_fields)
@@ -547,7 +546,7 @@ class FileFinder(QtCore.QObject):
             # local file modified details:
             if os.path.exists(publish_path):
                 file_details["modified_at"] = datetime.fromtimestamp(os.path.getmtime(publish_path), tz=sg_timezone.local)
-                file_details["modified_by"] = self.__user_cache.get_file_last_modified_user(publish_path)
+                file_details["modified_by"] = g_user_cache.get_file_last_modified_user(publish_path)
             else:
                 # just use the publish info
                 file_details["modified_at"] = sg_publish.get("published_at")
