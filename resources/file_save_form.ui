@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>975</width>
-    <height>664</height>
+    <width>893</width>
+    <height>570</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -38,6 +38,12 @@
       <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,1">
        <item row="0" column="2">
         <widget class="BreadcrumbWidget" name="breadcrumbs" native="true">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>30</height>
+          </size>
+         </property>
          <property name="styleSheet">
           <string notr="true">#breadcrumbs {
 background-color: rgb(255, 128, 0);
@@ -144,7 +150,7 @@ background-color: rgb(255, 128, 0);
       <number>12</number>
      </property>
      <property name="bottomMargin">
-      <number>0</number>
+      <number>4</number>
      </property>
      <item>
       <layout class="QGridLayout" name="file_controls_grid" rowstretch="0,0,0" columnstretch="0,1" columnminimumwidth="80,0">
@@ -247,7 +253,14 @@ background-color: rgb(255, 128, 0);
           <number>0</number>
          </property>
          <item>
-          <widget class="QComboBox" name="file_type_menu"/>
+          <widget class="QComboBox" name="file_type_menu">
+           <property name="minimumSize">
+            <size>
+             <width>200</width>
+             <height>0</height>
+            </size>
+           </property>
+          </widget>
          </item>
          <item>
           <spacer name="horizontalSpacer_3">
@@ -273,7 +286,7 @@ background-color: rgb(255, 128, 0);
           <widget class="QLineEdit" name="name_edit">
            <property name="maximumSize">
             <size>
-             <width>260</width>
+             <width>200</width>
              <height>16777215</height>
             </size>
            </property>
@@ -449,7 +462,7 @@ background-color: rgb(255, 128, 0);
      <property name="sizeHint" stdset="0">
       <size>
        <width>20</width>
-       <height>5</height>
+       <height>0</height>
       </size>
      </property>
     </spacer>

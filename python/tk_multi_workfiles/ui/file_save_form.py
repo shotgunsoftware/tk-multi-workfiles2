@@ -11,7 +11,7 @@ from sgtk.platform.qt import QtCore, QtGui
 class Ui_FileSaveForm(object):
     def setupUi(self, FileSaveForm):
         FileSaveForm.setObjectName("FileSaveForm")
-        FileSaveForm.resize(975, 664)
+        FileSaveForm.resize(893, 570)
         self.verticalLayout = QtGui.QVBoxLayout(FileSaveForm)
         self.verticalLayout.setSpacing(4)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -22,6 +22,7 @@ class Ui_FileSaveForm(object):
         self.gridLayout_2 = QtGui.QGridLayout()
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.breadcrumbs = BreadcrumbWidget(FileSaveForm)
+        self.breadcrumbs.setMinimumSize(QtCore.QSize(0, 30))
         self.breadcrumbs.setStyleSheet("#breadcrumbs {\n"
 "background-color: rgb(255, 128, 0);\n"
 "}")
@@ -86,7 +87,7 @@ class Ui_FileSaveForm(object):
         self.verticalLayout.addWidget(self.line)
         self.verticalLayout_2 = QtGui.QVBoxLayout()
         self.verticalLayout_2.setSpacing(12)
-        self.verticalLayout_2.setContentsMargins(12, 4, 12, 0)
+        self.verticalLayout_2.setContentsMargins(12, 4, 12, 4)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.file_controls_grid = QtGui.QGridLayout()
         self.file_controls_grid.setVerticalSpacing(6)
@@ -125,6 +126,7 @@ class Ui_FileSaveForm(object):
         self.horizontalLayout_6.setSpacing(0)
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
         self.file_type_menu = QtGui.QComboBox(FileSaveForm)
+        self.file_type_menu.setMinimumSize(QtCore.QSize(200, 0))
         self.file_type_menu.setObjectName("file_type_menu")
         self.horizontalLayout_6.addWidget(self.file_type_menu)
         spacerItem1 = QtGui.QSpacerItem(0, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
@@ -134,7 +136,7 @@ class Ui_FileSaveForm(object):
         self.horizontalLayout_8.setSpacing(0)
         self.horizontalLayout_8.setObjectName("horizontalLayout_8")
         self.name_edit = QtGui.QLineEdit(FileSaveForm)
-        self.name_edit.setMaximumSize(QtCore.QSize(260, 16777215))
+        self.name_edit.setMaximumSize(QtCore.QSize(200, 16777215))
         self.name_edit.setFrame(True)
         self.name_edit.setObjectName("name_edit")
         self.horizontalLayout_8.addWidget(self.name_edit)
@@ -215,7 +217,7 @@ class Ui_FileSaveForm(object):
         self.feedback_stacked_widget.addWidget(self.warning_page)
         self.verticalLayout_2.addWidget(self.feedback_stacked_widget)
         self.verticalLayout.addLayout(self.verticalLayout_2)
-        spacerItem3 = QtGui.QSpacerItem(20, 5, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        spacerItem3 = QtGui.QSpacerItem(20, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem3)
         self.break_line = QtGui.QFrame(FileSaveForm)
         self.break_line.setFrameShape(QtGui.QFrame.HLine)

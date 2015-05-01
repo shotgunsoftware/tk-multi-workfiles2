@@ -52,6 +52,8 @@ class BrowserForm(QtGui.QWidget):
         """
         QtGui.QWidget.__init__(self, parent)
 
+        self._enable_show_all_versions = True
+
         #self._suppress_entity_selected_signals = False
         self._file_model = None
         self._my_tasks_form = None
@@ -80,6 +82,17 @@ class BrowserForm(QtGui.QWidget):
         if not file_form:
             return False
         return file_form.publishes_visible
+
+    def enable_show_all_versions(self, enable):
+        """
+        """
+        if self._enable_show_all_versions == enable:
+            return
+        
+        self._enable_show_all_versions = enable
+        for ti in range(self._ui.file_browser_tabs.count()):
+            widget = self._ui.file_browser_tabs.widget(ti)
+            widget.enable_show_all_versions(self._enable_show_all_versions)
 
     def closeEvent(self, event):
         """
@@ -115,6 +128,7 @@ class BrowserForm(QtGui.QWidget):
             # add an 'all files' tab:
             all_files_form = FileListForm("All Files", show_work_files=True, show_publishes=True, parent=self)
             self._ui.file_browser_tabs.addTab(all_files_form, "All")
+            all_files_form.enable_show_all_versions(self._enable_show_all_versions)
             all_files_form.set_model(self._file_model)
             all_files_form.file_selected.connect(self._on_file_selected)
             all_files_form.file_double_clicked.connect(self.file_double_clicked)
@@ -122,16 +136,18 @@ class BrowserForm(QtGui.QWidget):
             
             # create the workfiles proxy model & form:
             work_files_form = FileListForm("Work Files", show_work_files=True, show_publishes=False, parent=self)
-            work_files_form.set_model(self._file_model)
             self._ui.file_browser_tabs.addTab(work_files_form, "Working")
+            work_files_form.enable_show_all_versions(self._enable_show_all_versions)
+            work_files_form.set_model(self._file_model)
             work_files_form.file_selected.connect(self._on_file_selected)
             work_files_form.file_double_clicked.connect(self.file_double_clicked)
             work_files_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
                 
             # create the publish proxy model & form:
             publishes_form = FileListForm("Publishes", show_work_files=False, show_publishes=True, parent=self)
-            publishes_form.set_model(self._file_model)
             self._ui.file_browser_tabs.addTab(publishes_form, "Publishes")
+            publishes_form.enable_show_all_versions(self._enable_show_all_versions)
+            publishes_form.set_model(self._file_model)
             publishes_form.file_selected.connect(self._on_file_selected)
             publishes_form.file_double_clicked.connect(self.file_double_clicked)
             publishes_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)

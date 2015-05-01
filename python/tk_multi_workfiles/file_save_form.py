@@ -40,24 +40,26 @@ class FileSaveForm(FileFormBase):
     """
     @property
     def exit_code(self):
-        return self._exit_code    
+        return self._exit_code
     
     def __init__(self, init_callback, parent=None):
         """
         Construction
         """
         app = sgtk.platform.current_bundle()
-        
+
         FileFormBase.__init__(self, parent)
 
+        self._expanded_size = QtCore.QSize(930, 700)
+        self._collapsed_size = None
+
         self._exit_code = QtGui.QDialog.Rejected
-        self._last_expanded_sz = QtCore.QSize(600, 600)
         self._current_env = None
         self._current_path = ""
         self._extension_choices = []
         self._preview_task = None
         self._navigating = False
-        
+
         try:
             # doing this inside a try-except to ensure any exceptions raised don't 
             # break the UI and crash the dcc horribly!
@@ -90,7 +92,6 @@ class FileSaveForm(FileFormBase):
         
         # resize to minimum:
         self.window().resize(self.minimumSizeHint())
-        self._collapsed_size = None
 
         # default state for the version controls is to use the next available version:
         self._ui.use_next_available_cb.setChecked(True)
@@ -118,6 +119,7 @@ class FileSaveForm(FileFormBase):
         self._start_preview_update()
 
         # initialize the browser:
+        self._ui.browser.enable_show_all_versions(False)
         self._ui.browser.set_models(self._my_tasks_model, self._entity_models, self._file_model)
         env = EnvironmentDetails(app.context)
         current_file = self._get_current_file()
@@ -484,7 +486,7 @@ class FileSaveForm(FileFormBase):
             self._ui.file_type_menu.setVisible(ext_is_used)
 
             # update the visibility of the version field:
-            version_is_used = "version" in self._current_env.work_template.keys            
+            version_is_used = "version" in self._current_env.work_template.keys
             self._ui.version_label.setVisible(version_is_used)
             self._ui.version_spinner.setVisible(version_is_used)
             self._ui.use_next_available_cb.setVisible(version_is_used)
@@ -493,34 +495,39 @@ class FileSaveForm(FileFormBase):
         """
         """
         if checked:
-            if self._collapsed_size == None or not self._collapsed_size.isValid():
-                self._collapsed_size = self.size()
+            if self._collapsed_size == None:
+                # keep track of the collapsed size the first time it's resized:
+                self._collapsed_size = self.window().size()
 
+            # show the browser and nav buttons:
             self._ui.browser.show()
             self._ui.nav.show()
+
+            # update the layout for the browser:
             self.layout().setStretch(0, 1)
             self.layout().setStretch(3, 0)
 
-            if self._last_expanded_sz == self._collapsed_size:
-                self._last_expanded_sz = QtCore.QSize(800, 800)
-
-            # (AD) - this doesn't currently work - it appears to be resizing to the
-            # current minimum size!            
-            self.window().resize(self._last_expanded_sz)
+            # and resize the window to the expanded size:
+            self.window().resize(self._expanded_size)
         else:
-            self._last_expanded_sz = self.window().size()
-            #print self._last_expanded_sz
-            
+            # collapsing so keep track of previous expanded size:
+            self._expanded_size = self.window().size()
+
+            # hide the browser and nav buttons:
             self._ui.browser.hide()
             self._ui.nav.hide()
 
+            # update the layout for the browser:
             self.layout().setStretch(0, 0)
             self.layout().setStretch(3, 1)
-            
-            # resize to minimum:
-            min_size = self.minimumSizeHint()
-            self.window().resize(min_size)
-        
+
+            # resize the window to the collapsed size:
+            self.window().resize(self._collapsed_size)
+
+    def resizeEvent(self, event):
+        pass
+        #print self.size(), self.window().size()
+
     #def resizeEvent(self, event):
     #    """
     #    """

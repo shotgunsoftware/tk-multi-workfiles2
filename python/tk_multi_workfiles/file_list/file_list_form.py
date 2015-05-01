@@ -66,6 +66,7 @@ class FileListForm(QtGui.QWidget):
         # and keep track of the currently selected item
         self._current_item_ref = None
 
+        self._show_all_versions = False
         self._show_work_files = show_work_files
         self._show_publishes = show_publishes
         self._filter_model = None
@@ -131,6 +132,16 @@ class FileListForm(QtGui.QWidget):
 
         return (selected_file, env_details)
 
+    def enable_show_all_versions(self, enable):
+        """
+        """
+        if enable:
+            self._ui.all_versions_cb.show()
+            self._on_show_all_versions_toggled(self._ui.all_versions_cb.isChecked())
+        else:
+            self._ui.all_versions_cb.hide()
+            self._on_show_all_versions_toggled(False)
+
     def select_file(self, file, context):
         """
         Select the specified file in the control views if possible.
@@ -155,7 +166,7 @@ class FileListForm(QtGui.QWidget):
 
         :param model:    The FileModel model to attach to the control to
         """
-        show_all_versions = self._ui.all_versions_cb.isChecked()
+        show_all_versions = self._ui.all_versions_cb.isVisible() and self._ui.all_versions_cb.isChecked()
 
         # create a filter model around the source model:
         self._filter_model = FileProxyModel(show_work_files=self._show_work_files, 
@@ -336,6 +347,9 @@ class FileListForm(QtGui.QWidget):
 
         :param checked: True if the checkbox has been checked, otherwise False
         """
+        if not self._filter_model:
+            return
+        
         # reset the current selection and get the previously selected item:
         prev_selected_item = self._reset_selection()
         try:
