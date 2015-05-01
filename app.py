@@ -42,15 +42,18 @@ class MultiWorkFiles(sgtk.platform.Application):
         # those two engines for now. 
         SUPPORTED_ENGINES = ["tk-nuke", "tk-maya", "tk-3dsmax"]
 
-        if self.engine.has_ui and not hasattr(sgtk, '_tk_multi_workfiles_launch_at_startup'):
+        if self.engine.has_ui and not hasattr(sgtk, "_tk_multi_workfiles2_launch_at_startup"):
 
             # this is the very first time we have run this application
-            sgtk._tk_multi_workfiles_launch_at_startup = True
+            sgtk._tk_multi_workfiles2_launch_at_startup = True
 
             if self.get_setting('launch_at_startup'):
                 # show the file manager UI
                 if self.engine.name in SUPPORTED_ENGINES:
-                    self.show_file_open_dlg()
+                    # use a single-shot timer to show the open dialog to allow everything to
+                    # finish being set up first:
+                    from sgtk.platform.qt import QtCore
+                    QtCore.QTimer.singleShot(200, self.show_file_open_dlg)
                 else:
                     self.log_warning("Sorry, the launch at startup option is currently not supported "
                                      "in this engine! You can currently only use it with the following "
