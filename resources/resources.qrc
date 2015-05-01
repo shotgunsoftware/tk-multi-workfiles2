@@ -1,9 +1,13 @@
 <RCC>
   <qresource prefix="tk-multi-workfiles2">
+    <file>save_collapse_pressed.png</file>
+    <file>save_collapse_hover.png</file>
+    <file>save_collapse.png</file>
+    <file>save_expand_pressed.png</file>
+    <file>save_expand_hover.png</file>
+    <file>save_expand.png</file>
     <file>publish_icon.png</file>
     <file>folder_512x400.png</file>
-    <file>tree_arrow_large_collapsed.png</file>
-    <file>tree_arrow_large_expanded.png</file>
     <file>tree_arrow_expanded.png</file>
     <file>tree_arrow_collapsed.png</file>
     <file>clear_search_hover.png</file>

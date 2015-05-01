@@ -36,21 +36,6 @@
      </property>
      <item>
       <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,1">
-       <item row="0" column="2">
-        <widget class="BreadcrumbWidget" name="breadcrumbs" native="true">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">#breadcrumbs {
-background-color: rgb(255, 128, 0);
-}</string>
-         </property>
-        </widget>
-       </item>
        <item row="0" column="0">
         <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0">
          <property name="spacing">
@@ -67,31 +52,42 @@ background-color: rgb(255, 128, 0);
            <property name="maximumSize">
             <size>
              <width>16777215</width>
-             <height>16</height>
+             <height>24</height>
             </size>
+           </property>
+           <property name="toolTip">
+            <string>Toggle Browser</string>
            </property>
            <property name="styleSheet">
             <string notr="true">#expand_checkbox::indicator {
-width: 14;
-height: 14;
+width: 24;
+height: 24;
 }
 
 #expand_checkbox::indicator::unchecked {
-	image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);
+	image: url(:/tk-multi-workfiles2/save_expand.png);
 
 }
 
 #expand_checkbox::indicator::unchecked::hover {
-	image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);
+	image: url(:/tk-multi-workfiles2/save_expand_hover.png);
+}
+
+#expand_checkbox::indicator::unchecked::pressed {
+	image: url(:/tk-multi-workfiles2/save_expand_pressed.png);
 }
 
 #expand_checkbox::indicator::checked {
-    image: url(:/tk-multi-workfiles2/tree_arrow_expanded.png);
+    image: url(:/tk-multi-workfiles2/save_collapse.png);
 }
 
-/*#expand_checkbox::indicator::checked::hover {
-    image: url(:/tk-multi-workfiles2/grid_view_checked_hover.png);
-}*/</string>
+#expand_checkbox::indicator::checked:hover {
+    image: url(:/tk-multi-workfiles2/save_collapse_hover.png);
+}
+
+#expand_checkbox::indicator::checked:pressed {
+    image: url(:/tk-multi-workfiles2/save_collapse_pressed.png);
+}</string>
            </property>
            <property name="text">
             <string/>
@@ -110,6 +106,21 @@ height: 14;
          </property>
          <property name="styleSheet">
           <string notr="true">#nav {
+background-color: rgb(255, 128, 0);
+}</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <widget class="BreadcrumbWidget" name="breadcrumbs" native="true">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>30</height>
+          </size>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">#breadcrumbs {
 background-color: rgb(255, 128, 0);
 }</string>
          </property>
@@ -315,7 +326,7 @@ background-color: rgb(255, 128, 0);
      <item>
       <widget class="QStackedWidget" name="feedback_stacked_widget">
        <property name="currentIndex">
-        <number>0</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="preview_page">
         <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -547,6 +558,15 @@ background-color: rgb(255, 128, 0);
    <container>1</container>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>name_edit</tabstop>
+  <tabstop>version_spinner</tabstop>
+  <tabstop>use_next_available_cb</tabstop>
+  <tabstop>file_type_menu</tabstop>
+  <tabstop>cancel_btn</tabstop>
+  <tabstop>save_btn</tabstop>
+  <tabstop>expand_checkbox</tabstop>
+ </tabstops>
  <resources>
   <include location="resources.qrc"/>
  </resources>

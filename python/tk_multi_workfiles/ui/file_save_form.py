@@ -21,13 +21,6 @@ class Ui_FileSaveForm(object):
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.gridLayout_2 = QtGui.QGridLayout()
         self.gridLayout_2.setObjectName("gridLayout_2")
-        self.breadcrumbs = BreadcrumbWidget(FileSaveForm)
-        self.breadcrumbs.setMinimumSize(QtCore.QSize(0, 30))
-        self.breadcrumbs.setStyleSheet("#breadcrumbs {\n"
-"background-color: rgb(255, 128, 0);\n"
-"}")
-        self.breadcrumbs.setObjectName("breadcrumbs")
-        self.gridLayout_2.addWidget(self.breadcrumbs, 0, 2, 1, 1)
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
         self.horizontalLayout_3.setSpacing(1)
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
@@ -37,28 +30,36 @@ class Ui_FileSaveForm(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.expand_checkbox.sizePolicy().hasHeightForWidth())
         self.expand_checkbox.setSizePolicy(sizePolicy)
-        self.expand_checkbox.setMaximumSize(QtCore.QSize(16777215, 16))
+        self.expand_checkbox.setMaximumSize(QtCore.QSize(16777215, 24))
         self.expand_checkbox.setStyleSheet("#expand_checkbox::indicator {\n"
-"width: 14;\n"
-"height: 14;\n"
+"width: 24;\n"
+"height: 24;\n"
 "}\n"
 "\n"
 "#expand_checkbox::indicator::unchecked {\n"
-"    image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);\n"
+"    image: url(:/tk-multi-workfiles2/save_expand.png);\n"
 "\n"
 "}\n"
 "\n"
 "#expand_checkbox::indicator::unchecked::hover {\n"
-"    image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);\n"
+"    image: url(:/tk-multi-workfiles2/save_expand_hover.png);\n"
+"}\n"
+"\n"
+"#expand_checkbox::indicator::unchecked::pressed {\n"
+"    image: url(:/tk-multi-workfiles2/save_expand_pressed.png);\n"
 "}\n"
 "\n"
 "#expand_checkbox::indicator::checked {\n"
-"    image: url(:/tk-multi-workfiles2/tree_arrow_expanded.png);\n"
+"    image: url(:/tk-multi-workfiles2/save_collapse.png);\n"
 "}\n"
 "\n"
-"/*#expand_checkbox::indicator::checked::hover {\n"
-"    image: url(:/tk-multi-workfiles2/grid_view_checked_hover.png);\n"
-"}*/")
+"#expand_checkbox::indicator::checked:hover {\n"
+"    image: url(:/tk-multi-workfiles2/save_collapse_hover.png);\n"
+"}\n"
+"\n"
+"#expand_checkbox::indicator::checked:pressed {\n"
+"    image: url(:/tk-multi-workfiles2/save_collapse_pressed.png);\n"
+"}")
         self.expand_checkbox.setText("")
         self.expand_checkbox.setObjectName("expand_checkbox")
         self.horizontalLayout_3.addWidget(self.expand_checkbox)
@@ -70,6 +71,13 @@ class Ui_FileSaveForm(object):
 "}")
         self.nav.setObjectName("nav")
         self.gridLayout_2.addWidget(self.nav, 0, 1, 1, 1)
+        self.breadcrumbs = BreadcrumbWidget(FileSaveForm)
+        self.breadcrumbs.setMinimumSize(QtCore.QSize(0, 30))
+        self.breadcrumbs.setStyleSheet("#breadcrumbs {\n"
+"background-color: rgb(255, 128, 0);\n"
+"}")
+        self.breadcrumbs.setObjectName("breadcrumbs")
+        self.gridLayout_2.addWidget(self.breadcrumbs, 0, 2, 1, 1)
         self.gridLayout_2.setColumnStretch(2, 1)
         self.verticalLayout_3.addLayout(self.gridLayout_2)
         self.browser = BrowserForm(FileSaveForm)
@@ -240,11 +248,18 @@ class Ui_FileSaveForm(object):
         self.verticalLayout.setStretch(0, 1)
 
         self.retranslateUi(FileSaveForm)
-        self.feedback_stacked_widget.setCurrentIndex(0)
+        self.feedback_stacked_widget.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(FileSaveForm)
+        FileSaveForm.setTabOrder(self.name_edit, self.version_spinner)
+        FileSaveForm.setTabOrder(self.version_spinner, self.use_next_available_cb)
+        FileSaveForm.setTabOrder(self.use_next_available_cb, self.file_type_menu)
+        FileSaveForm.setTabOrder(self.file_type_menu, self.save_btn)
+        FileSaveForm.setTabOrder(self.save_btn, self.cancel_btn)
+        FileSaveForm.setTabOrder(self.cancel_btn, self.expand_checkbox)
 
     def retranslateUi(self, FileSaveForm):
         FileSaveForm.setWindowTitle(QtGui.QApplication.translate("FileSaveForm", "Form", None, QtGui.QApplication.UnicodeUTF8))
+        self.expand_checkbox.setToolTip(QtGui.QApplication.translate("FileSaveForm", "Toggle Browser", None, QtGui.QApplication.UnicodeUTF8))
         self.version_label.setText(QtGui.QApplication.translate("FileSaveForm", "<html><head/><body><p><span style=\" font-weight:600;\">Version #:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.name_label.setText(QtGui.QApplication.translate("FileSaveForm", "<html><head/><body><p><span style=\" font-weight:600;\">Name:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.file_type_label.setText(QtGui.QApplication.translate("FileSaveForm", "<html><head/><body><p><span style=\" font-weight:600;\">File Type:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
