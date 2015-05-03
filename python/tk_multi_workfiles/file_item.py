@@ -113,7 +113,7 @@ class FileItem(QtCore.QObject):
             self._is_local = is_local
             data_changed = True
         if publish_path != None:
-            self._publish_path = None
+            self._publish_path = publish_path
             data_changed = True
         if is_published != None:
             self._is_published = is_published

@@ -29,6 +29,8 @@ from .show_in_shotgun_action import ShowPublishInShotgunAction, ShowLatestPublis
 
 from .custom_file_action import CustomFileAction
 
+from ..environment_details import EnvironmentDetails
+
 class FileActionFactory(object):
     
     def __init__(self):
@@ -112,7 +114,11 @@ class FileActionFactory(object):
                 actions.append(ContinueFromPreviousWorkFileAction(max_version+1))
                 
             if change_work_area:
-                actions.append(CopyAndOpenFileInCurrentWorkAreaAction())
+                # make sure we can actually copy the file to the current work area:
+                if app.context:
+                    current_env = EnvironmentDetails(app.context)
+                    if current_env.work_template:
+                        actions.append(CopyAndOpenFileInCurrentWorkAreaAction())
                 
         #if publishes_visible and file.is_published:
         if file.is_published:

@@ -15,6 +15,10 @@ from sgtk.platform.qt import QtCore, QtGui
 
 from .open_file_action import OpenFileAction
 
+from ..environment_details import EnvironmentDetails
+from ..file_item import FileItem
+from ..find_files import FileFinder
+
 class OpenWorkfileAction(OpenFileAction):
     """
     """
@@ -72,24 +76,93 @@ class ContinueFromPreviousWorkFileAction(OpenFileAction):
         
         return self._do_copy_and_open(src_path, dst_path, None, not file.editable, 
                                       environment.context, parent_ui)
+
+
+class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
+    """
+    """
+    def _open_in_current_work_area(self, src_path, src_template, parent_ui):
+        """
+        """
+        # get info about the current work area:
+        app = sgtk.platform.current_bundle()
+        dst_env = EnvironmentDetails(app.context)
+        if not dst_env.work_template:
+            # should never happen!
+            app.log_error("Unable to copy the file '%s' to the current work area as no valid "
+                          "work template could be found" % src_path)
+            return False
+
+        # determine the set of fields for the destination file in the current work area:
+        #
+        # get fields from file path using the source work template:
+        fields = src_template.get_fields(src_path)
+
+        # get the template fields for the current context using the current work template: 
+        context_fields = dst_env.context.as_template_fields(dst_env.work_template)
+
+        # this will overide any context fields obtained from the source path:
+        fields.update(context_fields)
+
+        # build the destination path from these fields:
+        dst_file_path = ""
+        try:
+            dst_file_path = dst_env.work_template.apply_fields(fields)
+        except TankError, e:
+            app.log_error("Unable to copy the file '%s' to the current work area as Toolkit is "
+                          "unable to build the destination file path: %s" % (src_path, e))
+            return False
+
+        if "version" in dst_env.work_template.keys:
+            # need to figure out the next version:
+
+            # build a file key from the fields: 
+            file_key = FileItem.build_file_key(fields, 
+                                               dst_env.work_template, 
+                                               dst_env.version_compare_ignore_fields)
     
-class CopyAndOpenFileInCurrentWorkAreaAction(OpenFileAction):
+            # look for all files that match this key:
+            finder = FileFinder()
+            found_files = finder.find_files(dst_env.work_template, 
+                                            dst_env.publish_template, 
+                                            dst_env.context, 
+                                            file_key)
+
+            # get the max version:
+            versions = [file.version for file in found_files]
+            fields["version"] = (max(versions or [0]) + 1)
+
+            # and rebuild the path:
+            dst_file_path = dst_env.work_template.apply_fields(fields)
+
+        # Should there be a prompt here?
+
+        # copy and open the file:
+        return self._do_copy_and_open(src_path, 
+                                      dst_file_path, 
+                                      version = None, 
+                                      read_only = False, 
+                                      new_ctx = dst_env.context, 
+                                      parent_ui = parent_ui)
+
+
+class CopyAndOpenFileInCurrentWorkAreaAction(CopyAndOpenInCurrentWorkAreaAction):
     """
     """
     def __init__(self):
-        OpenFileAction.__init__(self, "Open in Current Work Area...")
-    
+        CopyAndOpenInCurrentWorkAreaAction.__init__(self, "Open in Current Work Area...")
+
     def execute(self, file, file_versions, environment, parent_ui):
         """
         """
         if (not file
-            or not file.is_local):
+            or not file.is_local
+            or not environment.work_template):
             return False
-        
-        # gather information for this file in the current work area:
-        
-        
-        raise NotImplementedError()
+
+        return self._open_in_current_work_area(file.path, environment.work_template, parent_ui)
+
+
     
 class OpenPublishAction(OpenFileAction):
     """
@@ -147,14 +220,20 @@ class ContinueFromPublishAction(OpenFileAction):
         return self._do_copy_and_open(src_path, dst_path, None, not file.editable, 
                                       environment.context, parent_ui)
     
-class CopyAndOpenPublishInCurrentWorkAreaAction(OpenFileAction):
+class CopyAndOpenPublishInCurrentWorkAreaAction(CopyAndOpenInCurrentWorkAreaAction):
     """
     """
     def __init__(self):
-        OpenFileAction.__init__(self, "Open Publish in Current Work Area...")
-    
+        CopyAndOpenInCurrentWorkAreaAction.__init__(self, "Open Publish in Current Work Area...")
+
     def execute(self, file, file_versions, environment, parent_ui):
-        raise NotImplementedError()    
-    
+        """
+        """
+        if (not file
+            or not file.is_published
+            or not environment.publish_template):
+            return False
+
+        return self._open_in_current_work_area(file.publish_path, environment.publish_template, parent_ui)
     
     

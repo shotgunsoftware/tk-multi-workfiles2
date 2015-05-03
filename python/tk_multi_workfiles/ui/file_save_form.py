@@ -253,9 +253,9 @@ class Ui_FileSaveForm(object):
         FileSaveForm.setTabOrder(self.name_edit, self.version_spinner)
         FileSaveForm.setTabOrder(self.version_spinner, self.use_next_available_cb)
         FileSaveForm.setTabOrder(self.use_next_available_cb, self.file_type_menu)
-        FileSaveForm.setTabOrder(self.file_type_menu, self.save_btn)
-        FileSaveForm.setTabOrder(self.save_btn, self.cancel_btn)
-        FileSaveForm.setTabOrder(self.cancel_btn, self.expand_checkbox)
+        FileSaveForm.setTabOrder(self.file_type_menu, self.cancel_btn)
+        FileSaveForm.setTabOrder(self.cancel_btn, self.save_btn)
+        FileSaveForm.setTabOrder(self.save_btn, self.expand_checkbox)
 
     def retranslateUi(self, FileSaveForm):
         FileSaveForm.setWindowTitle(QtGui.QApplication.translate("FileSaveForm", "Form", None, QtGui.QApplication.UnicodeUTF8))

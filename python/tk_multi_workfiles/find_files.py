@@ -126,17 +126,12 @@ class FileFinder(QtCore.QObject):
     search_failed = QtCore.Signal(object, object) # search_id, message
     files_found = QtCore.Signal(object, object, object) # search_id, file list, EnvironmentDetails
     
-    def __init__(self, app=None, user_cache=None, parent=None):
+    def __init__(self, parent=None):
         """
         Construction
-        
-        :param app:           The Workfiles app instance
-        :param user_cache:    An UserCache instance used to retrieve Shotgun user information
         """
         QtCore.QObject.__init__(self, parent)
-        
-        self.__app = app or sgtk.platform.current_bundle()
-        
+        self.__app = sgtk.platform.current_bundle()
         self._searches = {}
         self._task_id_map = {}
      
