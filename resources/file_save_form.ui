@@ -537,18 +537,18 @@ background-color: rgb(255, 128, 0);
   <customwidget>
    <class>ElidedLabel</class>
    <extends>QLabel</extends>
-   <header>..elided_label</header>
+   <header>..framework_widgets</header>
   </customwidget>
   <customwidget>
    <class>NavigationWidget</class>
    <extends>QWidget</extends>
-   <header>..navigation_widget</header>
+   <header>..framework_widgets</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>BreadcrumbWidget</class>
    <extends>QWidget</extends>
-   <header>..breadcrumb_widget</header>
+   <header>..framework_widgets</header>
    <container>1</container>
   </customwidget>
   <customwidget>

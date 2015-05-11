@@ -26,7 +26,7 @@ ShotgunModelOverlayWidget = overlay_module.ShotgunModelOverlayWidget
 from ..ui.entity_tree_form import Ui_EntityTreeForm
 from .entity_tree_proxy_model import EntityTreeProxyModel
 
-from ..breadcrumb_widget import Breadcrumb
+from ..framework_widgets import Breadcrumb
 
 from ..util import get_model_data, get_model_str
 

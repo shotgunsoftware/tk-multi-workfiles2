@@ -24,7 +24,7 @@ from .my_task_item_delegate import MyTaskItemDelegate
 from ..entity_proxy_model import EntityProxyModel
 from ..ui.my_tasks_form import Ui_MyTasksForm
 
-from ..breadcrumb_widget import Breadcrumb
+from ..framework_widgets import Breadcrumb
 
 class MyTasksForm(QtGui.QWidget):
     """

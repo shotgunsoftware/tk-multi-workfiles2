@@ -28,7 +28,7 @@ from .util import value_to_str
 
 from .ui.browser_form import Ui_BrowserForm
 
-from .breadcrumb_widget import Breadcrumb
+from .framework_widgets import Breadcrumb
 
 class BrowserForm(QtGui.QWidget):
     """

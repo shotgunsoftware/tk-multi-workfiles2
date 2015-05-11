@@ -58,4 +58,4 @@ class Ui_MyTasksForm(object):
         self.filter_btn.setText(QtGui.QApplication.translate("MyTasksForm", "Filter", None, QtGui.QApplication.UnicodeUTF8))
         self.new_task_btn.setText(QtGui.QApplication.translate("MyTasksForm", "+ New Task", None, QtGui.QApplication.UnicodeUTF8))
 
-from ..search_widget import SearchWidget
+from ..framework_widgets import SearchWidget

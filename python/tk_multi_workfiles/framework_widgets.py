@@ -9,11 +9,22 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
+Wrapper for the various widgets used from frameworks so that they can be used
+easily from with Qt Designer
 """
 
 import sgtk
 
-# search widget is contained within the qt widgets framework:
+# search widget:
 search_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "search_widget")
 SearchWidget = search_widget.SearchWidget
-        
+
+# elided text label:
+elided_label = sgtk.platform.import_framework("tk-framework-qtwidgets", "elided_label")
+ElidedLabel = elided_label.ElidedLabel
+
+# navigation and breadcrumb controls:
+navigation = sgtk.platform.import_framework("tk-framework-qtwidgets", "navigation")
+NavigationWidget = navigation.NavigationWidget
+BreadcrumbWidget = navigation.BreadcrumbWidget
+Breadcrumb = navigation.Breadcrumb

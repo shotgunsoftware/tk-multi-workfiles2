@@ -25,7 +25,7 @@ from .ui.file_open_form import Ui_FileOpenForm
 
 from .environment_details import EnvironmentDetails
 
-from .breadcrumb_widget import Breadcrumb
+from .framework_widgets import Breadcrumb
 
 class FileOpenForm(FileFormBase):
     """

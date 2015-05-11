@@ -176,7 +176,7 @@ requires_shotgun_fields:
 
 # More verbose description of this item 
 display_name: "Manage your Work Files 2"
-description: "Using this app you can change browse, open and save 
+description: "Using this app you can browse, open and save 
               your Work Files and Publishes."
               
 # Required minimum versions for this item to run
