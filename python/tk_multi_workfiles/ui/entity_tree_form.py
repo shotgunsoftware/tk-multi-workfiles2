@@ -71,5 +71,5 @@ class Ui_EntityTreeForm(object):
         self.my_tasks_cb.setText(QtGui.QApplication.translate("EntityTreeForm", "My Tasks Only", None, QtGui.QApplication.UnicodeUTF8))
         self.new_task_btn.setText(QtGui.QApplication.translate("EntityTreeForm", "+ New Task", None, QtGui.QApplication.UnicodeUTF8))
 
-from ..framework_widgets import SearchWidget
+from ..framework_qtwidgets import SearchWidget
 from . import resources_rc

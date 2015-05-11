@@ -31,7 +31,7 @@ from .environment_details import EnvironmentDetails
 from .file_item import FileItem
 from .find_files import FileFinder
 
-from .framework_widgets import Breadcrumb
+from .framework_qtwidgets import Breadcrumb
 from .util import value_to_str
 
 class FileSaveForm(FileFormBase):

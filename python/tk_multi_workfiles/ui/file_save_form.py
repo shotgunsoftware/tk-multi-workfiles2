@@ -273,6 +273,6 @@ class Ui_FileSaveForm(object):
         self.cancel_btn.setText(QtGui.QApplication.translate("FileSaveForm", "Cancel", None, QtGui.QApplication.UnicodeUTF8))
         self.save_btn.setText(QtGui.QApplication.translate("FileSaveForm", "Save", None, QtGui.QApplication.UnicodeUTF8))
 
-from ..framework_widgets import NavigationWidget, BreadcrumbWidget, ElidedLabel
+from ..framework_qtwidgets import NavigationWidget, BreadcrumbWidget, ElidedLabel
 from ..browser_form import BrowserForm
 from . import resources_rc

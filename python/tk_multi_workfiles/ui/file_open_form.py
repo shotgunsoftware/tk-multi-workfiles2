@@ -70,6 +70,6 @@ class Ui_FileOpenForm(object):
         self.open_btn.setText(QtGui.QApplication.translate("FileOpenForm", "Open", None, QtGui.QApplication.UnicodeUTF8))
         self.open_options_btn.setText(QtGui.QApplication.translate("FileOpenForm", "...", None, QtGui.QApplication.UnicodeUTF8))
 
-from ..framework_widgets import NavigationWidget, BreadcrumbWidget
+from ..framework_qtwidgets import NavigationWidget, BreadcrumbWidget
 from ..browser_form import BrowserForm
 from . import resources_rc

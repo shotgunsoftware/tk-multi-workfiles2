@@ -129,5 +129,5 @@ class Ui_FileListForm(object):
 
 from ..file_list.file_details_view import FileDetailsView
 from ..file_list.file_list_form import GroupedListView
-from ..framework_widgets import SearchWidget
+from ..framework_qtwidgets import SearchWidget
 from . import resources_rc
