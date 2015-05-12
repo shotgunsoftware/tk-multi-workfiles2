@@ -17,14 +17,10 @@ import weakref
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-overlay_module = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
-ShotgunModelOverlayWidget = overlay_module.ShotgunModelOverlayWidget
-
 from .my_task_item_delegate import MyTaskItemDelegate
 from ..entity_proxy_model import EntityProxyModel
 from ..ui.my_tasks_form import Ui_MyTasksForm
-
-from ..framework_qtwidgets import Breadcrumb
+from ..framework_qtwidgets import Breadcrumb, ShotgunModelOverlayWidget
 
 class MyTasksForm(QtGui.QWidget):
     """

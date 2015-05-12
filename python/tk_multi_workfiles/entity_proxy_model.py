@@ -11,8 +11,7 @@
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-models = sgtk.platform.import_framework("tk-framework-qtwidgets", "models")
-HierarchicalFilteringProxyModel = models.HierarchicalFilteringProxyModel
+from .framework_qtwidgets import HierarchicalFilteringProxyModel
 
 class EntityProxyModel(HierarchicalFilteringProxyModel):
     """

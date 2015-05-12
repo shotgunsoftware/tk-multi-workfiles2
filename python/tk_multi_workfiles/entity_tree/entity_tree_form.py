@@ -20,14 +20,9 @@ from sgtk.platform.qt import QtCore, QtGui
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 
-overlay_module = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
-ShotgunModelOverlayWidget = overlay_module.ShotgunModelOverlayWidget
-
 from ..ui.entity_tree_form import Ui_EntityTreeForm
 from .entity_tree_proxy_model import EntityTreeProxyModel
-
-from ..framework_qtwidgets import Breadcrumb
-
+from ..framework_qtwidgets import Breadcrumb, ShotgunModelOverlayWidget
 from ..util import get_model_data, get_model_str
 
 class EntityTreeForm(QtGui.QWidget):
@@ -101,7 +96,7 @@ class EntityTreeForm(QtGui.QWidget):
         self._ui.entity_tree.collapsed.connect(self._on_item_collapsed)
         
         # create the overlay 'busy' widget that will be displayed when the model is reset:
-        self._overlay_widget = overlay_module.ShotgunModelOverlayWidget(None, self._ui.entity_tree)
+        self._overlay_widget = ShotgunModelOverlayWidget(None, self._ui.entity_tree)
         self._overlay_widget.set_model(entity_model)
 
         # create a filter proxy model between the source model and the task tree view:

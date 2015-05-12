@@ -14,13 +14,11 @@
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-views = sgtk.platform.import_framework("tk-framework-qtwidgets", "views")
-WidgetDelegate = views.WidgetDelegate
-
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 
 from .task_widget import TaskWidget
+from ..framework_qtwidgets import WidgetDelegate
 
 class MyTaskItemDelegate(WidgetDelegate):
     """

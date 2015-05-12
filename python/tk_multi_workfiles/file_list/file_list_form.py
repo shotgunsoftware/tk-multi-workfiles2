@@ -17,9 +17,6 @@ import weakref
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-views = sgtk.platform.import_framework("tk-framework-qtwidgets", "views")
-GroupedListView = views.GroupedListView
-
 from ..file_model import FileModel
 from ..ui.file_list_form import Ui_FileListForm
 

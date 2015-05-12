@@ -28,3 +28,22 @@ navigation = sgtk.platform.import_framework("tk-framework-qtwidgets", "navigatio
 NavigationWidget = navigation.NavigationWidget
 BreadcrumbWidget = navigation.BreadcrumbWidget
 Breadcrumb = navigation.Breadcrumb
+
+# Spinner/busy widget:
+spinner_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "spinner_widget")
+SpinnerWidget = spinner_widget.SpinnerWidget
+
+# Grouped list view, widget base class and delegates:
+views = sgtk.platform.import_framework("tk-framework-qtwidgets", "views")
+GroupedListView = views.GroupedListView
+GroupWidgetBase = views.GroupWidgetBase
+GroupedListViewItemDelegate = views.GroupedListViewItemDelegate
+WidgetDelegate = views.WidgetDelegate
+
+# overlay widget:
+overlay_module = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
+ShotgunModelOverlayWidget = overlay_module.ShotgunModelOverlayWidget
+
+# hierarchical filtering proxy model:
+models = sgtk.platform.import_framework("tk-framework-qtwidgets", "models")
+HierarchicalFilteringProxyModel = models.HierarchicalFilteringProxyModel

@@ -11,11 +11,9 @@
 
 import sgtk
 from sgtk.platform.qt import QtCore
+
 from ..file_model import FileModel
-
-models = sgtk.platform.import_framework("tk-framework-qtwidgets", "models")
-HierarchicalFilteringProxyModel = models.HierarchicalFilteringProxyModel
-
+from ..framework_qtwidgets import HierarchicalFilteringProxyModel
 from ..util import get_model_data, get_model_str
 
 class FileProxyModel(HierarchicalFilteringProxyModel):

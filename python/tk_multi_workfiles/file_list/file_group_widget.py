@@ -14,15 +14,10 @@
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-views = sgtk.platform.import_framework("tk-framework-qtwidgets", "views")
-GroupWidgetBase = views.GroupWidgetBase
-
-spinner_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "spinner_widget")
-SpinnerWidget = spinner_widget.SpinnerWidget
-
 from ..file_model import FileModel
 from ..ui.file_group_widget import Ui_FileGroupWidget
 from ..util import get_model_data, get_model_str
+from ..framework_qtwidgets import SpinnerWidget, GroupWidgetBase
 
 class FileGroupWidget(GroupWidgetBase):
     """

@@ -14,13 +14,11 @@
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-views = sgtk.platform.import_framework("tk-framework-qtwidgets", "views")
-GroupedListViewItemDelegate = views.GroupedListViewItemDelegate
-
 from ..file_model import FileModel
 from .file_group_widget import FileGroupWidget
 from .file_tile import FileTile
 from ..util import get_model_data, get_model_str
+from ..framework_qtwidgets import GroupedListViewItemDelegate
 
 class FileListItemDelegate(GroupedListViewItemDelegate):
 
