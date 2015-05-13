@@ -209,9 +209,8 @@ class MyTasksForm(QtGui.QWidget):
                     # scroll to the item in the list:
                     self._ui.task_tree.scrollTo(idx)
 
-                    # select the item:
-                    selection_flags = QtGui.QItemSelectionModel.Clear | QtGui.QItemSelectionModel.SelectCurrent
-                    self._ui.task_tree.selectionModel().select(idx, selection_flags)
+                    # select the item as the current item:
+                    self._ui.task_tree.selectionModel().setCurrentIndex(idx, QtGui.QItemSelectionModel.SelectCurrent)
 
         finally:
             self.blockSignals(signals_blocked)
@@ -227,7 +226,7 @@ class MyTasksForm(QtGui.QWidget):
 
                 # emit the signal
                 self._emit_task_selected(task)
-                #self.task_selected.emit(task)
+                self.repaint()
 
     def _on_search_changed(self, search_text):
         """

@@ -175,19 +175,24 @@ class FileFormBase(QtGui.QWidget):
         except Exception, e:
             return None
 
-        if not current_path:
+        return self._fileitem_from_path(current_path, env)
+    
+    def _fileitem_from_path(self, path, env):
+        """
+        """
+        if not path or not env:
             return None
-
+        
         # figure out if it's a publish or a work file:
-        is_publish = ((not env.work_template or env.work_template.validate(current_path))
+        is_publish = ((not env.work_template or env.work_template.validate(path))
                       and env.publish_template != env.work_template
-                      and env.publish_template and env.publish_template.validate(current_path))
+                      and env.publish_template and env.publish_template.validate(path))
 
         # build fields dictionary and construct key: 
         fields = env.context.as_template_fields(env.work_template)
         base_template = env.publish_template if is_publish else env.work_template
-        if base_template.validate(current_path):
-            template_fields = base_template.get_fields(current_path)
+        if base_template.validate(path):
+            template_fields = base_template.get_fields(path)
             fields = dict(chain(template_fields.iteritems(), fields.iteritems()))
 
         file_key = FileItem.build_file_key(fields, env.work_template, 
@@ -200,13 +205,15 @@ class FileFormBase(QtGui.QWidget):
                 details[key_name] = fields[key_name]
 
         # build the file item (note that this will be a very minimal FileItem instance)!
-        file_item = FileItem(path = current_path if not is_publish else None,
-                             publish_path = current_path if is_publish else None,
+        file_item = FileItem(path = path if not is_publish else None,
+                             publish_path = path if is_publish else None,
                              is_local = not is_publish,
                              is_published = is_publish,
                              details = fields,
                              key = file_key)
         
         return file_item
+        
+        
 
     

@@ -24,13 +24,11 @@ from sgtk import TankError
 
 from .file_form_base import FileFormBase
 from .ui.file_save_form import Ui_FileSaveForm
-
 from .runnable_task import RunnableTask
 from .scene_operation import get_current_path, save_file, SAVE_FILE_AS_ACTION
 from .environment_details import EnvironmentDetails
 from .file_item import FileItem
 from .find_files import FileFinder
-
 from .framework_qtwidgets import Breadcrumb
 from .util import value_to_str
 
@@ -38,6 +36,8 @@ class FileSaveForm(FileFormBase):
     """
     UI for saving a work file
     """
+    _WARNING_COLOUR = (226, 146, 0)
+
     @property
     def exit_code(self):
         return self._exit_code
@@ -60,6 +60,15 @@ class FileSaveForm(FileFormBase):
         self._preview_task = None
         self._navigating = False
 
+        font_colour = self.palette().text().color()
+        if font_colour.value() < 0.5:
+            # make preview text colour 40% lighter
+            preview_colour = font_colour.lighter(140)
+        else:
+            # make preview text colour 40% darker
+            preview_colour = font_colour.darker(140)
+        self._preview_colour = (preview_colour.red(), preview_colour.green(), preview_colour.blue())
+
         try:
             # doing this inside a try-except to ensure any exceptions raised don't 
             # break the UI and crash the dcc horribly!
@@ -77,8 +86,12 @@ class FileSaveForm(FileFormBase):
         self._ui = Ui_FileSaveForm()
         self._ui.setupUi(self)
 
-        # temp
-        #self._ui.location_label.hide()
+        self._ui.preview_label.setText("<p style='color:rgb%s'><b>Preview:</b></p>" % (self._preview_colour, ))
+        self._ui.file_name_preview.setText("<p style='color:rgb%s'></p>" % (self._preview_colour, ))
+        self._ui.work_area_label.setText("<p style='color:rgb%s'><b>Work Area:</b></p>" % (self._preview_colour, ))
+        self._ui.work_area_preview.setText("<p style='color:rgb%s'></p>" % (self._preview_colour, ))
+        self._ui.warning_label.setText("<p style='color:rgb%s'><b>Warning:</b></p>" % (FileSaveForm._WARNING_COLOUR, ))
+        self._ui.warning.setText("<p style='color:rgb%s'></p>" % (FileSaveForm._WARNING_COLOUR, ))
 
         # define which controls are visible before initial show:        
         self._ui.browser.hide()
@@ -86,10 +99,10 @@ class FileSaveForm(FileFormBase):
         self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.preview_page)
         self._ui.work_area_preview.elide_mode = QtCore.Qt.ElideLeft
         self._ui.work_area_preview.setText("")
-        
+
         self.layout().setStretch(0, 0)
         self.layout().setStretch(3, 1)
-        
+
         # resize to minimum:
         self.window().resize(self.minimumSizeHint())
 
@@ -111,7 +124,7 @@ class FileSaveForm(FileFormBase):
         self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)
         #self._ui.browser.file_context_menu_requested.connect(self._on_browser_context_menu_requested)
         self._ui.browser.work_area_changed.connect(self._on_browser_work_area_changed)
-        
+
         self._ui.nav.navigate.connect(self._on_navigate)
         self._ui.nav.home_clicked.connect(self._on_navigate_home)
 
@@ -125,9 +138,6 @@ class FileSaveForm(FileFormBase):
         current_file = self._get_current_file()
         self._ui.browser.select_work_area(app.context)
         self._ui.browser.select_file(current_file, app.context)
-        
-        #self._on_work_area_changed(env)
-        #self._on_selected_file_changed(current_file)
 
         # execute the init callback:
         if init_callback:
@@ -144,6 +154,9 @@ class FileSaveForm(FileFormBase):
     def environment(self):
         return self._current_env
 
+    # ------------------------------------------------------------------------------------------
+    # protected methods
+
     def _on_name_edited(self, txt):
         """
         """
@@ -158,16 +171,13 @@ class FileSaveForm(FileFormBase):
         
     def _on_extension_current_index_changed(self, value):
         self._start_preview_update()
-        #self._update_preview()
 
     def _on_use_next_available_version_toggled(self, checked):
         """
         """
         self._ui.version_spinner.setEnabled(not checked)
         self._start_preview_update()
-        
-        #self._on_name_changed()
-        
+
     def _start_preview_update(self):
         """
         """
@@ -216,8 +226,11 @@ class FileSaveForm(FileFormBase):
         # update path preview:
         self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.preview_page)
         path_preview, name_preview = os.path.split(self._current_path)
-        self._ui.file_name_preview.setText(name_preview)
-        self._ui.work_area_preview.setText(path_preview)
+        
+        self._ui.file_name_preview.setText("<p style='color:rgb%s'>%s</p>" 
+                                           % (self._preview_colour, name_preview))
+        self._ui.work_area_preview.setText("<p style='color:rgb%s'>%s</p>" 
+                                           % (self._preview_colour, path_preview))
 
         self._ui.save_btn.setEnabled(True)
 
@@ -230,8 +243,7 @@ class FileSaveForm(FileFormBase):
         self._current_path = None
         
         self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.warning_page)
-        error_msg = "<p style='color:rgb(226, 146, 0)'>Warning: %s</p>" % msg
-        self._ui.warning.setText(error_msg)
+        self._ui.warning.setText("<p style='color:rgb%s'>%s</p>" % (FileSaveForm._WARNING_COLOUR, msg))
         
         self._ui.save_btn.setEnabled(False)
     
@@ -273,7 +285,8 @@ class FileSaveForm(FileFormBase):
             file_versions = self._file_model.get_file_versions(file_key, env)
             if file_versions == None:
                 # fall back to finding the files manually.  
-                # TODO, this should be replaced by an access into the model!
+                # TODO, this should be replaced by an access into the model
+                # which probably already has all the required information!
                 finder = FileFinder()
                 try:
                     files = finder.find_files(env.work_template, 
@@ -338,7 +351,9 @@ class FileSaveForm(FileFormBase):
     def _on_browser_file_selected(self, file, env):
         """
         """
-        self._on_work_area_changed(env)
+        if env != None:
+            self._on_work_area_changed(env)
+            
         self._on_selected_file_changed(file)
         self._start_preview_update()
     
@@ -349,6 +364,23 @@ class FileSaveForm(FileFormBase):
         # TODO: this won't actually work until the preview has 
         # been updated!
         self._on_save()
+
+    def _on_browser_work_area_changed(self, entity, breadcrumbs):
+        """
+        """
+        env = None
+        if entity:
+            app = sgtk.platform.current_bundle()
+            context = app.sgtk.context_from_entity_dictionary(entity)
+            env = EnvironmentDetails(context)
+        self._on_work_area_changed(env)
+        self._start_preview_update()
+
+        if not self._navigating:
+            destination_label = breadcrumbs[-1].label if breadcrumbs else "..."
+            self._ui.nav.add_destination(destination_label, breadcrumbs)
+        self._ui.breadcrumbs.set(breadcrumbs)
+
 
     def _on_navigate(self, breadcrumb_trail):
         """
@@ -417,22 +449,6 @@ class FileSaveForm(FileFormBase):
             else:
                 # TODO try to get extension from path?
                 pass
-
-    def _on_browser_work_area_changed(self, entity, breadcrumbs):#, step, task):
-        """
-        """
-        env = None
-        if entity:
-            app = sgtk.platform.current_bundle()
-            context = app.sgtk.context_from_entity_dictionary(entity)
-            env = EnvironmentDetails(context)
-        self._on_work_area_changed(env)
-        self._start_preview_update()
-
-        if not self._navigating:
-            destination_label = breadcrumbs[-1].label if breadcrumbs else "..."
-            self._ui.nav.add_destination(destination_label, breadcrumbs)
-        self._ui.breadcrumbs.set(breadcrumbs)
 
     def _on_work_area_changed(self, env):
         """
@@ -524,28 +540,6 @@ class FileSaveForm(FileFormBase):
             # resize the window to the collapsed size:
             self.window().resize(self._collapsed_size)
 
-    def resizeEvent(self, event):
-        pass
-        #print self.size(), self.window().size()
-
-    #def resizeEvent(self, event):
-    #    """
-    #    """
-    #    if self._collapsed_size == None or not self._collapsed_size.isValid():
-    #        self._collapsed_size = event.oldSize()
-    #    
-    #    print "COLLAPSED", self._collapsed_size
-    #    print "SIZE", event.size()
-    #    
-    #    if (event.size().height() <= self._collapsed_size.height()):
-    #        if self._ui.expand_checkbox.isChecked():
-    #            print "off"
-    #            self._ui.expand_checkbox.setChecked(False)
-    #    else:
-    #        if not self._ui.expand_checkbox.isChecked():
-    #            print "on"
-    #            self._ui.expand_checkbox.setChecked(True)
-        
     def _on_cancel(self):
         """
         Called when the cancel button is clicked

@@ -128,6 +128,5 @@ class Ui_FileListForm(object):
         self.all_versions_cb.setText(QtGui.QApplication.translate("FileListForm", "All Versions", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..file_list.file_details_view import FileDetailsView
-from ..file_list.file_list_form import GroupedListView
-from ..framework_qtwidgets import SearchWidget
+from ..framework_qtwidgets import GroupedListView, SearchWidget
 from . import resources_rc

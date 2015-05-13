@@ -206,8 +206,7 @@ class EntityTreeForm(QtGui.QWidget):
 
         # finally, select the item in the tree:
         idx_to_select = self._filter_model.mapFromSource(current_item.index())
-        selection_flags = QtGui.QItemSelectionModel.Clear | QtGui.QItemSelectionModel.SelectCurrent
-        self._ui.entity_tree.selectionModel().select(idx_to_select, selection_flags)
+        self._ui.entity_tree.selectionModel().setCurrentIndex(idx_to_select, QtGui.QItemSelectionModel.SelectCurrent)
 
     # ------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------
@@ -382,8 +381,9 @@ class EntityTreeForm(QtGui.QWidget):
                     self._ui.entity_tree.scrollTo(idx)
 
                     # select the item:
-                    selection_flags = QtGui.QItemSelectionModel.Clear | QtGui.QItemSelectionModel.SelectCurrent 
-                    self._ui.entity_tree.selectionModel().select(idx, selection_flags)
+                    #selection_flags = QtGui.QItemSelectionModel.Clear | QtGui.QItemSelectionModel.SelectCurrent 
+                    #self._ui.entity_tree.selectionModel().select(idx, selection_flags)
+                    self._ui.entity_tree.selectionModel().setCurrentIndex(idx, QtGui.QItemSelectionModel.SelectCurrent)
 
         finally:
             self.blockSignals(signals_blocked)

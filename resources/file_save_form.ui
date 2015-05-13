@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>893</width>
-    <height>570</height>
+    <width>891</width>
+    <height>568</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -149,7 +149,7 @@ background-color: rgb(255, 128, 0);
    <item>
     <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0">
      <property name="spacing">
-      <number>12</number>
+      <number>20</number>
      </property>
      <property name="leftMargin">
       <number>12</number>
@@ -166,7 +166,7 @@ background-color: rgb(255, 128, 0);
      <item>
       <layout class="QGridLayout" name="file_controls_grid" rowstretch="0,0,0" columnstretch="0,1" columnminimumwidth="80,0">
        <property name="horizontalSpacing">
-        <number>-1</number>
+        <number>14</number>
        </property>
        <property name="verticalSpacing">
         <number>6</number>
@@ -326,7 +326,7 @@ background-color: rgb(255, 128, 0);
      <item>
       <widget class="QStackedWidget" name="feedback_stacked_widget">
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="preview_page">
         <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -344,7 +344,7 @@ background-color: rgb(255, 128, 0);
            <item row="0" column="0">
             <widget class="QLabel" name="preview_label">
              <property name="text">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Preview:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; color:rgb(120, 120, 120)&quot;&gt;Preview:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="alignment">
               <set>Qt::AlignRight|Qt::AlignTop|Qt::AlignTrailing</set>
@@ -395,7 +395,7 @@ background-color: rgb(255, 128, 0);
            <item row="1" column="0">
             <widget class="QLabel" name="work_area_label">
              <property name="text">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Work Area:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; color:rgb(120, 120, 120)&quot;&gt;Work Area:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="alignment">
               <set>Qt::AlignRight|Qt::AlignTop|Qt::AlignTrailing</set>
@@ -447,7 +447,7 @@ background-color: rgb(255, 128, 0);
            <item row="0" column="0">
             <widget class="QLabel" name="warning_label">
              <property name="text">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Preview:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; color:rgb(226, 146, 0)&quot;&gt;Warning:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="alignment">
               <set>Qt::AlignRight|Qt::AlignTop|Qt::AlignTrailing</set>

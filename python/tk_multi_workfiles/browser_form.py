@@ -17,17 +17,12 @@ the list of current work files.
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-
 from .entity_tree.entity_tree_form import EntityTreeForm
 from .my_tasks.my_tasks_form import MyTasksForm
 from .file_list.file_list_form import FileListForm
-
 from .file_model import FileModel
-
 from .util import value_to_str
-
 from .ui.browser_form import Ui_BrowserForm
-
 from .framework_qtwidgets import Breadcrumb
 
 class BrowserForm(QtGui.QWidget):
@@ -61,7 +56,7 @@ class BrowserForm(QtGui.QWidget):
         # set up the UI
         self._ui = Ui_BrowserForm()
         self._ui.setupUi(self)
-        
+
         self._ui.file_browser_tabs.currentChanged.connect(self._on_file_tab_changed)
         self._ui.task_browser_tabs.currentChanged.connect(self._on_task_tab_changed)
 
@@ -477,7 +472,6 @@ class BrowserForm(QtGui.QWidget):
         if isinstance(form, MyTasksForm):
             # retrieve the selected task from the form and emit a work-area changed signal:
             task, breadcrumb_trail = form.get_selection()
-            #self._drop_breadcrumbs()
             self._emit_work_area_changed(task, breadcrumb_trail)
         elif isinstance(form, EntityTreeForm):
             # retrieve the selection from the form and emit a work-area changed signal:
