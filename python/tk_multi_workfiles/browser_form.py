@@ -246,6 +246,15 @@ class BrowserForm(QtGui.QWidget):
         if self._ui.task_browser_tabs.currentWidget() != self.sender():
             return
 
+        self._on_selected_task_changed(task, breadcrumb_trail)
+        if task:
+            self._update_selected_entity("Task", task["id"])
+        else:
+            self._update_selected_entity(None, None)
+
+    def _on_selected_task_changed(self, task, breadcrumb_trail):
+        """
+        """
         search_details = []
         if task:
             search_label = task.get("content")
@@ -258,15 +267,9 @@ class BrowserForm(QtGui.QWidget):
             details.is_leaf = True
             search_details.append(details)
 
-            # update selection in other tabs to match:
-            self._update_selected_entity("Task", task["id"])
-
-        else:
-            # update selection in other tabs to match:
-            self._update_selected_entity(None, None)
-
         # refresh files:
-        self._file_model.refresh_files(search_details)
+        if self._file_model:
+            self._file_model.refresh_files(search_details)
 
         # emit work-area-changed signal:
         self._emit_work_area_changed(task, breadcrumb_trail)
@@ -281,6 +284,15 @@ class BrowserForm(QtGui.QWidget):
         if self._ui.task_browser_tabs.currentWidget() != self.sender():
             return
 
+        selected_entity = self._on_selected_entity_changed(selection_details, breadcrumb_trail)
+        if selected_entity:
+            self._update_selected_entity(selected_entity["type"], selected_entity["id"])
+        else:
+            self._update_selected_entity(None, None)
+
+    def _on_selected_entity_changed(self, selection_details, breadcrumb_trail):
+        """
+        """
         search_details = []
         
         primary_entity = None
@@ -309,15 +321,14 @@ class BrowserForm(QtGui.QWidget):
                     details.is_leaf = is_leaf
                     search_details.append(details)
 
-        # update selection in other tabs to match:
-        primary_entity = primary_entity or {}
-        self._update_selected_entity(primary_entity.get("type"), primary_entity.get("id"))
-
         # refresh files:
-        self._file_model.refresh_files(search_details)
+        if self._file_model:
+            self._file_model.refresh_files(search_details)
 
         # emit work-area-changed signal:
         self._emit_work_area_changed(primary_entity or None, breadcrumb_trail)
+        
+        return primary_entity
 
     def _get_item_searches(self, entity_item):
         """
@@ -472,12 +483,15 @@ class BrowserForm(QtGui.QWidget):
         if isinstance(form, MyTasksForm):
             # retrieve the selected task from the form and emit a work-area changed signal:
             task, breadcrumb_trail = form.get_selection()
-            self._emit_work_area_changed(task, breadcrumb_trail)
+            #self._emit_work_area_changed(task, breadcrumb_trail)
+            self._on_selected_task_changed(task, breadcrumb_trail)
+            
         elif isinstance(form, EntityTreeForm):
             # retrieve the selection from the form and emit a work-area changed signal:
             selection, breadcrumb_trail = form.get_selection()
-            selected_entity = selection.get("entity") if selection else None
-            self._emit_work_area_changed(selected_entity, breadcrumb_trail)
+            #selected_entity = selection.get("entity") if selection else None
+            #self._emit_work_area_changed(selected_entity, breadcrumb_trail)
+            self._on_selected_entity_changed(selection, breadcrumb_trail)
 
 
 

@@ -163,14 +163,9 @@ class EntityTreeForm(QtGui.QWidget):
         :param breadcrumb_trail:    A list of Breadcrumb instances that represent
                                     an item in the tree.
         """
-        if not breadcrumb_trail:
-            return
-
         # figure out the item in the tree to select from the breadcrumb trail:
-        #
         src_model = self._filter_model.sourceModel()
         current_item = src_model.invisibleRootItem()
-
         for crumb in breadcrumb_trail:
             # look for an item under the current item that this breadcrumb represents:
             found_item = None
