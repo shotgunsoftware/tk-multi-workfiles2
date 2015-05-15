@@ -206,7 +206,7 @@ class FileListForm(QtGui.QWidget):
         try:
             # try to get the item to select:
             item = None
-            if self._file_to_select:
+            if self._file_to_select and self._filter_model:
                 # we know about a file we should try to select:
                 src_model = self._filter_model.sourceModel()
                 file, context = self._file_to_select
@@ -291,10 +291,12 @@ class FileListForm(QtGui.QWidget):
         :returns:   The currently selected model item if any
         """
         item = None
-        indexes = self._ui.file_list_view.selectionModel().selectedIndexes()
-        if len(indexes) == 1:
-            src_idx = self._filter_model.mapToSource(indexes[0])
-            item = self._filter_model.sourceModel().itemFromIndex(src_idx)
+        selection_model = self._ui.file_list_view.selectionModel()
+        if selection_model:
+            indexes = selection_model.selectedIndexes()
+            if len(indexes) == 1:
+                src_idx = self._filter_model.mapToSource(indexes[0])
+                item = self._filter_model.sourceModel().itemFromIndex(src_idx)
         return item
 
     def _reset_selection(self):
@@ -304,9 +306,14 @@ class FileListForm(QtGui.QWidget):
 
         :returns:   The selected item before the selection was reset if any
         """
+        selection_model = self._ui.file_list_view.selectionModel()
+        if not selection_model:
+            return None
+
         prev_selected_item = self._get_selected_item()
         # reset the current selection without emitting any signals:
-        self._ui.file_list_view.selectionModel().reset()
+        selection_model.reset()
+
         return prev_selected_item
 
     def _on_filter_model_rows_inserted(self, parent, first, last):
