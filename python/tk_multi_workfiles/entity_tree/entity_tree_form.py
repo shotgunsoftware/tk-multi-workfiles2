@@ -39,7 +39,7 @@ class EntityTreeForm(QtGui.QWidget):
             self.entity = entity
 
     # Signal emitted when an entity is selected in the tree.
-    entity_selected = QtCore.Signal(object, list)# selection details, breadcrumbs
+    entity_selected = QtCore.Signal(object, object)# selection details, breadcrumbs
 
     # Signal emitted when the 'New Task' button is clicked.
     create_new_task = QtCore.Signal(object, object)# entity, step
