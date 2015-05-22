@@ -16,15 +16,15 @@ so that they can choose one to open
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-from .actions.file_action import SeparatorFileAction
 from .actions.file_action_factory import FileActionFactory
+from .actions.action import SeparatorAction
+from .actions.file_action import FileAction
 from .actions.new_file_action import NewFileAction
 
 from .file_form_base import FileFormBase
 from .ui.file_open_form import Ui_FileOpenForm
 
 from .environment_details import EnvironmentDetails
-
 from .framework_qtwidgets import Breadcrumb
 
 class FileOpenForm(FileFormBase):
@@ -32,13 +32,11 @@ class FileOpenForm(FileFormBase):
     UI for opening a publish or work file.  Presents a list of available files to the user
     so that they can choose one to open in addition to any other user-definable actions.
     """
-    perform_action = QtCore.Signal(object, object, object, object) # action, file, file_versions, environment
-    
     @property
     def exit_code(self):
         return self._exit_code
     
-    def __init__(self, init_callback, parent=None):
+    def __init__(self, parent=None):
         """
         Construction
         """
@@ -48,24 +46,23 @@ class FileOpenForm(FileFormBase):
         
         self._exit_code = QtGui.QDialog.Rejected
         
-        self._selected_file = None
-        self._selected_file_env = None
+        self._new_file_env = None
         self._default_open_action = None
         
         self._navigating = False
         
         # create the action factory - this is used to generate actions
         # for the selected file
-        self._action_factory = FileActionFactory()
+        self._file_action_factory = FileActionFactory()
 
         try:
             # doing this inside a try-except to ensure any exceptions raised don't 
             # break the UI and crash the dcc horribly!
-            self._do_init(init_callback)
+            self._do_init()
         except:
             app.log_exception("Unhandled exception during File Open Form construction!")
 
-    def _do_init(self, init_callback):
+    def _do_init(self):
         """
         """
         app = sgtk.platform.current_bundle()
@@ -101,21 +98,11 @@ class FileOpenForm(FileFormBase):
         self._ui.browser.select_work_area(app.context)
         self._ui.browser.select_file(current_file, app.context)
 
-        # initialize the UI
-        #self._on_selected_file_changed()
-        #self._update_new_file_btn()
-
-        # call init callback:
-        if init_callback:
-            init_callback(self)
-
     def _on_browser_file_selected(self, file, env):
         """
         """
-        self._selected_file = file
-        self._selected_file_env = env
-        self._on_selected_file_changed()
-        self._update_new_file_btn()
+        self._on_selected_file_changed(file, env)
+        self._update_new_file_btn(env)
 
     def _on_browser_work_area_changed(self, entity, breadcrumbs):
         """
@@ -130,8 +117,7 @@ class FileOpenForm(FileFormBase):
             context = app.sgtk.context_from_entity_dictionary(entity)
             env_details = EnvironmentDetails(context)
 
-        self._selected_file_env = env_details
-        self._update_new_file_btn()
+        self._update_new_file_btn(env_details)
 
         if not self._navigating:
             destination_label = breadcrumbs[-1].label if breadcrumbs else "..."
@@ -141,9 +127,8 @@ class FileOpenForm(FileFormBase):
     def _on_browser_file_double_clicked(self, file, env):
         """
         """
-        self._selected_file = file
-        self._selected_file_env = env
-        self._on_selected_file_changed()
+        self._on_selected_file_changed(file, env)
+        self._update_new_file_btn(env)
         self._on_open()
 
     def _on_navigate(self, breadcrumb_trail):
@@ -168,25 +153,26 @@ class FileOpenForm(FileFormBase):
         app = sgtk.platform.current_bundle()
         self._ui.browser.select_work_area(app.context)
 
-    def _on_selected_file_changed(self):
+    def _on_selected_file_changed(self, file, env):
         """
         """
         # get the available actions for this file:
         file_actions = []
-        if self._selected_file and self._selected_file_env:
-            file_versions = self._file_model.get_file_versions(self._selected_file.key, self._selected_file_env) or {}
-            file_actions = self._action_factory.get_actions(
-                                        self._selected_file, 
+        if file and env:
+            file_versions = self._file_model.get_file_versions(file.key, env) or {}
+            file_actions = self._file_action_factory.get_actions(
+                                        file, 
                                         file_versions, 
-                                        self._selected_file_env,
+                                        env,
                                         workfiles_visible=self._ui.browser.work_files_visible, 
                                         publishes_visible=self._ui.browser.publishes_visible
                                         )
-        
+
         if not file_actions:
             # disable both the open and open options buttons:
             self._ui.open_btn.setEnabled(False)
             self._ui.open_options_btn.setEnabled(False)
+            self._default_open_action = None
             return
 
         # update the open button:
@@ -205,18 +191,19 @@ class FileOpenForm(FileFormBase):
                 menu = QtGui.QMenu(self._ui.open_options_btn)
                 self._ui.open_options_btn.setMenu(menu)
             menu.clear()
-            self._populate_open_menu(menu, self._selected_file, self._selected_file_env, file_actions[1:])
+            self._populate_open_menu(menu, file_actions[1:])
         else:
             # just disable the button:
             self._ui.open_options_btn.setEnabled(False)
 
-    def _update_new_file_btn(self):
+    def _update_new_file_btn(self, env):
         """
         """
-        if self._selected_file_env and NewFileAction.can_do_new_file(self._selected_file_env):
-            self._ui.new_file_btn.setEnabled(True)
+        if env and NewFileAction.can_do_new_file(env):
+            self._new_file_env = env
         else:
-            self._ui.new_file_btn.setEnabled(False)
+            self._new_file_env = None
+        self._ui.new_file_btn.setEnabled(self._new_file_env != None)
 
     def _on_browser_context_menu_requested(self, file, env, pnt):
         """
@@ -227,7 +214,7 @@ class FileOpenForm(FileFormBase):
         # get the file actions:
         file_actions = []
         file_versions = self._file_model.get_file_versions(file.key, env) or {}
-        file_actions = self._action_factory.get_actions(
+        file_actions = self._file_action_factory.get_actions(
                                         file,
                                         file_versions, 
                                         env,
@@ -240,7 +227,7 @@ class FileOpenForm(FileFormBase):
 
         # build the context menu:
         context_menu = QtGui.QMenu(self.sender())
-        self._populate_open_menu(context_menu, file, env, file_actions[1:])
+        self._populate_open_menu(context_menu, file_actions[1:])
         
         # map the point to a global position:
         pnt = self.sender().mapToGlobal(pnt)
@@ -248,12 +235,12 @@ class FileOpenForm(FileFormBase):
         # finally, show the context menu:
         context_menu.exec_(pnt)
 
-    def _populate_open_menu(self, menu, file, env, file_actions):
+    def _populate_open_menu(self, menu, file_actions):
         """
         """
         add_separators = False
         for action in file_actions:
-            if isinstance(action, SeparatorFileAction):
+            if isinstance(action, SeparatorAction):
                 if add_separators:
                     menu.addSeparator()
                     
@@ -262,7 +249,7 @@ class FileOpenForm(FileFormBase):
                 add_separators = False
             else:
                 q_action = QtGui.QAction(action.label, menu)
-                slot = lambda a=action, f=file, e=env: self._on_open_action_triggered(a, f, e)
+                slot = lambda a=action: self._perform_action(a)
                 q_action.triggered[()].connect(slot)
                 menu.addAction(q_action)
                 add_separators = True      
@@ -270,28 +257,12 @@ class FileOpenForm(FileFormBase):
     def _on_open(self):
         """
         """
-        if not self._default_open_action or not self._selected_file:
+        if not self._default_open_action:
             return
-        
-        self._on_open_action_triggered(self._default_open_action, 
-                                       self._selected_file,
-                                       self._selected_file_env)
 
-    def _on_open_action_triggered(self, action, file, env):
-        """
-        """
-        if (not action
-            or not file
-            or not self._file_model):
-            # can't do anything!
-            return
-        
-        # get the item info for the selected item:
-        file_versions = self._file_model.get_file_versions(file.key, env) or {}
-        
-        # emit signal to perform the default action.  This may result in the dialog
-        # being closed so no further work should be attempted after this call
-        self.perform_action.emit(action, file, file_versions, env)
+        # perform the action - this may result in the UI being closed so don't do
+        # anything after this call!
+        self._perform_action(self._default_open_action)
 
     def _on_cancel(self):
         """
@@ -303,18 +274,36 @@ class FileOpenForm(FileFormBase):
     def _on_new_file(self):
         """
         """
-        if not self._selected_file_env or not NewFileAction.can_do_new_file(self._selected_file_env):
+        if not self._new_file_env or not NewFileAction.can_do_new_file(self._new_file_env):
             return
-        
-        new_file_action = NewFileAction()
-        
-        # emit signal to perform the action.  This may result in the dialog
-        # being closed so no further work should be attempted after this call
-        self.perform_action.emit(new_file_action, None, None, self._selected_file_env)
 
+        new_file_action = NewFileAction(None, None, self._new_file_env)
 
+        # perform the action - this may result in the UI being closed so don't do
+        # anything after this call!
+        self._perform_action(new_file_action)
 
+    def _perform_action(self, action):
+        """
+        """
+        if not action:
+            return
 
+        # some debug:
+        app = sgtk.platform.current_bundle()
+        if isinstance(action, FileAction) and action.file:
+            app.log_debug("Performing action '%s' on file '%s, v%03d'" 
+                          % (action.label, action.file.name, action.file.version))
+        else:
+            app.log_debug("Performing action '%s'" % action.label)
+
+        # execute the action:
+        close_dialog = action.execute(self)
+
+        # if this is successful then close the form:
+        if close_dialog:
+            self._exit_code = QtGui.QDialog.Accepted
+            self.close() 
 
 
 

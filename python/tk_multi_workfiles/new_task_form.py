@@ -21,7 +21,11 @@ class NewTaskForm(QtGui.QWidget):
     
     @property
     def exit_code(self):
-        return self._exit_code    
+        return self._exit_code
+    
+    @property
+    def hide_tk_title_bar(self):
+        return True
     
     def __init__(self, entity, step, user, parent=None):
         """

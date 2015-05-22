@@ -14,7 +14,7 @@ import sgtk
 from sgtk.platform.qt import QtGui, QtCore
 from sgtk import TankError
 
-from .find_files import FileFinder
+from .file_finder import FileFinder
 
 class _SearchCache(object):
     """
@@ -332,6 +332,13 @@ class FileModel(QtGui.QStandardItemModel):
         
         # find the item using the cache:
         return self._search_cache.find_item_for_file(file.key, file.version, context)
+
+    def async_refresh(self):
+        """
+        """
+        # TODO - implement!
+        # Note, this should happen after cached files have been loaded anyway...
+        pass
 
     def refresh_files(self, search_details, force=False):
         """

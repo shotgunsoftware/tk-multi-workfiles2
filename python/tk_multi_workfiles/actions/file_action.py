@@ -12,43 +12,44 @@
 """
 
 import sgtk
+from sgtk import TankError
+from sgtk.platform.qt import QtGui, QtCore
+from .action import Action
 
-class FileAction(object):
-    def __init__(self, label):
-        """
-        """
-        self._app = sgtk.platform.current_bundle()
-        self._label = label
-        
-    @property
-    def label(self):
-        return self._label
-    
-    def execute(self, file, file_versions, environment, parent_ui):
-        raise NotImplementedError()
-
-    def _create_folders(self, ctx):
+class FileAction(Action):
+    """
+    """
+    @staticmethod
+    def create_folders(ctx):
         """
         Create folders for specified context
         """
-        self._app.log_debug("Creating folders for context %s" % ctx)
-        
-        # create folders:
-        ctx_entity = ctx.task or ctx.entity or ctx.project
-        self._app.sgtk.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"), 
-                                                   engine=self._app.engine.name)
+        app = sgtk.platform.current_bundle()
+        app.log_info("Creating folders for context %s" % ctx)
 
-    def _restart_engine(self, ctx):
+        # create folders:
+        QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        try:
+            ctx_entity = ctx.task or ctx.entity or ctx.project
+            app.sgtk.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"), 
+                                                       engine=app.engine.name)
+        finally:
+            QtGui.QApplication.restoreOverrideCursor()
+
+    @staticmethod
+    def restart_engine(ctx):
         """
         Set context to the new context.  This will
         clear the current scene and restart the
         current engine with the specified context
         """
-        self._app.log_debug("Restarting the engine...")
+        app = sgtk.platform.current_bundle()
+        app.log_info("Restarting the engine...")
         
-        # restart engine:        
+        # restart engine:
+        QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
-            current_engine_name = self._app.engine.name
+            current_engine_name = app.engine.name
             
             # stop current engine:            
             if sgtk.platform.current_engine(): 
@@ -58,11 +59,25 @@ class FileAction(object):
             sgtk.platform.start_engine(current_engine_name, ctx.sgtk, ctx)
         except Exception, e:
             raise TankError("Failed to change work area and start a new engine - %s" % e)
+        finally:
+            QtGui.QApplication.restoreOverrideCursor()
+    
+    def __init__(self, label, file, file_versions, environment):
+        """
+        """
+        Action.__init__(self, label)
+        self._file = file
+        self._file_versions = file_versions
+        self._environment = environment
 
-class SeparatorFileAction(FileAction):
-    def __init__(self):
-        FileAction.__init__(self, "---")
-        
-    def execute(self, file, file_versions, environment, parent_ui):
-        # do nothing!
-        pass
+    @property
+    def file(self):
+        return self._file
+
+    @property
+    def file_versions(self):
+        return self._file_versions
+
+    @property
+    def environment(self):
+        return self._environment

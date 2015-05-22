@@ -11,7 +11,7 @@ from sgtk.platform.qt import QtCore, QtGui
 class Ui_FileSaveForm(object):
     def setupUi(self, FileSaveForm):
         FileSaveForm.setObjectName("FileSaveForm")
-        FileSaveForm.resize(891, 568)
+        FileSaveForm.resize(850, 539)
         self.verticalLayout = QtGui.QVBoxLayout(FileSaveForm)
         self.verticalLayout.setSpacing(4)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -174,6 +174,7 @@ class Ui_FileSaveForm(object):
         self.preview_grid.addWidget(self.preview_label, 0, 0, 1, 1)
         self.file_name_preview = QtGui.QLabel(self.preview_page)
         self.file_name_preview.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.file_name_preview.setWordWrap(True)
         self.file_name_preview.setIndent(-1)
         self.file_name_preview.setObjectName("file_name_preview")
         self.preview_grid.addWidget(self.file_name_preview, 0, 1, 1, 1)
@@ -225,6 +226,7 @@ class Ui_FileSaveForm(object):
         self.horizontalLayout_7.addLayout(self.warning_grid)
         self.feedback_stacked_widget.addWidget(self.warning_page)
         self.verticalLayout_2.addWidget(self.feedback_stacked_widget)
+        self.verticalLayout_2.setStretch(1, 1)
         self.verticalLayout.addLayout(self.verticalLayout_2)
         spacerItem3 = QtGui.QSpacerItem(20, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem3)
@@ -261,7 +263,7 @@ class Ui_FileSaveForm(object):
     def retranslateUi(self, FileSaveForm):
         FileSaveForm.setWindowTitle(QtGui.QApplication.translate("FileSaveForm", "Form", None, QtGui.QApplication.UnicodeUTF8))
         self.expand_checkbox.setToolTip(QtGui.QApplication.translate("FileSaveForm", "Toggle Browser", None, QtGui.QApplication.UnicodeUTF8))
-        self.version_label.setText(QtGui.QApplication.translate("FileSaveForm", "<html><head/><body><p><span style=\" font-weight:600;\">Version #:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
+        self.version_label.setText(QtGui.QApplication.translate("FileSaveForm", "<html><head/><body><p><span style=\" font-weight:600;\">Version:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.name_label.setText(QtGui.QApplication.translate("FileSaveForm", "<html><head/><body><p><span style=\" font-weight:600;\">Name:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.file_type_label.setText(QtGui.QApplication.translate("FileSaveForm", "<html><head/><body><p><span style=\" font-weight:600;\">File Type:</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.use_next_available_cb.setText(QtGui.QApplication.translate("FileSaveForm", "Use Next Available Version Number", None, QtGui.QApplication.UnicodeUTF8))

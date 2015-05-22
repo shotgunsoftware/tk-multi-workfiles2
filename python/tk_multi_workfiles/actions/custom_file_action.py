@@ -76,29 +76,29 @@ class CustomFileAction(FileAction):
         return action_info
         
     
-    def __init__(self, name, label, workfiles_visible, publishes_visible):
+    def __init__(self, name, label, file, file_versions, environment, workfiles_visible, publishes_visible):
         """
         Construction
         """
-        FileAction.__init__(self, label)
+        FileAction.__init__(self, label, file, file_versions, environment)
         self._name = name
         self._workfiles_visible = workfiles_visible
         self._publishes_visible = publishes_visible
     
-    def execute(self, file, file_versions, environment, parent_ui):
+    def execute(self, parent_ui):
         """
         """
         # execute hook to perform the action
         app = sgtk.platform.current_bundle()
         
         # build hook-friendly data:
-        work_file, publish = CustomFileAction._prepare_file_data_for_hook([file])
+        work_file, publish = CustomFileAction._prepare_file_data_for_hook([self.file])
         hook_file = None
         if self._workfiles_visible:
             hook_file = work_file[0] if work_file else None
         if not hook_file and self._publishes_visible:
             hook_file = publish[0] if publish else None
-        work_versions, publish_versions = CustomFileAction._prepare_file_data_for_hook(file_versions.values())
+        work_versions, publish_versions = CustomFileAction._prepare_file_data_for_hook(self.file_versions.values())
 
         # execute hook method to execute action:
         result = False
@@ -109,7 +109,7 @@ class CustomFileAction(FileAction):
                                               file = hook_file,
                                               work_versions = work_versions,
                                               publish_versions = publish_versions,
-                                              context = environment.context)
+                                              context = self.environment.context)
         except:
             app.log_exception("Failed to execute custom action!")
 

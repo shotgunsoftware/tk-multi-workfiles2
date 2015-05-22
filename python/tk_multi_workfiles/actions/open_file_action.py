@@ -60,7 +60,7 @@ class OpenFileAction(FileAction):
             # cache and ensuring we can copy the file
             # if we need to
             try:
-                self._create_folders(new_ctx)
+                FileAction.create_folders(new_ctx)
             except Exception, e:
                 QtGui.QMessageBox.critical(parent_ui, "Failed to create folders!", 
                                            "Failed to create folders:\n\n%s!" % e)
@@ -106,7 +106,7 @@ class OpenFileAction(FileAction):
         if not new_ctx == self._app.context:
             try:
                 # restart the engine with the new context
-                self._restart_engine(new_ctx)
+                FileAction.restart_engine(new_ctx)
             except Exception, e:
                 QtGui.QMessageBox.critical(parent_ui, "Failed to change the work area", 
                             "Failed to change the work area to '%s':\n\n%s\n\nUnable to continue!" % (new_ctx, e))
@@ -123,3 +123,71 @@ class OpenFileAction(FileAction):
             return False
         
         return True
+    
+    
+class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
+    """
+    """
+    def _open_in_current_work_area(self, src_path, src_template, parent_ui):
+        """
+        """
+        # get info about the current work area:
+        app = sgtk.platform.current_bundle()
+        dst_env = EnvironmentDetails(app.context)
+        if not dst_env.work_template:
+            # should never happen!
+            app.log_error("Unable to copy the file '%s' to the current work area as no valid "
+                          "work template could be found" % src_path)
+            return False
+
+        # determine the set of fields for the destination file in the current work area:
+        #
+        # get fields from file path using the source work template:
+        fields = src_template.get_fields(src_path)
+
+        # get the template fields for the current context using the current work template: 
+        context_fields = dst_env.context.as_template_fields(dst_env.work_template)
+
+        # this will overide any context fields obtained from the source path:
+        fields.update(context_fields)
+
+        # build the destination path from these fields:
+        dst_file_path = ""
+        try:
+            dst_file_path = dst_env.work_template.apply_fields(fields)
+        except TankError, e:
+            app.log_error("Unable to copy the file '%s' to the current work area as Toolkit is "
+                          "unable to build the destination file path: %s" % (src_path, e))
+            return False
+
+        if "version" in dst_env.work_template.keys:
+            # need to figure out the next version:
+
+            # build a file key from the fields: 
+            file_key = FileItem.build_file_key(fields, 
+                                               dst_env.work_template, 
+                                               dst_env.version_compare_ignore_fields)
+    
+            # look for all files that match this key:
+            finder = FileFinder()
+            found_files = finder.find_files(dst_env.work_template, 
+                                            dst_env.publish_template, 
+                                            dst_env.context, 
+                                            file_key)
+
+            # get the max version:
+            versions = [file.version for file in found_files]
+            fields["version"] = (max(versions or [0]) + 1)
+
+            # and rebuild the path:
+            dst_file_path = dst_env.work_template.apply_fields(fields)
+
+        # Should there be a prompt here?
+
+        # copy and open the file:
+        return self._do_copy_and_open(src_path, 
+                                      dst_file_path, 
+                                      version = None, 
+                                      read_only = False, 
+                                      new_ctx = dst_env.context, 
+                                      parent_ui = parent_ui)

@@ -33,29 +33,29 @@ class ShowInShotgunAction(FileAction):
 class ShowPublishInShotgunAction(ShowInShotgunAction):
     """
     """
-    def __init__(self):
-        ShowInShotgunAction.__init__(self, "Show Publish in Shotgun")
+    def __init__(self, file, file_versions, environment):
+        ShowInShotgunAction.__init__(self, "Show Publish in Shotgun", file, file_versions, environment)
         
-    def execute(self, file, file_versions, environment, parent_ui):
+    def execute(self, parent_ui):
         """
         """
-        if not file or not file.is_published:
+        if not self.file or not self.file.is_published:
             return
 
-        self._open_url_for_published_file(file)
+        self._open_url_for_published_file(self.file)
 
 class ShowLatestPublishInShotgunAction(ShowInShotgunAction):
     """
     """
-    def __init__(self):
-        ShowInShotgunAction.__init__(self, "Show Latest Publish in Shotgun")
+    def __init__(self, file, file_versions, environment):
+        ShowInShotgunAction.__init__(self, "Show Latest Publish in Shotgun", file, file_versions, environment)
         
-    def execute(self, file, file_versions, environment, parent_ui):
+    def execute(self, parent_ui):
         """
         """
-        publish_versions = [v for v, f in file_versions.iteritems() if f.is_published]
+        publish_versions = [v for v, f in self.file_versions.iteritems() if f.is_published]
         if not publish_versions:
             return
         
         max_publish_version = max(publish_versions)
-        self._open_url_for_published_file(file_versions[max_publish_version])
+        self._open_url_for_published_file(self.file_versions[max_publish_version])

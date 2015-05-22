@@ -20,57 +20,57 @@ from ..open_options_form import OpenOptionsForm
 
 class InteractiveOpenAction(OpenFileAction):
 
-    def __init__(self, workfiles_visible, publishes_visible):
+    def __init__(self, file, file_versions, environment, workfiles_visible, publishes_visible):
         """
         """
-        OpenFileAction.__init__(self, "Open")
+        OpenFileAction.__init__(self, "Open", file, file_versions, environment)
         
         self._workfiles_visible = workfiles_visible
         self._publishes_visible = publishes_visible
 
-    def execute(self, file, file_versions, environment, parent_ui):
+    def execute(self, parent_ui):
         """
         """
-        if not file:
+        if not self.file:
             return False
         
         # this is the smart action where all the logic tries to decide what the actual 
         # action should be!
 
         # get information about the max local & publish versions:
-        local_versions = [v for v, f in file_versions.iteritems() if f.is_local]
-        publish_versions = [v for v, f in file_versions.iteritems() if f.is_published]
+        local_versions = [v for v, f in self.file_versions.iteritems() if f.is_local]
+        publish_versions = [v for v, f in self.file_versions.iteritems() if f.is_published]
         max_local_version = max(local_versions) if local_versions else None
         max_publish_version = max(publish_versions) if publish_versions else None
         max_version = max(max_local_version, max_publish_version)
         
-        if (self._publishes_visible and file.is_published
-            and (not self._workfiles_visible or not file.is_local)):
+        if (self._publishes_visible and self.file.is_published
+            and (not self._workfiles_visible or not self.file.is_local)):
             # opening a publish and either not showing work files or the file isn't local
-            if file.version < max_publish_version:
+            if self.file.version < max_publish_version:
                 # opening an old version of a publish!
-                return self._open_previous_publish(file, environment, parent_ui)
+                return self._open_previous_publish(self.file, self.environment, parent_ui)
             else:
                 # opening the most recent version of a publish!
                 latest_work_file = None
                 if max_local_version != None:
-                    latest_work_file = file_versions[max_local_version]
-                return self._open_publish_with_check(file, latest_work_file, environment, max_version+1, parent_ui)        
+                    latest_work_file = self.file_versions[max_local_version]
+                return self._open_publish_with_check(self.file, latest_work_file, self.environment, max_version+1, parent_ui)        
         
-        elif (self._workfiles_visible and file.is_local):
+        elif (self._workfiles_visible and self.file.is_local):
             # opening a workfile and either not showing publishes or the file hasn't been published
             # OR
             # opening a file that is both local and published and both are visible in the view!
             # (is this the right thing to do when a file is both local and a publish??)
-            if file.version < max_local_version:
+            if self.file.version < max_local_version:
                 # opening an old version of work file:
-                return self._open_previous_workfile(file, environment, parent_ui)
+                return self._open_previous_workfile(self.file, self.environment, parent_ui)
             else:
                 # opening the most recent version of a work file!
                 latest_publish = None
                 if max_publish_version != None:
-                    latest_publish = file_versions[max_publish_version]
-                return self._open_workfile_with_check(file, latest_publish, environment, max_version+1, parent_ui)
+                    latest_publish = self.file_versions[max_publish_version]
+                return self._open_workfile_with_check(self.file, latest_publish, self.environment, max_version+1, parent_ui)
         else:
             # this shouldn't happen and is in here primarily for debug purposes!
             raise NotImplementedError("Unsure what action to take when opening this file!")

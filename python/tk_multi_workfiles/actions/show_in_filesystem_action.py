@@ -12,6 +12,7 @@
 """
 
 import sgtk
+from sgtk import TankError
 
 from .file_action import FileAction
 
@@ -58,29 +59,29 @@ class ShowInFileSystemAction(FileAction):
 class ShowPublishInFileSystemAction(ShowInFileSystemAction):
     """
     """
-    def __init__(self):
-        ShowInFileSystemAction.__init__(self, "Show Publish In File System")
+    def __init__(self, file, file_versions, environment):
+        ShowInFileSystemAction.__init__(self, "Show Publish In File System", file, file_versions, environment)
         
-    def execute(self, file, file_versions, environment, parent_ui):
+    def execute(self, parent_ui):
         """
         """
-        if file and file.is_published:
-            self._show_in_fs(file.publish_path)
+        if self.file and self.file.is_published:
+            self._show_in_fs(self.file.publish_path)
     
 class ShowWorkFileInFileSystemAction(ShowInFileSystemAction):
     """
     """
-    def __init__(self):
-        ShowInFileSystemAction.__init__(self, "Show In File System")
+    def __init__(self, file, file_versions, environment):
+        ShowInFileSystemAction.__init__(self, "Show In File System", file, file_versions, environment)
         
-    def execute(self, file, file_versions, environment, parent_ui):
+    def execute(self, parent_ui):
         """
         """
-        if file and file.is_local:
-            self._show_in_fs(file.path)
+        if self.file and self.file.is_local:
+            self._show_in_fs(self.file.path)
 
 class ShowAreaInFileSystemAction(ShowInFileSystemAction):
-    def _show_area_in_fs(self, file, template):
+    def _show_area_in_fs(self, file, environment, template):
         """
         """
         # build fields starting with the context:
@@ -99,7 +100,7 @@ class ShowAreaInFileSystemAction(ShowInFileSystemAction):
                 except TankError, e:
                     pass
             # combine with the context fields, preferring the context
-            fields = dict(chain(ctx_fields.iteritems(), file_fields.iteritems()))
+            fields = dict(chain(fields.iteritems(), file_fields.iteritems()))
             
         # try to build a path from the template with these fields:
         while template and template.missing_keys(fields):
@@ -112,37 +113,37 @@ class ShowAreaInFileSystemAction(ShowInFileSystemAction):
         # finally, show the path:
         self._show_in_fs(path)
 
-class ShowWorkAreaInFileSystemAction(ShowInFileSystemAction):
+class ShowWorkAreaInFileSystemAction(ShowAreaInFileSystemAction):
     """
     """
-    def __init__(self):
-        ShowInFileSystemAction.__init__(self, "Show Work Area In File System")
+    def __init__(self, file, file_versions, environment):
+        ShowAreaInFileSystemAction.__init__(self, "Show Work Area In File System", file, file_versions, environment)
         
-    def execute(self, file, file_versions, environment, parent_ui):
+    def execute(self, parent_ui):
         """
         """
-        if not file:
+        if not self.file:
             return
         
-        if not environment or not environment.context or not environment.work_area_template:
+        if not self.environment or not self.environment.context or not self.environment.work_area_template:
             return
 
-        self._show_area_in_fs(file, environment.work_area_template)
+        self._show_area_in_fs(self.file, self.environment, self.environment.work_area_template)
 
-class ShowPublishAreaInFileSystemAction(ShowInFileSystemAction):
+class ShowPublishAreaInFileSystemAction(ShowAreaInFileSystemAction):
     """
     """
-    def __init__(self):
-        ShowInFileSystemAction.__init__(self, "Show Publish Area In File System")
-        
-    def execute(self, file, file_versions, environment, parent_ui):
+    def __init__(self, file, file_versions, environment):
+        ShowAreaInFileSystemAction.__init__(self, "Show Publish Area In File System", file, file_versions, environment)
+
+    def execute(self, parent_ui):
         """
         """
-        if not file:
+        if not self.file:
             return
-        
-        if not environment or not environment.context or not environment.publish_area_template:
+
+        if not self.environment or not self.environment.context or not self.environment.publish_area_template:
             return
-        
-        self._show_area_in_fs(file, environment.publish_area_template)
+
+        self._show_area_in_fs(self.file, self.environment, self.environment.publish_area_template)
         

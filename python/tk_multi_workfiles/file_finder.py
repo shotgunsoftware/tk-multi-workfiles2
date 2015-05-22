@@ -653,14 +653,14 @@ class FileFinder(QtCore.QObject):
         # find work files that match the current work template:
         work_fields = []
         try:
-            work_fields = context.as_template_fields(work_template)
+            work_fields = context.as_template_fields(work_template, error_on_missing_fields=True)
         except TankError:
             # could not resolve fields from this context. This typically happens
             # when the context object does not have any corresponding objects on 
             # disk / in the path cache. In this case, we cannot continue with any
             # file system resolution, so just exit early insted.
             return []
-        
+
         # build list of fields to ignore when looking for files:
         skip_fields = list(version_compare_ignore_fields)
 

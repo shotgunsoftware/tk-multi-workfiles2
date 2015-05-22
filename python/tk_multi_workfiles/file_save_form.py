@@ -25,12 +25,12 @@ from sgtk import TankError
 from .file_form_base import FileFormBase
 from .ui.file_save_form import Ui_FileSaveForm
 from .runnable_task import RunnableTask
-from .scene_operation import get_current_path, save_file, SAVE_FILE_AS_ACTION
 from .environment_details import EnvironmentDetails
 from .file_item import FileItem
-from .find_files import FileFinder
-from .framework_qtwidgets import Breadcrumb
+from .file_finder import FileFinder
 from .util import value_to_str
+
+from .actions.save_as_file_action import SaveAsFileAction
 
 class FileSaveForm(FileFormBase):
     """
@@ -42,7 +42,7 @@ class FileSaveForm(FileFormBase):
     def exit_code(self):
         return self._exit_code
     
-    def __init__(self, init_callback, parent=None):
+    def __init__(self, parent=None):
         """
         Construction
         """
@@ -55,7 +55,6 @@ class FileSaveForm(FileFormBase):
 
         self._exit_code = QtGui.QDialog.Rejected
         self._current_env = None
-        self._current_path = ""
         self._extension_choices = []
         self._preview_task = None
         self._navigating = False
@@ -72,11 +71,11 @@ class FileSaveForm(FileFormBase):
         try:
             # doing this inside a try-except to ensure any exceptions raised don't 
             # break the UI and crash the dcc horribly!
-            self._init(init_callback)
+            self._init()
         except:
             app.log_exception("Unhandled exception during File Save Form construction!")
         
-    def _init(self, init_callback):
+    def _init(self):
         """
         Actual construction!
         """
@@ -122,14 +121,10 @@ class FileSaveForm(FileFormBase):
         self._ui.browser.create_new_task.connect(self._on_create_new_task)
         self._ui.browser.file_selected.connect(self._on_browser_file_selected)
         self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)
-        #self._ui.browser.file_context_menu_requested.connect(self._on_browser_context_menu_requested)
         self._ui.browser.work_area_changed.connect(self._on_browser_work_area_changed)
 
         self._ui.nav.navigate.connect(self._on_navigate)
         self._ui.nav.home_clicked.connect(self._on_navigate_home)
-
-        # start the preview update:
-        self._start_preview_update()
 
         # initialize the browser:
         self._ui.browser.enable_show_all_versions(False)
@@ -139,20 +134,13 @@ class FileSaveForm(FileFormBase):
         self._ui.browser.select_work_area(app.context)
         self._ui.browser.select_file(current_file, app.context)
 
-        # execute the init callback:
-        if init_callback:
-            init_callback(self)
+        # initialize the browser with the current file and environment:
+        self._on_browser_file_selected(current_file, env)
 
-
-    @property
-    def path(self):
-        """
-        """
-        return self._current_path
-
-    @property
-    def environment(self):
-        return self._current_env
+        # if it's not possible to save into the initial work area then start the UI expanded:
+        if not env or not env.work_template:
+            self._ui.expand_checkbox.setChecked(True)
+            self._on_expand_toggled(True)
 
     # ------------------------------------------------------------------------------------------
     # protected methods
@@ -186,10 +174,6 @@ class FileSaveForm(FileFormBase):
             self._preview_task.stop()
             self._preview_task = None
 
-        # clear the current path - this will ensure hitting save doesn't 
-        # do anything whilst we're updating the path
-        self._current_path = None
-        
         # get the name, version and extension from the UI:
         name = value_to_str(self._ui.name_edit.text())
         version = self._ui.version_spinner.value()
@@ -202,7 +186,8 @@ class FileSaveForm(FileFormBase):
                                           name = name,
                                           version = version,
                                           use_next_version = use_next_version,
-                                          ext = ext)
+                                          ext = ext,
+                                          require_path = False)
         self._preview_task.completed.connect(self._on_preview_generation_complete)
         self._preview_task.failed.connect(self._on_preview_generation_failed)
         
@@ -214,23 +199,33 @@ class FileSaveForm(FileFormBase):
         if task != self._preview_task:
             return
         self._preview_task = None
-        
-        self._current_path = result["path"]
-        version = result["version"]
-        next_version = result["next_version"]
-        use_next_version = result["use_next_version"]
 
-        # update version controls:
-        self._update_version_spinner(version, next_version)
-        
-        # update path preview:
+        name_preview = ""
+        path_preview = ""
+        path = result.get("path")
+        if path is None:
+            # something went wrong causing the preview path to not get generated!
+            # Report this but still allow the user to attempt saving.
+            # This can happen when folders haven't yet been created, resulting in
+            # Toolkit not being able to fully resolve fields from the context.
+            name_preview = ("Unable to generate preview - this may be because nothing has "
+                            "ever been saved into this Work Area!")
+            path_preview = ""
+            self._ui.work_area_label.setVisible(False)
+        else:
+            path_preview, name_preview = os.path.split(path)
+            self._ui.work_area_label.setVisible(True)
+
         self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.preview_page)
-        path_preview, name_preview = os.path.split(self._current_path)
-        
         self._ui.file_name_preview.setText("<p style='color:rgb%s'>%s</p>" 
                                            % (self._preview_colour, name_preview))
         self._ui.work_area_preview.setText("<p style='color:rgb%s'>%s</p>" 
                                            % (self._preview_colour, path_preview))
+
+        # update version controls:
+        version = result.get("version") or 1
+        next_version = result.get("next_version") or 1
+        self._update_version_spinner(version, next_version)
 
         self._ui.save_btn.setEnabled(True)
 
@@ -240,18 +235,18 @@ class FileSaveForm(FileFormBase):
         if task != self._preview_task:
             return
         self._preview_task = None
-        self._current_path = None
         
         self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.warning_page)
         self._ui.warning.setText("<p style='color:rgb%s'>%s</p>" % (FileSaveForm._WARNING_COLOUR, msg))
         
         self._ui.save_btn.setEnabled(False)
     
-    def _generate_path(self, env, name, version, use_next_version, ext):
+    def _generate_path(self, env, name, version, use_next_version, ext, require_path=False):
         """
         :returns:   Tuple containing (path, min_version)
         :raises:    Error if something goes wrong!
         """
+        app = sgtk.platform.current_bundle()
 
         # first make  sure the environment is complete:
         if not env or not env.context:
@@ -260,7 +255,7 @@ class FileSaveForm(FileFormBase):
             raise TankError("Unable to save into this work area.  Please select a different work area!")
 
         # build the fields dictionary from the environment:
-        fields = env.context.as_template_fields(env.work_template)
+        fields = {}
         
         name_is_used = "name" in env.work_template.keys
         if name_is_used:
@@ -270,23 +265,42 @@ class FileSaveForm(FileFormBase):
                 if not env.work_template.keys["name"].validate(name):
                     raise TankError("Name contains illegal characters!")
                 fields["name"] = name
-        
+
         ext_is_used = "extension" in env.work_template.keys
         if ext_is_used and ext != None:
             fields["extension"] = ext
 
+        # query the context fields:
+        ctx_fields = {}
+        try:
+            ctx_fields = env.context.as_template_fields(env.work_template, error_on_missing_fields=True)
+            fields = dict(chain(fields.iteritems(), ctx_fields.iteritems()))
+        except TankError, e:
+            app.log_debug("Unable to generate preview path: %s" % e)
+            if require_path:
+                # log the original exception (useful for tracking down the problem) 
+                app.log_exception("Unable to resolve template fields!")
+                # and raise a new, clearer exception for this specific use case:
+                raise TankError("Unable to resolve template fields!  This could mean there is a mismatch "
+                                "between your folder schema and templates.  Please email "
+                                "toolkitsupport@shotgunsoftware.com if you need help fixing this.")
+
+            # it's ok not to have a path preview at this point!
+            return {}
+
         next_version = None
         version_is_used = "version" in env.work_template.keys
         if version_is_used:
+            # version is used so we need to find the latest version - this means 
+            # searching for files...
+
             # need a file key to find all versions so lets build it:
             file_key = FileItem.build_file_key(fields, env.work_template, 
                                                env.version_compare_ignore_fields)
 
             file_versions = self._file_model.get_file_versions(file_key, env)
             if file_versions == None:
-                # fall back to finding the files manually.  
-                # TODO, this should be replaced by an access into the model
-                # which probably already has all the required information!
+                # fall back to finding the files manually - this will be slower!  
                 finder = FileFinder()
                 try:
                     files = finder.find_files(env.work_template, 
@@ -302,19 +316,27 @@ class FileSaveForm(FileFormBase):
 
             # update version:
             version = next_version if use_next_version else max(version, next_version)
-            fields["version"] = version 
+            fields["version"] = version
+        else:
+            # version isn't used!
+            version = None
 
         # see if we can build a valid path from the fields:
         path = None
         try:
             path = env.work_template.apply_fields(fields)
         except TankError, e:
-            raise TankError("Failed to build a valid path: %s" % e)
+            if require_path:
+                # we need a path so re-raise the exception!
+                raise
+
+            # otherwise it's ok to not have a path!
+            app.log_debug("Unable to generate preview path: %s" % e)
+            path = None
 
         return {"path":path, 
                 "version":version, 
-                "next_version":next_version,
-                "use_next_version":use_next_version}
+                "next_version":next_version}
 
     def _update_version_spinner(self, version, min_version, block_signals=True):
         """
@@ -411,8 +433,9 @@ class FileSaveForm(FileFormBase):
 
         name_is_used = "name" in self._current_env.work_template.keys
         ext_is_used = "extension" in self._current_env.work_template.keys
+        version_is_used = "version" in self._current_env.work_template.keys
         
-        if not name_is_used and not ext_is_used:
+        if not name_is_used and not ext_is_used and not version_is_used:
             return
         
         # get the fields for this file:
@@ -427,8 +450,8 @@ class FileSaveForm(FileFormBase):
         except:
             pass
 
-        # pull the current name/extension from the file:
         if name_is_used:
+            # update name edit:
             name = fields.get("name", "")
             name_is_optional = name_is_used and self._current_env.work_template.is_optional("name")
             if not name and not name_is_optional:
@@ -439,8 +462,8 @@ class FileSaveForm(FileFormBase):
 
             self._ui.name_edit.setText(name)
 
-        ext_is_used = "extension" in self._current_env.work_template.keys
         if ext_is_used:
+            # update extension menu:
             ext = fields.get("extension", "")
             if ext in self._extension_choices:
                 # update extension:
@@ -449,6 +472,17 @@ class FileSaveForm(FileFormBase):
             else:
                 # TODO try to get extension from path?
                 pass
+
+        if version_is_used:
+            # update version spinner
+            version = fields.get("version", 1)
+            # update the version spinner:
+            use_next_version = self._ui.use_next_available_cb.isChecked()
+            version_to_set = version+1
+            if not use_next_version:
+                spinner_version = self._ui.version_spinner.value()
+                version_to_set = max(version_to_set, spinner_version)
+            self._update_version_spinner(version_to_set, version+1)
 
     def _on_work_area_changed(self, env):
         """
@@ -546,12 +580,112 @@ class FileSaveForm(FileFormBase):
         """
         self._exit_code = QtGui.QDialog.Rejected
         self.close()
-        
+
     def _on_save(self):
         """
         """
-        if not self._current_env or not self._current_path:
+        app = sgtk.platform.current_bundle()
+        if not self._current_env:
             return
-        
-        self._exit_code = QtGui.QDialog.Accepted
-        self.close()
+
+        # generate the path to save to and do any pre-save preparation:
+        path = ""
+        try:
+            # Check to see if we are able to populate all context fields - if we aren't then
+            # this may mean we need to create folders before trying to save!
+            create_folders = False
+            try:
+                self._current_env.context.as_template_fields(self._current_env.work_template, 
+                                                             error_on_missing_fields=True)
+            except TankError:
+                # lets try creating folders for the current env!
+                try:
+                    SaveAsFileAction.create_folders(self._current_env.context)
+                except TankError, e:
+                    app.log_exception("File Save - failed to create folders for context '%s'!" 
+                                       % self._current_env.context)
+                    raise TankError("Failed to create folders for context '%s' - %s" 
+                                    % (self._current_env.context, e))
+
+            # get the name, version and extension from the UI:
+            name = value_to_str(self._ui.name_edit.text())
+            version = self._ui.version_spinner.value()
+            use_next_version = self._ui.use_next_available_cb.isChecked()
+            ext_idx = self._ui.file_type_menu.currentIndex() 
+            ext = self._extension_choices[ext_idx] if ext_idx >= 0 else ""
+
+            # now attempt to generate the path to save to:
+            path_to_save = None
+            version_to_save = None
+            try:
+                # try to generate a path from these details:
+                result = self._generate_path(self._current_env, name, version, 
+                                             use_next_version, ext, require_path=True)
+                path_to_save = result.get("path")
+                if not path_to_save:
+                    raise TankError("Path generation returned an empty path!")
+                version_to_save = result.get("version")
+            except TankError, e:
+                app.log_exception("File Save - failed to generate path to save to!")
+                raise TankError("Failed to generate a path to save to - %s" % e)
+
+            if (version_to_save is not None         # version is used in the path 
+                and version_to_save != version):    # version in the path is different to the one in the UI!
+                # check to see if the version has changed as a result of the 
+                # preview generation - if it has then we should double check
+                # the user still wants to save!
+                #
+                # Note, this should rarely happen - it's more a 'just-in-case'
+                # scenario that can happen if the background loaded data takes
+                # a while to filter through to the UI! 
+                name_is_used = "name" in self._current_env.work_template.keys
+                msg = ""
+                if version_to_save == 1:
+                    if name_is_used and name:
+                        msg = ("We didn't find any existing versions of the file '%s' " % name)
+                    else:
+                        msg = "We didn't find any existing versions of this file "
+                else:
+                    if name_is_used and name:
+                        msg = ("We found a more recent version (v%03d) of the file '%s' "
+                               % (version_to_save-1, name))
+                    else:
+                        msg = ("We found a more recent version (v%03d) of this file "
+                               % (version_to_save-1))
+                msg += ("in the selected work area:\n\n  %s\n\n"
+                        "Would you like to continue saving as v%03d, the next available version?" 
+                        % (self._current_env.context, version_to_save))
+
+                answer = QtGui.QMessageBox.question(self, "Save File as Version v%03d?" % version_to_save,
+                                                    msg, QtGui.QMessageBox.Save | QtGui.QMessageBox.Cancel)
+                if answer == QtGui.QMessageBox.Cancel:
+                    return False
+
+            # finally, make sure that the folder exists - this will handle any leaf folders that aren't
+            # created during folder creation (e.g. a dynamic static folder that isn't part of the schema)
+            dir = os.path.dirname(path_to_save)
+            if dir and not os.path.exists(dir):
+                app.ensure_folder_exists(dir)
+        except TankError, e:
+            # oops, looks like something went wrong!
+            QtGui.QMessageBox.critical(self, "Failed to save file!", "Failed to save file!\n\n%s" % e)
+            return
+        except Exception, e:
+            # also handle generic exception:
+            QtGui.QMessageBox.critical(self, "Failed to save file!", "Failed to save file!\n\n%s" % e)
+            app.log_exception("Failed to save file!")
+            return
+
+        # Build and execute the save action:
+        action = SaveAsFileAction(path_to_save, self._current_env)
+        file_saved = action.execute(self)
+
+        if file_saved:
+            # all good - lets close the dialog
+            self._exit_code = QtGui.QDialog.Accepted
+            self.close()
+
+
+
+
+
