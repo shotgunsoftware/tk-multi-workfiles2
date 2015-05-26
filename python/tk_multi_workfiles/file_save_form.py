@@ -273,7 +273,7 @@ class FileSaveForm(FileFormBase):
         # query the context fields:
         ctx_fields = {}
         try:
-            ctx_fields = env.context.as_template_fields(env.work_template, error_on_missing_fields=True)
+            ctx_fields = env.context.as_template_fields(env.work_template, validate=True)
             fields = dict(chain(fields.iteritems(), ctx_fields.iteritems()))
         except TankError, e:
             app.log_debug("Unable to generate preview path: %s" % e)
@@ -596,7 +596,7 @@ class FileSaveForm(FileFormBase):
             create_folders = False
             try:
                 self._current_env.context.as_template_fields(self._current_env.work_template, 
-                                                             error_on_missing_fields=True)
+                                                             validate=True)
             except TankError:
                 # lets try creating folders for the current env!
                 try:

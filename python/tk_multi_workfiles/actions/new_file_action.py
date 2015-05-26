@@ -57,7 +57,7 @@ class NewFileAction(FileAction):
                 # see if we have all fields for the work area:
                 try:
                     ctx_fields = self.environment.context.as_template_fields(self.environment.work_area_template, 
-                                                                        error_on_missing_fields=True)
+                                                                             validate=True)
                 except TankError:
                     # this is fine and hopefully just means that folders haven't been created yet!
                     create_folders = True
@@ -70,7 +70,7 @@ class NewFileAction(FileAction):
                 # will raise a TankError if something goes wrong.
                 try:
                     self.environment.context.as_template_fields(self.environment.work_area_template, 
-                                                           error_on_missing_fields=True)
+                                                                validate=True)
                 except TankError, e:
                     # log the original exception (useful for tracking down the problem) 
                     self._app.log_exception("Unable to resolve template fields after folder creation!")
