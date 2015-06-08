@@ -16,7 +16,7 @@ from sgtk.platform.qt import QtCore, QtGui
 
 from ..file_model import FileModel
 from .file_group_widget import FileGroupWidget
-from .file_tile import FileTile
+from .file_widget import FileWidget
 from ..util import get_model_data, get_model_str
 from ..framework_qtwidgets import GroupedListViewItemDelegate
 
@@ -36,14 +36,14 @@ class FileListItemDelegate(GroupedListViewItemDelegate):
         if not model_index.isValid():
             return None
         if not self._item_widget:
-            self._item_widget = FileTile(parent)
+            self._item_widget = FileWidget(parent)
         return self._item_widget
 
     def _on_before_paint(self, widget, model_index, style_options):
         """
         """
-        if not isinstance(widget, FileTile):
-            # this class only paints FileTile widgets
+        if not isinstance(widget, FileWidget):
+            # this class only paints FileWidget widgets
             return
         
         label = ""

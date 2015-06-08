@@ -22,7 +22,7 @@ from tank_vendor.shotgun_api3 import sg_timezone
 from sgtk import TankError
 
 from .file_item import FileItem
-from .users import g_user_cache
+from .user_cache import g_user_cache
 
 from .sg_published_files_model import SgPublishedFilesModel
 from .runnable_task import RunnableTask, PassThroughRunnableTask

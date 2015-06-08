@@ -173,6 +173,7 @@ class Ui_FileListForm(object):
         FileListForm.setWindowTitle(QtGui.QApplication.translate("FileListForm", "Form", None, QtGui.QApplication.UnicodeUTF8))
         self.grid_radio_btn.setToolTip(QtGui.QApplication.translate("FileListForm", "List view", None, QtGui.QApplication.UnicodeUTF8))
         self.details_radio_btn.setToolTip(QtGui.QApplication.translate("FileListForm", "Details view", None, QtGui.QApplication.UnicodeUTF8))
+        self.user_filter_btn.setProperty("user_style", QtGui.QApplication.translate("FileListForm", "current", None, QtGui.QApplication.UnicodeUTF8))
         self.all_versions_cb.setText(QtGui.QApplication.translate("FileListForm", "All Versions", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..file_list.file_details_view import FileDetailsView

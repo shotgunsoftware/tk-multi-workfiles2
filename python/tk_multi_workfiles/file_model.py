@@ -15,6 +15,7 @@ from sgtk.platform.qt import QtGui, QtCore
 from sgtk import TankError
 
 from .file_finder import FileFinder
+from .user_cache import g_user_cache
 
 class _SearchCache(object):
     """
@@ -121,6 +122,9 @@ class FileModel(QtGui.QStandardItemModel):
     """
     """
     class SearchDetails(object):
+        """
+        Storage of details needed to search for files.
+        """
         def __init__(self, name=None):
             self.name = name
             self.entity = None
@@ -132,24 +136,21 @@ class FileModel(QtGui.QStandardItemModel):
                     " - Entity: %s\n"
                     " - Is leaf: %s\n%s"
                     % (self.name, self.entity, self.is_leaf, self.child_entities))
-    
-    # signals
-    #search_started = QtCore.Signal(object)
-    #files_found = QtCore.Signal(object)
-    #search_failed = QtCore.Signal(object, object)
-    
-    _BASE_ROLE = QtCore.Qt.UserRole + 32
-    GROUP_NODE_ROLE = _BASE_ROLE + 1
-    FILE_ITEM_ROLE = _BASE_ROLE + 2
-    WORK_AREA_ROLE = _BASE_ROLE + 6
-    SEARCH_STATUS_ROLE = _BASE_ROLE + 3
-    SEARCH_MSG_ROLE = _BASE_ROLE + 4
 
-    NODE_TYPE_ROLE = _BASE_ROLE + 5
+    # enumeration of node types in model:
     (FILE_NODE_TYPE, GROUP_NODE_TYPE, FOLDER_NODE_TYPE) = range(3)
-    
+
+    # enumeration of search status:
     (SEARCHING, SEARCH_COMPLETED, SEARCH_FAILED) = range(3)
-    
+
+    # additional data roles defined for thie model:
+    _BASE_ROLE = QtCore.Qt.UserRole + 32
+    NODE_TYPE_ROLE = _BASE_ROLE     + 1     # type of node in model (e.g. FILE_NODE_TYPE)
+    FILE_ITEM_ROLE = _BASE_ROLE     + 2     # FileItem data
+    WORK_AREA_ROLE = _BASE_ROLE     + 3     # WorkArea data
+    SEARCH_STATUS_ROLE = _BASE_ROLE + 4     # search status data
+    SEARCH_MSG_ROLE = _BASE_ROLE    + 5     # search message data
+
     class _BaseItem(QtGui.QStandardItem):
         """
         """
@@ -290,9 +291,6 @@ class FileModel(QtGui.QStandardItemModel):
                 return self._search_msg
             elif role == FileModel.WORK_AREA_ROLE:
                 return self._work_area
-            elif role == FileModel.GROUP_NODE_ROLE:
-                # always return true!
-                return True
             else:
                 # just return the default implementation:
                 return FileModel._BaseItem.data(self, role)
@@ -309,9 +307,6 @@ class FileModel(QtGui.QStandardItemModel):
             elif role == FileModel.WORK_AREA_ROLE:
                 self._environment = value
                 self.emitDataChanged()
-            elif role == FileModel.GROUP_NODE_ROLE:
-                # can't be set!
-                pass
             else:
                 # call the base implementation:
                 FileModel._BaseItem.setData(self, value, role) 
@@ -321,21 +316,20 @@ class FileModel(QtGui.QStandardItemModel):
     
     def __init__(self, sg_data_retriever, parent=None):
         """
+        Construction
         """
         QtGui.QStandardItemModel.__init__(self, parent)
-        
-        app = sgtk.platform.current_bundle()
-        
+
         # sg data retriever is used to download thumbnails in the background
         self._sg_data_retriever = sg_data_retriever
         if self._sg_data_retriever:
             self._sg_data_retriever.work_completed.connect(self._on_data_retriever_work_completed)
             self._sg_data_retriever.work_failure.connect(self._on_data_retriever_work_failed)
-        
+
         # details about the current entities and users that are represented
         # in this model.
         self._current_searches = []
-        self._current_users = [sgtk.util.get_current_user(app.sgtk)]
+        self._current_users = [g_user_cache.current_user]
         self._entity_work_areas = {}
         self._entity_user_group_map = {}
         self._in_progress_searches = {}
@@ -478,14 +472,11 @@ class FileModel(QtGui.QStandardItemModel):
     def _update_groups(self):
         """
         """
-        app = sgtk.platform.current_bundle()
-
         valid_group_keys = set()
         if self._current_searches and self._current_users:
 
             # get details about the users to run searches for:
-            current_user = sgtk.util.get_current_user(app.sgtk)
-            current_user_key = self._entity_key(current_user)
+            current_user_key = self._entity_key(g_user_cache.current_user)
             have_current_user = False
             for user in self._current_users:
                 if self._entity_key(user) == current_user_key:

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>FileTile</class>
- <widget class="QWidget" name="FileTile">
+ <class>FileWidget</class>
+ <widget class="QWidget" name="FileWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -24,11 +24,23 @@
     <widget class="QFrame" name="background">
      <property name="styleSheet">
       <string notr="true">#background {
-background-color: rgb(135, 166, 185, 50);
 border-style: solid;
 border-width: 2px;
-border-color: rgb(66,174,241);
-border-radius: 3px;
+border-radius: 2px;
+}
+
+#background[selected=false] {
+	background-color: rgb(0,0,0,0);
+	border-color: rgb(0,0,0,0);
+}
+
+#background[selected=true] {
+/*
+	background-color: rgb(135, 166, 185, 50);
+	border-color: rgb(135, 166, 185);
+*/
+	background-color: rgb(0, 178, 236, 30);
+	border-color: rgb(0, 178, 236);
 }</string>
      </property>
      <property name="frameShape">
@@ -39,6 +51,9 @@ border-radius: 3px;
      </property>
      <property name="lineWidth">
       <number>2</number>
+     </property>
+     <property name="selected" stdset="0">
+      <bool>true</bool>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,1">
       <property name="margin">

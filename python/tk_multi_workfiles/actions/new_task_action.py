@@ -17,6 +17,7 @@ from sgtk.platform.qt import QtGui, QtCore
 
 from .action import Action
 from ..new_task_form import NewTaskForm
+from ..user_cache import g_user_cache
 
 class NewTaskAction(Action):
     """
@@ -35,12 +36,10 @@ class NewTaskAction(Action):
         if not self._entity:
             return False
 
-        # get the current user:
-        app = sgtk.platform.current_bundle()
-        current_user = sgtk.util.get_current_user(app.sgtk)
-
         # show new task dialog:
-        res, new_task_form = app.engine.show_modal("Create New Task", app, NewTaskForm, self._entity, self._step, current_user)
+        app = sgtk.platform.current_bundle()
+        res, new_task_form = app.engine.show_modal("Create New Task", app, NewTaskForm, self._entity, self._step, 
+                                                   g_user_cache.current_user)
         if res != QtGui.QDialog.Accepted:
             return False
         

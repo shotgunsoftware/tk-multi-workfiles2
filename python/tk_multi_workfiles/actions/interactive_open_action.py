@@ -17,6 +17,7 @@ from .open_file_action import OpenFileAction
 
 from ..wrapper_dialog import WrapperDialog
 from ..open_options_form import OpenOptionsForm
+from ..user_cache import g_user_cache
 
 class InteractiveOpenAction(OpenFileAction):
 
@@ -197,7 +198,7 @@ class InteractiveOpenAction(OpenFileAction):
         # construct a context for this path to determine if it's in
         # a user sandbox or not:
         if env.context.user:
-            current_user = sgtk.util.get_current_user(self._app.sgtk)
+            current_user = g_user_cache.current_user
             if current_user and current_user["id"] != env.context.user["id"]:
                 
                 # file is in a user sandbox - construct path
@@ -306,7 +307,7 @@ class InteractiveOpenAction(OpenFileAction):
                 sp_ctx = self._app.sgtk.context_from_path(src_path, env.context)
     
                 # if current user is defined, update fields to use this:
-                current_user = sgtk.util.get_current_user(self._app.sgtk)
+                current_user = g_user_cache.current_user
                 if current_user and sp_ctx.user and sp_ctx.user["id"] != current_user["id"]:
                     sp_ctx = sp_ctx.create_copy_for_user(current_user)
                     

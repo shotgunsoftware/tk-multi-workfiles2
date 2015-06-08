@@ -26,11 +26,19 @@ class UserCache(object):
         """
         self._app = sgtk.platform.current_bundle()
         
+        self._current_user = sgtk.util.get_current_user(self._app.sgtk)
         self._cache_lock = threading.Lock()
         self.__user_details_by_login = {}
         self.__user_details_by_id = {}
         
         self.__sg_fields = ["id", "type", "email", "login", "name", "image"]
+
+    @property
+    def current_user(self):
+        """
+        :returns:    The Shotgun dictionary representing the current user
+        """
+        return self._current_user
 
     def get_user_details_for_id(self, user_id):
         """

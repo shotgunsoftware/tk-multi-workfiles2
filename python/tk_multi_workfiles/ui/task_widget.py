@@ -17,14 +17,30 @@ class Ui_TaskWidget(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.background = QtGui.QFrame(TaskWidget)
         self.background.setStyleSheet("#background {\n"
-"background-color: rgb(0, 174, 237);\n"
-"border-bottom-style: solid;\n"
-"border-bottom-width: 1px;\n"
-"border-bottom-color: rgb(64,64,64);\n"
+"    border-bottom-style: solid;\n"
+"    border-bottom-width: 1px;\n"
+"    border-bottom-color: rgb(64,64,64);\n"
+"}\n"
+"\n"
+"#background[selected=false] {\n"
+"    background-color: rgb(0, 0, 0,0);\n"
+"}\n"
+"\n"
+"#background[selected=true] {\n"
+"    background-color: rgb(0, 178, 236);\n"
+"}\n"
+"\n"
+"/*Font colour for all QLabels in form*/\n"
+"QLabel[selected=false]{\n"
+"}\n"
+"\n"
+"#background[selected=true] QLabel {\n"
+"    color: rgb(255,255,255)\n"
 "}")
         self.background.setFrameShape(QtGui.QFrame.NoFrame)
         self.background.setFrameShadow(QtGui.QFrame.Plain)
         self.background.setLineWidth(0)
+        self.background.setProperty("selected", True)
         self.background.setObjectName("background")
         self.horizontalLayout_2 = QtGui.QHBoxLayout(self.background)
         self.horizontalLayout_2.setSpacing(-1)

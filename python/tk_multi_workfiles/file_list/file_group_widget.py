@@ -18,6 +18,7 @@ from ..file_model import FileModel
 from ..ui.file_group_widget import Ui_FileGroupWidget
 from ..util import get_model_data, get_model_str
 from ..framework_qtwidgets import SpinnerWidget, GroupWidgetBase
+from ..user_cache import g_user_cache
 
 class FileGroupWidget(GroupWidgetBase):
     """
@@ -27,9 +28,6 @@ class FileGroupWidget(GroupWidgetBase):
         Construction
         """
         GroupWidgetBase.__init__(self, parent)
-
-        app = sgtk.platform.current_bundle()
-        self._current_user = sgtk.util.get_current_user(app.sgtk)
 
         # set up the UI
         self._ui = Ui_FileGroupWidget()
@@ -72,7 +70,7 @@ class FileGroupWidget(GroupWidgetBase):
         if display_user:
             user_name = "Unknown's"
             if work_area.context and work_area.context.user:
-                if self._current_user and self._current_user["id"] == work_area.context.user["id"]:
+                if g_user_cache.current_user and g_user_cache.current_user["id"] == work_area.context.user["id"]:
                     user_name = "My"
                 else: 
                     user_name = "%s's" % work_area.context.user.get("name", "Unknown")

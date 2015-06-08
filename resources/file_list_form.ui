@@ -200,6 +200,9 @@ height: 24;
        <property name="flat">
         <bool>true</bool>
        </property>
+       <property name="user_style" stdset="0">
+        <string>current</string>
+       </property>
       </widget>
      </item>
      <item>

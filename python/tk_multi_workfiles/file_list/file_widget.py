@@ -11,9 +11,9 @@
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-from ..ui.file_tile import Ui_FileTile
+from ..ui.file_widget import Ui_FileWidget
 
-class FileTile(QtGui.QWidget):
+class FileWidget(QtGui.QWidget):
     """
     """
     
@@ -24,7 +24,7 @@ class FileTile(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         
         # set up the UI
-        self._ui = Ui_FileTile()
+        self._ui = Ui_FileWidget()
         self._ui.setupUi(self)
         
         # create the status icons and add them to a layout over the main thumbnail:
@@ -55,20 +55,8 @@ class FileTile(QtGui.QWidget):
         thumb_layout.addLayout(rhs_layout)
 
         self._ui.thumbnail.setLayout(thumb_layout)
-        
-        self._is_selected = False        
-        self._background_styles = {}
-        self._background_styles["normal"] = {
-            "background-color": "rgb(0, 0, 0, 0)",
-            "border-style": "solid",
-            "border-width": "2px",
-            "border-color": "rgb(0, 0, 0, 0)",
-            "border-radius": "2px"
-        }
-        self._background_styles["selected"] = self._background_styles["normal"].copy()
-        self._background_styles["selected"]["background-color"] = "rgb(135, 166, 185, 50)"#"rgb(0, 174, 237, 50)"
-        self._background_styles["selected"]["border-color"] = "rgb(135, 166, 185)"#"rgb(0, 174, 237)"
 
+        self._is_selected = False
         self._update_ui()
 
     #@property
@@ -102,50 +90,19 @@ class FileTile(QtGui.QWidget):
         self._lock_icon.setVisible(not editable)
         # (AD) - this doesn't actually work as there is no concrete widget to show the tooltip on!
         self._lock_icon.setToolTip(not_editable_reason or "")
-        
+
     def set_thumbnail(self, thumb):
         """
         """
         if not thumb or not isinstance(thumb, QtGui.QPixmap):
             thumb = QtGui.QPixmap(":/tk-multi-workfiles2/thumb_empty.png")
-            
         self._ui.thumbnail.setPixmap(thumb)
-        
-        #geom = self._ui.thumbnail.geometry()
-        #self._set_label_image(self._ui.thumbnail, thumb, geom.width(), geom.height())        
-        
-    def _set_label_image(self, label, image, w, h):
-        """
-        """
-        if not image:
-            # make sure it's cleared
-            label.setPixmap(None)
-            return
-            
-        pm = image
-        if isinstance(pm, QtGui.QIcon):
-            # extract the largest pixmap from the icon:
-            max_sz = max([(sz.width(), sz.height()) for sz in image.availableSizes()] or [(256, 256)])
-            pm = image.pixmap(max_sz[0], max_sz[1])
-            
-        # and scale the pm if needed:
-        scaled_pm = pm
-        if pm.width() > w or pm.height() > h:
-            scaled_pm = pm.scaled(w, h, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
-            
-        label.setPixmap(scaled_pm)        
-        
+
     def _update_ui(self):
         """
         """
-        style = self._build_style_string("background", 
-                                         self._background_styles["selected" if self._is_selected else "normal"])
-        self._ui.background.setStyleSheet(style)
-        
-    def _build_style_string(self, ui_name, style):
-        """
-        """
-        return "#%s {%s}" % (ui_name, ";".join(["%s: %s" % (key, value) for key, value in style.iteritems()]))
-        
-        
-        
+        self._ui.background.setProperty("selected", self._is_selected)
+        self._ui.background.style().unpolish(self._ui.background)
+        self._ui.background.ensurePolished()
+
+

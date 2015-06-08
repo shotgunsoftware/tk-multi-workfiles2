@@ -14,6 +14,7 @@ Menu that presents a list of users representing sandboxes in the file system (if
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
+from ..user_cache import g_user_cache
 
 class UserSandboxMenu(QtGui.QMenu):
     """
@@ -29,11 +30,8 @@ class UserSandboxMenu(QtGui.QMenu):
         """
         """
         QtGui.QMenu.__init__(self, parent)
-        
-        app = sgtk.platform.current_bundle()
-        self._current_user = sgtk.util.get_current_user(app.sgtk)
-        self._current_user_id = self._current_user["id"] if self._current_user else None
 
+        self._current_user_id = g_user_cache.current_user["id"] if g_user_cache.current_user else None
         self._available_users = {}
         self._checked_user_ids = set([self._current_user_id])
 
@@ -234,5 +232,5 @@ class UserSandboxMenu(QtGui.QMenu):
         selected_user_ids = self._checked_user_ids & set(self._available_users.keys())
         users = [self._available_users[id].user for id in selected_user_ids]
         if self._current_user_id in self._checked_user_ids:
-            users = [self._current_user] + users
+            users = [g_user_cache.current_user] + users
         self.users_selected.emit(users)

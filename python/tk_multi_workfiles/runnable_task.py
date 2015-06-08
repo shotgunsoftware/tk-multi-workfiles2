@@ -18,7 +18,7 @@ import sgtk
 from sgtk.platform.qt import QtCore
 from sgtk import TankError
 
-class RunnableTask(QtCore.QRunnable):#, QtCore.QObject):
+class RunnableTask(QtCore.QRunnable):
     """
     """
     class _Signals(QtCore.QObject):
@@ -33,6 +33,8 @@ class RunnableTask(QtCore.QRunnable):#, QtCore.QObject):
             """
             QtCore.QObject.__init__(self, parent)
 
+    # Wrap the signals contained in the internal signals instance as
+    # properties of this class.
     @property
     def completed(self):
         return self._signals.completed
@@ -92,16 +94,19 @@ class RunnableTask(QtCore.QRunnable):#, QtCore.QObject):
     _next_task_id = 0
     def __init__(self, func, upstream_tasks=None, **kwargs):
         """
+        Construction
+
+        :param func:            The function to be run by this task
+        :param upstream_tasks:  Any upstream tasks that should complete before this task can be run
+        :param **kwargs:        Dictionary of named arguments to pass to the function.  This will 
+                                be combined with the result dictionaries of all upstream tasks.
         """
         QtCore.QRunnable.__init__(self)
-        
         self._signals = RunnableTask._Signals()
-        
-        #QtCore.QObject.__init__(self)
-        
+
         self._func = func
         self._input_kwargs = kwargs
-                
+
         self._upstream_tasks = []
         upstream_tasks = upstream_tasks or []
         for task in upstream_tasks:

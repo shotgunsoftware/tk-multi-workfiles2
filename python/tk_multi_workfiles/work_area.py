@@ -15,7 +15,7 @@ import copy
 import sgtk
 from sgtk import TankError
 
-from .users import g_user_cache
+from .user_cache import g_user_cache
 
 class WorkArea(object):
     """

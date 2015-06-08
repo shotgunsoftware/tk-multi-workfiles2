@@ -21,10 +21,25 @@
     <widget class="QFrame" name="background">
      <property name="styleSheet">
       <string notr="true">#background {
-background-color: rgb(0, 174, 237);
-border-bottom-style: solid;
-border-bottom-width: 1px;
-border-bottom-color: rgb(64,64,64);
+	border-bottom-style: solid;
+	border-bottom-width: 1px;
+	border-bottom-color: rgb(64,64,64);
+}
+
+#background[selected=false] {
+	background-color: rgb(0, 0, 0,0);
+}
+
+#background[selected=true] {
+	background-color: rgb(0, 178, 236);
+}
+
+/*Font colour for all QLabels in form*/
+QLabel[selected=false]{
+}
+
+#background[selected=true] QLabel {
+	color: rgb(255,255,255)
 }</string>
      </property>
      <property name="frameShape">
@@ -35,6 +50,9 @@ border-bottom-color: rgb(64,64,64);
      </property>
      <property name="lineWidth">
       <number>0</number>
+     </property>
+     <property name="selected" stdset="0">
+      <bool>true</bool>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,1">
       <property name="spacing">

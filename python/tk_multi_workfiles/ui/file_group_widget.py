@@ -69,9 +69,10 @@ class Ui_FileGroupWidget(object):
         self.user_label = QtGui.QLabel(FileGroupWidget)
         self.user_label.setStyleSheet("#user_label {\n"
 "font-size: 10px;\n"
-"color: rgb(0, 174, 237);\n"
+"color: rgb(0, 178, 236);\n"
 "}")
         self.user_label.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.user_label.setIndent(3)
         self.user_label.setObjectName("user_label")
         self.horizontalLayout.addWidget(self.user_label)
         spacerItem = QtGui.QSpacerItem(0, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)

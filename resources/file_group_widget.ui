@@ -109,7 +109,7 @@ font-size: 14px;
        <property name="styleSheet">
         <string notr="true">#user_label {
 font-size: 10px;
-color: rgb(0, 174, 237);
+color: rgb(0, 178, 236);
 }</string>
        </property>
        <property name="text">
@@ -117,6 +117,9 @@ color: rgb(0, 174, 237);
        </property>
        <property name="alignment">
         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+       </property>
+       <property name="indent">
+        <number>3</number>
        </property>
       </widget>
      </item>

@@ -14,6 +14,8 @@
 import sgtk
 from ..entity_proxy_model import EntityProxyModel
 
+from ..user_cache import g_user_cache
+
 class EntityTreeProxyModel(EntityProxyModel):
     """
     """
@@ -45,9 +47,7 @@ class EntityTreeProxyModel(EntityProxyModel):
                 assignee_ids = [a["id"] for a in assignees if "id" in a]
                 
                 # make sure that the current user is in this lise of assignees:
-                app = sgtk.platform.current_bundle()
-                current_user = sgtk.util.get_current_user(app.sgtk)
-                
+                current_user = g_user_cache.current_user
                 if not current_user or current_user["id"] not in assignee_ids:
                     # task isn't assigned to the current user so this item
                     # is definitely not accepted!

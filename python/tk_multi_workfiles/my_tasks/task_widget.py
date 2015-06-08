@@ -30,33 +30,12 @@ class TaskWidget(QtGui.QWidget):
         self._ui = Ui_TaskWidget()
         self._ui.setupUi(self)
 
-        self._background_styles = {}
-        self._background_styles["normal"] = {
-            "background-color": "rgb(0, 0, 0, 0)",
-            "border-bottom-style": "solid",
-            "border-bottom-width": "1px",
-            "border-bottom-color": "rgb(64,64,64)"
-        }
-        self._background_styles["selected"] = self._background_styles["normal"].copy() 
-        self._background_styles["selected"]["background-color"] = "rgb(0, 174, 237)"
-
-        self._desc_styles = {}
-        self._desc_styles["normal"] = {}
-        self._desc_styles["selected"] = self._desc_styles["normal"].copy()
-        self._desc_styles["selected"]["color"] = "rgb(255, 255, 255)"
-
     def set_selected(self, selected=True):
         """
         """
-        bg_style = self._build_style_string("background", self._background_styles["selected" if selected else "normal"])
-        self._ui.background.setStyleSheet(bg_style)
-        
-        desc_style = self._build_style_string("entity_label", self._desc_styles["selected" if selected else "normal"])
-        self._ui.entity_label.setStyleSheet(desc_style)
-        desc_style = self._build_style_string("task_label", self._desc_styles["selected" if selected else "normal"])
-        self._ui.task_label.setStyleSheet(desc_style)
-        desc_style = self._build_style_string("other_label", self._desc_styles["selected" if selected else "normal"])
-        self._ui.other_label.setStyleSheet(desc_style)
+        self._ui.background.setProperty("selected", selected)
+        self._ui.background.style().unpolish(self._ui.background)
+        self._ui.background.ensurePolished()
         
     def set_thumbnail(self, thumb):
         """
