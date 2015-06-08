@@ -32,14 +32,14 @@ class UserCache(object):
         
         self.__sg_fields = ["id", "type", "email", "login", "name", "image"]
 
-    def get_user_details_for_id(self, id):
+    def get_user_details_for_id(self, user_id):
         """
         Get the user details for the specified user entity id.
-        
-        :param id:  The entity id of the user whose details should be returned
-        :returns:   A Shotgun entity dictionary for the user if found, otherwise {}
+
+        :param user_id: The entity id of the user whose details should be returned
+        :returns:       A Shotgun entity dictionary for the user if found, otherwise {}
         """
-        return self.get_user_details_for_ids([id]).get(id)
+        return self.get_user_details_for_ids([user_id]).get(id)
     
     def get_user_details_for_ids(self, ids):
         """
@@ -61,7 +61,7 @@ class UserCache(object):
             details = self._get_user_for_id(user_id)
             #details = self.__user_details_by_id.get(user_id)
             if details:
-                user_details[id] = details
+                user_details[user_id] = details
             elif details == None:
                 # never looked user up before so add to list to find:
                 users_to_fetch.add(user_id)
@@ -141,15 +141,15 @@ class UserCache(object):
         finally:
             self._cache_lock.release()
             
-    def _cache_user(self, login, id, details):
+    def _cache_user(self, login, user_id, details):
         """
         """
         self._cache_lock.acquire()
         try:
             if login != None:
                 self.__user_details_by_login[login] = details
-            if id != None:
-                self.__user_details_by_id[id] = details
+            if user_id != None:
+                self.__user_details_by_id[user_id] = details
         finally:
             self._cache_lock.release()
 

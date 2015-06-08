@@ -30,7 +30,7 @@
     <number>2</number>
    </property>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,1,0">
+    <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,0,1,0">
      <property name="leftMargin">
       <number>1</number>
      </property>
@@ -146,6 +146,61 @@ height: 24;
         </widget>
        </item>
       </layout>
+     </item>
+     <item>
+      <widget class="QPushButton" name="user_filter_btn">
+       <property name="styleSheet">
+        <string notr="true">#user_filter_btn {
+	width: 40;
+	height: 24;
+	border: 0px, none;
+	border-image: url(:/tk-multi-workfiles2/users_none.png);
+}
+#user_filter_btn::hover, #user_filter_btn::pressed {
+	border-image: url(:/tk-multi-workfiles2/users_none_hover.png);
+}
+
+#user_filter_btn[user_style=&quot;none&quot;] {
+	border-image: url(:/tk-multi-workfiles2/users_none.png);
+}
+#user_filter_btn[user_style=&quot;current&quot;] {
+	border-image: url(:/tk-multi-workfiles2/users_current.png);
+}
+#user_filter_btn[user_style=&quot;other&quot;] {
+	border-image: url(:/tk-multi-workfiles2/users_other.png);
+}
+#user_filter_btn[user_style=&quot;all&quot;] {
+	border-image: url(:/tk-multi-workfiles2/users_all.png);
+}
+
+#user_filter_btn::hover[user_style=&quot;none&quot;], #user_filter_btn::pressed[user_style=&quot;none&quot;] {
+	border-image: url(:/tk-multi-workfiles2/users_none_hover.png);
+}
+#user_filter_btn::hover[user_style=&quot;current&quot;], #user_filter_btn::pressed[user_style=&quot;current&quot;] {
+	border-image: url(:/tk-multi-workfiles2/users_current_hover.png);
+}
+#user_filter_btn::hover[user_style=&quot;other&quot;], #user_filter_btn::pressed[user_style=&quot;other&quot;] {
+	border-image: url(:/tk-multi-workfiles2/users_other_hover.png);
+}
+#user_filter_btn::hover[user_style=&quot;all&quot;], #user_filter_btn::pressed[user_style=&quot;all&quot;] {
+	border-image: url(:/tk-multi-workfiles2/users_all_hover.png);
+}
+
+#user_filter_btn::menu-indicator, #user_filter_btn::menu-indicator::pressed, #user_filter_btn::menu-indicator::open {
+	left: -2px;
+	top: -2px;
+	width: 8px;
+	height: 6px;
+}
+</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="flat">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QCheckBox" name="all_versions_cb">

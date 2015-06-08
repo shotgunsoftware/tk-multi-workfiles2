@@ -25,7 +25,7 @@ from sgtk import TankError
 from .file_form_base import FileFormBase
 from .ui.file_save_form import Ui_FileSaveForm
 from .runnable_task import RunnableTask
-from .environment_details import EnvironmentDetails
+from .work_area import WorkArea
 from .file_item import FileItem
 from .file_finder import FileFinder
 from .util import value_to_str
@@ -128,8 +128,9 @@ class FileSaveForm(FileFormBase):
 
         # initialize the browser:
         self._ui.browser.enable_show_all_versions(False)
+        self._ui.browser.enable_show_user_sandboxes(False)
         self._ui.browser.set_models(self._my_tasks_model, self._entity_models, self._file_model)
-        env = EnvironmentDetails(app.context)
+        env = WorkArea(app.context)
         current_file = self._get_current_file()
         self._ui.browser.select_work_area(app.context)
         self._ui.browser.select_file(current_file, app.context)
@@ -394,7 +395,7 @@ class FileSaveForm(FileFormBase):
         if entity:
             app = sgtk.platform.current_bundle()
             context = app.sgtk.context_from_entity_dictionary(entity)
-            env = EnvironmentDetails(context)
+            env = WorkArea(context)
         self._on_work_area_changed(env)
         self._start_preview_update()
 

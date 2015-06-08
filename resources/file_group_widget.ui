@@ -16,6 +16,12 @@
     <verstretch>0</verstretch>
    </sizepolicy>
   </property>
+  <property name="mouseTracking">
+   <bool>true</bool>
+  </property>
+  <property name="focusPolicy">
+   <enum>Qt::TabFocus</enum>
+  </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
@@ -30,7 +36,7 @@
     <number>0</number>
    </property>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,0">
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,1,0">
      <property name="rightMargin">
       <number>6</number>
      </property>
@@ -70,7 +76,7 @@ font: 14px;
 }*/</string>
        </property>
        <property name="text">
-        <string>Layout - Planning</string>
+        <string/>
        </property>
        <property name="iconSize">
         <size>
@@ -79,6 +85,53 @@ font: 14px;
         </size>
        </property>
       </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="title_label">
+       <property name="styleSheet">
+        <string notr="true">#title_label {
+font-size: 14px;
+}</string>
+       </property>
+       <property name="text">
+        <string>Title</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+       </property>
+       <property name="margin">
+        <number>0</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="user_label">
+       <property name="styleSheet">
+        <string notr="true">#user_label {
+font-size: 10px;
+color: rgb(0, 174, 237);
+}</string>
+       </property>
+       <property name="text">
+        <string>(User)</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>0</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
      </item>
      <item>
       <widget class="QLabel" name="spinner">

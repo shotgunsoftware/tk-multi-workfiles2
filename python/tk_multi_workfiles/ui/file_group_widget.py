@@ -17,6 +17,8 @@ class Ui_FileGroupWidget(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(FileGroupWidget.sizePolicy().hasHeightForWidth())
         FileGroupWidget.setSizePolicy(sizePolicy)
+        FileGroupWidget.setMouseTracking(True)
+        FileGroupWidget.setFocusPolicy(QtCore.Qt.TabFocus)
         self.verticalLayout = QtGui.QVBoxLayout(FileGroupWidget)
         self.verticalLayout.setSpacing(2)
         self.verticalLayout.setSizeConstraint(QtGui.QLayout.SetMinimumSize)
@@ -52,9 +54,28 @@ class Ui_FileGroupWidget(object):
 "/*#grid_radio_btn::indicator::checked::hover {\n"
 "    image: url(:/tk-multi-workfiles2/grid_view_checked_hover.png);\n"
 "}*/")
+        self.expand_check_box.setText("")
         self.expand_check_box.setIconSize(QtCore.QSize(16, 16))
         self.expand_check_box.setObjectName("expand_check_box")
         self.horizontalLayout.addWidget(self.expand_check_box)
+        self.title_label = QtGui.QLabel(FileGroupWidget)
+        self.title_label.setStyleSheet("#title_label {\n"
+"font-size: 14px;\n"
+"}")
+        self.title_label.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.title_label.setMargin(0)
+        self.title_label.setObjectName("title_label")
+        self.horizontalLayout.addWidget(self.title_label)
+        self.user_label = QtGui.QLabel(FileGroupWidget)
+        self.user_label.setStyleSheet("#user_label {\n"
+"font-size: 10px;\n"
+"color: rgb(0, 174, 237);\n"
+"}")
+        self.user_label.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.user_label.setObjectName("user_label")
+        self.horizontalLayout.addWidget(self.user_label)
+        spacerItem = QtGui.QSpacerItem(0, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.horizontalLayout.addItem(spacerItem)
         self.spinner = QtGui.QLabel(FileGroupWidget)
         self.spinner.setMinimumSize(QtCore.QSize(20, 20))
         self.spinner.setMaximumSize(QtCore.QSize(20, 20))
@@ -62,7 +83,7 @@ class Ui_FileGroupWidget(object):
         self.spinner.setText("")
         self.spinner.setObjectName("spinner")
         self.horizontalLayout.addWidget(self.spinner)
-        self.horizontalLayout.setStretch(0, 1)
+        self.horizontalLayout.setStretch(3, 1)
         self.verticalLayout.addLayout(self.horizontalLayout)
         self.verticalLayout_2 = QtGui.QVBoxLayout()
         self.verticalLayout_2.setSpacing(0)
@@ -97,7 +118,8 @@ class Ui_FileGroupWidget(object):
 
     def retranslateUi(self, FileGroupWidget):
         FileGroupWidget.setWindowTitle(QtGui.QApplication.translate("FileGroupWidget", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.expand_check_box.setText(QtGui.QApplication.translate("FileGroupWidget", "Layout - Planning", None, QtGui.QApplication.UnicodeUTF8))
+        self.title_label.setText(QtGui.QApplication.translate("FileGroupWidget", "Title", None, QtGui.QApplication.UnicodeUTF8))
+        self.user_label.setText(QtGui.QApplication.translate("FileGroupWidget", "(User)", None, QtGui.QApplication.UnicodeUTF8))
         self.msg_label.setText(QtGui.QApplication.translate("FileGroupWidget", "Searching for files...", None, QtGui.QApplication.UnicodeUTF8))
 
 from . import resources_rc

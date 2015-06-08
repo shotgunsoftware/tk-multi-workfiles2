@@ -32,7 +32,7 @@ from .show_in_shotgun_action import ShowPublishInShotgunAction, ShowLatestPublis
 
 from .custom_file_action import CustomFileAction
 
-from ..environment_details import EnvironmentDetails
+from ..work_area import WorkArea
 
 class FileActionFactory(object):
     """
@@ -71,7 +71,7 @@ class FileActionFactory(object):
             if change_work_area:
                 # make sure we can actually copy the file to the current work area:
                 if app.context:
-                    current_env = EnvironmentDetails(app.context)
+                    current_env = WorkArea(app.context)
                     if current_env.work_template:
                         actions.append(CopyAndOpenFileInCurrentWorkAreaAction(file, file_versions, environment))
                 

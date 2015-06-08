@@ -133,7 +133,7 @@ class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
         """
         # get info about the current work area:
         app = sgtk.platform.current_bundle()
-        dst_env = EnvironmentDetails(app.context)
+        dst_env = WorkArea(app.context)
         if not dst_env.work_template:
             # should never happen!
             app.log_error("Unable to copy the file '%s' to the current work area as no valid "

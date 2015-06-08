@@ -25,8 +25,8 @@ from .file_item import FileItem
 from .users import g_user_cache
 
 from .sg_published_files_model import SgPublishedFilesModel
-from .runnable_task import RunnableTask
-from .environment_details import EnvironmentDetails
+from .runnable_task import RunnableTask, PassThroughRunnableTask
+from .work_area import WorkArea
 
 class FileFinder(QtCore.QObject):
     """
@@ -122,10 +122,14 @@ class FileFinder(QtCore.QObject):
                         name = name.replace(dummy_version_str, new_version_str)
             
             return name    
+
+    work_area_found = QtCore.Signal(object, object) # search_id, WorkArea
+    files_found = QtCore.Signal(object, object, object) # search_id, file list, WorkArea
+    publishes_found = QtCore.Signal(object, object, object) # search_id, file list, WorkArea
     
     search_failed = QtCore.Signal(object, object) # search_id, message
-    files_found = QtCore.Signal(object, object, object) # search_id, file list, EnvironmentDetails
-    
+    search_completed = QtCore.Signal(object) # search_id
+
     def __init__(self, parent=None):
         """
         Construction
@@ -134,119 +138,303 @@ class FileFinder(QtCore.QObject):
         self.__app = sgtk.platform.current_bundle()
         self._searches = {}
         self._task_id_map = {}
+        
+        self._next_search_id = 0
+        
+        self._search_start_times = {}
      
-    def begin_search(self, entity, force=False):
+    def _get_next_search_id(self):
         """
-        [publishes from Shotgun] ->  
-                [find_templates] -> [build publishes list] ->
-                                 -> [find work files]      -> [aggregate files]        
+        """
+        search_id = self._next_search_id
+        self._next_search_id += 1
+        return search_id
+        
+    def begin_search(self, entity, users = None):
+        """
+        :param entity:  The entity to search for files for
+        :param users:   A list of user sandboxes to search for files for.  If 'None' then only files for the current
+                        users sandbox will be searched for.
         """
         app = sgtk.platform.current_bundle()
+
+        # get search id for this search
+        search_id = self._get_next_search_id()
+        search_tasks = {}
         
+        #self._search_start_times[search_id] = time.time()
+        #RunnableTask.debug_logging = True
+        #RunnableTask.reset_debug_log()
+        
+        users = users or []
+
         # name map to ensure unique names for all files with the same key!
         name_map = FileFinder._FileNameMap()
-        
-        # build task chain for search:
-        construct_environment_task = RunnableTask(self._task_construct_environment, 
-                                                  entity=entity)
-        
-        # tasks needed to find and filter publishes:
-        find_publishes_task = RunnableTask(self._task_find_publishes,
-                                           upstream_tasks = [construct_environment_task], 
-                                           force = force)
-        filter_publishes_task = RunnableTask(self._task_filter_publishes, 
-                                             upstream_tasks = [construct_environment_task, find_publishes_task])
-        build_publish_items_task = RunnableTask(self._task_build_publish_items, 
-                                             upstream_tasks = [construct_environment_task, filter_publishes_task],
-                                             name_map = name_map)
 
-        # tasks required to find and filter work files:
-        find_work_files_task = RunnableTask(self._task_find_work_files, 
-                                            upstream_tasks = [construct_environment_task])
-        filter_work_files_task = RunnableTask(self._task_filter_work_files,
-                                              upstream_tasks = [construct_environment_task, find_work_files_task])
-        build_work_items_task = RunnableTask(self._task_build_work_items, 
-                                             upstream_tasks = [construct_environment_task, filter_work_files_task],
-                                             name_map = name_map)        
-        
-        # final aggregate task to ensure that all files are aggregated correctly:
-        aggregate_files_task = RunnableTask(self._task_aggregate_files,
-                                    upstream_tasks = [construct_environment_task, build_work_items_task, build_publish_items_task])
-        
-        self._task_id_map[build_publish_items_task.id] = aggregate_files_task.id
-        self._task_id_map[build_work_items_task.id] = aggregate_files_task.id 
-        
-        # we care about when the search finds either work files or publishes (or both):
-        # ...
-        #build_work_items_task.completed.connect(self._on_search_files_found)
-        #build_publish_items_task.completed.connect(self._on_search_files_found)
-        
-        # we only care about when the final task completes or fails:
-        aggregate_files_task.completed.connect(self._on_search_completed)
-        aggregate_files_task.failed.connect(self._on_search_failed)
-        
-        # keep track of the search:
-        self._searches[aggregate_files_task.id] = aggregate_files_task
-        
-        #print "----------------------------------------------"
-        #print "----------------------------------------------"
-        #print "Beginning search [%s] for ctx entity '%s' with filters: %s" % (aggregate_files_task.id, context_entity, publish_filters)
-        
-        # start the first tasks:
-        aggregate_files_task.start()
+        # ------------------------------------------------------------------------------------------------
+        # Build the task tree needed to find publishes and work files for this entity for all specified
+        # users.  Each task can runs in a thread and tasks won't start until all upstream tasks that they 
+        # depend on are complete.
+        # ------------------------------------------------------------------------------------------------
+        #
+        #                                              +-------------------+
+        #                                              |Construct Work Area|
+        #                                              +---------+---------+
+        #                                                        |
+        #                           +----------------------------+----------------------------+
+        #                (Per user) |                            |                            |
+        #                +----------v------------+     +---------v-----------+     +----------v----------+
+        #                |Generate User Work Area|     |Find Cached Publishes|     |Resolve Sandbox Users|
+        #                +---|--------+------+---+     +---+-------------+---+     +----------+----------+
+        #                    |        |      |             |             |                    |
+        #  +-----------------|-----+  |  +---|-------------|-----+       |                    v
+        #  |  (Per user)     |     |  |  |   | (Per user)  |     |       |            (emit found users)
+        #  |  +--------------v--+  |  |  | +-v-------------v---+ |       |
+        #  |  |Find Work Files  |  |  |  | | Filter Publishes  | |   +---v---------------------+
+        #  |  +-------+---------+  |  |  | +--------+----------+ |   |Find Non-Cached Publishes|
+        #  |          |            |  |  |          |            |   +-------------+-----------+
+        #  |  +-------v---------+  |  |  | +--------v----------+ |                 |
+        #  |  |Filter Work Files|  |  |  | |Build Publish Items| |    +------------|----------+
+        #  |  +-------+---------+  |  |  | +--------+----------+ |    | (Per user) |          |
+        #  |          |            |  |  |          |            |    | +----------v--------+ |
+        #  |  +-------v---------+  |  |  |          v            | +----> Filter Publishes  | |
+        #  |  |Build Work Items |  |  |  | (emit found publishes)| |  | +--------+----------+ |
+        #  |  +-------+---------+  |  |  +-----------------------+ |  |          |            |
+        #  |          |            |  |                            |  | +--------v----------+ |
+        #  |          v            |  +----------------------------+  | |Build Publish Items| |
+        #  |(emit found work files)|                                  | +--------+----------+ |
+        #  +-----------------------+                                  |          |            |
+        #                                                             |          v            |
+        #                                                             | (emit found publishes)|
+        #                                                             +-----------------------+
+        #
+        # ------------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------------
+        # (AD) - currently, this isn't the most efficient use of the available threads as for a single 
+        # user searching for files for a single entity, at most 3 threads will ever be used at one time.  
+        # Instead, having a finer grained job queue where each file returned from the 'find' tasks are 
+        # processed as a separate job might make better use of the available threads.  Maybe process in 
+        # buckets to avoid massive synchronization overhead...  Something to do later!
 
-        return aggregate_files_task.id
+        # 1. Construct a work area for the entity.  The work area contains the context as well as
+        # all settings, etc. specific to the work area.
+        construct_work_area_task = RunnableTask(self._task_construct_work_area, 
+                                                entity=entity)
+
+        # 2a. Resolve sandbox users for the work area (if there are any)
+        resolve_work_area_users_task = RunnableTask(self._task_resolve_sandbox_users,
+                                                    upstream_tasks = [construct_work_area_task])
+        # keep track of this task so that we can emit the found users:
+        resolve_work_area_users_task.completed.connect(self._on_found_sandbox_users)
+        search_tasks[resolve_work_area_users_task.id] = resolve_work_area_users_task
+
+        # only need to do the rest of the work if there are any users to find files for!
+        if users:
+            # 2b. Find cached publishes
+            find_cached_publishes_task = RunnableTask(self._task_find_publishes,
+                                                      upstream_tasks = [construct_work_area_task], 
+                                                      force = False)
+    
+            # 2c.
+            generate_work_area_tasks = {} 
+            for user in users:
+                user_id = user["id"] if user else None
+                if user_id in generate_work_area_tasks:
+                    continue
+                
+                # copy the work area for the user:
+                generate_work_area_tasks[user_id] = RunnableTask(self._task_generate_user_work_area,
+                                                                    upstream_tasks = [construct_work_area_task],
+                                                                    user = user)
+    
+            # 3a. For each user, process cached publishes:
+            for user in users:
+                user_id = user["id"] if user else None
+                if user_id not in generate_work_area_tasks:
+                    continue
+    
+                # filter publishes:
+                filter_publishes_task = RunnableTask(self._task_filter_publishes,
+                                                     upstream_tasks = [generate_work_area_tasks[user_id], 
+                                                                       find_cached_publishes_task])
+                # build publish items:
+                build_publish_items_task = RunnableTask(self._task_build_publish_items, 
+                                                        upstream_tasks = [generate_work_area_tasks[user_id], 
+                                                                          filter_publishes_task],
+                                                        name_map = name_map)
+                # and track when this is done so we can emit found publishes:
+                build_publish_items_task.completed.connect(self._on_found_publishes)
+                search_tasks[build_publish_items_task.id] = build_publish_items_task
+    
+            # 3b. Find non-cached publishes
+            find_non_cached_publishes_task = RunnableTask(self._task_find_publishes,
+                                                          upstream_tasks = [construct_work_area_task, 
+                                                                            find_cached_publishes_task], 
+                                                          force = True)
+    
+            # 4. For each user, process non-cached publishes:
+            for user in users:
+                user_id = user["id"] if user else None
+                if user_id not in generate_work_area_tasks:
+                    continue
+                
+                # filter publishes:
+                filter_publishes_task = RunnableTask(self._task_filter_publishes,
+                                                     upstream_tasks = [generate_work_area_tasks[user_id], 
+                                                                       find_non_cached_publishes_task])
+                # build publish items:
+                build_publish_items_task = RunnableTask(self._task_build_publish_items, 
+                                                        upstream_tasks = [generate_work_area_tasks[user_id], 
+                                                                          filter_publishes_task],
+                                                        name_map = name_map)
+    
+                # and track when this is done so we can emit found publishes:
+                build_publish_items_task.completed.connect(self._on_found_publishes)
+                search_tasks[build_publish_items_task.id] = build_publish_items_task
+    
+            # 2d. For each user, find and process work files:
+            for user in users:
+                user_id = user["id"] if user else None
+                if user_id not in generate_work_area_tasks:
+                    continue
+                
+                # find work files:
+                find_work_files_task = RunnableTask(self._task_find_work_files, 
+                                                    upstream_tasks = [generate_work_area_tasks[user_id]],
+                                                    user = user)
+    
+                # filter work files:
+                filter_work_files_task = RunnableTask(self._task_filter_work_files,
+                                                      upstream_tasks = [generate_work_area_tasks[user_id], 
+                                                                        find_work_files_task])
+    
+                # build work items:
+                build_work_items_task = RunnableTask(self._task_build_work_items, 
+                                                     upstream_tasks = [generate_work_area_tasks[user_id], 
+                                                                       filter_work_files_task],
+                                                     name_map = name_map)
+    
+                # and track when this is done so we can emit found work files:
+                build_work_items_task.completed.connect(self._on_found_work_files)
+                search_tasks[build_work_items_task.id] = build_work_items_task
+
+        # add one final task to track the completion of the entire search:
+        completion_task = PassThroughRunnableTask(search_tasks.values())
+        completion_task.completed.connect(self._on_search_completed)
+        completion_task.failed.connect(self._on_search_failed)
+        search_tasks[completion_task.id] = completion_task
+        self._searches[search_id] = search_tasks
+
+        # and start the task:
+        completion_task.start()
+
+        # and return the search id:
+        return search_id
 
     def stop_search(self, search_id):
         """
         """
-        search_task = self._searches.get(search_id)
-        if search_task:
-            #search_task.completed.disconnect(self._on_search_completed)
-            #search_task.failed.disconnect(self._on_search_failed)
-            search_task.stop()
+        search_tasks = self._searches.get(search_id)
+        if search_tasks:
+            for task in search_tasks.values():
+                task.stop()
             del (self._searches[search_id])
     
     def stop_all_searches(self):
         """
         """
-        for id in self._searches.keys():
-            self.stop_search(id)
-    
+        for search_tasks in self._searches.values():
+            for task in search_tasks.values():
+                task.stop()
+        self._searches = {}
+
+    def _stop_search_task(self, task_id):
+        """
+        :returns: the search id the task was running for
+        """
+        for search_id, search_tasks in self._searches.iteritems():
+            if task_id not in search_tasks:
+                continue
+
+            task = search_tasks[task_id]
+            # stop the task and remove it from the list:
+            task.stop()
+            del (search_tasks[task_id])
+
+            # if no more tasks for this search then remove the entire search from the list:
+            if not search_tasks:
+                del (self._searches[search_id])
+
+            # stop searching as each task will only be in the list once
+            # - return the search id
+            return search_id
+
     def _on_search_failed(self, task, msg, stack_trace):
         """
         """
         # clean up search intermediate data:
-        self.stop_search(task.id)
-        
+        search_id = self._stop_search_task(task.id)
+        if search_id is None:
+            return
+
         # emit signal:
-        self.search_failed.emit(task.id, "%s, %s" % (msg, stack_trace))
+        self.search_failed.emit(search_id, "%s, %s" % (msg, stack_trace))
         
     def _on_search_completed(self, task, result):
         """
         """
         # clean up search intermediate data:
-        self.stop_search(task.id)
-        
-        # emit signal:
-        self.files_found.emit(task.id, result.get("files", []), result.get("environment"))
-        
-    def _on_search_files_found(self, task, result):
-        """
-        """
-        search_id = self._task_id_map.get(task.id)
-        if search_id == None:
+        search_id = self._stop_search_task(task.id)
+        if search_id is None:
             return
+
+        # DEBUG TO BE REMOVED!
+        #search_time_taken = time.time() - self._search_start_times[search_id]
+        #debug_log, debug_time_taken = RunnableTask.reset_debug_log()
+        #print "DEBUG LOG (time taken: %0.2fs [%0.2fs of work])" % (search_time_taken, debug_time_taken)
+        #from pprint import pprint
+        #pprint( debug_log)
+
+        # emit search completed signal:
+        self.search_completed.emit(search_id)
         
-        # emit signal:
-        file_items = result.get("work_items") or result.get("publish_items", {})
+    def _on_found_sandbox_users(self, task, result):
+        """
+        """
+        search_id = self._stop_search_task(task.id)
+        if search_id is None:
+            return
+
+        work_area = result.get("environment")
+
+        # emit the work_area_found signal with the work area:
+        self.work_area_found.emit(search_id, work_area)
+
+    def _on_found_publishes(self, task, result):
+        """
+        """
+        search_id = self._stop_search_task(task.id)
+        if search_id is None:
+            return
+        files = result.get("publish_items", {}).values()
+        work_area = result.get("environment")
+        self.publishes_found.emit(search_id, files, work_area)
         
-        self.files_found.emit(search_id, file_items.values(), result.get("environment"))
-        
+    def _on_found_work_files(self, task, result):
+        """
+        """
+        search_id = self._stop_search_task(task.id)
+        if search_id is None:
+            return
+        files = result.get("work_items", {}).values()
+        work_area = result.get("environment")
+
+        self.files_found.emit(search_id, files, work_area)
+
     ################################################################################################
     ################################################################################################
     
-    def _task_construct_environment(self, entity, **kwargs):
+    def _task_construct_work_area(self, entity, **kwargs):
         """
         """
         app = sgtk.platform.current_bundle()
@@ -255,10 +443,27 @@ class FileFinder(QtCore.QObject):
             # build a context from the search details:
             context = app.sgtk.context_from_entity_dictionary(entity)
 
-            # build the environment details instance for this context:
-            env_details = EnvironmentDetails(context)
+            # build the work area for this context:
+            work_area = WorkArea(context)
 
-        return {"environment":env_details}
+        return {"environment":work_area}
+
+    def _task_generate_user_work_area(self, environment, user, **kwargs):
+        """
+        """
+        user_work_area = environment
+        if environment and environment.context and user:
+            if not environment.context.user or environment.context.user["id"] != user["id"]:
+                user_work_area = environment.create_copy_for_user(user)
+        return {"environment":user_work_area}
+
+    def _task_resolve_sandbox_users(self, environment, **kwargs):
+        """
+        """
+        sandbox_users = []
+        if environment:
+            environment.resolve_user_sandboxes()
+        return {"environment":environment}
     
     def _task_find_publishes(self, environment, force, **kwargs):
         """
@@ -281,7 +486,7 @@ class FileFinder(QtCore.QObject):
         """
         """
         filtered_publishes = []
-        if sg_publishes and environment and environment.publish_template:
+        if sg_publishes and environment and environment.publish_template and environment.context:
             filtered_publishes = self._filter_publishes(sg_publishes, 
                                                         environment.publish_template, 
                                                         environment.valid_file_extensions)
@@ -290,7 +495,7 @@ class FileFinder(QtCore.QObject):
     def _task_build_publish_items(self, sg_publishes, environment, name_map, **kwargs):
         """
         """
-        publish_items = []
+        publish_items = {}
         if (sg_publishes and environment and environment.publish_template 
             and environment.work_template and environment.context and name_map):
             publish_items = self._build_publish_files(sg_publishes, 
@@ -321,7 +526,7 @@ class FileFinder(QtCore.QObject):
     def _task_build_work_items(self, work_files, environment, name_map, **kwargs):
         """
         """
-        work_items = []
+        work_items = {}
         if (work_files and environment and environment.work_template 
             and environment.context and name_map):
             work_items = self._build_work_files(work_files, 

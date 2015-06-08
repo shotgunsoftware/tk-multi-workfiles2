@@ -325,7 +325,6 @@ class FileItem(QtCore.QObject):
             return 1
         else:
             return 0
-
     
     def compare_with_publish(self, published_file):
         """

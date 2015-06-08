@@ -1,6 +1,14 @@
 <RCC>
   <qresource prefix="tk-multi-workfiles2">
     <file>save_collapse_pressed.png</file>
+    <file>users_current_hover.png</file>
+    <file>users_none_hover.png</file>
+    <file>users_other_hover.png</file>
+    <file>users_all_hover.png</file>
+    <file>users_all.png</file>
+    <file>users_other.png</file>
+    <file>users_none.png</file>
+    <file>users_current.png</file>
     <file>save_collapse_hover.png</file>
     <file>save_collapse.png</file>
     <file>save_expand_pressed.png</file>

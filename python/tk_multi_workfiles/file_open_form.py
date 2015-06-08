@@ -24,7 +24,7 @@ from .actions.new_file_action import NewFileAction
 from .file_form_base import FileFormBase
 from .ui.file_open_form import Ui_FileOpenForm
 
-from .environment_details import EnvironmentDetails
+from .work_area import WorkArea
 from .framework_qtwidgets import Breadcrumb
 
 class FileOpenForm(FileFormBase):
@@ -115,7 +115,7 @@ class FileOpenForm(FileFormBase):
             # Keep an eye on it and consider threading if it's noticeably slow!
             app = sgtk.platform.current_bundle()
             context = app.sgtk.context_from_entity_dictionary(entity)
-            env_details = EnvironmentDetails(context)
+            env_details = WorkArea(context)
 
         self._update_new_file_btn(env_details)
 
@@ -303,7 +303,11 @@ class FileOpenForm(FileFormBase):
         # if this is successful then close the form:
         if close_dialog:
             self._exit_code = QtGui.QDialog.Accepted
-            self.close() 
+            self.close()
+        else:
+            # refresh all models in case something changed as a result of
+            # the action (especially important with custom actions):
+            self._refresh_all_async()
 
 
 

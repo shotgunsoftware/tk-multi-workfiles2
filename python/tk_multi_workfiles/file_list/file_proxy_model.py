@@ -64,7 +64,7 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
             if not self._show_all_versions:
                 src_model = self.sourceModel()
                 # need to check if this is the latest version of the file:
-                env = get_model_data(item, FileModel.ENVIRONMENT_ROLE)
+                env = get_model_data(item, FileModel.WORK_AREA_ROLE)
                 all_versions = src_model.get_file_versions(file_item.key, env) or {}
 
                 visible_versions = [v for v, file in all_versions.iteritems() 
@@ -132,9 +132,9 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
         if left_item.key != right_item.key:
             # items represent different files but we want to group all file versions together. 
             # Therefore, we find the maximum version for each file and compare those instead.
-            left_env = get_model_data(left_src_idx, FileModel.ENVIRONMENT_ROLE)
+            left_env = get_model_data(left_src_idx, FileModel.WORK_AREA_ROLE)
             left_versions = self.sourceModel().get_file_versions(left_item.key, left_env)
-            right_env = get_model_data(right_src_idx, FileModel.ENVIRONMENT_ROLE)            
+            right_env = get_model_data(right_src_idx, FileModel.WORK_AREA_ROLE)            
             right_versions = self.sourceModel().get_file_versions(right_item.key, right_env)
             
             if left_versions and right_versions:
@@ -142,8 +142,16 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
                 max_right_version = right_versions[max(right_versions.keys())]
                 return max_left_version.compare(max_right_version) < 0
 
-        # just compare the two files!
-        return left_item.compare(right_item) < 0
+        # compare the two files!
+        compare_res = left_item.compare(right_item)
+        if compare_res != 0:
+            return compare_res < 0
+
+        # exactly the same modified dates so compare names:
+        # - Note, files are sorted in reverse-date order (newest first) but we want files
+        # with exactly the same modified date & time (an edge case) to be in alphabetical
+        # order.  Because of this we reverse this comparison.
+        return not (left_item.name < right_item.name)
 
 
 

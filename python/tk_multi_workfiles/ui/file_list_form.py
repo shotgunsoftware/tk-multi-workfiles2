@@ -79,6 +79,54 @@ class Ui_FileListForm(object):
         self.details_radio_btn.setObjectName("details_radio_btn")
         self.horizontalLayout.addWidget(self.details_radio_btn)
         self.horizontalLayout_3.addLayout(self.horizontalLayout)
+        self.user_filter_btn = QtGui.QPushButton(FileListForm)
+        self.user_filter_btn.setStyleSheet("#user_filter_btn {\n"
+"    width: 40;\n"
+"    height: 24;\n"
+"    border: 0px, none;\n"
+"    border-image: url(:/tk-multi-workfiles2/users_none.png);\n"
+"}\n"
+"#user_filter_btn::hover, #user_filter_btn::pressed {\n"
+"    border-image: url(:/tk-multi-workfiles2/users_none_hover.png);\n"
+"}\n"
+"\n"
+"#user_filter_btn[user_style=\"none\"] {\n"
+"    border-image: url(:/tk-multi-workfiles2/users_none.png);\n"
+"}\n"
+"#user_filter_btn[user_style=\"current\"] {\n"
+"    border-image: url(:/tk-multi-workfiles2/users_current.png);\n"
+"}\n"
+"#user_filter_btn[user_style=\"other\"] {\n"
+"    border-image: url(:/tk-multi-workfiles2/users_other.png);\n"
+"}\n"
+"#user_filter_btn[user_style=\"all\"] {\n"
+"    border-image: url(:/tk-multi-workfiles2/users_all.png);\n"
+"}\n"
+"\n"
+"#user_filter_btn::hover[user_style=\"none\"], #user_filter_btn::pressed[user_style=\"none\"] {\n"
+"    border-image: url(:/tk-multi-workfiles2/users_none_hover.png);\n"
+"}\n"
+"#user_filter_btn::hover[user_style=\"current\"], #user_filter_btn::pressed[user_style=\"current\"] {\n"
+"    border-image: url(:/tk-multi-workfiles2/users_current_hover.png);\n"
+"}\n"
+"#user_filter_btn::hover[user_style=\"other\"], #user_filter_btn::pressed[user_style=\"other\"] {\n"
+"    border-image: url(:/tk-multi-workfiles2/users_other_hover.png);\n"
+"}\n"
+"#user_filter_btn::hover[user_style=\"all\"], #user_filter_btn::pressed[user_style=\"all\"] {\n"
+"    border-image: url(:/tk-multi-workfiles2/users_all_hover.png);\n"
+"}\n"
+"\n"
+"#user_filter_btn::menu-indicator, #user_filter_btn::menu-indicator::pressed, #user_filter_btn::menu-indicator::open {\n"
+"    left: -2px;\n"
+"    top: -2px;\n"
+"    width: 8px;\n"
+"    height: 6px;\n"
+"}\n"
+"")
+        self.user_filter_btn.setText("")
+        self.user_filter_btn.setFlat(True)
+        self.user_filter_btn.setObjectName("user_filter_btn")
+        self.horizontalLayout_3.addWidget(self.user_filter_btn)
         self.all_versions_cb = QtGui.QCheckBox(FileListForm)
         self.all_versions_cb.setObjectName("all_versions_cb")
         self.horizontalLayout_3.addWidget(self.all_versions_cb)
@@ -91,7 +139,7 @@ class Ui_FileListForm(object):
 "}")
         self.search_ctrl.setObjectName("search_ctrl")
         self.horizontalLayout_3.addWidget(self.search_ctrl)
-        self.horizontalLayout_3.setStretch(2, 1)
+        self.horizontalLayout_3.setStretch(3, 1)
         self.verticalLayout.addLayout(self.horizontalLayout_3)
         self.view_pages = QtGui.QStackedWidget(FileListForm)
         self.view_pages.setObjectName("view_pages")

@@ -43,6 +43,52 @@ class RunnableTask(QtCore.QRunnable):#, QtCore.QObject):
     def skipped(self):
         return self._signals.skipped
 
+    debug_logging = False
+    debug_delay = 0.0
+    _debug_log_mutex = QtCore.QMutex()
+    _debug_log = []
+    _debug_time_mutex = QtCore.QMutex()
+    _debug_st_time = time.time()
+    _debug_time_taken = 0.0
+    
+    @classmethod
+    def log_time_taken(cls, t):
+        """
+        """
+        cls._debug_time_mutex.lock()
+        try:
+            cls._debug_time_taken += t
+        finally:
+            cls._debug_time_mutex.unlock()
+    
+    @classmethod
+    def log_debug(cls, msg):
+        """
+        """
+        if not cls.debug_logging:
+            return
+        
+        cls._debug_log_mutex.lock()
+        try:
+            cls._debug_log.append("%.2f - %s" % ((time.time() - cls._debug_st_time), msg))
+        finally:
+            cls._debug_log_mutex.unlock()
+            
+    @classmethod
+    def reset_debug_log(cls):
+        """
+        """
+        cls._debug_log_mutex.lock()
+        try:
+            lines = cls._debug_log
+            time_taken = cls._debug_time_taken
+            cls._debug_log = []
+            cls._debug_st_time = time.time()
+            cls._debug_time_taken = 0.0
+            return lines, time_taken
+        finally:
+            cls._debug_log_mutex.unlock()
+
     _next_task_id = 0
     def __init__(self, func, upstream_tasks=None, **kwargs):
         """
@@ -62,7 +108,7 @@ class RunnableTask(QtCore.QRunnable):#, QtCore.QObject):
             self.add_upstream_task(task)
                 
         task_id = RunnableTask._next_task_id
-        RunnableTask._next_task_id = RunnableTask._next_task_id + 1
+        RunnableTask._next_task_id += 1
         self._id = task_id
         
         self._mutex = QtCore.QMutex()
@@ -107,10 +153,12 @@ class RunnableTask(QtCore.QRunnable):#, QtCore.QObject):
                     self._is_queued = True
             finally:
                 self._mutex.unlock()
-                
+
             if should_start:
-                #print "Starting task [%s] %s" % (self.id, self._func.__name__)
                 QtCore.QThreadPool.globalInstance().start(self)
+                atc = QtCore.QThreadPool.globalInstance().activeThreadCount()
+                mtc = QtCore.QThreadPool.globalInstance().maxThreadCount()
+                RunnableTask.log_debug("Task [%s] %s queued (%d of %d)" % (self.id, self._func.__name__, atc, mtc))
     
     def stop(self):
         """
@@ -124,7 +172,7 @@ class RunnableTask(QtCore.QRunnable):#, QtCore.QObject):
         """
         """
         # always let Python manage the lifetime of these objects!
-        return False        
+        return False
         
     def add_upstream_task(self, task):
         """
@@ -140,8 +188,6 @@ class RunnableTask(QtCore.QRunnable):#, QtCore.QObject):
         """
         if task not in self._upstream_tasks:
             return
-
-        #print "[%s] %s completed, res: %s" % (task.id, task._func.__name__, result)
 
         # disconnect from this task:
         self._upstream_tasks.remove(task)
@@ -160,8 +206,6 @@ class RunnableTask(QtCore.QRunnable):#, QtCore.QObject):
         if task not in self._upstream_tasks:
             return
 
-        #print "[%s] %s failed" % (task.id, task._func.__name__)
-
         # clear out upstream tasks:
         self._upstream_tasks = []
         
@@ -173,8 +217,6 @@ class RunnableTask(QtCore.QRunnable):#, QtCore.QObject):
         """
         if task not in self._upstream_tasks:
             return
-
-        #print "[%s] %s skipped" % (task.id, task._func.__name__)
 
         # clear out upstream tasks:
         self._upstream_tasks = []
@@ -192,12 +234,14 @@ class RunnableTask(QtCore.QRunnable):#, QtCore.QObject):
         
         try:
             # run the function with the provided args
+            RunnableTask.log_debug("Task [%s] %s starting..." % (self.id, self._func.__name__))
             st = time.time()
             result = self._func(**self._input_kwargs) or {}
+            if RunnableTask.debug_delay > 0:
+                time.sleep(RunnableTask.debug_delay)
             end = time.time()
-            app = sgtk.platform.current_bundle()
-            if app:
-                app.log_debug("[%0.2f] Task [%s] %s took %0.2fs" % (time.time(), self.id, self._func.__name__, end-st))
+            RunnableTask.log_time_taken(end-st)
+            RunnableTask.log_debug("Task [%s] %s completed - took %0.2fs" % (self.id, self._func.__name__, end-st))
             
             if not isinstance(result, dict):
                 # unsupported result type!
@@ -206,8 +250,15 @@ class RunnableTask(QtCore.QRunnable):#, QtCore.QObject):
                 
             self.completed.emit(self, result)
         except Exception, e:
+            RunnableTask.log_debug("Task [%s] %s failed: %s" % (self.id, self._func.__name__, e))
+
             tb = traceback.format_exc()
             self.failed.emit(self, str(e), tb)
             
-            
+class PassThroughRunnableTask(RunnableTask):
+    def __init__(self, upstream_tasks=None, **kwargs):
+        RunnableTask.__init__(self, self._task_pass_through, upstream_tasks, **kwargs)
+        
+    def _task_pass_through(self, **kwargs):
+        return {}
             

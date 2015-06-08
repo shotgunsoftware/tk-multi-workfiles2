@@ -27,10 +27,15 @@ class FileGroupWidget(GroupWidgetBase):
         Construction
         """
         GroupWidgetBase.__init__(self, parent)
-        
+
+        app = sgtk.platform.current_bundle()
+        self._current_user = sgtk.util.get_current_user(app.sgtk)
+
         # set up the UI
         self._ui = Ui_FileGroupWidget()
         self._ui.setupUi(self)
+        
+        self.setFocusProxy(self._ui.expand_check_box)
         
         self._ui.expand_check_box.stateChanged.connect(self._on_expand_checkbox_state_changed)
         
@@ -57,11 +62,26 @@ class FileGroupWidget(GroupWidgetBase):
     def set_item(self, model_idx):
         """
         """
-        label = get_model_str(model_idx)
-        self._ui.expand_check_box.setText(label)
-        
-        # update if the spinner should be visible or not:
+        group_name = get_model_str(model_idx)
+        work_area = get_model_data(model_idx, FileModel.WORK_AREA_ROLE)
         search_status = get_model_data(model_idx, FileModel.SEARCH_STATUS_ROLE)
+
+        # update group and user names:
+        self._ui.title_label.setText(group_name)
+        display_user = (work_area and work_area.contains_user_sandboxes)
+        if display_user:
+            user_name = "Unknown's"
+            if work_area.context and work_area.context.user:
+                if self._current_user and self._current_user["id"] == work_area.context.user["id"]:
+                    user_name = "My"
+                else: 
+                    user_name = "%s's" % work_area.context.user.get("name", "Unknown")
+            self._ui.user_label.setText("(%s Files)" % user_name)
+            self._ui.user_label.show()
+        else:
+            self._ui.user_label.hide()
+
+        # update if the spinner should be visible or not:
         if search_status == None:
             search_status = FileModel.SEARCH_COMPLETED
             
@@ -77,9 +97,9 @@ class FileGroupWidget(GroupWidgetBase):
         elif search_status == FileModel.SEARCH_FAILED:
             search_msg = get_model_str(model_idx, FileModel.SEARCH_MSG_ROLE)
         self._ui.msg_label.setText(search_msg)
-                        
+
         self._show_msg = bool(search_msg)
-                        
+
         show_msg = self._show_msg and self._ui.expand_check_box.checkState() == QtCore.Qt.Checked
         self._ui.msg_label.setVisible(show_msg)
 
@@ -88,6 +108,11 @@ class FileGroupWidget(GroupWidgetBase):
         """
         if (self._ui.expand_check_box.checkState() == QtCore.Qt.Checked) != expand:
             self._ui.expand_check_box.setCheckState(QtCore.Qt.Checked if expand else QtCore.Qt.Unchecked)
+
+    def mouseReleaseEvent(self, event):
+        """
+        """
+        self._ui.expand_check_box.toggle()
 
     def _on_expand_checkbox_state_changed(self, state):
         """

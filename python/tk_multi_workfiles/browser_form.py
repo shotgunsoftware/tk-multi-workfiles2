@@ -48,6 +48,7 @@ class BrowserForm(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
 
         self._enable_show_all_versions = True
+        self._enable_show_user_sandboxes = True
 
         #self._suppress_entity_selected_signals = False
         self._file_model = None
@@ -89,6 +90,17 @@ class BrowserForm(QtGui.QWidget):
             widget = self._ui.file_browser_tabs.widget(ti)
             widget.enable_show_all_versions(self._enable_show_all_versions)
 
+    def enable_show_user_sandboxes(self, enable):
+        """
+        """
+        if self._enable_show_user_sandboxes == enable:
+            return
+        
+        self._enable_show_user_sandboxes = enable
+        for ti in range(self._ui.file_browser_tabs.count()):
+            widget = self._ui.file_browser_tabs.widget(ti)
+            widget.enable_show_user_sandboxes(self._enable_show_user_sandboxes)
+            
     def closeEvent(self, event):
         """
         """
@@ -124,6 +136,7 @@ class BrowserForm(QtGui.QWidget):
             all_files_form = FileListForm("All Files", show_work_files=True, show_publishes=True, parent=self)
             self._ui.file_browser_tabs.addTab(all_files_form, "All")
             all_files_form.enable_show_all_versions(self._enable_show_all_versions)
+            all_files_form.enable_show_user_sandboxes(self._enable_show_user_sandboxes)
             all_files_form.set_model(self._file_model)
             all_files_form.file_selected.connect(self._on_file_selected)
             all_files_form.file_double_clicked.connect(self.file_double_clicked)
@@ -133,6 +146,7 @@ class BrowserForm(QtGui.QWidget):
             work_files_form = FileListForm("Work Files", show_work_files=True, show_publishes=False, parent=self)
             self._ui.file_browser_tabs.addTab(work_files_form, "Working")
             work_files_form.enable_show_all_versions(self._enable_show_all_versions)
+            work_files_form.enable_show_user_sandboxes(self._enable_show_user_sandboxes)
             work_files_form.set_model(self._file_model)
             work_files_form.file_selected.connect(self._on_file_selected)
             work_files_form.file_double_clicked.connect(self.file_double_clicked)
@@ -142,6 +156,7 @@ class BrowserForm(QtGui.QWidget):
             publishes_form = FileListForm("Publishes", show_work_files=False, show_publishes=True, parent=self)
             self._ui.file_browser_tabs.addTab(publishes_form, "Publishes")
             publishes_form.enable_show_all_versions(self._enable_show_all_versions)
+            publishes_form.enable_show_user_sandboxes(self._enable_show_user_sandboxes)
             publishes_form.set_model(self._file_model)
             publishes_form.file_selected.connect(self._on_file_selected)
             publishes_form.file_double_clicked.connect(self.file_double_clicked)
@@ -168,7 +183,7 @@ class BrowserForm(QtGui.QWidget):
         details = FileModel.SearchDetails(search_label)
         details.entity = ctx_entity
         details.is_leaf = True
-        self._file_model.refresh_files([details])
+        self._file_model.set_entity_searches([details])
 
     def select_file(self, file, context):
         """
@@ -269,7 +284,7 @@ class BrowserForm(QtGui.QWidget):
 
         # refresh files:
         if self._file_model:
-            self._file_model.refresh_files(search_details)
+            self._file_model.set_entity_searches(search_details)
 
         # emit work-area-changed signal:
         self._emit_work_area_changed(task, breadcrumb_trail)
@@ -323,7 +338,7 @@ class BrowserForm(QtGui.QWidget):
 
         # refresh files:
         if self._file_model:
-            self._file_model.refresh_files(search_details)
+            self._file_model.set_entity_searches(search_details)
 
         # emit work-area-changed signal:
         self._emit_work_area_changed(primary_entity or None, breadcrumb_trail)

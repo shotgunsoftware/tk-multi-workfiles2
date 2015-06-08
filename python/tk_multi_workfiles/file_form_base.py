@@ -12,6 +12,7 @@
 Base class for the file-open & file-save forms.  Contains common code for setting up
 models etc. and common signals/operations (e.g creating a task)
 """
+import sys
 from itertools import chain
 
 import sgtk
@@ -28,24 +29,13 @@ from .my_tasks.my_tasks_model import MyTasksModel
 from .scene_operation import get_current_path, save_file, SAVE_FILE_AS_ACTION
 from .file_item import FileItem
 
-from .environment_details import EnvironmentDetails
+from .work_area import WorkArea
 
 from .actions.new_task_action import NewTaskAction
 
 class FileFormBase(QtGui.QWidget):
     """
     """
-    class CreateNewTaskEvent(object):
-        """
-        """
-        def __init__(self, entity, step):
-            self.entity = entity
-            self.step = step
-            self.task_created = False
-    
-    create_new_task = QtCore.Signal(CreateNewTaskEvent)    
-    
-    
     def __init__(self, parent=None):
         """
         """
@@ -59,23 +49,28 @@ class FileFormBase(QtGui.QWidget):
         self._my_tasks_model = self._build_my_tasks_model()
         self._entity_models = self._build_entity_models()
         self._file_model = FileModel(self._sg_data_retriever, self)
+        
+        # add refresh action with appropriate keyboard shortcut:
+        refresh_action = QtGui.QAction("Refresh", self)
+        refresh_action.setShortcut(QtGui.QKeySequence(QtGui.QKeySequence.Refresh))
+        refresh_action.triggered.connect(self._on_refresh_triggered)
+        self.addAction(refresh_action)
+        
+        # on OSX, also add support for F5 (the default for OSX is Cmd+R)
+        if sys.platform == "darwin":
+            osx_f5_refresh_action = QtGui.QAction("Refresh (F5)", self)
+            osx_f5_refresh_action.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_F5))
+            osx_f5_refresh_action.triggered.connect(self._on_refresh_triggered)
+            self.addAction(osx_f5_refresh_action)
 
     def clean_up(self):
         """
         """
         # clear up the various data models:
+        self._file_model.clear()
         
         # stop the shotgun data retriever:
         self._sg_data_retriever.stop()
-
-    def refresh_all_async(self):
-        """
-        """
-        if self._my_tasks_model:
-            self._my_tasks_model.async_refresh()
-            
-        for _, entity_model in self._entity_models:
-            entity_model.async_refresh()
 
     def closeEvent(self, event):
         """
@@ -159,6 +154,11 @@ class FileFormBase(QtGui.QWidget):
         if action.execute(self):
             self._refresh_all_async()
 
+    def _on_refresh_triggered(self, checked=False):
+        """
+        """
+        self._refresh_all_async()
+
     def _refresh_all_async(self):
         """
         """
@@ -176,7 +176,7 @@ class FileFormBase(QtGui.QWidget):
 
         # build environment details for this context:
         try:
-            env = EnvironmentDetails(app.context)
+            env = WorkArea(app.context)
         except Exception, e:
             return None
 

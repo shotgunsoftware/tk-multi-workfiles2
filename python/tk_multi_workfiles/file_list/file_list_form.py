@@ -19,10 +19,9 @@ from sgtk.platform.qt import QtCore, QtGui
 
 from ..file_model import FileModel
 from ..ui.file_list_form import Ui_FileListForm
-
+from .user_sandbox_menu import UserSandboxMenu
 from .file_proxy_model import FileProxyModel
 from .file_list_item_delegate import FileListItemDelegate
-
 from ..util import get_model_data
 
 class FileListForm(QtGui.QWidget):
@@ -63,10 +62,11 @@ class FileListForm(QtGui.QWidget):
         # and keep track of the currently selected item
         self._current_item_ref = None
 
-        self._show_all_versions = False
         self._show_work_files = show_work_files
         self._show_publishes = show_publishes
+        self._show_all_versions = show_all_versions
         self._filter_model = None
+        self._enable_user_sandboxes = True
         
         # set up the UI
         self._ui = Ui_FileListForm()
@@ -89,6 +89,16 @@ class FileListForm(QtGui.QWidget):
         
         item_delegate = FileListItemDelegate(self._ui.file_list_view)
         self._ui.file_list_view.setItemDelegate(item_delegate)
+
+        # user filter menu:
+        self._user_sandbox_menu = UserSandboxMenu(self)
+        self._user_sandbox_menu.users_selected.connect(self._on_sandbox_users_selected)
+        self._ui.user_filter_btn.setMenu(self._user_sandbox_menu)
+        self._update_user_filter_btn()
+
+        # user button is off by default until we find a work area with a user that isn't
+        # the current user.
+        self._ui.user_filter_btn.hide()
 
     @property
     def work_files_visible(self):
@@ -114,7 +124,7 @@ class FileListForm(QtGui.QWidget):
         Property to use to query the file and the environment details for that file 
         that are currently selected in the control.
 
-        :returns:   A tuple containing (FileItem, EnvironmentDetails) or (None, None)
+        :returns:   A tuple containing (FileItem, WorkArea) or (None, None)
                     if nothing is selected.
         """
         selected_file = None
@@ -125,7 +135,7 @@ class FileListForm(QtGui.QWidget):
             selected_indexes = selection_model.selectedIndexes()
             if len(selected_indexes) == 1:
                 selected_file = get_model_data(selected_indexes[0], FileModel.FILE_ITEM_ROLE)
-                env_details = get_model_data(selected_indexes[0], FileModel.ENVIRONMENT_ROLE)
+                env_details = get_model_data(selected_indexes[0], FileModel.WORK_AREA_ROLE)
 
         return (selected_file, env_details)
 
@@ -138,6 +148,15 @@ class FileListForm(QtGui.QWidget):
         else:
             self._ui.all_versions_cb.hide()
             self._on_show_all_versions_toggled(False)
+
+    def enable_show_user_sandboxes(self, enable):
+        """
+        """
+        self._enable_user_sandboxes = enable
+        if not self._enable_user_sandboxes:
+            # make sure user button is hidden:
+            self._ui.user_filter_btn.hide()
+        self._update_user_filter_btn()
 
     def select_file(self, file, context):
         """
@@ -164,6 +183,7 @@ class FileListForm(QtGui.QWidget):
         :param model:    The FileModel model to attach to the control to
         """
         show_all_versions = self._ui.all_versions_cb.isVisible() and self._ui.all_versions_cb.isChecked()
+        model.available_sandbox_users_changed.connect(self._on_available_sandbox_users_changed)
 
         # create a filter model around the source model:
         self._filter_model = FileProxyModel(show_work_files=self._show_work_files, 
@@ -238,7 +258,7 @@ class FileListForm(QtGui.QWidget):
                 if selected_item:
                     # extract the file item from the index:
                     selected_file = get_model_data(selected_item, FileModel.FILE_ITEM_ROLE)
-                    env_details = get_model_data(selected_item, FileModel.ENVIRONMENT_ROLE)
+                    env_details = get_model_data(selected_item, FileModel.WORK_AREA_ROLE)
 
                 # emit the signal
                 self.file_selected.emit(selected_file, env_details, FileListForm.SYSTEM_SELECTED)
@@ -262,7 +282,7 @@ class FileListForm(QtGui.QWidget):
             return
 
         # ...and the env details:
-        env_details = get_model_data(idx, FileModel.ENVIRONMENT_ROLE)
+        env_details = get_model_data(idx, FileModel.WORK_AREA_ROLE)
 
         # remap the point from the source widget:
         pnt = self.sender().mapTo(self, pnt)
@@ -378,7 +398,7 @@ class FileListForm(QtGui.QWidget):
         elif item_type == FileModel.FILE_NODE_TYPE:
             # this is a file so perform the default action for the file
             selected_file = get_model_data(idx, FileModel.FILE_ITEM_ROLE)
-            env_details = get_model_data(idx, FileModel.ENVIRONMENT_ROLE)
+            env_details = get_model_data(idx, FileModel.WORK_AREA_ROLE)
             self.file_double_clicked.emit(selected_file, env_details)
 
     def _on_selection_changed(self, selected, deselected):
@@ -402,7 +422,7 @@ class FileListForm(QtGui.QWidget):
         if item:
             # extract the file item from the index:
             selected_file = get_model_data(item, FileModel.FILE_ITEM_ROLE)
-            env_details = get_model_data(item, FileModel.ENVIRONMENT_ROLE)
+            env_details = get_model_data(item, FileModel.WORK_AREA_ROLE)
 
         self._current_item_ref = weakref.ref(item) if item else None
         if self._current_item_ref:
@@ -411,4 +431,61 @@ class FileListForm(QtGui.QWidget):
 
         # emit file selected signal:
         self.file_selected.emit(selected_file, env_details, FileListForm.USER_SELECTED)
+
+    def _update_user_filter_btn(self):
+        """
+        """
+        if not self._enable_user_sandboxes:
+            # nothing to do!
+            return
+
+        USER_STYLE_NONE = "none"
+        USER_STYLE_CURRENT = "current"
+        USER_STYLE_OTHER = "other"
+        USER_STYLE_ALL = "all"
+
+        # figure out the style to use:
+        user_style = USER_STYLE_NONE
+        tooltip = "Not showing files for any users!"
+
+        if self._user_sandbox_menu.current_user_selected:
+            if self._user_sandbox_menu.other_users_selected:
+                user_style = USER_STYLE_ALL
+                tooltip = "Showing my files and files for others"
+            else:
+                user_style = USER_STYLE_CURRENT
+                tooltip = "Showing only my files"
+        elif self._user_sandbox_menu.other_users_selected:
+            user_style = USER_STYLE_OTHER
+            tooltip = "Showing only files for others"
+
+        # set the property on the filter btn:
+        self._ui.user_filter_btn.setProperty("user_style", user_style)
+
+        # unpolish/repolish to update the style sheet:
+        self._ui.user_filter_btn.style().unpolish(self._ui.user_filter_btn)
+        self._ui.user_filter_btn.ensurePolished()
+        self._ui.user_filter_btn.repaint()
+        self._ui.user_filter_btn.setToolTip(tooltip)
+
+    def _on_sandbox_users_selected(self, users):
+        """
+        """
+        model = self._filter_model.sourceModel().set_users(users)
+        self._update_user_filter_btn()
+
+    def _on_available_sandbox_users_changed(self, users):
+        """
+        """
+        if not self._enable_user_sandboxes:
+            # don't bother doing anything!
+            return
+
+        if users and len(users) > 1:
+            # make sure the user button is visible:
+            self._ui.user_filter_btn.show()
+
+        # update user menu
+        self._user_sandbox_menu.populate_users(users)
+        self._update_user_filter_btn()
 

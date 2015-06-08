@@ -16,7 +16,7 @@ from sgtk import TankError
 
 from .open_file_action import OpenFileAction, CopyAndOpenInCurrentWorkAreaAction
 
-from ..environment_details import EnvironmentDetails
+from ..work_area import WorkArea
 from ..file_item import FileItem
 from ..file_finder import FileFinder
 
