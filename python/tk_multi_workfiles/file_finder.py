@@ -550,11 +550,8 @@ class FileFinder(QtCore.QObject):
                 continue
             else:
                 # merge with work file:
-                work_file.update(is_published=True, publish_path=publish.publish_path, details=publish.details)
-        
-        #files = [] 
-        #if sg_publishes or work_files:
-        #    files = self._aggregate_files(work_files, work_template, sg_publishes, publish_template, context) 
+                work_file.update_from_publish(publish)
+ 
         return {"files":file_items, "environment":environment}
 
     ################################################################################################
@@ -625,13 +622,9 @@ class FileFinder(QtCore.QObject):
                 continue
             
             # merge with work file:
-            work_file.update(is_published=True, publish_path=publish.publish_path, details=publish.details)
-        
-        return file_items
-        ## return the aggregated list of all files:
-        #return self._aggregate_files(work_files, work_template, published_files, publish_template, context, filter_file_key)
+            work_file.update_from_publish(publish)
 
-        
+        return file_items
 
     def _build_work_files(self, work_files, work_template, context, name_map, version_compare_ignore_fields, 
                           filter_file_key=None):
@@ -691,7 +684,8 @@ class FileFinder(QtCore.QObject):
             file_details["name"] = name_map.get_name(file_key, work_path, work_template, wf_fields)
 
             # add new file item
-            file_item = FileItem(work_path, None, True, False, file_details, file_key)
+            file_item = FileItem(key=file_key, is_work_file=True, work_path=work_path, work_details=file_details)
+            #file_item = FileItem(work_path, None, True, False, file_details, file_key)
             files[(file_key, file_details["version"])] = file_item
                 
         return files
@@ -755,8 +749,12 @@ class FileFinder(QtCore.QObject):
             # make sure all files with the same key have the same name:
             file_details["name"] = name_map.get_name(file_key, publish_path, publish_template, publish_fields)
 
-            # add new file item
-            file_item = FileItem(work_path, publish_path, False, True, file_details, file_key)
+            # add new file item for this publish.  Note that we also keep track of the
+            # work path even though we don't know if this publish has a corresponding
+            # work file.
+            file_item = FileItem(key=file_key, is_work_file=False, work_path=work_path, 
+                                 is_published=True, publish_path=publish_path, publish_details=file_details)
+            #file_item = FileItem(work_path, publish_path, False, True, file_details, file_key)
             files[(file_key, file_details["version"])] = file_item
         return files
     

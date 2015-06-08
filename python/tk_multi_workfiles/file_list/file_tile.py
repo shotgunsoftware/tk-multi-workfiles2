@@ -71,23 +71,23 @@ class FileTile(QtGui.QWidget):
 
         self._update_ui()
 
-    @property
-    def title(self):
+    #@property
+    def _get_title(self):
         return self._ui.label.text()
-    
-    @title.setter
-    def title(self, value):
+    #@title.setter
+    def _set_title(self, value):
         self._ui.label.setText(value)
-        
-    @property
-    def selected(self):
+    title=property(_get_title, _set_title)
+
+    #@property
+    def _get_selected(self):
         return self._is_selected
-    
-    @selected.setter
-    def selected(self, value):
+    #@selected.setter
+    def _set_selected(self, value):
         self._is_selected = value
         self._update_ui()
-        
+    selected=property(_get_selected, _set_selected)
+
     def set_is_publish(self, is_publish):
         """
         """

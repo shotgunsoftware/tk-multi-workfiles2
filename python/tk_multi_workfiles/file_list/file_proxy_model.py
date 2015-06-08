@@ -28,29 +28,32 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
         self._show_publishes = show_publishes
         self._show_workfiles = show_work_files
         
-    @property
-    def show_all_versions(self):
+    #@property
+    def _get_show_all_versions(self):
         return self._show_all_versions
-    @show_all_versions.setter
-    def show_all_versions(self, show):
+    #@show_all_versions.setter
+    def _set_show_all_versions(self, show):
         self._show_all_versions = show
         self.invalidateFilter()
-        
-    @property
-    def show_publishes(self):
+    show_all_versions=property(_get_show_all_versions, _set_show_all_versions)
+
+    #@property
+    def _get_show_publishes(self):
         return self._show_publishes
-    @show_publishes.setter
-    def show_publishes(self, show):
+    #@show_publishes.setter
+    def _set_show_publishes(self, show):
         self._show_publishes = show
         self.invalidateFilter()
-        
-    @property
-    def show_work_files(self):
+    show_publishes=property(_get_show_publishes, _set_show_publishes)
+
+    #@property
+    def _get_show_work_files(self):
         return self._show_workfiles
-    @show_work_files.setter
-    def show_work_files(self, show):
+    #@show_work_files.setter
+    def _set_show_work_files(self, show):
         self._show_workfiles = show
         self.invalidateFilter()
+    show_work_files=property(_get_show_work_files, _set_show_work_files)
 
     def _is_item_accepted(self, item, parent_accepted):
         """

@@ -13,14 +13,13 @@ from sgtk.platform.qt import QtCore
 
 import os
 from datetime import datetime, timedelta
+import copy
 
 class FileItem(QtCore.QObject):
     """
     Encapsulate details about a work file
     """
-    
-    data_changed = QtCore.Signal()
-    
+
     @staticmethod
     def build_file_key(fields, template, ignore_fields = None):
         """
@@ -28,16 +27,16 @@ class FileItem(QtCore.QObject):
         if multiple files are actually just versions of the same file.
 
         For example, the following inputs:
-        
+
             fields: {"sg_asset_type":"Character", "Asset":"Fred", "Step":"Anm", "name":"test", "version":3, "sub_name":"TheCat"}
             template: /assets/{sg_asset_type}/{Asset}/{Step}/work/maya/{Asset}_{Step}[_{name}]_v{version}.{maya_ext}
             ignore_fields: ["version"]
-            
+
             Notes: 
             - The template key maya_ext has a default value of 'mb'
-            
+
         Will generate the file key:
-        
+
             (('Asset', 'Fred'), ('Step', 'Anm'), ('maya_ext':'mb'), ('name', 'test'), ('sg_asset_type', 'Character'))
 
             Notes: 
@@ -45,7 +44,7 @@ class FileItem(QtCore.QObject):
             - 'sub_name' is skipped because it isn't a valid key in the template
             - Although 'maya_ext' wasn't included in the input fields, it is added to the file key as 
               it has a default value in the template 
-        
+
         :param fields:          A dictionary of fields extracted from a file path
         :param template:        The template that represents the files this key will be 
                                 used to compare.
@@ -75,7 +74,7 @@ class FileItem(QtCore.QObject):
                 continue
 
             file_key[name] = value
-            
+
         # add in any 'default' values from the template that aren't explicitely ignored
         # or weren't specified in the input fields:
         for key in template_keys.values():
@@ -83,103 +82,96 @@ class FileItem(QtCore.QObject):
                 and key.default != None
                 and key.name not in file_key):
                 file_key[key.name] = key.default 
-        
+
         # return an immutable representation of the sorted dictionary:
         # e.g. (('sequence', 'Sequence01'), ('shot', 'shot_010'), ('name', 'foo'))
         return tuple(sorted(file_key.iteritems()))
-    
-    def __init__(self, path, publish_path, is_local, is_published, details, key):
+
+    # Signal emitted whenever something changes in this instance.
+    data_changed = QtCore.Signal()
+
+    def __init__(self, key, is_work_file=False, work_path=None, work_details=None, 
+                 is_published=False, publish_path=None, publish_details=None):
         """
         Construction
+
+        :param key:             Unique key representing all versions of this file
+        :param is_work_file:    True if this instance represents a work file
+        :param work_path:       Work path on disk of this file
+        :param work_details:    Dictionary containing additional information about this work file
+        :param is_published:    True if this instance represents a published file
+        :param publish_path:    Publish path on disk of this file
+        :param publish_details: Dictionary containing additional information about this publish
         """
         QtCore.QObject.__init__(self)
-        
-        self._path = path
-        self._publish_path = publish_path
-        self._is_local = is_local
-        self._is_published = is_published
-        self._details = details
+
         self._key = key
+
+        self._is_local = is_work_file
+        self._path = work_path
+        self._details = work_details or {}
+
+        self._is_published = is_published
+        self._publish_path = publish_path
+        self._publish_details = publish_details or {}
+        
+        self._thumbnail_path = None
         self._thumbnail_image = None
 
-    def update(self, path=None, publish_path=None, is_local=None, is_published=None, details=None):
-        """
-        """
-        data_changed = False
-        if path != None:
-            self._path = path
-            data_changed = True
-        if is_local != None:
-            self._is_local = is_local
-            data_changed = True
-        if publish_path != None:
-            self._publish_path = publish_path
-            data_changed = True
-        if is_published != None:
-            self._is_published = is_published
-            data_changed = True
-        if details:
-            self._details.update(dict([(k, v) for k, v in details.iteritems() if v != None]))
-            data_changed = True
-            
-        if data_changed:
-            self.data_changed.emit()
-
-    def __repr__(self):
-        return "%s (v%d), is_local:%s, is_publish: %s" % (self.name, self.version, self.is_local, self.is_published)
-
-    """
-    General details
-    """
-    @property
-    def details(self):
-        return self._details
-    
-    @property
-    def name(self):
-        n = self._details.get("name")
-        if not n and self._path:
-            n = os.path.basename(self._path)
-        return n
-        
-    @property
-    def version(self):
-        return self._details.get("version", 0)
-    
-    @property
-    def entity(self):
-        return self._details.get("entity")
-    
-    @property
-    def task(self):
-        return self._details.get("task")
-    
-    @property
-    def thumbnail_path(self):
-        return self._details.get("thumbnail")
-    @thumbnail_path.setter
-    def thumbnail_path(self, value):
-        if value != self._details.get("thumbnail"):
-            self._details["thumbnail"] = value
-            self._thumbnail_image = None
-            self.data_changed.emit()
-
-    @property
-    def thumbnail(self):
-        return self._thumbnail_image
-    @thumbnail.setter
-    def thumbnail(self, value):
-        self._thumbnail_image = value
-        self.data_changed.emit()
+    # ------------------------------------------------------------------------------------------
+    # General properties
 
     @property
     def key(self):
-        # a unique key that matches across all versions of a single file.
+        """
+        A unique key that matches across all versions of a single file.
+        """
         return self._key
 
-    """
-    Work file details
-    """
+    @property
+    def name(self):
+        n = self._details.get("name") or self._publish_details.get("name")
+        if not n and self._path:
+            n = os.path.basename(self._path)
+        return n
+
+    @property
+    def version(self):
+        return self._details.get("version") or self._publish_details.get("version", 0)
+
+    @property
+    def entity(self):
+        return self._details.get("entity") or self._publish_details.get("version")
+
+    @property
+    def task(self):
+        return self._details.get("task") or self._publish_details.get("task")
+
+    #@property
+    def _get_thumbnail_path(self):
+        if self._thumbnail_path is None:
+            self._thumbnail_path = self._details.get("thumbnail") or self._publish_details.get("thumbnail")
+        return self._thumbnail_path
+    #@thumbnail_path.setter
+    def _set_thumbnail_path(self, value):
+        if value != self.thumbnail_path:
+            self._thumbnail_path = value
+            self._thumbnail_image = None
+            self.data_changed.emit()
+    thumbnail_path=property(_get_thumbnail_path, _set_thumbnail_path)
+
+    #@property
+    def _get_thumbnail(self):
+        return self._thumbnail_image
+    #@thumbnail.setter
+    def _set_thumbnail(self, value):
+        self._thumbnail_image = value
+        self.data_changed.emit()
+    thumbnail=property(_get_thumbnail, _set_thumbnail)
+
+    # ------------------------------------------------------------------------------------------
+    # Work file properties
+
     @property
     def is_local(self):
         return self._is_local
@@ -206,10 +198,10 @@ class FileItem(QtCore.QObject):
         Return the reason the file is not editable.
         """
         return self._details.get("editable_reason") or ""
-    
-    """
-    Published file details
-    """
+
+    # ------------------------------------------------------------------------------------------
+    # Published file properties
+
     @property
     def is_published(self):
         return self._is_published
@@ -220,20 +212,52 @@ class FileItem(QtCore.QObject):
         
     @property
     def published_file_id(self):
-        return self._details.get("published_file_entity_id")
+        return self._publish_details.get("published_file_entity_id")
     
     @property
     def publish_description(self):
-        return self._details.get("publish_description")
+        return self._publish_details.get("publish_description")
     
     @property
     def published_at(self):
-        return self._details.get("published_at")
+        return self._publish_details.get("published_at")
 
     @property
     def published_by(self):
-        return self._details.get("published_by")
-    
+        return self._publish_details.get("published_by")
+
+    # ------------------------------------------------------------------------------------------
+    # Public methods
+
+    def update_from_publish(self, publish):
+        """
+        """
+        self._is_published = publish._is_published
+        self._publish_path = publish._publish_path
+        self._publish_details = copy.deepcopy(publish._publish_details or {})
+
+    def update_from_work_file(self, work_file):
+        """
+        """
+        self._is_local = work_file._is_local
+        self._path = work_file._path
+        self._details = copy.deepcopy(work_file._details or {})
+        self.data_changed.emit()
+
+    def set_not_work_file(self):
+        """
+        """
+        if self._is_local:
+            self._is_local = False
+            self.data_changed.emit()
+
+    def set_not_published(self):
+        """
+        """
+        if self._is_published:
+            self._is_published = False
+            self.data_changed.emit()
+
     def format_published_by_details(self):
         """
         Format the publish details as a string to
@@ -241,14 +265,14 @@ class FileItem(QtCore.QObject):
         """
         details_str = ""
         if self.published_by and "name" in self.published_by:
-            details_str += self.published_by["name"]#("Published by %s" % self.published_by["name"])
+            details_str += self.published_by["name"]
         else:
-            details_str += "<i>Unknown</i>"#"Published by: <i>Unknown</i>"
+            details_str += "<i>Unknown</i>"
         details_str += "<br>"
         if self.published_at:
-            details_str += self._format_modified_date_time_str(self.published_at)#("Published %s" % self._format_modified_date_time_str(self.published_at))
+            details_str += self._format_modified_date_time_str(self.published_at)
         else:
-            details_str += "<i>Unknown</i>"#"Published on: <i>Unknown</i>"
+            details_str += "<i>Unknown</i>"
         return details_str
 
     def format_modified_by_details(self):
@@ -258,16 +282,16 @@ class FileItem(QtCore.QObject):
         """
         details_str = ""
         if self.modified_by and "name" in self.modified_by:
-            details_str += self.modified_by["name"]#("Updated by %s" % self.modified_by["name"])
+            details_str += self.modified_by["name"]
         else:
-            details_str += "<i>Unknown</i>"   
+            details_str += "<i>Unknown</i>"
 
         details_str += "<br>"
         
         if self.modified_at:
-            details_str += self._format_modified_date_time_str(self.modified_at)#("Last updated %s" % self._format_modified_date_time_str(self.modified_at))
+            details_str += self._format_modified_date_time_str(self.modified_at)
         else:
-            details_str += "<i>Unknown</i>"#"Last updated: <i>Unknown</i>"
+            details_str += "<i>Unknown</i>"
          
         return details_str
     
@@ -370,10 +394,17 @@ class FileItem(QtCore.QObject):
             local_is_latest = True
             
         return 1 if local_is_latest else -1
-    
+
+    # ------------------------------------------------------------------------------------------
+    # Protected methods
+
+    def __repr__(self):
+        """
+        """
+        return "%s (v%d), is_local:%s, is_publish: %s" % (self.name, self.version, self.is_local, self.is_published)
+
     def _format_modified_date_time_str(self, date_time):
         """
-        
         """
         modified_date = date_time.date()
         date_str = ""

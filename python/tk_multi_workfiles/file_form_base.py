@@ -216,12 +216,13 @@ class FileFormBase(QtGui.QWidget):
                 details[key_name] = fields[key_name]
 
         # build the file item (note that this will be a very minimal FileItem instance)!
-        file_item = FileItem(path = path if not is_publish else None,
-                             publish_path = path if is_publish else None,
-                             is_local = not is_publish,
+        file_item = FileItem(key = file_key,
+                             is_work_file = not is_publish,
+                             work_path = path if not is_publish else None,
+                             work_details = fields if not is_publish else None,
                              is_published = is_publish,
-                             details = fields,
-                             key = file_key)
+                             publish_path = path if is_publish else None,
+                             publish_details = fields if is_publish else None)
         
         return file_item
         

@@ -263,13 +263,14 @@ class FileModel(QtGui.QStandardItemModel):
         def entity(self):
             return self._entity
     
-        @property
-        def work_area(self):
+        #@property
+        def _get_work_area(self):
             return self._work_area
-        @work_area.setter
-        def work_area(self, work_area):
+        #@work_area.setter
+        def _set_work_area(self, work_area):
             self._work_area = work_area
             self.emitDataChanged()
+        work_area=property(_get_work_area, _set_work_area)
 
         @property
         def search_status(self):
@@ -613,9 +614,9 @@ class FileModel(QtGui.QStandardItemModel):
             if current_file and model_item:
                 # update the existing file:
                 if new_file.is_published:
-                    current_file.update(is_published=True, publish_path=new_file.publish_path, details=new_file.details)
+                    current_file.update_from_publish(new_file)
                 if new_file.is_local:
-                    current_file.update(is_local=True, path=new_file.path, details=new_file.details)
+                    current_file.update_from_work_file(new_file)
             else:
                 # add a new item:
                 model_item = FileModel._FileItem(new_file, environment)#, search_id)
@@ -640,14 +641,14 @@ class FileModel(QtGui.QStandardItemModel):
                 if file_version not in valid_file_versions:
                     # file is no longer local!
                     file, _ = files_and_items[file_version]
-                    file.update(is_local=False)
+                    file.set_not_work_file()
 
         if have_publishes:
             for file_version in prev_publish_file_versions:
                 if file_version not in valid_file_versions:
                     # file is no longer a publish!
                     file, _ = files_and_items[file_version]
-                    file.update(is_published=False)
+                    file.set_not_published()
 
         # figure out the set of file-version keys that are no longer valid and should be removed
         # completely from the model:

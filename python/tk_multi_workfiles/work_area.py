@@ -109,17 +109,17 @@ class WorkArea(object):
         return user_work_area
 
 
-    @property
-    def context(self):
+    #@property
+    def _get_context(self):
         return self._context
-    
-    @context.setter
-    def context(self, ctx):
+    #@context.setter
+    def _set_context(self, ctx):
         """
         Set the context
         """
         self._context = ctx
         self._load_settings()
+    context=property(_get_context, _set_context)
 
     @property
     def work_area_contains_user_sandboxes(self):

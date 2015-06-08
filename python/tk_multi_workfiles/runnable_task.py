@@ -136,7 +136,7 @@ class RunnableTask(QtCore.QRunnable):#, QtCore.QObject):
             self._is_runnable = value
         finally:
             self._mutex.unlock()
-    is_runnable=property(_get_is_runnable, _set_is_runnable)  
+    is_runnable=property(_get_is_runnable, _set_is_runnable)
         
     def start(self):
         """

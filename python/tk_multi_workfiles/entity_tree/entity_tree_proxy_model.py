@@ -23,15 +23,15 @@ class EntityTreeProxyModel(EntityProxyModel):
         EntityProxyModel.__init__(self, compare_sg_fields, parent)
         self._only_show_my_tasks = False
 
-    @property
-    def only_show_my_tasks(self):
+    #@property
+    def _get_only_show_my_tasks(self):
         return self._only_show_my_tasks
-    
-    @only_show_my_tasks.setter
-    def only_show_my_tasks(self, show):
+    #@only_show_my_tasks.setter
+    def _set_only_show_my_tasks(self, show):
         if self._only_show_my_tasks != show:
             self._only_show_my_tasks = show
             self.invalidateFilter()
+    only_show_my_tasks=property(_get_only_show_my_tasks, _set_only_show_my_tasks)
 
     def _is_item_accepted(self, item, parent_accepted):
         """
