@@ -25,6 +25,7 @@ class UserSandboxMenu(QtGui.QMenu):
         def __init__(self, user, action=None):
             self.user = user
             self.action = action
+            self.available = True
     
     def __init__(self, parent=None):
         """
@@ -74,7 +75,8 @@ class UserSandboxMenu(QtGui.QMenu):
     def other_users_selected(self):
         """
         """
-        selected_user_ids = self._checked_user_ids & set(self._available_users.keys())
+        available_user_ids = set([user_id for user_id, details in self._available_users.iteritems() if details.available])
+        selected_user_ids = self._checked_user_ids & set(available_user_ids)
         return (len(selected_user_ids) > 1 
                 or (len(selected_user_ids) == 1 and next(iter(selected_user_ids)) != self._current_user_id)) 
 
@@ -99,16 +101,29 @@ class UserSandboxMenu(QtGui.QMenu):
             if user_details is None:
                 # new user not currently in the menu:
                 user_details = UserSandboxMenu._User(user)
+            user_details.available = True
 
             available_users[user_id] = user_details
             user_names_and_ids.append((user_name, user_id))
 
-        # remove menu items for users that are no longer in the list:
+        # add any users to the list that are in not in users list but are currently
+        # checked in the menu - these will be disabled rather than removed.  Remove
+        # all other unchecked users that aren't in the users list:
         user_ids_to_remove = set(self._available_users.keys()) - set(available_users.keys())
         for id in user_ids_to_remove:
-            self.removeAction(self._available_users[id].action)
+            user_details = self._available_users[id]
+            if user_details.action.isChecked():
+                user_details.available = False
+                user_name = user_details.user["name"]
+                user_id = user_details.user["id"]
+                user_names_and_ids.append((user_name, user_id))
+                available_users[id] = user_details
+                user_details.action.setEnabled(False)
+            else:
+                # action is no longer needed so remove:
+                self.removeAction(user_details.action)
 
-        # sort list of users alphabetically:
+        # sort list of users being displayed in the menu alphabetically:
         user_names_and_ids.sort(lambda x, y: cmp(x[0].lower(), y[0].lower()) or cmp(x[1], y[1]))
 
         # add menu items for users as needed:
@@ -122,6 +137,11 @@ class UserSandboxMenu(QtGui.QMenu):
                 for action in actions_to_insert:
                     self.insertAction(user_details.action, action)
                 actions_to_insert = []
+
+                # make sure the action is enabled:
+                if user_details.available:
+                    user_details.action.setEnabled(True)
+
                 continue
 
             # need to create a new action:
@@ -167,7 +187,8 @@ class UserSandboxMenu(QtGui.QMenu):
         """
         active_action = self.activeAction()
         if active_action and active_action.isCheckable():
-            active_action.toggle()
+            if active_action.isEnabled():
+                active_action.toggle()
             return True
         else:
             QtGui.QMenu.mousePressEvent(self, event)
@@ -229,8 +250,12 @@ class UserSandboxMenu(QtGui.QMenu):
     def _emit_users_selected(self):
         """
         """
-        selected_user_ids = self._checked_user_ids & set(self._available_users.keys())
+        available_user_ids = set([user_id for user_id, details in self._available_users.iteritems() if details.available])
+        selected_user_ids = self._checked_user_ids & available_user_ids
         users = [self._available_users[id].user for id in selected_user_ids]
         if self._current_user_id in self._checked_user_ids:
             users = [g_user_cache.current_user] + users
         self.users_selected.emit(users)
+
+
+
