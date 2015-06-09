@@ -31,11 +31,11 @@ class Ui_TaskWidget(object):
 "}\n"
 "\n"
 "/*Font colour for all QLabels in form*/\n"
-"QLabel[selected=false]{\n"
+"#background[selected=false] QLabel {\n"
 "}\n"
 "\n"
 "#background[selected=true] QLabel {\n"
-"    color: rgb(255,255,255)\n"
+"    color: rgb(255,255,255);\n"
 "}")
         self.background.setFrameShape(QtGui.QFrame.NoFrame)
         self.background.setFrameShadow(QtGui.QFrame.Plain)

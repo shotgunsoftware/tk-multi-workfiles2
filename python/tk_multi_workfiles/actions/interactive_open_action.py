@@ -37,6 +37,7 @@ class InteractiveOpenAction(OpenFileAction):
         
         # this is the smart action where all the logic tries to decide what the actual 
         # action should be!
+        #print "Opening file '%s' which is in user sandbox '%s'" % (self.file.path, self.environment.context.user["name"])
 
         # get information about the max local & publish versions:
         local_versions = [v for v, f in self.file_versions.iteritems() if f.is_local]
@@ -44,7 +45,7 @@ class InteractiveOpenAction(OpenFileAction):
         max_local_version = max(local_versions) if local_versions else None
         max_publish_version = max(publish_versions) if publish_versions else None
         max_version = max(max_local_version, max_publish_version)
-        
+
         if (self._publishes_visible and self.file.is_published
             and (not self._workfiles_visible or not self.file.is_local)):
             # opening a publish and either not showing work files or the file isn't local
@@ -57,7 +58,7 @@ class InteractiveOpenAction(OpenFileAction):
                 if max_local_version != None:
                     latest_work_file = self.file_versions[max_local_version]
                 return self._open_publish_with_check(self.file, latest_work_file, self.environment, max_version+1, parent_ui)        
-        
+
         elif (self._workfiles_visible and self.file.is_local):
             # opening a workfile and either not showing publishes or the file hasn't been published
             # OR
@@ -200,27 +201,27 @@ class InteractiveOpenAction(OpenFileAction):
         if env.context.user:
             current_user = g_user_cache.current_user
             if current_user and current_user["id"] != env.context.user["id"]:
-                
+
                 # file is in a user sandbox - construct path
                 # for the current user's sandbox:
-                try:                
+                try:
                     # get fields from work path:
                     fields = env.work_template.get_fields(work_path)
-                    
+
                     # add in the fields from the context with the current user:
                     local_ctx = env.context.create_copy_for_user(current_user)
                     ctx_fields = local_ctx.as_template_fields(env.work_template)
                     fields.update(ctx_fields)
-                    
+
                     # construct the local path from these fields:
-                    local_path = env.work_template.apply_fields(fields)                     
+                    local_path = env.work_template.apply_fields(fields)
                 except Exception, e:
                     QtGui.QMessageBox.critical(parent_ui, "Failed to resolve file path", 
                                            ("Failed to resolve the user sandbox file path:\n\n%s\n\nto the local "
                                            "path:\n\n%s\n\nUnable to open file!" % (work_path, e)))
                     self._app.log_exception("Failed to resolve user sandbox file path %s" % work_path)
                     return False
-        
+
                 if local_path != work_path:
                     # more than just an open so prompt user to confirm:
                     answer = QtGui.QMessageBox.question(parent_ui, "Open file from another user?",
@@ -233,10 +234,10 @@ class InteractiveOpenAction(OpenFileAction):
                         return False
 
                     src_path = work_path
-                    work_path = local_path      
+                    work_path = local_path
 
         return self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui)
-        
+
     def _open_previous_publish(self, file, env, parent_ui):
         """
         Open a previous version of a publish file from the publish area

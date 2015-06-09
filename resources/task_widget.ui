@@ -35,11 +35,11 @@
 }
 
 /*Font colour for all QLabels in form*/
-QLabel[selected=false]{
+#background[selected=false] QLabel {
 }
 
 #background[selected=true] QLabel {
-	color: rgb(255,255,255)
+	color: rgb(255,255,255);
 }</string>
      </property>
      <property name="frameShape">

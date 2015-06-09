@@ -14,7 +14,9 @@ import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 from sgtk import TankError
 
-from .open_file_action import OpenFileAction, CopyAndOpenInCurrentWorkAreaAction
+from .open_file_action import OpenFileAction, CopyAndOpenInCurrentWorkAreaAction, ContinueFromFileAction
+
+from ..user_cache import g_user_cache
 
 class OpenPublishAction(OpenFileAction):
     """
@@ -46,42 +48,26 @@ class OpenPublishAction(OpenFileAction):
                                       new_ctx = self.environment.context, 
                                       parent_ui = parent_ui)
     
-class ContinueFromPublishAction(OpenFileAction):
+class ContinueFromPublishAction(ContinueFromFileAction):
     """
     """
     def __init__(self, file, file_versions, environment):
         """
         """
-        all_versions = [v for v, f in file_versions.iteritems()]
-        max_version = max(all_versions) if all_versions else 0
-        
-        OpenFileAction.__init__(self, "Continue Working From Publish (as v%03d)" % (max_version+1), file, file_versions, environment)
-        self._version = max_version+1
-    
+        ContinueFromFileAction.__init__(self, "Continue Working From Publish", file, file_versions, environment)
+
     def execute(self, parent_ui):
         """
         """
         if (not self.file.is_published 
-            or not self.environment.context
-            or not self.environment.work_template
             or not self.environment.publish_template):
             return False
-        
+
         # source path is the file publish path:
         src_path = self.file.publish_path
-        
-        # build dst path for the next version of this file:
-        fields = self.environment.publish_template.get_fields(src_path)
-        ctx_fields = self.environment.context.as_template_fields(self.environment.work_template)
-        fields.update(ctx_fields)
-        fields["version"] = self._version
-        dst_path = self.environment.work_template.apply_fields(fields)
-        
-        # TODO - add validation?
-        
-        return self._do_copy_and_open(src_path, dst_path, None, not self.file.editable, 
-                                      self.environment.context, parent_ui)
-        
+
+        return self._continue_from(src_path, self.environment.publish_template, parent_ui)
+
 class CopyAndOpenPublishInCurrentWorkAreaAction(CopyAndOpenInCurrentWorkAreaAction):
     """
     """
@@ -96,4 +82,5 @@ class CopyAndOpenPublishInCurrentWorkAreaAction(CopyAndOpenInCurrentWorkAreaActi
             or not self.environment.publish_template):
             return False
 
-        return self._open_in_current_work_area(self.file.publish_path, self.environment.publish_template, parent_ui)
+        return self._open_in_current_work_area(self.file.publish_path, self.environment.publish_template, 
+                                               self.file, self.environment, parent_ui)

@@ -52,7 +52,7 @@ class WorkArea(object):
             finally:
                 self._lock.release()
     
-    settings_cache = _SettingsCache() 
+    _settings_cache = _SettingsCache() 
     
     def __init__(self, ctx=None):
         """
@@ -274,7 +274,7 @@ class WorkArea(object):
             return
         
         # first look in the cache:
-        other_settings = WorkArea.settings_cache.get(app.engine.name, app.name, context)
+        other_settings = WorkArea._settings_cache.get(app.engine.name, app.name, context)
         if other_settings == None:
             try:
                 # find settings for all instances of app in 
@@ -285,7 +285,7 @@ class WorkArea(object):
                     other_settings = sgtk.platform.find_app_settings(app.engine.name, "tk-multi-workfiles", app.sgtk, context)
             finally:
                 # make sure the cache is updated:
-                WorkArea.settings_cache.add(app.engine.name, app.name, context, other_settings or {})
+                WorkArea._settings_cache.add(app.engine.name, app.name, context, other_settings or {})
 
         if len(other_settings) == 1:
             return other_settings[0].get("settings")

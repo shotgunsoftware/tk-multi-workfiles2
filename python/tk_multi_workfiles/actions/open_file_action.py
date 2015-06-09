@@ -14,9 +14,14 @@ import os
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
+from sgtk import TankError
 
 from .file_action import FileAction
 from ..scene_operation import reset_current_scene, open_file, OPEN_FILE_ACTION
+from ..work_area import WorkArea
+from ..file_item import FileItem
+from ..file_finder import FileFinder
+from ..user_cache import g_user_cache
 
 class OpenFileAction(FileAction):
     """
@@ -128,13 +133,13 @@ class OpenFileAction(FileAction):
 class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
     """
     """
-    def _open_in_current_work_area(self, src_path, src_template, parent_ui):
+    def _open_in_current_work_area(self, src_path, src_template, file, src_work_area, parent_ui):
         """
         """
         # get info about the current work area:
         app = sgtk.platform.current_bundle()
-        dst_env = WorkArea(app.context)
-        if not dst_env.work_template:
+        dst_work_area = WorkArea(app.context)
+        if not dst_work_area.work_template:
             # should never happen!
             app.log_error("Unable to copy the file '%s' to the current work area as no valid "
                           "work template could be found" % src_path)
@@ -146,48 +151,118 @@ class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
         fields = src_template.get_fields(src_path)
 
         # get the template fields for the current context using the current work template: 
-        context_fields = dst_env.context.as_template_fields(dst_env.work_template)
+        context_fields = dst_work_area.context.as_template_fields(dst_work_area.work_template)
 
         # this will overide any context fields obtained from the source path:
         fields.update(context_fields)
 
-        # build the destination path from these fields:
-        dst_file_path = ""
-        try:
-            dst_file_path = dst_env.work_template.apply_fields(fields)
-        except TankError, e:
-            app.log_error("Unable to copy the file '%s' to the current work area as Toolkit is "
-                          "unable to build the destination file path: %s" % (src_path, e))
-            return False
+        # get the sandbox user name if there is one:
+        sandbox_user_name = None
+        if (src_work_area and src_work_area.contains_user_sandboxes
+            and src_work_area.context and src_work_area.context.user and g_user_cache.current_user
+            and src_work_area.context.user["id"] != g_user_cache.current_user["id"]):
+            sandbox_user_name = src_work_area.context.user.get("name", "Unknown")
 
-        if "version" in dst_env.work_template.keys:
+        src_version = None
+        dst_version = None
+        if "version" in dst_work_area.work_template.keys:
             # need to figure out the next version:
+            src_version = fields["version"]
 
             # build a file key from the fields: 
             file_key = FileItem.build_file_key(fields, 
-                                               dst_env.work_template, 
-                                               dst_env.version_compare_ignore_fields)
+                                               dst_work_area.work_template, 
+                                               dst_work_area.version_compare_ignore_fields)
     
             # look for all files that match this key:
             finder = FileFinder()
-            found_files = finder.find_files(dst_env.work_template, 
-                                            dst_env.publish_template, 
-                                            dst_env.context, 
+            found_files = finder.find_files(dst_work_area.work_template, 
+                                            dst_work_area.publish_template, 
+                                            dst_work_area.context, 
                                             file_key)
 
             # get the max version:
             versions = [file.version for file in found_files]
-            fields["version"] = (max(versions or [0]) + 1)
+            dst_version = (max(versions or [0]) + 1)
 
-            # and rebuild the path:
-            dst_file_path = dst_env.work_template.apply_fields(fields)
+            fields["version"] = dst_version
 
-        # Should there be a prompt here?
+        # confirm we should copy and open the file:
+        msg = "'%s" % file.name
+        if src_version:
+            msg += ", v%03d" % src_version
+        msg += "'"
+        if sandbox_user_name is not None:
+            msg += " is in %s's Work Area (%s)." % (sandbox_user_name, src_work_area.context)
+        else:
+            msg += " is in a different Work Area (%s)." % (src_work_area.context)
+        msg += ("\n\nWould you like to copy the file to your current Work Area (%s)" % (dst_work_area.context))
+        if dst_version:
+            msg += " as version v%03d" % dst_version
+        msg += " and open it from there?" 
+
+        answer = QtGui.QMessageBox.question(parent_ui, "Open file in current Work Area?", msg,
+                                            QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel)
+        if answer != QtGui.QMessageBox.Yes:
+            return False
+
+        # build the destination path from the fields:
+        dst_file_path = ""
+        try:
+            dst_file_path = dst_work_area.work_template.apply_fields(fields)
+        except TankError, e:
+            app.log_error("Unable to copy the file '%s' to the current work area as Toolkit is "
+                          "unable to build the destination file path: %s" % (src_path, e))
+            return False
 
         # copy and open the file:
         return self._do_copy_and_open(src_path, 
                                       dst_file_path, 
                                       version = None, 
                                       read_only = False, 
-                                      new_ctx = dst_env.context, 
+                                      new_ctx = dst_work_area.context, 
                                       parent_ui = parent_ui)
+
+class ContinueFromFileAction(OpenFileAction):
+    """
+    """
+    def __init__(self, label, file, file_versions, environment):
+        """
+        """
+        # Q. should the next version include the current version?
+        all_versions = [v for v, f in file_versions.iteritems()] + [file.version]
+        max_version = max(all_versions)
+        self._version = max_version+1
+        label = "%s (as v%03d)" % (label, self._version) 
+        OpenFileAction.__init__(self, label, file, file_versions, environment)
+    
+    def _continue_from(self, src_path, src_template, parent_ui):
+        """
+        """
+        # get the destination work area for the current user:
+        dst_work_area = self.environment.create_copy_for_user(g_user_cache.current_user)
+        app = sgtk.platform.current_bundle()
+        if not dst_work_area.work_template:
+            # should never happen!
+            app.log_error("Unable to copy the file '%s' to the current work area as no valid "
+                          "work template could be found" % src_path)
+            return False
+
+        # build dst path for the next version of this file:
+        fields = src_template.get_fields(src_path)
+
+        # get the template fields for the current context using the current work template: 
+        context_fields = dst_work_area.context.as_template_fields(dst_work_area.work_template)
+
+        # this will overide any context fields obtained from the source path:
+        fields.update(context_fields)
+
+        # update version:
+        fields["version"] = self._version
+
+        # build the destination path:
+        dst_path = dst_work_area.work_template.apply_fields(fields)
+
+        # copy and open the file:
+        return self._do_copy_and_open(src_path, dst_path, None, not self.file.editable, 
+                                      dst_work_area.context, parent_ui)
