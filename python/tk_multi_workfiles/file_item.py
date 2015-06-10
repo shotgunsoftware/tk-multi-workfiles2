@@ -57,7 +57,7 @@ class FileItem(QtCore.QObject):
         """
         ignore_fields = ignore_fields or []
         # always want to ignore 'version' and 'extension' if they are present in the fields
-        # dicrionary
+        # dictionary
         ignore_fields += ["version", "extension"]
 
         # populate the file key from the fields passed in that are included in
@@ -235,6 +235,7 @@ class FileItem(QtCore.QObject):
         self._is_published = publish._is_published
         self._publish_path = publish._publish_path
         self._publish_details = copy.deepcopy(publish._publish_details or {})
+        self.data_changed.emit()
 
     def update_from_work_file(self, work_file):
         """
@@ -242,6 +243,7 @@ class FileItem(QtCore.QObject):
         self._is_local = work_file._is_local
         self._path = work_file._path
         self._details = copy.deepcopy(work_file._details or {})
+        self.data_changed.emit()
         self.data_changed.emit()
 
     def set_not_work_file(self):
