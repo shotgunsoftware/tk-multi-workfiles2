@@ -590,23 +590,16 @@ class FileSaveForm(FileFormBase):
             return
 
         # generate the path to save to and do any pre-save preparation:
-        path = ""
+        path_to_save = ""
         try:
-            # Check to see if we are able to populate all context fields - if we aren't then
-            # this may mean we need to create folders before trying to save!
-            create_folders = False
+            # create folders if needed:
             try:
-                self._current_env.context.as_template_fields(self._current_env.work_template, 
-                                                             validate=True)
-            except TankError:
-                # lets try creating folders for the current env!
-                try:
-                    SaveAsFileAction.create_folders(self._current_env.context)
-                except TankError, e:
-                    app.log_exception("File Save - failed to create folders for context '%s'!" 
-                                       % self._current_env.context)
-                    raise TankError("Failed to create folders for context '%s' - %s" 
-                                    % (self._current_env.context, e))
+                SaveAsFileAction.create_folders_if_needed(self._current_env.context, self._current_env.work_template)
+            except TankError, e:
+                app.log_exception("File Save - failed to create folders for context '%s'!" 
+                                   % self._current_env.context)
+                raise TankError("Failed to create folders for context '%s' - %s" 
+                                % (self._current_env.context, e))
 
             # get the name, version and extension from the UI:
             name = value_to_str(self._ui.name_edit.text())
@@ -616,7 +609,6 @@ class FileSaveForm(FileFormBase):
             ext = self._extension_choices[ext_idx] if ext_idx >= 0 else ""
 
             # now attempt to generate the path to save to:
-            path_to_save = None
             version_to_save = None
             try:
                 # try to generate a path from these details:

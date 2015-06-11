@@ -23,9 +23,7 @@ class SaveAsFileAction(FileAction):
     def __init__(self, file_path, environment):
         """
         """
-        #file = FileItem(file_path, None, True, False, None, {})
-        file = FileItem(key=key, is_work_file=True, work_path=file_path)
-            
+        file = FileItem(key=None, is_work_file=True, work_path=file_path)
         FileAction.__init__(self, "Save As", file, None, environment)
 
     def execute(self, parent_ui):

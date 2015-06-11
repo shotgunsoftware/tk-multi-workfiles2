@@ -59,7 +59,7 @@ class OpenFileAction(FileAction):
                                            "The file\n\n%s\n\nCould not be found to open!" % src_path)
                 return False
             
-        if not new_ctx == self._app.context:
+        if new_ctx != self._app.context:
             # ensure folders exist.  This serves the
             # dual purpose of populating the path
             # cache and ensuring we can copy the file

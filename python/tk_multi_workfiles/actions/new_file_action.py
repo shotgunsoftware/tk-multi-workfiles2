@@ -51,34 +51,20 @@ class NewFileAction(FileAction):
             return False
 
         try:
-            # switch context
-            create_folders = not (self.environment.context == self._app.context)
-            if not create_folders:
-                # see if we have all fields for the work area:
-                try:
-                    ctx_fields = self.environment.context.as_template_fields(self.environment.work_area_template, 
-                                                                             validate=True)
-                except TankError:
-                    # this is fine and hopefully just means that folders haven't been created yet!
-                    create_folders = True
-    
-            if create_folders:
-                # ensure folders exist:
-                FileAction.create_folders(self.environment.context)
-    
-                # and ensure that we can find the context fields we need.  This
-                # will raise a TankError if something goes wrong.
-                try:
-                    self.environment.context.as_template_fields(self.environment.work_area_template, 
-                                                                validate=True)
-                except TankError, e:
-                    # log the original exception (useful for tracking down the problem) 
-                    self._app.log_exception("Unable to resolve template fields after folder creation!")
-                    # and raise a new, clearer exception for this specific use case:
-                    raise TankError("Unable to resolve template fields after folder creation!  This could mean "
-                                    "there is a mismatch between your folder schema and templates.  Please email "
-                                    "toolkitsupport@shotgunsoftware.com if you need help fixing this.") 
-    
+            # create folders and validate that we can save using the work template:
+            try:
+                # create folders if needed:
+                NewFileAction.create_folders_if_needed(self.environment.context, self.environment.work_template)
+                # and double check that we can get all context fields for the work template:
+                self.environment.context.as_template_fields(self.environment.work_template, validate=True)
+            except TankError, e:
+                # log the original exception (useful for tracking down the problem) 
+                self._app.log_exception("Unable to resolve template fields after folder creation!")
+                # and raise a new, clearer exception for this specific use case:
+                raise TankError("Unable to resolve template fields after folder creation!  This could mean "
+                                "there is a mismatch between your folder schema and templates.  Please email "
+                        "toolkitsupport@shotgunsoftware.com if you need help fixing this.") 
+
             # reset the current scene:
             if not reset_current_scene(self._app, NEW_FILE_ACTION, self.environment.context):
                 self._app.log_debug("Unable to perform New Scene operation after failing to reset scene!")
