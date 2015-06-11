@@ -34,7 +34,7 @@ class UserFilterMenu(QtGui.QMenu):
 
         self._current_user_id = g_user_cache.current_user["id"] if g_user_cache.current_user else None
         self._available_users = {}
-        self._checked_user_ids = set([self._current_user_id])
+        self._checked_user_ids = set()
 
         # build the base menu - this won't change:
         menu_action = QtGui.QWidgetAction(self)
@@ -47,7 +47,6 @@ class UserFilterMenu(QtGui.QMenu):
 
         self._current_user_action = QtGui.QAction("Show My Files", self)
         self._current_user_action.setCheckable(True)
-        self._current_user_action.setChecked(True)
         toggled_slot = lambda toggled, uid=self._current_user_id: self._on_user_toggled(uid, toggled)
         self._current_user_action.toggled.connect(toggled_slot)
         self.addAction(self._current_user_action)

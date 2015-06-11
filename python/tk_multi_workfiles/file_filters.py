@@ -8,11 +8,18 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+"""
+Collection of filters to be used when filtering files in the file views.
+"""
+
 import sgtk
 from sgtk.platform.qt import QtCore
 
+from .user_cache import g_user_cache
+
 class FileFilters(QtCore.QObject):
     """
+    Implementation of the FileFilters class
     """
     # signal emitted whenever something in the filters is changed
     changed = QtCore.Signal()
@@ -23,14 +30,16 @@ class FileFilters(QtCore.QObject):
     
     def __init__(self, parent=None):
         """
+        Construction
+
+        :param parent:  The parent QObject
         """
         QtCore.QObject.__init__(self, parent)
         
         self._show_all_versions = False
         self._filter_reg_exp = QtCore.QRegExp()
-        self._available_users = []
-        self._users = []
-        self._show_all_other_users = False
+        self._available_users = [g_user_cache.current_user] if g_user_cache.current_user else []
+        self._users = [g_user_cache.current_user] if g_user_cache.current_user else []
 
     #@property
     def _get_show_all_versions(self):

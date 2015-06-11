@@ -82,6 +82,8 @@ class FileListForm(QtGui.QWidget):
         self._ui.all_versions_cb.setChecked(file_filters.show_all_versions)
         self._ui.all_versions_cb.toggled.connect(self._on_show_all_versions_toggled)
 
+        self._ui.user_filter_btn.available_users = self._file_filters.available_users
+        self._ui.user_filter_btn.selected_users = self._file_filters.users
         self._ui.user_filter_btn.users_selected.connect(self._on_user_filter_btn_users_selected)
         # user filter button is hidden until needed
         self._ui.user_filter_btn.hide()
