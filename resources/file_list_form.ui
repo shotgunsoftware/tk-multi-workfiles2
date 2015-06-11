@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>667</width>
-    <height>631</height>
+    <width>675</width>
+    <height>632</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -148,7 +148,7 @@ height: 24;
       </layout>
      </item>
      <item>
-      <widget class="QPushButton" name="user_filter_btn">
+      <widget class="UserFilterButton" name="user_filter_btn">
        <property name="styleSheet">
         <string notr="true">#user_filter_btn {
 	width: 40;
@@ -292,6 +292,11 @@ background-color: rgb(255, 128, 0);
    <extends>QWidget</extends>
    <header>..framework_qtwidgets</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>UserFilterButton</class>
+   <extends>QPushButton</extends>
+   <header>..file_list.user_filter_button</header>
   </customwidget>
  </customwidgets>
  <resources>

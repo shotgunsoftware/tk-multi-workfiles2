@@ -224,13 +224,6 @@ class FileOpenForm(FileFormBase):
         """
         if not file or not env:
             return []
-
-        # find all file versions for the environment and the current user.  The reason we look for
-        # files for the current user rather than the user in the specified environment is because
-        # all the file actions  
-        #current_user_env = env.create_copy_for_user(g_user_cache.current_user)
-        #file_versions = self._file_model.get_file_versions(file.key, current_user_env) or {}
-
         file_actions = self._file_action_factory.get_actions(
                                         file,
                                         env,
@@ -238,7 +231,6 @@ class FileOpenForm(FileFormBase):
                                         workfiles_visible=self._ui.browser.work_files_visible, 
                                         publishes_visible=self._ui.browser.publishes_visible
                                         )
-
         return file_actions
 
     def _populate_open_menu(self, menu, file_actions):

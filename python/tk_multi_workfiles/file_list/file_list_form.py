@@ -19,7 +19,6 @@ from sgtk.platform.qt import QtCore, QtGui
 
 from ..file_model import FileModel
 from ..ui.file_list_form import Ui_FileListForm
-from .user_sandbox_menu import UserSandboxMenu
 from .file_proxy_model import FileProxyModel
 from .file_list_item_delegate import FileListItemDelegate
 from ..util import get_model_data
@@ -44,15 +43,13 @@ class FileListForm(QtGui.QWidget):
     # Signal emitted whenever a context menu is required for a file
     file_context_menu_requested = QtCore.Signal(object, object, QtCore.QPoint)# file, env, pos
 
-    def __init__(self, search_label, show_work_files=True, show_publishes=False, show_all_versions=False, parent=None):
+    def __init__(self, search_label, file_filters, show_work_files=True, show_publishes=False, parent=None):
         """
         Construction
         
         :param search_label:    The hint label to be displayed on the search control
         :show_work_files:       True if work files should be displayed in this control, otherwise False
         :show_publishes:        True if publishes should be displayed in this control, otherwise False
-        :show_all_versions:     True if all versions should be shown in this control, otherwise False.  This
-                                is this initial state for the view
         :param parent:          The parent QWidget for this control
         """
         QtGui.QWidget.__init__(self, parent)
@@ -62,11 +59,15 @@ class FileListForm(QtGui.QWidget):
         # and keep track of the currently selected item
         self._current_item_ref = None
 
+        self._file_filters = file_filters
+        if self._file_filters:
+            self._file_filters.changed.connect(self._on_file_filters_changed)
+            self._file_filters.available_users_changed.connect(self._on_file_filters_available_users_changed)
+
         self._show_work_files = show_work_files
         self._show_publishes = show_publishes
-        self._show_all_versions = show_all_versions
         self._filter_model = None
-        self._enable_user_sandboxes = True
+        self._enable_user_filtering = True
         
         # set up the UI
         self._ui = Ui_FileListForm()
@@ -78,9 +79,13 @@ class FileListForm(QtGui.QWidget):
         self._ui.details_radio_btn.setEnabled(False) # (AD) - temp
         self._ui.details_radio_btn.toggled.connect(self._on_view_toggled)
 
-        self._ui.all_versions_cb.setChecked(show_all_versions)
+        self._ui.all_versions_cb.setChecked(file_filters.show_all_versions)
         self._ui.all_versions_cb.toggled.connect(self._on_show_all_versions_toggled)
-        
+
+        self._ui.user_filter_btn.users_selected.connect(self._on_user_filter_btn_users_selected)
+        # user filter button is hidden until needed
+        self._ui.user_filter_btn.hide()
+
         self._ui.file_list_view.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
         self._ui.file_list_view.doubleClicked.connect(self._on_item_double_clicked)
         
@@ -89,16 +94,6 @@ class FileListForm(QtGui.QWidget):
         
         item_delegate = FileListItemDelegate(self._ui.file_list_view)
         self._ui.file_list_view.setItemDelegate(item_delegate)
-
-        # user filter menu:
-        self._user_sandbox_menu = UserSandboxMenu(self)
-        self._user_sandbox_menu.users_selected.connect(self._on_sandbox_users_selected)
-        self._ui.user_filter_btn.setMenu(self._user_sandbox_menu)
-        self._update_user_filter_btn()
-
-        # user button is off by default until we find a work area with a user that isn't
-        # the current user.
-        self._ui.user_filter_btn.hide()
 
     @property
     def work_files_visible(self):
@@ -149,14 +144,13 @@ class FileListForm(QtGui.QWidget):
             self._ui.all_versions_cb.hide()
             self._on_show_all_versions_toggled(False)
 
-    def enable_show_user_sandboxes(self, enable):
+    def enable_user_filtering(self, enable):
         """
         """
-        self._enable_user_sandboxes = enable
-        if not self._enable_user_sandboxes:
+        self._enable_user_filtering = enable
+        if not self._enable_user_filtering:
             # make sure user button is hidden:
             self._ui.user_filter_btn.hide()
-        self._update_user_filter_btn()
 
     def select_file(self, file, context):
         """
@@ -182,16 +176,13 @@ class FileListForm(QtGui.QWidget):
 
         :param model:    The FileModel model to attach to the control to
         """
-        show_all_versions = self._ui.all_versions_cb.isVisible() and self._ui.all_versions_cb.isChecked()
-        model.available_sandbox_users_changed.connect(self._on_available_sandbox_users_changed)
-
         # create a filter model around the source model:
-        self._filter_model = FileProxyModel(show_work_files=self._show_work_files, 
+        self._filter_model = FileProxyModel(filters = self._file_filters,
+                                            show_work_files=self._show_work_files,
                                             show_publishes=self._show_publishes,
-                                            show_all_versions = show_all_versions,
                                             parent=self)
-        self._filter_model.rowsInserted.connect(self._on_filter_model_rows_inserted)
         self._filter_model.setSourceModel(model)
+        self._filter_model.rowsInserted.connect(self._on_filter_model_rows_inserted)
 
         # set automatic sorting on the model:
         self._filter_model.sort(0, QtCore.Qt.DescendingOrder)
@@ -262,6 +253,29 @@ class FileListForm(QtGui.QWidget):
 
                 # emit the signal
                 self.file_selected.emit(selected_file, env_details, FileListForm.SYSTEM_SELECTED)
+
+    def _on_file_filters_changed(self):
+        """
+        Slot triggered whenever the file filters emits the changed signal.
+        """
+        # update UI based on the new filter settings:
+        self._ui.all_versions_cb.setChecked(self._file_filters.show_all_versions)
+        self._ui.search_ctrl.search_text = (self._file_filters.filter_reg_exp.pattern() 
+                                                if self._file_filters.filter_reg_exp else "")
+
+        self._ui.user_filter_btn.selected_users = self._file_filters.users
+
+    def _on_file_filters_available_users_changed(self, users):
+        """
+        Slot triggered when the list of available users in the file filters change.
+
+        :param users:   The new list of available users
+        """
+        if self._enable_user_filtering and users and not self._ui.user_filter_btn.isVisible():
+            self._ui.user_filter_btn.show()
+
+        # update user filter button
+        self._ui.user_filter_btn.available_users = users
 
     def _on_context_menu_requested(self, pnt):
         """
@@ -360,7 +374,7 @@ class FileListForm(QtGui.QWidget):
         try:
             # update the proxy filter search text:
             filter_reg_exp = QtCore.QRegExp(search_text, QtCore.Qt.CaseInsensitive, QtCore.QRegExp.FixedString)
-            self._filter_model.setFilterRegExp(filter_reg_exp)
+            self._file_filters.filter_reg_exp = filter_reg_exp
         finally:
             # and update the selection - this will restore the original selection if possible.
             self._update_selection(prev_selected_item)
@@ -371,14 +385,26 @@ class FileListForm(QtGui.QWidget):
 
         :param checked: True if the checkbox has been checked, otherwise False
         """
-        if not self._filter_model:
-            return
-        
         # reset the current selection and get the previously selected item:
         prev_selected_item = self._reset_selection()
         try:
             # update the filter model:
-            self._filter_model.show_all_versions = checked
+            self._file_filters.show_all_versions = checked
+        finally:
+            # and update the selection - this will restore the original selection if possible.
+            self._update_selection(prev_selected_item)
+
+    def _on_user_filter_btn_users_selected(self, users):
+        """
+        Slot triggered when the selected users in the users menu change.
+
+        :param users:   The new list of selected users
+        """
+        # reset the current selection and get the previously selected item:
+        prev_selected_item = self._reset_selection()
+        try:
+            # update the filter model:
+            self._file_filters.users = users
         finally:
             # and update the selection - this will restore the original selection if possible.
             self._update_selection(prev_selected_item)
@@ -431,61 +457,4 @@ class FileListForm(QtGui.QWidget):
 
         # emit file selected signal:
         self.file_selected.emit(selected_file, env_details, FileListForm.USER_SELECTED)
-
-    def _update_user_filter_btn(self):
-        """
-        """
-        if not self._enable_user_sandboxes:
-            # nothing to do!
-            return
-
-        USER_STYLE_NONE = "none"
-        USER_STYLE_CURRENT = "current"
-        USER_STYLE_OTHER = "other"
-        USER_STYLE_ALL = "all"
-
-        # figure out the style to use:
-        user_style = USER_STYLE_NONE
-        tooltip = "Not showing files for any users!"
-
-        if self._user_sandbox_menu.current_user_selected:
-            if self._user_sandbox_menu.other_users_selected:
-                user_style = USER_STYLE_ALL
-                tooltip = "Showing my files and files for others"
-            else:
-                user_style = USER_STYLE_CURRENT
-                tooltip = "Showing only my files"
-        elif self._user_sandbox_menu.other_users_selected:
-            user_style = USER_STYLE_OTHER
-            tooltip = "Showing only files for others"
-
-        # set the property on the filter btn:
-        self._ui.user_filter_btn.setProperty("user_style", user_style)
-
-        # unpolish/repolish to update the style sheet:
-        self._ui.user_filter_btn.style().unpolish(self._ui.user_filter_btn)
-        self._ui.user_filter_btn.ensurePolished()
-        self._ui.user_filter_btn.repaint()
-        self._ui.user_filter_btn.setToolTip(tooltip)
-
-    def _on_sandbox_users_selected(self, users):
-        """
-        """
-        model = self._filter_model.sourceModel().set_users(users)
-        self._update_user_filter_btn()
-
-    def _on_available_sandbox_users_changed(self, users):
-        """
-        """
-        if not self._enable_user_sandboxes:
-            # don't bother doing anything!
-            return
-
-        if users and len(users) > 1:
-            # make sure the user button is visible:
-            self._ui.user_filter_btn.show()
-
-        # update user menu
-        self._user_sandbox_menu.populate_users(users)
-        self._update_user_filter_btn()
 

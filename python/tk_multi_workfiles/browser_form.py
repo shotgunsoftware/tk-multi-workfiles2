@@ -25,6 +25,9 @@ from .util import value_to_str
 from .ui.browser_form import Ui_BrowserForm
 from .framework_qtwidgets import Breadcrumb
 
+from .file_list.file_proxy_model import FileProxyModel
+from .file_filters import FileFilters
+
 class BrowserForm(QtGui.QWidget):
     """
     UI for saving a work file
@@ -48,7 +51,7 @@ class BrowserForm(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
 
         self._enable_show_all_versions = True
-        self._enable_show_user_sandboxes = True
+        self._enable_user_filtering = True
 
         #self._suppress_entity_selected_signals = False
         self._file_model = None
@@ -60,6 +63,9 @@ class BrowserForm(QtGui.QWidget):
 
         self._ui.file_browser_tabs.currentChanged.connect(self._on_file_tab_changed)
         self._ui.task_browser_tabs.currentChanged.connect(self._on_task_tab_changed)
+        
+        self._file_filters = FileFilters()
+        self._file_filters.users_changed.connect(self._on_file_filters_users_changed)
 
     @property
     def work_files_visible(self):
@@ -90,16 +96,15 @@ class BrowserForm(QtGui.QWidget):
             widget = self._ui.file_browser_tabs.widget(ti)
             widget.enable_show_all_versions(self._enable_show_all_versions)
 
-    def enable_show_user_sandboxes(self, enable):
+    def enable_user_filtering(self, enable):
         """
         """
-        if self._enable_show_user_sandboxes == enable:
+        if self._enable_user_filtering == enable:
             return
-        
-        self._enable_show_user_sandboxes = enable
+        self._enable_user_filtering = enable
         for ti in range(self._ui.file_browser_tabs.count()):
             widget = self._ui.file_browser_tabs.widget(ti)
-            widget.enable_show_user_sandboxes(self._enable_show_user_sandboxes)
+            widget.enable_user_filtering(self._enable_user_filtering)
             
     def closeEvent(self, event):
         """
@@ -131,36 +136,47 @@ class BrowserForm(QtGui.QWidget):
         if file_model:
             # attach file model to the file views:
             self._file_model = file_model
-            
+            self._file_model.available_sandbox_users_changed.connect(self._on_available_sandbox_users_changed)
+        
             # add an 'all files' tab:
-            all_files_form = FileListForm("All Files", show_work_files=True, show_publishes=True, parent=self)
+            all_files_form = FileListForm("All Files", self._file_filters, show_work_files=True, show_publishes=True, parent=self)
             self._ui.file_browser_tabs.addTab(all_files_form, "All")
             all_files_form.enable_show_all_versions(self._enable_show_all_versions)
-            all_files_form.enable_show_user_sandboxes(self._enable_show_user_sandboxes)
+            all_files_form.enable_user_filtering(self._enable_user_filtering)
             all_files_form.set_model(self._file_model)
             all_files_form.file_selected.connect(self._on_file_selected)
             all_files_form.file_double_clicked.connect(self.file_double_clicked)
             all_files_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
-            
+
             # create the workfiles proxy model & form:
-            work_files_form = FileListForm("Work Files", show_work_files=True, show_publishes=False, parent=self)
+            work_files_form = FileListForm("Work Files", self._file_filters, show_work_files=True, show_publishes=False, parent=self)
             self._ui.file_browser_tabs.addTab(work_files_form, "Working")
             work_files_form.enable_show_all_versions(self._enable_show_all_versions)
-            work_files_form.enable_show_user_sandboxes(self._enable_show_user_sandboxes)
+            work_files_form.enable_user_filtering(self._enable_user_filtering)
             work_files_form.set_model(self._file_model)
             work_files_form.file_selected.connect(self._on_file_selected)
             work_files_form.file_double_clicked.connect(self.file_double_clicked)
             work_files_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
-                
+
             # create the publish proxy model & form:
-            publishes_form = FileListForm("Publishes", show_work_files=False, show_publishes=True, parent=self)
+            publishes_form = FileListForm("Publishes", self._file_filters, show_work_files=False, show_publishes=True, parent=self)
             self._ui.file_browser_tabs.addTab(publishes_form, "Publishes")
             publishes_form.enable_show_all_versions(self._enable_show_all_versions)
-            publishes_form.enable_show_user_sandboxes(self._enable_show_user_sandboxes)
+            publishes_form.enable_user_filtering(self._enable_user_filtering)
             publishes_form.set_model(self._file_model)
             publishes_form.file_selected.connect(self._on_file_selected)
             publishes_form.file_double_clicked.connect(self.file_double_clicked)
             publishes_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
+
+    def _on_available_sandbox_users_changed(self, users):
+        """
+        """
+        self._file_filters.available_users = users
+        
+    def _on_file_filters_users_changed(self, users):
+        """
+        """
+        self._file_model.set_users(users)
 
     def select_work_area(self, context):
         """

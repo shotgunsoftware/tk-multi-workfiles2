@@ -13,6 +13,8 @@ from sgtk.platform.qt import QtCore, QtGui
 
 from .framework_qtwidgets import HierarchicalFilteringProxyModel
 
+from .util import get_model_str
+
 class EntityProxyModel(HierarchicalFilteringProxyModel):
     """
     """
@@ -22,33 +24,45 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
         """
         HierarchicalFilteringProxyModel.__init__(self, parent)
         self._compare_fields = compare_sg_fields
-                   
-    def _is_item_accepted(self, item, parent_accepted):
+
+    def _is_row_accepted(self, src_row, src_parent_idx, parent_accepted):
         """
+        Overriden from base class - determines if the specified row should be accepted or not by
+        the filter.
+
+        :param src_row:         The row in the source model to filter
+        :param src_parent_idx:  The parent QModelIndex instance to filter
+        :param parent_accepted: True if a parent item has been accepted by the filter
+        :returns:               True if this index should be accepted, otherwise False
         """
         # if the parent is accepted then this node is accepted by default:
         if parent_accepted:
             return True 
-        
+
         reg_exp = self.filterRegExp()
         if reg_exp.isEmpty():
             # early out
             return True        
-        
+
+        src_idx = self.sourceModel().index(src_row, 0, src_parent_idx)
+        if not src_idx.isValid():
+            return False
+
         # test to see if the item 'text' matches:
-        if reg_exp.indexIn(item.text()) != -1:
+        if reg_exp.indexIn(get_model_str(src_idx)) != -1:
             # found a match so early out!
             return True
 
         if self._compare_fields:
             # see if we have sg data:
+            item = src_idx.model().itemFromIndex(src_idx)
             sg_data = item.get_sg_data()
             if sg_data:
                 return self._sg_data_matches_r(sg_data, self._compare_fields, reg_exp)
-        
+
         # default is to not match!
         return False
-                    
+
     def _sg_data_matches_r(self, sg_data, compare_fields, reg_exp):
         """
         """

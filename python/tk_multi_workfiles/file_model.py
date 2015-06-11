@@ -363,6 +363,7 @@ class FileModel(QtGui.QStandardItemModel):
     def set_entity_searches(self, searches):
         """
         """
+        #print "Setting entity searches on model to: %s" % [s.name for s in searches if s]
         # stop any in-progress searches:
         self._stop_in_progress_searches()
 
@@ -377,11 +378,19 @@ class FileModel(QtGui.QStandardItemModel):
     def set_users(self, users):
         """
         """
+        #print "Setting users on model to: %s" % [u["name"] for u in users if u]
         # stop any in-progress searches:
         self._stop_in_progress_searches()
 
         # update groups:
-        self._current_users = users or []
+        self._current_users = list(users or [])
+        
+        # we _always_ search for the current user:
+        if g_user_cache.current_user:
+            user_ids = [user["id"] for user in users]
+            if g_user_cache.current_user["id"] not in user_ids:
+                self._current_users.insert(0, g_user_cache.current_user)
+        
         self._update_groups()
 
         # start searches for all items/users in the model:
@@ -659,6 +668,7 @@ class FileModel(QtGui.QStandardItemModel):
 
         # update the cache:
         valid_files_and_items = [f for k, f in files_and_items.iteritems() if k not in file_versions_to_remove]
+        #print "Updating cache with files and items: %s" % len(valid_files_and_items)
         self._search_cache.add(environment, valid_files_and_items)
 
         # remove items:
@@ -670,6 +680,13 @@ class FileModel(QtGui.QStandardItemModel):
         if new_rows:
             # we have new rows so lets add them to the model:
             parent_item.appendRows(new_rows)
+            
+        # emit data changed for all rows under this parent:
+        # This didn't work - thought it might be a bit too easy!
+        #row_count = parent_item.rowCount()
+        #if row_count:
+        #    parent_item.emitDataChanged()
+        #    self.dataChanged.emit(parent_item.child(0).index(), parent_item.child(row_count-1).index())
 
     def _on_finder_work_area_found(self, search_id, work_area):
         """
@@ -687,6 +704,7 @@ class FileModel(QtGui.QStandardItemModel):
         self._entity_work_areas[entity_key] = work_area
 
         # consolidate list of sandbox users for all current work areas:
+        have_user_sandboxes = False
         users_by_id = {}
         handled_entities = set()
         for search in self._in_progress_searches.values():
@@ -696,12 +714,14 @@ class FileModel(QtGui.QStandardItemModel):
             handled_entities.add(entity_key)
 
             area = self._entity_work_areas.get(entity_key)
-            if area:
+            if area and area.contains_user_sandboxes:
+                have_user_sandboxes = True
                 for user in area.sandbox_users:
                     if user:
                         users_by_id[user["id"]] = user
 
-        self.available_sandbox_users_changed.emit(users_by_id.values())
+        if have_user_sandboxes:
+            self.available_sandbox_users_changed.emit(users_by_id.values())
 
     def _on_finder_files_found(self, search_id, file_list, environment):
         """

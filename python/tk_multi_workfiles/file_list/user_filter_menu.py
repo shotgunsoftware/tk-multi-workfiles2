@@ -16,7 +16,7 @@ import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 from ..user_cache import g_user_cache
 
-class UserSandboxMenu(QtGui.QMenu):
+class UserFilterMenu(QtGui.QMenu):
     """
     """
     users_selected = QtCore.Signal(object)# list of users
@@ -45,12 +45,12 @@ class UserSandboxMenu(QtGui.QMenu):
         self.addAction(menu_action)
         self.addSeparator()
 
-        action = QtGui.QAction("Show My Files", self)
-        action.setCheckable(True)
-        action.setChecked(True)
+        self._current_user_action = QtGui.QAction("Show My Files", self)
+        self._current_user_action.setCheckable(True)
+        self._current_user_action.setChecked(True)
         toggled_slot = lambda toggled, uid=self._current_user_id: self._on_user_toggled(uid, toggled)
-        action.toggled.connect(toggled_slot)
-        self.addAction(action)
+        self._current_user_action.toggled.connect(toggled_slot)
+        self.addAction(self._current_user_action)
 
         self._all_users_action = QtGui.QAction("Show Files For All Other Users", self)
         self._all_users_action.setCheckable(True)
@@ -64,6 +64,8 @@ class UserSandboxMenu(QtGui.QMenu):
         menu_action.setDefaultWidget(menu_label)
         self.addAction(menu_action)
         self.addSeparator()
+        
+        self._no_other_users_action = self._add_no_other_users_action()
 
     @property
     def current_user_selected(self):
@@ -80,10 +82,61 @@ class UserSandboxMenu(QtGui.QMenu):
         return (len(selected_user_ids) > 1 
                 or (len(selected_user_ids) == 1 and next(iter(selected_user_ids)) != self._current_user_id)) 
 
-    def populate_users(self, users):
+    #@property
+    def _get_selected_users(self):
+        available_user_ids = set([user_id for user_id, details in self._available_users.iteritems() if details.available])
+        selected_user_ids = self._checked_user_ids & available_user_ids
+        users = [self._available_users[id].user for id in selected_user_ids]
+        if self._current_user_id in self._checked_user_ids:
+            users = [g_user_cache.current_user] + users
+        return users
+    #selected_users.setter
+    def _set_selected_users(self, users):
+        self._update_selected_users(users)
+    selected_users = property(_get_selected_users, _set_selected_users)
+
+    #@property
+    def _get_available_users(self):
+        available_users = set([details.user for details in self._available_users.values() if details.available])
+        return available_users
+    def _set_available_users(self, users):
+        self._populate_available_users(users)
+    available_users = property(_get_available_users, _set_available_users)
+
+    def _update_selected_users(self, users):
         """
         """
+        new_checked_user_ids = set()
+        user_ids = set([u["id"] for u in users if u])
+        for uid in user_ids:
+            details = self._available_users.get(uid)
+            if not details or not details.available:
+                continue
+            details.action.setChecked(True)
+            new_checked_user_ids.add(uid)
+        
+        if self._current_user_id in user_ids:
+            self._current_user_action.setChecked(True)
+            new_checked_user_ids.add(self._current_user_id)
+        else:
+            self._current_user_action.setChecked(False)
+        
+        to_uncheck = self._checked_user_ids - new_checked_user_ids
+        for uid in to_uncheck:
+            details = self._available_users.get(uid)
+            if not details or not details.available:
+                continue
+            details.action.setChecked(False)
+
+        self._checked_user_ids = new_checked_user_ids
+        
+    def _populate_available_users(self, users):
+        """
+        """
+        all_users_checked = self._all_users_action.isChecked()
+
         # compile a list of users with existing actions if they have them:
+        users_changed = False
         available_users = {}
         user_names_and_ids = []
         for user in users:
@@ -100,8 +153,14 @@ class UserSandboxMenu(QtGui.QMenu):
             user_details = self._available_users.get(user_id)
             if user_details is None:
                 # new user not currently in the menu:
-                user_details = UserSandboxMenu._User(user)
-            user_details.available = True
+                user_details = UserFilterMenu._User(user)
+            elif not user_details.available:
+                # this was a previously unavailable user!
+                user_details.available = True
+                if user_details.action.isChecked():
+                    # enabling a previously disabled checked user so the users will change
+                    self._checked_user_ids.add(user_id)
+                    users_changed = True
 
             available_users[user_id] = user_details
             user_names_and_ids.append((user_name, user_id))
@@ -126,9 +185,7 @@ class UserSandboxMenu(QtGui.QMenu):
         # sort list of users being displayed in the menu alphabetically:
         user_names_and_ids.sort(lambda x, y: cmp(x[0].lower(), y[0].lower()) or cmp(x[1], y[1]))
 
-        # add menu items for users as needed:
-        all_users_checked = self._all_users_action.isChecked()
-        users_changed = False
+        # add menu items for new users as needed:
         actions_to_insert = []
         for user_name, user_id in user_names_and_ids:
             user_details = available_users.get(user_id)
@@ -168,11 +225,31 @@ class UserSandboxMenu(QtGui.QMenu):
         self._available_users = available_users
 
         # update checked state of all users action:
-        self._update_all_users_checked_state()
+        self._update_all_users_action()
+
+        # update 'no other users' action:
+        have_other_users = bool(self._available_users)
+        if have_other_users and self._no_other_users_action:
+            self.removeAction(self._no_other_users_action)
+            self._no_other_users_action = None
+        elif not have_other_users and not self._no_other_users_action:
+            self._no_other_users_action = self._add_no_other_users_action()
 
         if users_changed:
             # list of selected users has changed so emit changed signal:
             self._emit_users_selected()
+
+    def _add_no_other_users_action(self):
+        """
+        """
+        action = QtGui.QWidgetAction(self)
+        menu_label = QtGui.QLabel("<i>(No Other Users Found!)</i>", self)
+        ss = "QLabel {margin: 3px;}"
+        menu_label.setStyleSheet(ss)
+        action.setDefaultWidget(menu_label)
+        action.setEnabled(False)
+        self.addAction(action)
+        return action
 
     def clear(self):
         """
@@ -207,26 +284,37 @@ class UserSandboxMenu(QtGui.QMenu):
                 users_changed = True
 
         # make sure that the 'all users' checkbox is up-to-date:
-        self._update_all_users_checked_state()
+        self._update_all_users_action()
 
         if users_changed:
             self._emit_users_selected()
 
-    def _update_all_users_checked_state(self):
+    def _update_all_users_action(self):
         """
         """
+        all_users_checked = True
+        all_users_enabled = False
         if not self._available_users:
-            return
+            # there are no available users so checkbox should be disabled and
+            # unchecked:
+            all_users_enabled = False
+            all_users_checked = False
+        else:
+            # figure out if we have any un-checked available users:
+            for user_details in self._available_users.values():
+                if not user_details.action.isChecked():
+                    all_users_checked = False
+                if user_details.available:
+                    all_users_enabled = True
+                if all_users_enabled and not all_users_checked:
+                    break
 
-        all_checked = True
-        for user_details in self._available_users.values():
-            if not user_details.action.isChecked():
-                all_checked = False
-
-        if self._all_users_action.isChecked() != all_checked:
+        # update action:
+        self._all_users_action.setEnabled(all_users_enabled)
+        if self._all_users_action.isChecked() != all_users_checked:
             signals_blocked = self._all_users_action.blockSignals(True)
             try:
-                self._all_users_action.setChecked(all_checked)
+                self._all_users_action.setChecked(all_users_checked)
             finally:
                 self._all_users_action.blockSignals(signals_blocked)
 
@@ -234,28 +322,23 @@ class UserSandboxMenu(QtGui.QMenu):
         """
         """
         signals_blocked = self.blockSignals(True)
-        users_changed = False
+        #users_changed = False
         try:
             # toggle all other user actions:
             for user_details in self._available_users.values():
                 if user_details.action.isChecked() != toggled:
-                    users_changed= True
+                    #users_changed= True
                     user_details.action.setChecked(toggled)
         finally:
             self.blockSignals(signals_blocked)
 
-        if users_changed:
-            self._emit_users_selected()
+        #if users_changed:
+        self._emit_users_selected()
 
     def _emit_users_selected(self):
         """
         """
-        available_user_ids = set([user_id for user_id, details in self._available_users.iteritems() if details.available])
-        selected_user_ids = self._checked_user_ids & available_user_ids
-        users = [self._available_users[id].user for id in selected_user_ids]
-        if self._current_user_id in self._checked_user_ids:
-            users = [g_user_cache.current_user] + users
-        self.users_selected.emit(users)
+        self.users_selected.emit(self.selected_users)
 
 
 

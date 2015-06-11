@@ -19,23 +19,40 @@ from ..util import get_model_data, get_model_str
 class FileProxyModel(HierarchicalFilteringProxyModel):
     """
     """
-    def __init__(self, show_work_files=True, show_publishes=True, show_all_versions=False, parent=None):
+    filtering_changed = QtCore.Signal()
+
+    def __init__(self, filters, show_work_files=True, show_publishes=True, parent=None):#, show_all_versions=False, filtered_users=None, parent=None):
         """
         """
         HierarchicalFilteringProxyModel.__init__(self, parent)
         
-        self._show_all_versions = show_all_versions
+        self._filters = filters
+        if self._filters:
+            self._filters.changed.connect(self._on_filters_changed)
+        
+        #self._show_all_versions = show_all_versions
         self._show_publishes = show_publishes
         self._show_workfiles = show_work_files
-        
-    #@property
-    def _get_show_all_versions(self):
-        return self._show_all_versions
-    #@show_all_versions.setter
-    def _set_show_all_versions(self, show):
-        self._show_all_versions = show
+        #self._filtered_user_ids = set()
+        #self.set_filtered_users(filtered_users)
+
+    def _on_filters_changed(self):
+        """
+        """
+        if self._filters.filter_reg_exp != self.filterRegExp():
+            HierarchicalFilteringProxyModel.setFilterRegExp(self, self._filters.filter_reg_exp)
         self.invalidateFilter()
-    show_all_versions=property(_get_show_all_versions, _set_show_all_versions)
+
+    ##@property
+    #def _get_show_all_versions(self):
+    #    return self._show_all_versions
+    ##@show_all_versions.setter
+    #def _set_show_all_versions(self, show):
+    #    if show != self._show_all_versions:
+    #        self._show_all_versions = show
+    #        self.invalidateFilter()
+    #        self.filtering_changed.emit()
+    #show_all_versions=property(_get_show_all_versions, _set_show_all_versions)
 
     #@property
     def _get_show_publishes(self):
@@ -55,20 +72,58 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
         self.invalidateFilter()
     show_work_files=property(_get_show_work_files, _set_show_work_files)
 
-    def _is_item_accepted(self, item, parent_accepted):
+    #def set_filtered_users(self, users):
+    #    """
+    #    """
+    #    if users:
+    #        self._filtered_user_ids = set([user["id"] for user in users if user])
+    #    else:
+    #        self._filtered_user_ids = set()
+    #    self.invalidateFilter()
+
+    def setFilterRegExp(self, reg_exp):
         """
         """
-        file_item = get_model_data(item, FileModel.FILE_ITEM_ROLE)
+        # update the filter string in the filters instance.  This will result
+        # in the filters.changed signal being emitted which will in turn update
+        # the regex in this model.
+        self._filters.filter_reg_exp = reg_exp
+        #if reg_exp != self.filterRegExp():
+        #    HierarchicalFilteringProxyModel.setFilterRegExp(self, reg_exp)
+        #    self.filtering_changed.emit()
+
+    def _is_row_accepted(self, src_row, src_parent_idx, parent_accepted):
+        """
+        Overriden from base class - determines if the specified row should be accepted or not by
+        the filter.
+
+        :param src_row:         The row in the source model to filter
+        :param src_parent_idx:  The parent QModelIndex instance to filter
+        :param parent_accepted: True if a parent item has been accepted by the filter
+        :returns:               True if this index should be accepted, otherwise False
+        """
+        src_idx = self.sourceModel().index(src_row, 0, src_parent_idx)
+        if not src_idx.isValid():
+            return False
+
+        file_item = get_model_data(src_idx, FileModel.FILE_ITEM_ROLE)
         if file_item:
+            ## Filter based on showing work files, publishes or both:
             if (not (file_item.is_local and self._show_workfiles)
                 and not (file_item.is_published and self._show_publishes)):
                 return False
 
-            if not self._show_all_versions:
+            work_area = get_model_data(src_idx, FileModel.WORK_AREA_ROLE)
+            # Filter based on user
+            #if work_area.context and work_area.context.user:
+            #    if work_area.context.user["id"] not in self._filtered_user_ids:
+            #        return False
+
+            if not self._filters.show_all_versions:
+                # Filter based on latest version.
                 src_model = self.sourceModel()
                 # need to check if this is the latest version of the file:
-                env = get_model_data(item, FileModel.WORK_AREA_ROLE)
-                all_versions = src_model.get_file_versions(file_item.key, env) or {}
+                all_versions = src_model.get_file_versions(file_item.key, work_area) or {}
 
                 visible_versions = [v for v, file in all_versions.iteritems() 
                                         if (file.is_local and self._show_workfiles) 
@@ -91,7 +146,7 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
             if reg_exp.indexIn(file_item.name) != -1:
                 return True
         else:
-            if reg_exp.indexIn(item.text()) != -1:
+            if reg_exp.indexIn(get_model_str(src_idx)) != -1:
                 return True
 
         # default is to not match:

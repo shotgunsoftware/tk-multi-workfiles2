@@ -11,7 +11,7 @@ from sgtk.platform.qt import QtCore, QtGui
 class Ui_FileListForm(object):
     def setupUi(self, FileListForm):
         FileListForm.setObjectName("FileListForm")
-        FileListForm.resize(667, 631)
+        FileListForm.resize(675, 632)
         self.verticalLayout = QtGui.QVBoxLayout(FileListForm)
         self.verticalLayout.setSpacing(4)
         self.verticalLayout.setContentsMargins(2, 6, 2, 2)
@@ -79,7 +79,7 @@ class Ui_FileListForm(object):
         self.details_radio_btn.setObjectName("details_radio_btn")
         self.horizontalLayout.addWidget(self.details_radio_btn)
         self.horizontalLayout_3.addLayout(self.horizontalLayout)
-        self.user_filter_btn = QtGui.QPushButton(FileListForm)
+        self.user_filter_btn = UserFilterButton(FileListForm)
         self.user_filter_btn.setStyleSheet("#user_filter_btn {\n"
 "    width: 40;\n"
 "    height: 24;\n"
@@ -177,5 +177,6 @@ class Ui_FileListForm(object):
         self.all_versions_cb.setText(QtGui.QApplication.translate("FileListForm", "All Versions", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..file_list.file_details_view import FileDetailsView
+from ..file_list.user_filter_button import UserFilterButton
 from ..framework_qtwidgets import GroupedListView, SearchWidget
 from . import resources_rc
