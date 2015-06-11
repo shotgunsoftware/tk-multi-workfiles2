@@ -172,11 +172,13 @@ class BrowserForm(QtGui.QWidget):
     def _on_available_sandbox_users_changed(self, users):
         """
         """
+        #print "Available sandbox users: %s" % [u["name"].split()[0] for u in users if u]
         self._file_filters.available_users = users
         
     def _on_file_filters_users_changed(self, users):
         """
         """
+        #print "File filter users: %s" % [u["name"].split()[0] for u in users if u]
         self._file_model.set_users(users)
 
     def select_work_area(self, context):

@@ -719,6 +719,10 @@ class FileModel(QtGui.QStandardItemModel):
                 for user in area.sandbox_users:
                     if user:
                         users_by_id[user["id"]] = user
+                        
+        # and current user is _always_ available:
+        if g_user_cache.current_user:
+            users_by_id[g_user_cache.current_user["id"]] = g_user_cache.current_user
 
         if have_user_sandboxes:
             self.available_sandbox_users_changed.emit(users_by_id.values())
