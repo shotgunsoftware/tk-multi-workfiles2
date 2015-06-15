@@ -187,13 +187,13 @@ class FileFormBase(QtGui.QWidget):
             return None
 
         return self._fileitem_from_path(current_path, env)
-    
+
     def _fileitem_from_path(self, path, env):
         """
         """
         if not path or not env:
             return None
-        
+
         # figure out if it's a publish or a work file:
         is_publish = ((not env.work_template or env.work_template.validate(path))
                       and env.publish_template != env.work_template

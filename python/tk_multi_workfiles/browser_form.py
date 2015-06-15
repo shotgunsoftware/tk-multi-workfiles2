@@ -138,7 +138,7 @@ class BrowserForm(QtGui.QWidget):
             self._file_model = file_model
             self._file_model.available_sandbox_users_changed.connect(self._on_available_sandbox_users_changed)
             self._file_model.set_users(self._file_filters.users)
-        
+
             # add an 'all files' tab:
             all_files_form = FileListForm("All Files", self._file_filters, show_work_files=True, show_publishes=True, parent=self)
             self._ui.file_browser_tabs.addTab(all_files_form, "All")

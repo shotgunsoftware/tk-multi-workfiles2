@@ -34,6 +34,9 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
         """
         HierarchicalFilteringProxyModel.__init__(self, parent)
 
+        # debug - disable caching!
+        #self.enable_caching(False)
+
         self._filters = filters
         if self._filters:
             self._filters.changed.connect(self._on_filters_changed)
