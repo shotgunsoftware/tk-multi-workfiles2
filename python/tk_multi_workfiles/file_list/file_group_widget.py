@@ -85,13 +85,14 @@ class FileGroupWidget(GroupWidgetBase):
             
         # show the spinner if needed:
         self._ui.spinner.setVisible(search_status == FileModel.SEARCHING)
-        
+
+        # update the status message:
+        idx_has_children = model_idx.model().hasChildren(model_idx)
         search_msg = ""
-        if search_status == FileModel.SEARCHING:
+        if search_status == FileModel.SEARCHING and not idx_has_children:
             search_msg = "Searching for files..."
-        elif search_status == FileModel.SEARCH_COMPLETED:
-            if not model_idx.model().hasChildren(model_idx):
-                search_msg = "No files found!"
+        elif search_status == FileModel.SEARCH_COMPLETED and not idx_has_children:
+            search_msg = "No files found!"
         elif search_status == FileModel.SEARCH_FAILED:
             search_msg = get_model_str(model_idx, FileModel.SEARCH_MSG_ROLE)
         self._ui.msg_label.setText(search_msg)
