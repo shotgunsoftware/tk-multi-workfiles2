@@ -479,7 +479,7 @@ class FileFinder(QtCore.QObject):
                 publish_filters.append(["task.Task.step", "is", environment.context.step])
 
             sg_publishes = self._find_publishes(publish_filters, force)
-            
+
         return {"sg_publishes":sg_publishes}
     
     def _task_filter_publishes(self, sg_publishes, environment, **kwargs):
@@ -513,6 +513,7 @@ class FileFinder(QtCore.QObject):
         if environment and environment.context and environment.work_template:
             work_files = self._find_work_files(environment.context, environment.work_template, 
                                                environment.version_compare_ignore_fields)
+
         return {"work_files":work_files}
 
     def _task_filter_work_files(self, work_files, environment, **kwargs):
@@ -724,7 +725,13 @@ class FileFinder(QtCore.QObject):
                 continue
 
             # resolve the work path:
-            work_path = work_template.apply_fields(wp_fields)
+            work_path = ""
+            try:
+                work_path = work_template.apply_fields(wp_fields)
+            except TankError, e:
+                # unable to generate a work path - this means we are probably missing a field so it's going to
+                # be a problem matching this publish up with its corresponding work file!
+                work_path = ""
             
             # copy common fields from sg_publish:
             #

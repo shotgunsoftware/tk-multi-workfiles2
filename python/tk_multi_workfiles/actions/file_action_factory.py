@@ -65,6 +65,10 @@ class FileActionFactory(object):
         if change_work_area and app.context:
             current_env = WorkArea(app.context)
             can_copy_to_work_area = current_env.work_template is not None
+            # (AD) TODO - it's possible the work template for the current work area has different requirements than
+            # the source work area (e.g. it may require a name where the source work template doesn't!)  This should 
+            # probably check that file.path is translatable to the current work area (contains all the required keys)
+            # in addition to the simple check it's currently doing.
 
         # get the list of file versions for the file:
         file_versions = file_model.get_file_versions(file.key, work_area) or {}
@@ -132,10 +136,12 @@ class FileActionFactory(object):
             # ------------------------------------------------------------------
             actions.append(SeparatorAction())
             actions.append(OpenPublishAction(file, file_versions, work_area))
-            actions.append(ContinueFromPublishAction(file, current_user_file_versions, work_area))
+            if file.path:
+                # file has a local path so it's possible to carry copy it to the local work area! 
+                actions.append(ContinueFromPublishAction(file, current_user_file_versions, work_area))
 
-            if change_work_area and can_copy_to_work_area:
-                actions.append(CopyAndOpenPublishInCurrentWorkAreaAction(file, current_user_file_versions, work_area))
+                if change_work_area and can_copy_to_work_area:
+                    actions.append(CopyAndOpenPublishInCurrentWorkAreaAction(file, current_user_file_versions, work_area))
 
         if not in_other_users_sandbox:
             if NewFileAction.can_do_new_file(work_area):
