@@ -16,107 +16,7 @@ from sgtk import TankError
 
 from .file_finder import FileFinder
 from .user_cache import g_user_cache
-
-class _SearchCache(object):
-    """
-    """
-    class _CachedFileVersionInfo(object):
-        def __init__(self, file, model_item_ref=None):
-            self.file = file
-            self.model_item_ref = model_item_ref
-    
-    class _CachedFileInfo(object):
-        def __init__(self):
-            self.versions = {}# file.version:_CachedFileVersionInfo #file 
-
-    class _CacheEntry(object):
-        def __init__(self):
-            self.work_area = None
-            self.file_info = {}# file.key:_CachedFileInfo()
-
-    def __init__(self):
-        """
-        """
-        self._cache = {}
-        
-    def add(self, work_area, files_and_items):
-        """
-        """
-        # first build the cache entry from the list of files:
-        entry = _SearchCache._CacheEntry()
-        entry.work_area = work_area
-        for file, item in files_and_items:
-            version_info = _SearchCache._CachedFileVersionInfo(file, weakref.ref(item))
-            entry.file_info.setdefault(file.key, _SearchCache._CachedFileInfo()).versions[file.version] = version_info
-        
-        # construct the key:
-        key_entity = (work_area.context.task or work_area.context.step 
-                      or work_area.context.entity or work_area.context.project)
-        key = self._construct_key(key_entity, work_area.context.user)
-        
-        self._cache[key] = entry
-    
-    def find_file_versions(self, file_key, ctx):
-        """
-        """
-        key_entity = ctx.task or ctx.step or ctx.entity or ctx.project
-        key = self._construct_key(key_entity, ctx.user)
-        entry = self._cache.get(key)
-        if not entry:
-            # return None as we don't have a cached result for this context!
-            return None
-        
-        file_info = entry.file_info.get(file_key)
-        if not file_info:
-            return {}
-        
-        return dict([(v, info.file) for v, info in file_info.versions.iteritems()])
-
-    def find_item_for_file(self, file_key, file_version, ctx):
-        """
-        """
-        key_entity = ctx.task or ctx.step or ctx.entity or ctx.project
-        key = self._construct_key(key_entity, ctx.user)
-        entry = self._cache.get(key)
-        if not entry:
-            # return None as we don't have a cached result for this context!
-            return None
-        
-        file_info = entry.file_info.get(file_key)
-        if not file_info:
-            return None
-        
-        version_info = file_info.versions.get(file_version)
-        if version_info == None or not version_info.model_item_ref:
-            return None
-        
-        return version_info.model_item_ref()
-
-    def find(self, entity, user=None):
-        """
-        """
-        key = self._construct_key(entity, user)
-        entry = self._cache.get(key)
-        if not entry:
-            return None
-
-        files = []
-        for file_info in entry.file_info.values():
-            files.extend([version_info.file for version_info in file_info.versions.values()])
-        
-        return (files, entry.work_area)
-        
-    def _construct_key(self, entity, user):
-        """
-        """
-        # add in defaults for project and user if they aren't set:
-        app = sgtk.platform.current_bundle()
-        user = user or app.context.user
-
-        key_parts = []
-        key_parts.append((entity["type"], entity["id"]) if entity else None)
-        key_parts.append((user["type"], user["id"]) if user else None)
-        return tuple(key_parts)
+from .file_search_cache import FileSearchCache
 
 class FileModel(QtGui.QStandardItemModel):
     """
@@ -159,7 +59,7 @@ class FileModel(QtGui.QStandardItemModel):
             """
             QtGui.QStandardItem.__init__(self, text or "")
             self._type = typ
-            
+
         def data(self, role=QtCore.Qt.UserRole+1):
             """
             """
@@ -168,7 +68,7 @@ class FileModel(QtGui.QStandardItemModel):
             else:
                 # just return the default implementation:
                 return QtGui.QStandardItem.data(self, role)
-    
+
         def setData(self, value, role=QtCore.Qt.UserRole+1):
             """
             """
@@ -178,24 +78,21 @@ class FileModel(QtGui.QStandardItemModel):
             else:
                 # call the base implementation:
                 QtGui.QStandardItem.setData(self, value, role) 
-    
+
     class _FileItem(_BaseItem):
         """
         """
-        def __init__(self, file_item, environment, search_id=None):
+        def __init__(self, file_item, environment):
             """
             """
             FileModel._BaseItem.__init__(self, typ=FileModel.FILE_NODE_TYPE)
             self._file_item = file_item
-            if file_item:
-                file_item.data_changed.connect(self._on_file_data_changed)
             self._environment = environment
-            self.search_id = search_id
 
         @property
         def file_item(self):
             return self._file_item
-        
+
         @property
         def environment(self):
             return self._environment
@@ -212,7 +109,7 @@ class FileModel(QtGui.QStandardItemModel):
             else:
                 # just return the default implementation:
                 return FileModel._BaseItem.data(self, role)
-    
+
         def setData(self, value, role=QtCore.Qt.UserRole+1):
             """
             """
@@ -220,11 +117,7 @@ class FileModel(QtGui.QStandardItemModel):
                 # do nothing as it can't be set!
                 pass
             elif role == FileModel.FILE_ITEM_ROLE:
-                if self._file_item:
-                    file_item.data_changed.disconnect(self._on_file_data_changed)
                 self._file_item = value
-                if self._file_item:
-                    file_item.data_changed.connect(self._on_file_data_changed)
                 self.emitDataChanged()
             elif role == FileModel.WORK_AREA_ROLE:
                 self._environment = value
@@ -232,38 +125,33 @@ class FileModel(QtGui.QStandardItemModel):
             else:
                 # call the base implementation:
                 FileModel._BaseItem.setData(self, value, role) 
-    
-        def _on_file_data_changed(self):
-            """
-            """
-            self.emitDataChanged()
-    
+
     class _FolderItem(_BaseItem):
         """
         """
         def __init__(self, name, entity):
             FileModel._BaseItem.__init__(self, typ=FileModel.FOLDER_NODE_TYPE, text=name)
             self._entity = entity
-            
+
         @property
         def entity(self):
             return self._entity
-    
+
     class _GroupItem(_BaseItem):
         """
         """
         def __init__(self, name, entity=None, work_area=None):
             FileModel._BaseItem.__init__(self, typ=FileModel.GROUP_NODE_TYPE, text=name)
-            
+
             self._search_status = FileModel.SEARCH_COMPLETED
             self._search_msg = ""
             self._work_area = work_area
             self._entity = entity
-    
+
         @property
         def entity(self):
             return self._entity
-    
+
         #@property
         def _get_work_area(self):
             return self._work_area
@@ -273,11 +161,9 @@ class FileModel(QtGui.QStandardItemModel):
             self.emitDataChanged()
         work_area=property(_get_work_area, _set_work_area)
 
-        @property
-        def search_status(self):
-            return self._search_status
-
         def set_search_status(self, status, msg=None):
+            """
+            """
             self._search_status = status
             self._search_msg = msg
             self.emitDataChanged()
@@ -294,7 +180,7 @@ class FileModel(QtGui.QStandardItemModel):
             else:
                 # just return the default implementation:
                 return FileModel._BaseItem.data(self, role)
-    
+
         def setData(self, value, role=QtCore.Qt.UserRole+1):
             """
             """
@@ -310,10 +196,10 @@ class FileModel(QtGui.QStandardItemModel):
             else:
                 # call the base implementation:
                 FileModel._BaseItem.setData(self, value, role) 
-    
+
     # Signal emitted when the available sandbox users have changed
     available_sandbox_users_changed = QtCore.Signal(object)
-    
+
     def __init__(self, sg_data_retriever, parent=None):
         """
         Construction
@@ -334,7 +220,8 @@ class FileModel(QtGui.QStandardItemModel):
         self._entity_user_group_map = {}
         self._in_progress_searches = {}
 
-        self._search_cache = _SearchCache()
+        self._search_cache = FileSearchCache()
+        self._file_to_item_map = {}
         self._pending_thumbnail_requests = {}
         
         # we'll need a file finder to be able to find files:
@@ -350,14 +237,18 @@ class FileModel(QtGui.QStandardItemModel):
         """
         return self._search_cache.find_file_versions(key, env.context)
 
-    def item_from_file(self, file, context):
+    def item_from_file(self, file_item):
         """
         """
-        if not file or not context:
+        if not file:
             return None
-        
-        # find the item using the cache:
-        return self._search_cache.find_item_for_file(file.key, file.version, context)
+
+        # find the model item using the file-to-item map:
+        _, model_item_ref = self._file_to_item_map.get(id(file_item), (None, None))
+        if not model_item_ref:
+            return None
+
+        return model_item_ref() 
 
     # Interface for modifying the entities in the model:
     def set_entity_searches(self, searches):
@@ -413,6 +304,9 @@ class FileModel(QtGui.QStandardItemModel):
         # clear existing data from model:
         # (TODO) make sure this is safe!
         QtGui.QStandardItemModel.clear(self)
+
+        # clean up the file-to-item map
+        self._cleanup_file_to_item_map()
 
     # ------------------------------------------------------------------------------------------
     # protected methods
@@ -557,6 +451,9 @@ class FileModel(QtGui.QStandardItemModel):
                 new_group_map[group_key] = group_idx
         self._entity_user_group_map = new_group_map
 
+        # and clean up the file-to-item map:
+        self._cleanup_file_to_item_map()
+
     def _update_group_child_entity_items(self, parent_item, child_details):
         """
         """
@@ -619,9 +516,13 @@ class FileModel(QtGui.QStandardItemModel):
                     current_file.update_from_work_file(new_file)
             else:
                 # add a new item:
-                model_item = FileModel._FileItem(new_file, environment)#, search_id)
+                model_item = FileModel._FileItem(new_file, environment)
                 new_rows.append(model_item)
                 files_and_items[file_version_key] = (new_file, model_item)
+
+                # and make sure we keep an eye on any changes to the file:
+                new_file.data_changed.connect(self._on_file_data_changed)
+                self._file_to_item_map[id(new_file)] = (new_file, weakref.ref(model_item)) 
 
             valid_file_versions.add(file_version_key)
 
@@ -667,26 +568,58 @@ class FileModel(QtGui.QStandardItemModel):
         file_versions_to_remove = file_versions_to_remove - valid_file_versions
 
         # update the cache:
-        valid_files_and_items = [f for k, f in files_and_items.iteritems() if k not in file_versions_to_remove]
-        #print "Updating cache with files and items: %s" % len(valid_files_and_items)
-        self._search_cache.add(environment, valid_files_and_items)
+        valid_files = [v[0] for k, v in files_and_items.iteritems() if k not in file_versions_to_remove]
+        self._search_cache.add(environment, valid_files)
 
         # remove items:
         for file_version_key in file_versions_to_remove:
             _, item_to_remove = files_and_items[file_version_key]
             item_to_remove.parent().removeRow(item_to_remove.row())
 
-        # and finally, add new rows to the model:
+        # add new rows to the model:
         if new_rows:
             # we have new rows so lets add them to the model:
             parent_item.appendRows(new_rows)
-            
-        # emit data changed for all rows under this parent:
-        # This didn't work - thought it might be a bit too easy!
-        #row_count = parent_item.rowCount()
-        #if row_count:
-        #    parent_item.emitDataChanged()
-        #    self.dataChanged.emit(parent_item.child(0).index(), parent_item.child(row_count-1).index())
+
+        # and clean up the file-to-item map:
+        self._cleanup_file_to_item_map()
+
+    def _on_file_data_changed(self):
+        """
+        Slot triggered when data is changed on a FileItem instance.
+        """
+        file_item = self.sender()
+        if not file_item:
+            return
+
+        _, model_item_ref = self._file_to_item_map.get(id(file_item), (None, None))
+        if model_item_ref is None:
+            return
+
+        if model_item_ref() is not None:
+            # trigger the data changed signal for the model item:
+            model_item_ref().emitDataChanged()
+        else:
+            # disconnect from the file item:
+            file_item.data_changed.disconnect(self._on_file_data_changed)
+            # as the model item is no longer valid we also remove it from the lookup:
+            del self._file_to_item_map[id(file_item)]
+
+    def _cleanup_file_to_item_map(self):
+        """
+        Cleanup the file-to-item map by removing any entries that are no longer
+        valid (this also disconnects the model from the FileItem.data_changed signal)
+        """
+        new_file_to_item_map = {}
+        for k, v in self._file_to_item_map.iteritems():
+            file_item, model_item_ref = v
+            if model_item_ref() is not None:
+                # model item still exists so keep it in map:
+                new_file_to_item_map[k] = (file_item, model_item_ref)
+            else:
+                # disconnect from the file item:
+                file_item.data_changed.disconnect(self._on_file_data_changed)
+        self._file_to_item_map = new_file_to_item_map
 
     def _on_finder_work_area_found(self, search_id, work_area):
         """

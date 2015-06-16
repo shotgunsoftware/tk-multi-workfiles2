@@ -69,8 +69,13 @@ class FileFormBase(QtGui.QWidget):
         """
         """
         # clear up the various data models:
-        self._file_model.clear()
-        
+        if self._file_model:
+            self._file_model.clear()
+        if self._my_tasks_model:
+            self._my_tasks_model.destroy()
+        for _, model in self._entity_models:
+            model.destroy()
+
         # stop the shotgun data retriever:
         self._sg_data_retriever.stop()
 

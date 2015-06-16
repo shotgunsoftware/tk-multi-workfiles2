@@ -222,8 +222,8 @@ class FileListForm(QtGui.QWidget):
             if self._file_to_select and self._filter_model:
                 # we know about a file we should try to select:
                 src_model = self._filter_model.sourceModel()
-                file, context = self._file_to_select
-                item = src_model.item_from_file(file, context)
+                file_item, _ = self._file_to_select
+                item = src_model.item_from_file(file_item)
             elif self._current_item_ref:
                 # no item to select but we do know about a current item:
                 item = self._current_item_ref()

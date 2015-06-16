@@ -74,7 +74,7 @@ class TaskWidget(QtGui.QWidget):
         """
         if not image:
             # make sure it's cleared
-            label.setPixmap(None)
+            label.setPixmap(QtGui.QPixmap())
             return
             
         pm = image
