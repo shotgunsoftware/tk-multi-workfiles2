@@ -179,7 +179,8 @@ class BrowserForm(QtGui.QWidget):
         """
         """
         #print "File filter users: %s" % [u["name"].split()[0] for u in users if u]
-        self._file_model.set_users(users)
+        if self._file_model:
+            self._file_model.set_users(users)
 
     def select_work_area(self, context):
         """
@@ -194,15 +195,16 @@ class BrowserForm(QtGui.QWidget):
 
         self._update_selected_entity(ctx_entity["type"], ctx_entity["id"], skip_current=False)
 
-        # now start a new file search based off the entity:
-        search_label = ctx_entity.get("name")
-        if ctx_entity["type"] == "Task" and context.step:
-            search_label = "%s - %s" % (context.step.get("name"), search_label)
-
-        details = FileModel.SearchDetails(search_label)
-        details.entity = ctx_entity
-        details.is_leaf = True
-        self._file_model.set_entity_searches([details])
+        if self._file_model:
+            # now start a new file search based off the entity:
+            search_label = ctx_entity.get("name")
+            if ctx_entity["type"] == "Task" and context.step:
+                search_label = "%s - %s" % (context.step.get("name"), search_label)
+    
+            details = FileModel.SearchDetails(search_label)
+            details.entity = ctx_entity
+            details.is_leaf = True
+            self._file_model.set_entity_searches([details])
 
     def select_file(self, file, context):
         """

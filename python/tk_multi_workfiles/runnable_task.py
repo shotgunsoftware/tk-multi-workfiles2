@@ -142,7 +142,7 @@ class RunnableTask(QtCore.QRunnable):
         finally:
             self._mutex.unlock()
     is_runnable=property(_get_is_runnable, _set_is_runnable)
-        
+
     def start(self):
         """
         """
@@ -160,11 +160,13 @@ class RunnableTask(QtCore.QRunnable):
                 self._mutex.unlock()
 
             if should_start:
+                #print "Task [%s] %s running..." % (self.id, self._func.__name__)
+                #self.run()
                 QtCore.QThreadPool.globalInstance().start(self)
                 atc = QtCore.QThreadPool.globalInstance().activeThreadCount()
                 mtc = QtCore.QThreadPool.globalInstance().maxThreadCount()
                 RunnableTask.log_debug("Task [%s] %s queued (%d of %d)" % (self.id, self._func.__name__, atc, mtc))
-    
+
     def stop(self):
         """
         """
