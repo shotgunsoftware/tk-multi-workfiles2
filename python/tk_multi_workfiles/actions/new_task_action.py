@@ -39,7 +39,7 @@ class NewTaskAction(Action):
         # show new task dialog:
         app = sgtk.platform.current_bundle()
         res, new_task_form = app.engine.show_modal("Create New Task", app, NewTaskForm, self._entity, self._step, 
-                                                   g_user_cache.current_user)
+                                                   g_user_cache.current_user, parent_ui)
         if res != QtGui.QDialog.Accepted:
             return False
         

@@ -48,7 +48,7 @@ class WorkArea(object):
             """
             self._lock.acquire()
             try:
-                self._cache.setdefault((engine_name, app_name), list()).append((context, settings))
+                self._cache.setdefault((engine_name, app_name), list()).append((context, copy.deepcopy(settings)))
             finally:
                 self._lock.release()
     
@@ -60,7 +60,9 @@ class WorkArea(object):
         """
         # the context!
         self._context = ctx
-        
+        self.context_contains_all_work_fields = False
+        self.context_work_fields = {}
+
         # context-specific templates:
         self.work_area_template = None
         self.work_template = None
@@ -216,14 +218,28 @@ class WorkArea(object):
             self.save_as_default_name = resolved_settings.get("saveas_default_name", "")
             self.save_as_prefer_version_up = resolved_settings.get("saveas_prefer_version_up", False)
             self.version_compare_ignore_fields = resolved_settings.get("version_compare_ignore_fields", [])
-            extensions = resolved_settings.get("file_extensions", [])
+            extensions = resolved_settings.get("file_extensions") or []
             extensions = [ext if ext.startswith(".") else ".%s" % ext for ext in extensions if ext]
             self.valid_file_extensions = extensions
 
             # test for user sandboxes:
             self._work_template_contains_user = self.work_template and bool(self._get_template_user_keys(self.work_template))
             self._publish_template_contains_user = self.publish_template and bool(self._get_template_user_keys(self.publish_template))
-        
+            
+            # get context fields from work template - this _MUST_ be run in the main thread as it accesses the
+            # path cache which is not thread-safe in really nasty subtle memory corrupting ways!
+            if self._context and self.work_template:
+                try:
+                    self.context_work_fields = self._context.as_template_fields(self.work_template, validate=True)
+                    self.context_contains_all_work_fields = True
+                except TankError:
+                    # try without validating!
+                    self.context_contains_all_work_fields = False
+                    try:
+                        self.context_work_fields = self._context.as_template_fields(self.work_template, validate=False)
+                    except:
+                        self.context_work_fields = {}
+
     def _get_settings_for_context(self, context, templates_to_find, settings_to_find=None):
         """
         Find templates for the given context.
@@ -249,6 +265,7 @@ class WorkArea(object):
                 
         else:        
             # need to look for settings in a different context/environment
+            #settings = app.engine.execute_in_main_thread(self._get_raw_app_settings_for_context, app, context)
             settings = self._get_raw_app_settings_for_context(app, context)
             if not settings:
                 raise TankError("Failed to find Work Files settings for context '%s'.\n\nPlease ensure that"
@@ -265,7 +282,7 @@ class WorkArea(object):
                 resolved_settings[key] = app.get_setting_from(settings, key)
             
         return resolved_settings
-            
+
     def _get_raw_app_settings_for_context(self, app, context):
         """
         Find settings for the app in the specified context
@@ -277,12 +294,17 @@ class WorkArea(object):
         other_settings = WorkArea._settings_cache.get(app.engine.name, app.name, context)
         if other_settings == None:
             try:
-                # find settings for all instances of app in 
-                # the environment picked for the given context:
+                # find settings for all instances of app in the environment picked for the given context:
+                # Note: it's not safe to call this outside the main thread!
+                #other_settings = app.engine.execute_in_main_thread(sgtk.platform.find_app_settings, app.engine.name, 
+                #                                                   app.name, app.sgtk, context)
                 other_settings = sgtk.platform.find_app_settings(app.engine.name, app.name, app.sgtk, context)
                 if not other_settings:
                     # for backwards compatibility, look for settings for the 'tk-multi-workfiles' app as well
-                    other_settings = sgtk.platform.find_app_settings(app.engine.name, "tk-multi-workfiles", app.sgtk, context)
+                    #other_settings = app.engine.execute_in_main_thread(sgtk.platform.find_app_settings, app.engine.name, 
+                    #                                                   "tk-multi-workfiles", app.sgtk, context)
+                    other_settings = sgtk.platform.find_app_settings(app.engine.name, "tk-multi-workfiles", 
+                                                                     app.sgtk, context)
             finally:
                 # make sure the cache is updated:
                 WorkArea._settings_cache.add(app.engine.name, app.name, context, other_settings or {})

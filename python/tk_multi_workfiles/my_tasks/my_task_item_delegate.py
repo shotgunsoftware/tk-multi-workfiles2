@@ -10,7 +10,7 @@
 
 """
 """
-
+import weakref
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
@@ -28,7 +28,7 @@ class MyTaskItemDelegate(WidgetDelegate):
         """
         WidgetDelegate.__init__(self, view)
         self._extra_display_fields = extra_display_fields
-        
+
         self._paint_widget = None
         self._widget_sz = None
 
@@ -39,37 +39,39 @@ class MyTaskItemDelegate(WidgetDelegate):
         """
         if not model_index.isValid():
             return None
-        
-        if not self._paint_widget:
-            self._paint_widget = TaskWidget(parent)
-            self._widget_sz = self._paint_widget.size() 
-            
-        return self._paint_widget
-    
+
+        if not self._paint_widget or not self._paint_widget():
+            paint_widget = TaskWidget(parent)
+            self._paint_widget = weakref.ref(paint_widget)
+            self._widget_sz = paint_widget.size()
+
+        return self._paint_widget()
+
     def _create_editor_widget(self, model_index, style_options, parent):
         """
         """
         if not model_index.isValid():
             return None
-        
+
         widget = TaskWidget(parent)
-        
+
         # setup the widget to operate on this item:
         style_options.state = style_options.state | QtGui.QStyle.State_Selected 
         self._setup_widget(widget, model_index, style_options)
-        
+
         return widget
-        
+
     def sizeHint(self, style_options, model_index):
         """
         """
         if not model_index.isValid():
             return QtCore.QSize()
 
-        self._get_painter_widget(model_index, self.view)
-        
+        if self._widget_sz is None:
+            # the size is set when we first create the painter widget
+            self._get_painter_widget(model_index, self.view)
         return self._widget_sz or QtCore.QSize()
-        
+
     def _on_before_paint(self, widget, model_index, style_options):
         """
         """
@@ -81,11 +83,11 @@ class MyTaskItemDelegate(WidgetDelegate):
         model = model_index.model()
         if not model:
             return
-        
+
         while isinstance(model, QtGui.QAbstractProxyModel):
             model_index = model.mapToSource(model_index)
             model = model.sourceModel()
-        
+
         item = model.itemFromIndex(model_index)
         if not item:
             return
@@ -99,12 +101,12 @@ class MyTaskItemDelegate(WidgetDelegate):
         entity = sg_data.get("entity")
         entity_name = entity.get("name")
         entity_type = entity.get("type")
-        entity_type_icon = ShotgunEntityModel.get_entity_icon(entity_type) if entity_type else None
+        entity_type_icon = model.get_entity_icon(entity_type) if entity_type else None
         widget.set_entity(entity_name, entity_type, entity_type_icon)
         
         # set task info:
         task_name = sg_data.get("content")
-        task_type_icon = ShotgunEntityModel.get_entity_icon("Task")
+        task_type_icon = model.get_entity_icon("Task")
         widget.set_task(task_name, task_type_icon)
         
         # set 'other' info:

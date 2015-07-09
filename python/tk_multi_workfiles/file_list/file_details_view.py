@@ -18,7 +18,7 @@ class FileDetailsView(QtGui.QTableView):
     """
     """
     
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         """
         Construction
         """

@@ -27,7 +27,7 @@ class UserFilterMenu(QtGui.QMenu):
             self.action = action
             self.available = True
     
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         """
         """
         QtGui.QMenu.__init__(self, parent)

@@ -23,7 +23,7 @@ from ..user_cache import g_user_cache
 class FileGroupWidget(GroupWidgetBase):
     """
     """
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         """
         Construction
         """
@@ -50,11 +50,12 @@ class FileGroupWidget(GroupWidgetBase):
         idx = layout.indexOf(proxy_widget)
         layout.removeWidget(proxy_widget)
         layout.insertWidget(idx, spinner_widget)
-        
-        self._ui.spinner.setParent(None)
-        self._ui.spinner.deleteLater()
+
+        proxy_widget.setParent(None)
+        proxy_widget.deleteLater()
+
         self._ui.spinner = spinner_widget
-        
+
         self._show_msg = False
 
     def set_item(self, model_idx):

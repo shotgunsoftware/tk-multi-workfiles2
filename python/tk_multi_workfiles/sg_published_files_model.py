@@ -15,20 +15,26 @@ shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "sho
 ShotgunModel = shotgun_model.ShotgunModel
 
 class SgPublishedFilesModel(ShotgunModel):
-        
-    def __init__(self, id, parent=None):
+    """
+    """
+    def __init__(self, uid, bg_task_manager, parent):
         """
         """
-        ShotgunModel.__init__(self, parent, download_thumbs=False, asynchronous=False)
-        # (AD) TODO - get type from core
-        self._published_file_type = "PublishedFile"
-        
-        self._id = id
-        
-    @property
-    def id(self):
-        return self._id
-        
+        ShotgunModel.__init__(self, parent, download_thumbs=False, bg_task_manager=bg_task_manager)
+
+        self._uid = uid
+
+        # get the current published file type to use:
+        app = sgtk.platform.current_bundle()
+        self._published_file_type = sgtk.util.get_published_file_entity_type(app.sgtk)
+
+    #@property
+    def _get_uid(self):
+        return self._uid
+    def _set_uid(self, uid):
+        self._uid = uid
+    uid = property(_get_uid, _set_uid)
+
     def load_data(self, filters=None, fields=None):
         """
         """
@@ -36,13 +42,15 @@ class SgPublishedFilesModel(ShotgunModel):
         fields = fields or ["code"]
         hierarchy = [fields[0]]
         return self._load_data(self._published_file_type, filters, hierarchy, fields)
-        
+
     def refresh(self):
         """
         """
         self._refresh_data()
-        
+
     def get_sg_data(self):
+        """
+        """
         sg_data = []
         for row in range(self.rowCount()):
             item = self.item(row, 0)

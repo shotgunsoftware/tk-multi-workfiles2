@@ -17,7 +17,7 @@ class FileWidget(QtGui.QWidget):
     """
     """
     
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         """
         Construction
         """

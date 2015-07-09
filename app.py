@@ -33,6 +33,8 @@ class MultiWorkFiles(sgtk.platform.Application):
             self.engine.register_command("File Open...", self.show_file_open_dlg)
             self.engine.register_command("File Save...", self.show_file_save_dlg)
 
+        self.engine.register_command("Run crash test", self.run_crash_test)
+
         # Process auto startup options - but only on certain supported platforms
         # because of the way QT inits and connects to different host applications
         # differently, in conjunction with the 'boot' process in different tools,
@@ -76,6 +78,9 @@ class MultiWorkFiles(sgtk.platform.Application):
         Launch the main File Save UI
         """
         self._tk_multi_workfiles.WorkFiles.show_file_save_dlg()
+
+    def run_crash_test(self):
+        self._tk_multi_workfiles.WorkFiles.run_crash_test()
 
     @property
     def shotgun(self):

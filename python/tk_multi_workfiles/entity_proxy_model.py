@@ -19,7 +19,7 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
     """
     """
     
-    def __init__(self, compare_sg_fields=None, parent=None):
+    def __init__(self, parent, compare_sg_fields=None):
         """
         """
         HierarchicalFilteringProxyModel.__init__(self, parent)
@@ -42,7 +42,7 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
         reg_exp = self.filterRegExp()
         if reg_exp.isEmpty():
             # early out
-            return True        
+            return True
 
         src_idx = self.sourceModel().index(src_row, 0, src_parent_idx)
         if not src_idx.isValid():

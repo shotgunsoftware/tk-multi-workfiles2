@@ -22,7 +22,7 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
     """
     filtering_changed = QtCore.Signal()
 
-    def __init__(self, filters, show_work_files=True, show_publishes=True, parent=None):
+    def __init__(self, parent, filters, show_work_files=True, show_publishes=True):
         """
         Construction
 

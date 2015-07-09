@@ -27,7 +27,7 @@ class NewTaskForm(QtGui.QWidget):
     def hide_tk_title_bar(self):
         return True
     
-    def __init__(self, entity, step, user, parent=None):
+    def __init__(self, entity, step, user, parent):
         """
         Construction
         """

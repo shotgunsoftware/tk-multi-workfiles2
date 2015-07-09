@@ -23,7 +23,7 @@ ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 from ..ui.entity_tree_form import Ui_EntityTreeForm
 from .entity_tree_proxy_model import EntityTreeProxyModel
 from ..framework_qtwidgets import Breadcrumb, ShotgunModelOverlayWidget
-from ..util import get_model_data, get_model_str
+from ..util import get_model_data, get_model_str, map_to_source, get_source_model
 
 class EntityTreeForm(QtGui.QWidget):
     """
@@ -44,7 +44,7 @@ class EntityTreeForm(QtGui.QWidget):
     # Signal emitted when the 'New Task' button is clicked.
     create_new_task = QtCore.Signal(object, object)# entity, step
 
-    def __init__(self, entity_model, search_label, allow_task_creation, parent=None):
+    def __init__(self, entity_model, search_label, allow_task_creation, parent):
         """
         Construction
 
@@ -71,17 +71,12 @@ class EntityTreeForm(QtGui.QWidget):
         # set up the UI
         self._ui = Ui_EntityTreeForm()
         self._ui.setupUi(self)
-        
+
         self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
-        
-        # connect up controls:
-        self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
 
         # enable/hide the my-tasks-only button if we are showing tasks:
         have_tasks = (entity_model and entity_model.get_entity_type() == "Task")
-        if have_tasks:
-            self._ui.my_tasks_cb.toggled.connect(self._on_my_tasks_only_toggled)
-        else:
+        if not have_tasks:
             self._ui.my_tasks_cb.hide()
 
         # enable/hide the new task button if we have tasks and task creation is allowed:
@@ -92,24 +87,65 @@ class EntityTreeForm(QtGui.QWidget):
         else:
             self._ui.new_task_btn.hide()
 
-        self._ui.entity_tree.expanded.connect(self._on_item_expanded)
-        self._ui.entity_tree.collapsed.connect(self._on_item_collapsed)
-        
-        # create the overlay 'busy' widget that will be displayed when the model is reset:
-        self._overlay_widget = ShotgunModelOverlayWidget(None, self._ui.entity_tree)
-        self._overlay_widget.set_model(entity_model)
+        #self._ui.entity_tree.expanded.connect(self._on_item_expanded)
+        #self._ui.entity_tree.collapsed.connect(self._on_item_collapsed)
 
-        # create a filter proxy model between the source model and the task tree view:
-        self._filter_model = EntityTreeProxyModel(["content", {"entity":"name"}], self)
-        self._filter_model.rowsInserted.connect(self._on_filter_model_rows_inserted)
-        self._filter_model.setSourceModel(entity_model)
-        self._ui.entity_tree.setModel(self._filter_model)
-        self._expand_root_rows()
+        # create the overlay 'busy' widget that will be displayed when the model is reset:
+        self._overlay_widget = None#ShotgunModelOverlayWidget(None, self._ui.entity_tree)
+
+        if entity_model:
+            # connect the overlay widget:
+            #self._overlay_widget.set_model(entity_model)
+
+            if False:
+                # create a filter proxy model between the source model and the task tree view:
+                filter_model = EntityTreeProxyModel(self, ["content", {"entity":"name"}])
+                filter_model.rowsInserted.connect(self._on_filter_model_rows_inserted)
+                filter_model.setSourceModel(entity_model)
+                self._ui.entity_tree.setModel(filter_model)
+    
+                # connect up the filter controls: 
+                self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
+                self._ui.my_tasks_cb.toggled.connect(self._on_my_tasks_only_toggled)
+            else:
+                self._ui.entity_tree.setModel(entity_model)
+
+        #self._expand_root_rows()
 
         # connect to the selection model for the tree view:
         selection_model = self._ui.entity_tree.selectionModel()
         if selection_model:
             selection_model.selectionChanged.connect(self._on_selection_changed)
+
+    def shut_down(self):
+        """
+        Clean up as much as we can to help the gc once the widget is finished with.
+        """
+        signals_blocked = self.blockSignals(True)
+        try:
+            # clear any references:
+            self._entity_to_select = None
+            self._expanded_items = set()
+            self._auto_expanded_root_items = set()
+
+            # detach the overlay widget:
+            if self._overlay_widget:
+                self._overlay_widget.set_model(None)
+                self._overlay_widget = None
+
+            # clear the selection:
+            if self._ui.entity_tree.selectionModel():
+                self._ui.entity_tree.selectionModel().clear()
+
+            # detach the filter model from the view:
+            view_model = self._ui.entity_tree.model()
+            if view_model:
+                self._ui.entity_tree.setModel(None)
+                if isinstance(view_model, EntityTreeProxyModel):
+                    view_model.setSourceModel(None)
+                    view_model.deleteLater()
+        finally:
+            self.blockSignals(signals_blocked)
 
     def select_entity(self, entity_type, entity_id):
         """
@@ -121,6 +157,7 @@ class EntityTreeForm(QtGui.QWidget):
         :param entity_type: The type of the entity to select
         :param entity_id:   The id of the entity to select
         """
+        return
         # track the selected entity - this allows the entity to be selected when
         # it appears in the model even if the model hasn't been fully populated yet:
         self._entity_to_select = {"type":entity_type, "id":entity_id}
@@ -128,6 +165,7 @@ class EntityTreeForm(QtGui.QWidget):
         # reset the current selection without emitting a signal:
         prev_selected_item = self._reset_selection()
         self._current_item_ref = None
+
         self._update_ui()
 
         # try to update the selection to reflect the change:
@@ -163,9 +201,13 @@ class EntityTreeForm(QtGui.QWidget):
         :param breadcrumb_trail:    A list of Breadcrumb instances that represent
                                     an item in the tree.
         """
+        tree_model = self._ui.entity_tree.model()
+        entity_model = get_source_model(tree_model)
+        if not entity_model:
+            return
+
         # figure out the item in the tree to select from the breadcrumb trail:
-        src_model = self._filter_model.sourceModel()
-        current_item = src_model.invisibleRootItem()
+        current_item = entity_model.invisibleRootItem()
         for crumb in breadcrumb_trail:
             # look for an item under the current item that this breadcrumb represents:
             found_item = None
@@ -173,7 +215,7 @@ class EntityTreeForm(QtGui.QWidget):
                 # look for a child item that represents the entity:
                 for row in range(current_item.rowCount()):
                     child_item = current_item.child(row)
-                    sg_entity = src_model.get_entity(child_item)
+                    sg_entity = entity_model.get_entity(child_item)
                     if (sg_entity["type"] == crumb.entity["type"]
                         and sg_entity["id"] == crumb.entity["id"]):
                         found_item = child_item
@@ -189,18 +231,21 @@ class EntityTreeForm(QtGui.QWidget):
             if not found_item:
                 # stop traversal!
                 break
-            else:
+
+            if isinstance(tree_model, QtGui.QAbstractProxyModel):
                 # check to see if the item is visible in the current filtered model:
-                filtered_idx = self._filter_model.mapFromSource(found_item.index())
+                filtered_idx = tree_model.mapFromSource(found_item.index())
                 if not filtered_idx.isValid():
-                    # stop traversal!
+                    # stop traversal as the item isn't in the filtered model!
                     break
 
             # iterate down to the next level:
             current_item = found_item
 
         # finally, select the item in the tree:
-        idx_to_select = self._filter_model.mapFromSource(current_item.index())
+        idx_to_select = current_item.index()
+        if isinstance(tree_model, QtGui.QAbstractProxyModel):
+            idx_to_select = tree_model.mapFromSource(current_item.index())
         self._ui.entity_tree.selectionModel().setCurrentIndex(idx_to_select, QtGui.QItemSelectionModel.SelectCurrent)
 
     # ------------------------------------------------------------------------------------------
@@ -251,38 +296,39 @@ class EntityTreeForm(QtGui.QWidget):
             return {}
 
         item = self._item_from_index(idx)
-        if not item:
+        entity_model = get_source_model(idx.model())
+        if not item or not entity_model:
             return {}
-        
+
         # get details for this item:
-        label = item.text()
-        src_model = self._filter_model.sourceModel()
-        entity = src_model.get_entity(item)
-        
+        label = get_model_str(item)
+        entity = entity_model.get_entity(item)
+
         # get details for children:
         children = []
         collapsed_children = []
         
-        for row in range(self._filter_model.rowCount(idx)):
-            child_idx = self._filter_model.index(row, 0, idx)
+        view_model = self._ui.entity_tree.model() 
+        for row in range(view_model.rowCount(idx)):
+            child_idx = view_model.index(row, 0, idx)
             child_item = self._item_from_index(child_idx)
             if not child_item:
                 continue
             
-            child_label = child_item.text()
-            child_entity = src_model.get_entity(child_item)
+            child_label = get_model_str(child_item)
+            child_entity = entity_model.get_entity(child_item)
             children.append({"label":child_label, "entity":child_entity})
             
             if self._collapse_steps_with_tasks and child_entity and child_entity["type"] == "Step":
                 # see if grand-child is actually a task:
-                for child_row in range(self._filter_model.rowCount(child_idx)):
-                    grandchild_idx = self._filter_model.index(child_row, 0, child_idx)
+                for child_row in range(view_model.rowCount(child_idx)):
+                    grandchild_idx = view_model.index(child_row, 0, child_idx)
                     grandchild_item = self._item_from_index(grandchild_idx)
                     if not grandchild_item:
                         continue
                     
-                    grandchild_label = grandchild_item.text()
-                    grandchild_entity = src_model.get_entity(grandchild_item)
+                    grandchild_label = get_model_str(grandchild_item)
+                    grandchild_entity = entity_model.get_entity(grandchild_item)
                     if grandchild_entity and grandchild_entity["type"] == "Task":
                         # found a task under a step so we can safely collapse tasks to steps!
                         collapsed_child_label = "%s - %s" % (child_label, grandchild_label)
@@ -332,7 +378,7 @@ class EntityTreeForm(QtGui.QWidget):
         # reset the current selection without emitting any signals:
         prev_selected_item = self._reset_selection()
         try:
-            self._filter_model.only_show_my_tasks = checked
+            self._ui.entity_tree.model().only_show_my_tasks = checked
         finally:
             # and update the selection - this will restore the original selection if possible.
             self._update_selection(prev_selected_item)
@@ -344,7 +390,7 @@ class EntityTreeForm(QtGui.QWidget):
         :param search_text: The new search text to update the filter model with
         """
         filter_reg_exp = QtCore.QRegExp(search_text, QtCore.Qt.CaseInsensitive, QtCore.QRegExp.FixedString)
-        self._filter_model.setFilterRegExp(filter_reg_exp)
+        self._ui.entity_tree.model().setFilterRegExp(filter_reg_exp)
         
     def _update_selection(self, prev_selected_item):
         """
@@ -353,6 +399,10 @@ class EntityTreeForm(QtGui.QWidget):
         to filtering.  This allows it to be tracked so that the selection state is correctly restored when 
         it becomes visible again.
         """
+        entity_model = get_source_model(self._ui.entity_tree.model())
+        if not entity_model:
+            return
+
         # we want to make sure we don't emit any signals whilst we are 
         # manipulating the selection:
         signals_blocked = self.blockSignals(True)
@@ -361,23 +411,23 @@ class EntityTreeForm(QtGui.QWidget):
             item = None
             if self._entity_to_select:
                 # we know about an entity we should try to select:
-                src_model = self._filter_model.sourceModel()
-                if src_model.get_entity_type() == self._entity_to_select["type"]:
-                    item = src_model.item_from_entity(self._entity_to_select["type"], self._entity_to_select["id"])
+                if entity_model.get_entity_type() == self._entity_to_select["type"]:
+                    item = entity_model.item_from_entity(self._entity_to_select["type"], self._entity_to_select["id"])
             elif self._current_item_ref:
                 # no item to select but we do know about a current item:
                 item = self._current_item_ref()
 
             if item:
-                # try to get an index from the current filtered model:
-                idx = self._filter_model.mapFromSource(item.index())
+                idx = item.index()
+                if isinstance(self._ui.entity_tree.model(), QtGui.QAbstractProxyModel):
+                    # map the index to the proxy model:
+                    idx = self._ui.entity_tree.model().mapFromSource(idx)
+
                 if idx.isValid():
                     # make sure the item is expanded and visible in the tree:
                     self._ui.entity_tree.scrollTo(idx)
 
                     # select the item:
-                    #selection_flags = QtGui.QItemSelectionModel.Clear | QtGui.QItemSelectionModel.SelectCurrent 
-                    #self._ui.entity_tree.selectionModel().select(idx, selection_flags)
                     self._ui.entity_tree.selectionModel().setCurrentIndex(idx, QtGui.QItemSelectionModel.SelectCurrent)
 
         finally:
@@ -394,7 +444,6 @@ class EntityTreeForm(QtGui.QWidget):
 
                 # emit the signal
                 self._emit_entity_selected(selection_details)
-                #self.entity_selected.emit(selection_details)
 
     def _update_ui(self):
         """
@@ -405,14 +454,16 @@ class EntityTreeForm(QtGui.QWidget):
         selected_indexes = self._ui.entity_tree.selectionModel().selectedIndexes()
         if len(selected_indexes) == 1:
             item = self._item_from_index(selected_indexes[0])
-            entity = self._filter_model.sourceModel().get_entity(item)
-            #if entity and entity.get("type") in ("Step", "Task"):
-            if entity and entity["type"] != "Step":
-                if entity["type"] == "Task":
-                    if entity.get("entity"):
+            entity_model = get_source_model(selected_indexes[0].model())
+            if item and entity_model:
+                entity = entity_model.get_entity(item)
+                #if entity and entity.get("type") in ("Step", "Task"):
+                if entity and entity["type"] != "Step":
+                    if entity["type"] == "Task":
+                        if entity.get("entity"):
+                            enable_new_tasks = True
+                    else:
                         enable_new_tasks = True
-                else:
-                    enable_new_tasks = True
 
         self._ui.new_task_btn.setEnabled(enable_new_tasks)
 
@@ -433,10 +484,10 @@ class EntityTreeForm(QtGui.QWidget):
             item = self._item_from_index(selected_indexes[0])
 
         # update the UI
-        self._update_ui()
+        #self._update_ui()
 
         # keep track of the current item:
-        self._current_item_ref = weakref.ref(item) if item else None
+        #self._current_item_ref = weakref.ref(item) if item else None
 
         if self._current_item_ref:
             # clear the entity-to-select as the current item now takes precedence
@@ -456,6 +507,10 @@ class EntityTreeForm(QtGui.QWidget):
         :param first:       The first row id inserted
         :param last:        The last row id inserted
         """
+        if not parent_idx.model():
+            # not sure why this happens!
+            return
+
         # disable widget paint updates whilst we update the expanded state of the tree:
         self._ui.entity_tree.setUpdatesEnabled(False)
         try:
@@ -467,9 +522,10 @@ class EntityTreeForm(QtGui.QWidget):
 
             # step through all new rows updating expanded state:
             for row in range(first, last+1):
-                idx = self._filter_model.index(row, 0, parent_idx)
-                # recursively step through all children of the new row:
-                self._fix_expanded_state_r(idx)
+                idx = parent_idx.model().index(row, 0, parent_idx)
+                if idx.isValid():
+                    # recursively step through all children of the new row:
+                    self._fix_expanded_state_r(idx)
         finally:
             # re-enable updates to allow painting to continue
             self._ui.entity_tree.setUpdatesEnabled(True)
@@ -496,7 +552,7 @@ class EntityTreeForm(QtGui.QWidget):
                 self._ui.entity_tree.expand(idx)
 
         # iterate through all children:
-        for row in range(0, self._filter_model.rowCount(idx)):
+        for row in range(0, idx.model().rowCount(idx)):
             child_idx = idx.child(row, 0)
             self._fix_expanded_state_r(child_idx)
 
@@ -504,11 +560,15 @@ class EntityTreeForm(QtGui.QWidget):
         """
         Expand all root rows in the Tree if they have never been expanded
         """
+        view_model = self._ui.entity_tree.model()
+        if not view_model:
+            return
+
         # disable widget paint updates whilst we update the expanded state of the tree:
         self._ui.entity_tree.setUpdatesEnabled(False)
         try:
-            for row in range(self._filter_model.rowCount()):
-                idx = self._filter_model.index(row, 0)
+            for row in range(view_model.rowCount()):
+                idx = view_model.index(row, 0)
                 item = self._item_from_index(idx)
                 if not item:
                     continue
@@ -531,8 +591,8 @@ class EntityTreeForm(QtGui.QWidget):
         :param idx: The model index to find the item for
         :returns:   The item in the model represented by the index
         """
-        src_idx = self._filter_model.mapToSource(idx)
-        return self._filter_model.sourceModel().itemFromIndex(src_idx)
+        src_idx = map_to_source(idx)
+        return src_idx.model().itemFromIndex(src_idx)
 
     def _on_item_expanded(self, idx):
         """
@@ -563,21 +623,17 @@ class EntityTreeForm(QtGui.QWidget):
         Slot triggered when the new task button is clicked.  Extracts the necessary
         information from the widget and raises a uniform signal for containing code
         """
-        if not self._filter_model:
-            return
-
         # get the currently selected index:
-        selected_index = None
         selected_indexes = self._ui.entity_tree.selectionModel().selectedIndexes()
         if len(selected_indexes) != 1:
             return
 
         # extract the selected model index from the selection:
-        selected_index = self._filter_model.mapToSource(selected_indexes[0])
+        src_index = map_to_source(selected_indexes[0])
 
         # determine the currently selected entity:
-        entity_model = selected_index.model()
-        entity_item = entity_model.itemFromIndex(selected_index)
+        entity_model = src_index.model()
+        entity_item = entity_model.itemFromIndex(src_index)
         entity = entity_model.get_entity(entity_item)
         if not entity:
             return
@@ -605,21 +661,20 @@ class EntityTreeForm(QtGui.QWidget):
         if len(selected_indexes) != 1:
             return {}
 
-        src_model = self._filter_model.sourceModel()
-
         # now, walk up the tree
-        idx = self._filter_model.mapToSource(selected_indexes[0])
-        while idx.isValid():
-            entity = src_model.get_entity(src_model.itemFromIndex(idx))
+        src_index = map_to_source(selected_indexes[0])
+        entity_model = src_index.model()
+        while src_index.isValid():
+            entity = entity_model.get_entity(entity_model.itemFromIndex(src_index))
             if entity:
                 name_token = "content" if entity["type"] == "Task" else "name"
                 label = "<b>%s</b> %s" % (entity["type"], entity.get(name_token))
                 breadcrumbs.append(EntityTreeForm._EntityBreadcrumb(label, entity))
             else:
-                label = get_model_str(idx)
+                label = get_model_str(src_index)
                 breadcrumbs.append(Breadcrumb(label))
 
-            idx = idx.parent()
+            src_index = src_index.parent()
 
         # return reversed list:
         return breadcrumbs[::-1]

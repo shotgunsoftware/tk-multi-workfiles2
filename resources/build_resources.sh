@@ -48,6 +48,8 @@ build_ui file_group_widget
 build_ui open_options_form
 build_ui new_task_form
 
+build_ui crash_dbg_form
+
 # build resources
 echo "building resources..."
 build_res resources

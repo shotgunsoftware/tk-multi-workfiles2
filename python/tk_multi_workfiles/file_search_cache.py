@@ -113,6 +113,11 @@ class FileSearchCache(object):
 
         return (files, entry.work_area)
 
+    def clear(self):
+        """
+        """
+        self._cache = {}
+
     def _construct_key(self, entity, user):
         """
         Construct a cache key from the specified entity and user.

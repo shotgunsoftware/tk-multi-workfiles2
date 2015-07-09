@@ -21,7 +21,7 @@ from ..file_model import FileModel
 from ..ui.file_list_form import Ui_FileListForm
 from .file_proxy_model import FileProxyModel
 from .file_list_item_delegate import FileListItemDelegate
-from ..util import get_model_data
+from ..util import get_model_data, map_to_source, get_source_model
 
 class FileListForm(QtGui.QWidget):
     """
@@ -43,7 +43,7 @@ class FileListForm(QtGui.QWidget):
     # Signal emitted whenever a context menu is required for a file
     file_context_menu_requested = QtCore.Signal(object, object, QtCore.QPoint)# file, env, pos
 
-    def __init__(self, search_label, file_filters, show_work_files=True, show_publishes=False, parent=None):
+    def __init__(self, parent, search_label, file_filters, show_work_files=True, show_publishes=False):
         """
         Construction
         
@@ -66,18 +66,17 @@ class FileListForm(QtGui.QWidget):
 
         self._show_work_files = show_work_files
         self._show_publishes = show_publishes
-        self._filter_model = None
         self._enable_user_filtering = True
         
         # set up the UI
         self._ui = Ui_FileListForm()
         self._ui.setupUi(self)
-        
+
+        #self._ui.details_radio_btn.setEnabled(False) # (AD) - temp
+        self._ui.details_radio_btn.toggled.connect(self._on_view_toggled)
+
         self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
         self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
-        
-        self._ui.details_radio_btn.setEnabled(False) # (AD) - temp
-        self._ui.details_radio_btn.toggled.connect(self._on_view_toggled)
 
         self._ui.all_versions_cb.setChecked(file_filters.show_all_versions)
         self._ui.all_versions_cb.toggled.connect(self._on_show_all_versions_toggled)
@@ -90,12 +89,49 @@ class FileListForm(QtGui.QWidget):
 
         self._ui.file_list_view.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
         self._ui.file_list_view.doubleClicked.connect(self._on_item_double_clicked)
-        
         self._ui.file_list_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self._ui.file_list_view.customContextMenuRequested.connect(self._on_context_menu_requested)
-        
-        item_delegate = FileListItemDelegate(self._ui.file_list_view)
-        self._ui.file_list_view.setItemDelegate(item_delegate)
+
+        # Note, we have to keep a handle to the item delegate to help GC
+        self._item_delegate = FileListItemDelegate(self._ui.file_list_view)
+        self._ui.file_list_view.setItemDelegate(self._item_delegate)
+
+    def shut_down(self):
+        """
+        Clean up as much as we can to help the gc once the widget is finished with.
+        """
+        signals_blocked = self.blockSignals(True)
+        try:
+            # clear any references:
+            self._file_to_select = None
+            self._current_item_ref = None
+            self._file_filters = None
+
+            # clear the selection:
+            if self._ui.file_list_view.selectionModel():
+                self._ui.file_list_view.selectionModel().clear()
+
+            # detach the filter model from the views.  Note, this code assumes the same filter view
+            # has been applied to both the list and the details view - if this isn't the case then
+            # this code will need updating.
+            view_model = self._ui.file_list_view.model() or self._ui.file_details_view.model()
+            if view_model:
+                self._ui.file_list_view.setModel(None)
+                self._ui.file_details_view.setModel(None)
+                if isinstance(view_model, FileProxyModel):
+                    view_model.setSourceModel(None)
+                    view_model.deleteLater()
+                    view_model = None
+
+            # detach and clean up the item delegate:
+            self._ui.file_list_view.setItemDelegate(None)
+            if self._item_delegate:
+                self._item_delegate.setParent(None)
+                self._item_delegate.deleteLater()
+                self._item_delegate = None
+
+        finally:
+            self.blockSignals(signals_blocked)
 
     @property
     def work_files_visible(self):
@@ -154,18 +190,18 @@ class FileListForm(QtGui.QWidget):
             # make sure user button is hidden:
             self._ui.user_filter_btn.hide()
 
-    def select_file(self, file, context):
+    def select_file(self, file_item, context):
         """
         Select the specified file in the control views if possible.
 
-        :param file:    The file to select
-        :param context: The work area the file to select should be found in
+        :param file_item:   The file to select
+        :param context:     The work area the file to select should be found in
         """
         # reset the current selection and get the previously selected item:
         prev_selected_item = self._reset_selection()
 
         # update the internal tracking info:
-        self._file_to_select = (file, context)
+        self._file_to_select = (file_item, context)
         self._current_item_ref = None
 
         # update the selection - this will emit a file_selected signal if
@@ -178,21 +214,26 @@ class FileListForm(QtGui.QWidget):
 
         :param model:    The FileModel model to attach to the control to
         """
-        # create a filter model around the source model:
-        self._filter_model = FileProxyModel(filters = self._file_filters,
-                                            show_work_files=self._show_work_files,
-                                            show_publishes=self._show_publishes,
-                                            parent=self)
-        self._filter_model.setSourceModel(model)
-        self._filter_model.rowsInserted.connect(self._on_filter_model_rows_inserted)
-
-        # set automatic sorting on the model:
-        self._filter_model.sort(0, QtCore.Qt.DescendingOrder)
-        self._filter_model.setDynamicSortFilter(True)
-
-        # connect the views to the filtered model:        
-        self._ui.file_list_view.setModel(self._filter_model)
-        self._ui.file_details_view.setModel(self._filter_model)
+        if False:
+            # create a filter model around the source model:
+            filter_model = FileProxyModel(self,
+                                          filters = self._file_filters,
+                                          show_work_files=self._show_work_files,
+                                          show_publishes=self._show_publishes)
+            filter_model.setSourceModel(model)
+            filter_model.rowsInserted.connect(self._on_filter_model_rows_inserted)
+    
+            # set automatic sorting on the model:
+            filter_model.sort(0, QtCore.Qt.DescendingOrder)
+            filter_model.setDynamicSortFilter(True)
+    
+            # connect the views to the filtered model:        
+            self._ui.file_list_view.setModel(filter_model)
+            self._ui.file_details_view.setModel(filter_model)
+        else:
+            # connect the views to the model:
+            self._ui.file_list_view.setModel(model)
+            self._ui.file_details_view.setModel(model)
 
         # connect to the selection model:
         selection_model = self._ui.file_list_view.selectionModel()
@@ -219,18 +260,19 @@ class FileListForm(QtGui.QWidget):
         try:
             # try to get the item to select:
             item = None
-            if self._file_to_select and self._filter_model:
+            if self._file_to_select:
                 # we know about a file we should try to select:
-                src_model = self._filter_model.sourceModel()
+                src_model = get_source_model(self._ui.file_list_view.model())
                 file_item, _ = self._file_to_select
-                item = src_model.item_from_file(file_item)
+                item = src_model.item_from_file(file_item) if src_model else None
             elif self._current_item_ref:
                 # no item to select but we do know about a current item:
                 item = self._current_item_ref()
 
             if item:
-                # try to get an index from the current filtered model:
-                idx = self._filter_model.mapFromSource(item.index())
+                idx = item.index()
+                if isinstance(self._ui.file_list_view.model(), QtGui.QAbstractProxyModel):
+                    idx = self._ui.file_list_view.model().mapFromSource(idx)
                 if idx.isValid():
                     # make sure the item is expanded and visible in the list:
                     self._ui.file_list_view.scrollTo(idx)
@@ -293,8 +335,8 @@ class FileListForm(QtGui.QWidget):
             return
 
         # get the file from the index:
-        file = get_model_data(idx, FileModel.FILE_ITEM_ROLE)
-        if not file:
+        file_item = get_model_data(idx, FileModel.FILE_ITEM_ROLE)
+        if not file_item:
             return
 
         # ...and the env details:
@@ -304,7 +346,7 @@ class FileListForm(QtGui.QWidget):
         pnt = self.sender().mapTo(self, pnt)
 
         # emit a more specific signal:
-        self.file_context_menu_requested.emit(file, env_details, pnt)
+        self.file_context_menu_requested.emit(file_item, env_details, pnt)
 
     def _on_view_toggled(self, checked):
         """
@@ -331,8 +373,8 @@ class FileListForm(QtGui.QWidget):
         if selection_model:
             indexes = selection_model.selectedIndexes()
             if len(indexes) == 1:
-                src_idx = self._filter_model.mapToSource(indexes[0])
-                item = self._filter_model.sourceModel().itemFromIndex(src_idx)
+                src_idx = map_to_source(indexes[0])
+                item = src_idx.model().itemFromIndex(src_idx)
         return item
 
     def _reset_selection(self):
@@ -441,8 +483,9 @@ class FileListForm(QtGui.QWidget):
         selected_indexes = selected.indexes()
         if len(selected_indexes) == 1:
             # extract the selected model index from the selection:
-            selected_index = self._filter_model.mapToSource(selected_indexes[0])
-            item = self._filter_model.sourceModel().itemFromIndex(selected_index)
+            selected_index = map_to_source(selected_indexes[0])
+            if selected_index and selected_index.isValid():
+                item = selected_index.model().itemFromIndex(selected_index)
 
         # get the file and env details for this item:
         selected_file = None

@@ -98,9 +98,9 @@ class InteractiveOpenAction(OpenFileAction):
                 if "version" not in env.publish_template.keys:
                     publish_requires_copy = False
             
-            form = OpenOptionsForm(self._app, work_file, publish_file, OpenOptionsForm.OPEN_WORKFILE_MODE, 
-                                next_version, publish_requires_copy)
-            open_mode = WrapperDialog.show_modal(form, "Found a More Recent Publish!", parent=parent_ui)
+            form = OpenOptionsForm(None, self._app, work_file, publish_file, OpenOptionsForm.OPEN_WORKFILE_MODE, 
+                                   next_version, publish_requires_copy)
+            open_mode = WrapperDialog.show_modal(form, parent_ui, "Found a More Recent Publish!")
             
         if open_mode == OpenOptionsForm.OPEN_WORKFILE:
             # open the work file:
@@ -160,8 +160,8 @@ class InteractiveOpenAction(OpenFileAction):
             open_mode = OpenOptionsForm.OPEN_PUBLISH
             
             mode = OpenOptionsForm.OPEN_PUBLISH_MODE if publish_requires_copy else OpenOptionsForm.OPEN_PUBLISH_NO_READONLY_MODE 
-            form = OpenOptionsForm(self._app, work_file, publish_file, mode, next_version, publish_requires_copy)
-            open_mode = WrapperDialog.show_modal(form, dlg_title, parent=parent_ui)
+            form = OpenOptionsForm(None, self._app, work_file, publish_file, mode, next_version, publish_requires_copy)
+            open_mode = WrapperDialog.show_modal(form, parent_ui, dlg_title)
                 
             if open_mode == OpenOptionsForm.OPEN_WORKFILE:
                 # open the work file:

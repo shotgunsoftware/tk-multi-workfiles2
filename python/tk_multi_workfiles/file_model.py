@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import weakref
+import time
 
 import sgtk
 from sgtk.platform.qt import QtGui, QtCore
@@ -17,6 +18,210 @@ from sgtk import TankError
 from .file_finder import FileFinder
 from .user_cache import g_user_cache
 from .file_search_cache import FileSearchCache
+
+class TreeItem(object):
+    """
+    """
+    def __init__(self):
+        self._node = None
+
+    @property
+    def index(self):
+        if not self._node or not self._node():
+            return QtCore.QModelIndex()
+        return self._node().index
+
+    @property
+    def model(self):
+        if not self._node or not self._node():
+            return None
+        return self._node().model
+        
+        
+
+class _TreeNode(object):
+    """
+    """
+    def __init__(self, model, item, parent_node):
+        self._model = weakref.ref(model) if model else None
+        self.parent = parent_node
+        self.children = []
+        self.item = item
+        if self.item:
+            self.item._node = weakref.ref(self)
+
+    @property
+    def index(self):
+        """
+        """
+        model = self.model
+        if not model:
+            return QtCore.QModelIndex()
+        return model._index_for_node(self)
+    
+    @property
+    def model(self):
+        return self._model() if self._model else None
+
+class TreeModel(QtCore.QAbstractItemModel):
+    def __init__(self, parent=None):
+        """
+        """
+        QtCore.QAbstractItemModel.__init__(self, parent)
+        self._root_nodes = []
+        
+        self._root_node = _TreeNode(self, None, None)
+
+    def item(self, index):
+        """
+        """
+        pass
+
+    def _index_for_node(self, node):
+        """
+        """
+        if node == self._root_node:
+            # we've reached the root!
+            return QtCore.QModelIndex()
+        
+        # get the parent index:
+        parent_index = self._index_for_node(node.parent)
+        row = node.parent.children.index(node)
+        index = QtCore.QModelIndex(row, 0, parent_index)
+        return index
+
+    def index(self, row, column, parent):
+        """
+        """
+        parent_node = parent.internalPointer() if parent else self._root_node
+        if parent_node and row < len(parent_node.children):
+            return self.createIndex(row, column, parent_node.children[row])
+        return QtCore.QModelIndex()
+
+    def parent(self, index):
+        """
+        """
+        if not index.isValid():
+            return QtCore.QModelIndex()
+        node = index.internalPointer()
+        if not node or node.parent is None:
+            return QtCore.QModelIndex()
+        try:
+            row = node.parent.children.index(node)
+            return self.createIndex(row, 0, node.parent)
+        except ValueError:
+            return QtCore.QModelIndex()
+
+    def reset(self):
+        """
+        """
+        self.beginResetModel()
+        self._root_node.children = []
+        # (AD) - do we need to call the base class?
+        QtCore.QAbstractItemModel.reset(self)
+        self.endResetModel()
+
+    def rowCount(self, parent):
+        """
+        """
+        node = parent.internalPointer() if parent else self._root_node
+        return len(node.children) if node else 0
+
+    def append_row(self, item, parent_idx=QtCore.QModelIndex()):
+        """
+        """
+        return self._insert_rows(None, [item], parent_idx)
+
+    def append_rows(self, items, parent_idx=QtCore.QModelIndex()):
+        """
+        """
+        return self._insert_rows(None, items, parent_idx)
+
+    def insert_row(self, row, item, parent_idx=QtCore.QModelIndex()):
+        """
+        """
+        return self._insert_rows(row, [item], parent_idx)
+    
+    def insert_rows(self, row, items, parent_idx=QtCore.QModelIndex()):
+        """
+        """
+        return self._insert_rows(row, items, parent_idx)
+
+    def remove_row(self, row, parent_idx=QtCore.QModelIndex()):
+        """
+        """
+        return self._remove_rows(row, 1, parent_idx)
+
+    def remove_rows(self, row, count, parent_idx=QtCore.QModelIndex()):
+        """
+        """
+        return self._remove_rows(row, count, parent_idx)
+
+    def clear(self):
+        """
+        """
+        self.clear_children()
+
+    def clear_children(self, parent_idx=QtCore.QModelIndex()):
+        """
+        """
+        parent_node = parent_idx.internalPointer() if parent_idx else self._root_node
+        if not parent_node:
+            return
+
+        for ri in range(len(parent_node.children)):
+            child_index = self.index(ri, 0, parent_idx)
+            self.clear_children(child_index)
+
+        self._remove_rows(0, len(parent_node.children), parent_idx)
+
+    def _insert_rows(self, insert_idx, items, parent_idx):
+        """
+        """
+        parent_node = parent_idx.internalPointer() if parent_idx else self._root_node
+        if not parent_node:
+            return False
+        
+        if insert_idx is None:
+            insert_idx = len(parent_node.children)
+        else:
+            insert_idx = max(0, min(insert_idx, len(parent_node.children)))
+
+        # create the new nodes and add them to the model:
+        self.beginInsertRows(parent_idx, insert_idx, insert_idx + len(items) - 1)
+        try:
+            new_nodes = [_TreeNode(self, item, parent_node) for item in items]
+            parent_node.children = (parent_node.children[:insert_idx] 
+                                    + new_nodes 
+                                    + parent_node.children[insert_idx:])
+        finally:
+            self.endInsertRows()
+
+        return True
+    
+    def _remove_rows(self, row, count, parent_idx):
+        """
+        """
+        parent_node = parent_idx.internalPointer() if parent_idx else self._root_node
+        if not parent_node:
+            return False
+        
+        last_row = min(row + count - 1, len(parent_node.children))
+        if last_row < row:
+            # nothing to remove as the rows aren't in the list!
+            return True
+
+        # create the new nodes and add them to the model:
+        self.beginRemoveRows(parent_idx, row, last_row)
+        try:
+            parent_node.children = (parent_node.children[:row] 
+                                    + parent_node.children[last_row+1:])
+        finally:
+            self.endInsertRows()
+
+
+
+
 
 class FileModel(QtGui.QStandardItemModel):
     """
@@ -51,20 +256,40 @@ class FileModel(QtGui.QStandardItemModel):
     SEARCH_STATUS_ROLE = _BASE_ROLE + 4     # search status data
     SEARCH_MSG_ROLE = _BASE_ROLE    + 5     # search message data
 
+    DATA_INDEX_ROLE = _BASE_ROLE    + 6
+
+    class _BaseItemData(object):
+        def __init__(self, typ):
+            self.item_type = typ
+
     class _BaseItem(QtGui.QStandardItem):
         """
         """
-        def __init__(self, typ, text=None):
+        def __init__(self, data_index, text=None):
             """
             """
             QtGui.QStandardItem.__init__(self, text or "")
-            self._type = typ
+            QtGui.QStandardItem.setData(self, data_index, FileModel.DATA_INDEX_ROLE)
+
+        @property
+        def item_data_index(self):
+            return QtGui.QStandardItem.data(self, FileModel.DATA_INDEX_ROLE)
+
+        @property
+        def item_data(self):
+            # note, going through self.model() has a tendency to crash so instead we get
+            # the QModelIndex of the item in the model and then the model from that!
+            idx = self.index()
+            if idx.isValid():
+                return idx.model()._item_data.get(self.item_data_index)
 
         def data(self, role=QtCore.Qt.UserRole+1):
             """
             """
             if role == FileModel.NODE_TYPE_ROLE:
-                return self._type
+                item_data = self.item_data
+                return item_data.item_type if item_data else None
+                #return self._type
             else:
                 # just return the default implementation:
                 return QtGui.QStandardItem.data(self, role)
@@ -79,15 +304,22 @@ class FileModel(QtGui.QStandardItemModel):
                 # call the base implementation:
                 QtGui.QStandardItem.setData(self, value, role) 
 
-    class _FileItem(_BaseItem):
+    class _FileItemData(_BaseItemData):
+        def __init__(self, file_item, work_area):
+            FileModel._BaseItemData.__init__(self, typ=FileModel.FILE_NODE_TYPE)
+            self.file_item = file_item
+            self.work_area = work_area
+
+    class _FileItem(QtGui.QStandardItem):
         """
         """
-        def __init__(self, file_item, environment):
+        def __init__(self, file_item, work_area):
             """
             """
-            FileModel._BaseItem.__init__(self, typ=FileModel.FILE_NODE_TYPE)
+            name = ("%s, v%0d" % (file_item.name, file_item.version)) if file_item else ""
+            QtGui.QStandardItem.__init__(self, name)
             self._file_item = file_item
-            self._environment = environment
+            self._work_area = work_area
 
         @property
         def file_item(self):
@@ -95,17 +327,37 @@ class FileModel(QtGui.QStandardItemModel):
 
         @property
         def environment(self):
-            return self._environment
+            return self._work_area
+
+    class _FileItem_BAD(_BaseItem):
+        """
+        """
+        #def __init__(self, file_item, environment):
+        #    """
+        #    """
+        #    FileModel._BaseItem.__init__(self, typ=FileModel.FILE_NODE_TYPE)
+        #    self._file_item = file_item
+        #    self._environment = environment
+        @property
+        def file_item(self):
+            item_data = self.item_data
+            return item_data.file_item if item_data else None
+
+        @property
+        def environment(self):
+            item_data = self.item_data
+            return item_data.work_area if item_data else None
 
         def data(self, role=QtCore.Qt.UserRole+1):
             """
             """
             if role == QtCore.Qt.DisplayRole:
-                return "%s, v%0d" % (self._file_item.name, self._file_item.version)
+                file_item = self.file_item
+                return ("%s, v%0d" % (file_item.name, file_item.version)) if file_item else ""
             elif role == FileModel.FILE_ITEM_ROLE:
-                return self._file_item
+                return self.file_item
             elif role == FileModel.WORK_AREA_ROLE:
-                return self._environment
+                return self.environment
             else:
                 # just return the default implementation:
                 return FileModel._BaseItem.data(self, role)
@@ -117,40 +369,53 @@ class FileModel(QtGui.QStandardItemModel):
                 # do nothing as it can't be set!
                 pass
             elif role == FileModel.FILE_ITEM_ROLE:
-                self._file_item = value
-                self.emitDataChanged()
+                item_data = self.item_data
+                if item_data:
+                    item_data.file_item = value
+                    self.emitDataChanged()
             elif role == FileModel.WORK_AREA_ROLE:
-                self._environment = value
-                self.emitDataChanged()
+                item_data = self.item_data
+                if item_data:
+                    item_data.work_area = value
+                    self.emitDataChanged()
             else:
                 # call the base implementation:
                 FileModel._BaseItem.setData(self, value, role) 
 
+    class _FolderItemData(_BaseItemData):
+        def __init__(self, entity):
+            FileModel._BaseItemData.__init__(self, typ=FileModel.FOLDER_NODE_TYPE)
+            self.entity = entity
+
     class _FolderItem(_BaseItem):
         """
         """
-        def __init__(self, name, entity):
-            FileModel._BaseItem.__init__(self, typ=FileModel.FOLDER_NODE_TYPE, text=name)
-            self._entity = entity
-
         @property
         def entity(self):
-            return self._entity
+            item_data = self.item_data
+            return item_data.entity if item_data else None
 
-    class _GroupItem(_BaseItem):
-        """
-        """
-        def __init__(self, name, entity=None, work_area=None):
-            FileModel._BaseItem.__init__(self, typ=FileModel.GROUP_NODE_TYPE, text=name)
+    class _GroupItemData(_BaseItemData):
+        def __init__(self, key, work_area=None):
+            FileModel._BaseItemData.__init__(self, typ=FileModel.GROUP_NODE_TYPE)
+            self.search_status = FileModel.SEARCH_COMPLETED
+            self.search_msg = ""
+            self.work_area = work_area
+            self.key = key
 
+    class _GroupItem(QtGui.QStandardItem):
+        def __init__(self, key, text=None):
+            """
+            """
+            QtGui.QStandardItem.__init__(self, text or "")
+            self._key = key
             self._search_status = FileModel.SEARCH_COMPLETED
             self._search_msg = ""
-            self._work_area = work_area
-            self._entity = entity
+            self._work_area = None
 
         @property
-        def entity(self):
-            return self._entity
+        def key(self):
+            return self._key
 
         #@property
         def _get_work_area(self):
@@ -158,7 +423,7 @@ class FileModel(QtGui.QStandardItemModel):
         #@work_area.setter
         def _set_work_area(self, work_area):
             self._work_area = work_area
-            self.emitDataChanged()
+            #self.emitDataChanged()
         work_area=property(_get_work_area, _set_work_area)
 
         def set_search_status(self, status, msg=None):
@@ -166,17 +431,49 @@ class FileModel(QtGui.QStandardItemModel):
             """
             self._search_status = status
             self._search_msg = msg
-            self.emitDataChanged()
+            #self.emitDataChanged()
+
+    class _GroupItem_BAD(_BaseItem):
+        """
+        """
+        @property
+        def key(self):
+            item_data = self.item_data
+            return item_data.key if item_data else None
+
+        #@property
+        def _get_work_area(self):
+            item_data = self.item_data
+            return item_data.work_area if item_data else None
+        #@work_area.setter
+        def _set_work_area(self, work_area):
+            item_data = self.item_data
+            if item_data:
+                item_data.work_area = work_area
+                self.emitDataChanged()
+        work_area=property(_get_work_area, _set_work_area)
+
+        def set_search_status(self, status, msg=None):
+            """
+            """
+            item_data = self.item_data
+            if item_data:
+                item_data.search_status = status
+                item_data.search_msg = msg
+                self.emitDataChanged()
 
         def data(self, role=QtCore.Qt.UserRole+1):
             """
             """
             if role == FileModel.SEARCH_STATUS_ROLE:
-                return self._search_status
+                item_data = self.item_data
+                return item_data.search_status if item_data else FileModel.SEARCH_COMPLETED
             elif role == FileModel.SEARCH_MSG_ROLE:
-                return self._search_msg
+                item_data = self.item_data
+                return item_data.search_msg if item_data else ""
             elif role == FileModel.WORK_AREA_ROLE:
-                return self._work_area
+                item_data = self.item_data
+                return item_data.work_area if item_data else None
             else:
                 # just return the default implementation:
                 return FileModel._BaseItem.data(self, role)
@@ -185,14 +482,20 @@ class FileModel(QtGui.QStandardItemModel):
             """
             """
             if role == FileModel.SEARCH_STATUS_ROLE:
-                self._search_status = value
-                self.emitDataChanged()
+                item_data = self.item_data
+                if item_data:
+                    item_data.search_status = value
+                    self.emitDataChanged()
             elif role == FileModel.SEARCH_MSG_ROLE:
-                self._search_msg = value
-                self.emitDataChanged()
+                item_data = self.item_data
+                if item_data:
+                    item_data.search_msg = value
+                    self.emitDataChanged()
             elif role == FileModel.WORK_AREA_ROLE:
-                self._environment = value
-                self.emitDataChanged()
+                item_data = self.item_data
+                if item_data:
+                    item_data.work_area = value
+                    self.emitDataChanged()
             else:
                 # call the base implementation:
                 FileModel._BaseItem.setData(self, value, role) 
@@ -200,11 +503,17 @@ class FileModel(QtGui.QStandardItemModel):
     # Signal emitted when the available sandbox users have changed
     available_sandbox_users_changed = QtCore.Signal(object)
 
-    def __init__(self, sg_data_retriever, parent=None):
+    def __init__(self, sg_data_retriever, parent):
         """
         Construction
         """
+        #TreeModel.__init__(self, parent)
         QtGui.QStandardItemModel.__init__(self, parent)
+
+        self._next_item_data_index = 0
+        self._item_data = {}
+        self._all_files = []
+        self._all_envs = []
 
         # sg data retriever is used to download thumbnails in the background
         self._sg_data_retriever = sg_data_retriever
@@ -217,21 +526,91 @@ class FileModel(QtGui.QStandardItemModel):
         self._current_searches = []
         self._current_users = [g_user_cache.current_user]
         self._entity_work_areas = {}
-        self._entity_user_group_map = {}
         self._in_progress_searches = {}
-
         self._search_cache = FileSearchCache()
         self._file_to_item_map = {}
         self._pending_thumbnail_requests = {}
-        
+
         # we'll need a file finder to be able to find files:
-        self._finder = FileFinder()
+        self._finder = FileFinder(parent=self)
         self._finder.files_found.connect(self._on_finder_files_found)
         self._finder.publishes_found.connect(self._on_finder_publishes_found)
         self._finder.search_completed.connect(self._on_finder_search_completed)
         self._finder.search_failed.connect(self._on_finder_search_failed)
         self._finder.work_area_found.connect(self._on_finder_work_area_found)
         
+        self._all_items = []
+        
+        self._dbg_file = None#open("/Users/Alan_Dann/worfiles_v2_dbg.txt", "w")
+        
+        #self.setItemPrototype(FileModel._CustomItem(""))
+
+    class TreeItem(object):
+        def __init__(self, name):
+            self.name = name
+
+    def _update_groups(self):
+        """
+        """
+        self.clear()
+
+        new_items = []
+
+        for search in self._current_searches:
+            for user in self._current_users:
+                group_item = QtGui.QStandardItem(search.name)
+                new_items.append(group_item)
+                #self.appendRow(group_item)
+                #self.invisibleRootItem().appendRows([group_item])
+                #group_item = FileModel.TreeItem(search.name)
+                #self.append_row(group_item)
+
+        if new_items:
+            self.invisibleRootItem().appendRows(new_items)
+
+    def _process_files(self, files, environment, parent_item, have_local=True, have_publishes=True):
+        """
+        """
+        new_items = []
+        
+        for file_item in files:
+            #name = ("%s, v%0d" % (file_item.name, file_item.version)) if file_item else ""
+            model_item = QtGui.QStandardItem(file_item.name)
+            #model_item = FileModel.TreeItem(name)
+            new_items.append(model_item)
+            #parent_item.appendRows([model_item])
+
+        if new_items:
+            #parent_idx = ?
+            #self.append_rows(new_items, parent_idx)
+            parent_item.appendRows(new_items)
+
+    def _add_new_group(self, name, group_key, environment):
+        """
+        """
+        group_item = QtGui.QStandardItem(name)
+        self.invisibleRootItem().appendRows([group_item])
+        
+        #group_item = FileModel.TreeItem(name)
+        #self.append_row(group_item)
+        return group_item
+
+    def _add_new_group_BAD(self, name, group_key, environment):
+        # we don't have a group item for this search so lets add one now:
+        group_item = self._add_group_item(name, group_key, environment)
+        # (TODO) need to insert it into the right place in the list!
+        #self.invisibleRootItem().appendRow(group_item)
+        self.invisibleRootItem().appendRows([group_item])
+
+
+
+
+
+
+
+
+
+
     def get_file_versions(self, key, env):
         """
         """
@@ -248,7 +627,7 @@ class FileModel(QtGui.QStandardItemModel):
         if not model_item_ref:
             return None
 
-        return model_item_ref() 
+        return model_item_ref()
 
     # Interface for modifying the entities in the model:
     def set_entity_searches(self, searches):
@@ -257,9 +636,9 @@ class FileModel(QtGui.QStandardItemModel):
         #print "Setting entity searches on model to: %s" % [s.name for s in searches if s]
         # stop any in-progress searches:
         self._stop_in_progress_searches()
+        self._current_searches = searches or []
 
         # update groups:
-        self._current_searches = searches or []
         self._update_groups()
 
         # start searches for all items/users in the model:
@@ -273,15 +652,14 @@ class FileModel(QtGui.QStandardItemModel):
         # stop any in-progress searches:
         self._stop_in_progress_searches()
 
-        # update groups:
         self._current_users = list(users or [])
-        
-        # we _always_ search for the current user:
         if g_user_cache.current_user:
-            user_ids = [user["id"] for user in users]
+            # we _always_ search for the current user:
+            user_ids = [user["id"] for user in self._current_users]
             if g_user_cache.current_user["id"] not in user_ids:
                 self._current_users.insert(0, g_user_cache.current_user)
-        
+
+        # update groups:
         self._update_groups()
 
         # start searches for all items/users in the model:
@@ -300,13 +678,100 @@ class FileModel(QtGui.QStandardItemModel):
         """
         # stop all current searches:
         self._stop_in_progress_searches()
+        # any pending thumbnail requests can be discarded:
+        self._pending_thumbnail_requests = {}
+        
+        # clear all item data:
+        self._item_data = {}
 
-        # clear existing data from model:
-        # (TODO) make sure this is safe!
+        self._all_items = []
+
         QtGui.QStandardItemModel.clear(self)
+
+        # clear all items in a bottom-up fashion:
+        #self._clear_children_r(self.invisibleRootItem())
 
         # clean up the file-to-item map
         self._cleanup_file_to_item_map()
+
+    def _safe_remove_row(self, row, parent_item=None):
+        """
+        """
+        # get the item and safey remove all children of the item:
+        item = parent_item.child(row) if parent_item else self.item(row, 0)
+        if not item:
+            return
+        self._clear_children_r(item)
+        data_idx = item.item_data_index if isinstance(item, FileModel._BaseItem) else None
+        item = None
+
+        if parent_item:
+            # remove row from parent:
+            parent_item.removeRow(row)
+        else:
+            # must be a root row:
+            self.removeRow(row)
+            
+        if data_idx in self._item_data:
+            del self._item_data[data_idx]
+
+    def _clear_children_r(self, parent_item):
+        """
+        """
+        num_rows = parent_item.rowCount()
+        if num_rows == 0:
+            return
+        
+        #print "Clearing %d child rows of parent %s" % (parent_item.rowCount(), parent_item)
+        data_to_remove = []
+        for row in range(num_rows):
+            child_item = parent_item.child(row)
+            if child_item:
+                #print "Processing child %s" % child_item
+                self._clear_children_r(child_item)
+            else:
+                print "NO CHILD ROW TO REMOVE!"
+                
+            # keep track of data:
+            if isinstance(child_item, FileModel._BaseItem):
+                data_to_remove.append(child_item.item_data_index)
+
+        # and clear all children:
+        parent_item.removeRows(0, num_rows)
+        # and remove the data:
+        for data_idx in data_to_remove:
+            if data_idx in self._item_data:
+                del self._item_data[data_idx]
+
+    def destroy(self):
+        """
+        """
+        # clear the model:
+        self.clear()
+
+        # disconnect from the data retriever:
+        if self._sg_data_retriever:
+            self._sg_data_retriever.work_completed.disconnect(self._on_data_retriever_work_completed)
+            self._sg_data_retriever.work_failure.disconnect(self._on_data_retriever_work_failed)
+            self._sg_data_retriever = None
+
+        # clean up the cache:
+        if self._search_cache:
+            self._search_cache.clear()
+            self._search_cache = None
+
+        # disconnect and clean up the file finder:
+        if self._finder:
+            self._finder.files_found.disconnect(self._on_finder_files_found)
+            self._finder.publishes_found.disconnect(self._on_finder_publishes_found)
+            self._finder.search_completed.disconnect(self._on_finder_search_completed)
+            self._finder.search_failed.disconnect(self._on_finder_search_failed)
+            self._finder.work_area_found.disconnect(self._on_finder_work_area_found)
+            self._finder.shut_down()
+            self._finder = None
+            
+        if self._dbg_file:
+            self._dbg_file.close()
 
     # ------------------------------------------------------------------------------------------
     # protected methods
@@ -342,26 +807,36 @@ class FileModel(QtGui.QStandardItemModel):
             # nothing to do!
             return
 
+        # get existing groups:
+        group_map = {}
+        for group_item in self._group_items():
+            group_map[group_item.key] = group_item
+
         for search in self._current_searches:
-            
             if not search.entity:
                 continue
-            
+
             # update all existing group items for this entity and all users to indicate
             # that we are searching for files
             entity_key = self._entity_key(search.entity)
             for user in self._current_users:
                 user_key = self._entity_key(user)
                 group_key = (entity_key, user_key)
-                group_idx = self._entity_user_group_map.get(group_key)
-                if group_idx and group_idx.isValid():
-                    # update it to indicate that searching has started:
-                    group_item = self.itemFromIndex(group_idx)
+                group_item = group_map.get(group_key)
+                if group_item:
                     group_item.set_search_status(FileModel.SEARCHING)
 
             # and actually start the search:
-            search_id = self._finder.begin_search(search.entity, self._current_users)
-            self._in_progress_searches[search_id] = search
+            #search_id = self._finder.begin_search(search.entity, self._current_users)
+            #self._in_progress_searches[search_id] = search
+            #print "Started search %d..." % search_id
+
+            self._in_progress_searches[0] = search
+            res = self._finder.do_inline_search(search.entity, self._current_users)
+            for file_items, work_area in res:
+                self._on_finder_files_found(0, file_items, work_area)
+                self._on_finder_search_completed(0)
+                
 
     def _stop_in_progress_searches(self):
         """
@@ -369,12 +844,21 @@ class FileModel(QtGui.QStandardItemModel):
         search_ids = self._in_progress_searches.keys()
         self._in_progress_searches = {}
         for id in search_ids:
-            #print "Stopping search %s" % id
             self._finder.stop_search(id)
 
-    def _update_groups(self):
+
+    def _update_groups_BAD(self):
         """
         """
+        self._dbg_write("Updating groups")
+        
+        #self.clear()
+        
+        # get existing groups:
+        group_map = {}
+        for group_item in self._group_items():
+            group_map[group_item.key] = group_item
+
         valid_group_keys = set()
         if self._current_searches and self._current_users:
 
@@ -388,7 +872,7 @@ class FileModel(QtGui.QStandardItemModel):
             primary_user_key = current_user_key if have_current_user else self._entity_key(self._current_users[0])
 
             # iterate over the searches, making sure that group nodes exist as needed
-            previous_group_idx = None
+            previous_valid_row = -1
             for search in self._current_searches:
                 if not search.entity:
                     # this search doesn't represent an entity so we won't need to search
@@ -401,28 +885,21 @@ class FileModel(QtGui.QStandardItemModel):
 
                 # iterate over each user for this group:
                 for user in self._current_users:
-
                     user_key = self._entity_key(user)
                     group_key = (entity_key, user_key)
-                    current_group_idx = self._entity_user_group_map.get(group_key)
 
-                    if current_group_idx is not None:
-                        # check validity of this model index:
-                        if not current_group_idx.isValid():
-                            # item has been removed and index is no longer valid!
-                            current_group_idx = None
-                            del self._entity_user_group_map[group_key]
+                    # see if we already have an item for this group:
+                    group_item = group_map.get(group_key)
 
-                    if not current_group_idx:
+                    if not group_item:
                         # we don't have a group node for this entity/user combination:
                         cached_result = self._search_cache.find(search.entity, user)
                         if (user_key == primary_user_key or cached_result):
                             # always add a group for the primary user or if we already have a cached result:
-                            group_item = FileModel._GroupItem(search.name, search.entity)
-                            self.invisibleRootItem().insertRow(previous_group_idx.row()+1 if previous_group_idx else 0, 
-                                                               group_item)
-                            current_group_idx = QtCore.QPersistentModelIndex(group_item.index())
-                            self._entity_user_group_map[group_key] = current_group_idx 
+                            #group_item = FileModel._GroupItem(search.name, group_key)
+                            group_item = self._add_group_item(search.name, group_key)
+                            #self.insertRow(previous_valid_row + 1, group_item)
+                            self.invisibleRootItem().appendRows([group_item])
 
                             if cached_result:
                                 # we have a cached result so populate the group:
@@ -430,180 +907,268 @@ class FileModel(QtGui.QStandardItemModel):
                                 self._process_files(files, environment, group_item)
                                 group_item.work_area = environment
 
-                    if current_group_idx:
+                    if group_item:
                         # make sure the name and entity children are up-to-date:
-                        group_item = self.itemFromIndex(current_group_idx)
                         self._update_group_child_entity_items(group_item, search.child_entities or [])
 
-                        # keep track of the last valid group index:
-                        previous_group_idx = current_group_idx
+                        # keep track of the last valid group row:
+                        previous_valid_row = group_item.row()
 
-                    valid_group_keys.add(group_key)
+                        # and keep track of this group item:
+                        valid_group_keys.add(group_key)
 
         # remove any groups that are no longer needed:
-        new_group_map = {}
-        for group_key, group_idx in self._entity_user_group_map.iteritems():
+        for group_key, group_item in group_map.iteritems():
             if group_key not in valid_group_keys:
-                if group_idx.isValid():
-                    # remove group:
-                    self.removeRow(group_idx.row(), group_idx.parent())
-            else:
-                new_group_map[group_key] = group_idx
-        self._entity_user_group_map = new_group_map
+                self._safe_remove_row(group_item.row())
 
         # and clean up the file-to-item map:
         self._cleanup_file_to_item_map()
+        
+        self._dbg_write(" > Finished updating groups")
+
+    def _add_group_item(self, name, group_key, work_area=None):
+        """
+        """
+        #item_data_idx = self._next_item_data_index
+        #self._next_item_data_index += 1
+        #self._item_data[item_data_idx] = FileModel._GroupItemData(group_key, work_area)
+        #item = FileModel._GroupItem(item_data_idx, name)
+        item = FileModel._GroupItem(group_key, name)
+        #item = QtGui.QStandardItem(name)
+        #self._all_items.append(item)
+        return item
+    
+    def _add_file_item(self, file_item, work_area):
+        """
+        """
+        #item_data_idx = self._next_item_data_index
+        #self._next_item_data_index += 1
+        #self._item_data[item_data_idx] = FileModel._FileItemData(file_item, work_area)
+        #item = FileModel._FileItem(item_data_idx)
+        item = FileModel._FileItem(file_item, work_area)
+        #name = ("%s, v%0d" % (file_item.name, file_item.version)) if file_item else ""
+        #item = QtGui.QStandardItem(name)
+        #self._all_items.append(item)
+        return item
+        
+    def _add_folder_item(self, name, entity):
+        """
+        """
+        item_data_idx = self._next_item_data_index
+        self._next_item_data_index += 1
+        self._item_data[item_data_idx] = FileModel._FolderItemData(entity)
+        item = FileModel._FolderItem(item_data_idx, name)
+        #self._all_items.append(item)
+        return item
+        
 
     def _update_group_child_entity_items(self, parent_item, child_details):
         """
         """
-        # build a map, mapping from entity to item for all current children:
-        entity_item_map = {}
+        return
+        self._dbg_write("Updating group child entity items...")
+
+        # build a map from the entity key to row for all folder items:
+        current_entity_row_map = {}
         for ri in range(parent_item.rowCount()):
             child_item = parent_item.child(ri)
             if isinstance(child_item, FileModel._FolderItem):
                 child_name = child_item.text()
                 child_entity = child_item.entity
-                child_key = (child_name, child_entity["type"], child_entity["id"])
-                entity_item_map[child_key] = child_item
+                child_key = (child_name, self._entity_key(child_entity))
+                current_entity_row_map[child_key] = ri
 
-        # add any children that aren't already children of the parent item:
-        valid_child_keys = set()
+        # figure out which entities we need to add:
+        valid_entity_keys = set()
+        entities_to_add = []
         for details in child_details:
             child_name = details.get("name", "Entity")
             child_entity = details.get("entity")
-            child_key = (child_name, child_entity["type"], child_entity["id"])
-            current_item = entity_item_map.get(child_key)
-            if current_item is None:
-                # add a new folder item to the model:
-                folder_item = FileModel._FolderItem(child_name, child_entity)
-                folder_item.setIcon(QtGui.QIcon(":/tk-multi-workfiles2/folder_512x400.png"))
-                parent_item.appendRow(folder_item)
-            # keep track of all valid child keys:
-            valid_child_keys.add(child_key)
+            child_key = (child_name, self._entity_key(child_entity))
+            if child_key in valid_entity_keys:
+                # don't add the same entity twice!
+                continue
+            valid_entity_keys.add(child_key)
+            if child_key not in current_entity_row_map:
+                entities_to_add.append((child_name, child_entity))
 
-        # finally, remove any children that are no longer needed
-        for key in (set(entity_item_map.keys()) - valid_child_keys):
-            parent_item.removeRow(entity_item_map[key].index().row())
+        # figure out which rows to remove...
+        rows_to_remove = set([row for key, row in current_entity_row_map.iteritems() if key not in valid_entity_keys])
+        # and remove them:
+        for row in sorted(rows_to_remove, reverse=True):
+            self._safe_remove_row(row, parent_item)
 
-    def _process_files(self, files, environment, parent_item, have_local=True, have_publishes=True):
+        # finally, add in new rows:
+        if entities_to_add:
+            new_rows = []
+            for name, entity in entities_to_add:
+                #folder_item = FileModel._FolderItem(name, entity)
+                folder_item = self._add_folder_item(name, entity)
+                #folder_item.setIcon(QtGui.QIcon(":/tk-multi-workfiles2/folder_512x400.png"))
+                new_rows.append(folder_item)
+            parent_item.appendRows(new_rows)
+
+        self._dbg_write(" > Finished Updating group child entity items!")
+
+    def _dbg_write(self, msg):
+        if self._dbg_file:
+            self._dbg_file.write("%s\n" % msg)
+            self._dbg_file.flush()
+
+    def _process_files_BAD(self, files, environment, parent_item, have_local=True, have_publishes=True):
         """
         """
+        if not have_local and not have_publishes:
+            # nothing to do then!
+            return
+        self._dbg_write("Processing %d found files for item '%s'" % (len(files), parent_item.text()))
+
+        self._dbg_write(" > Getting info from existing items...")
+
         # get details about existing items:
-        files_and_items = {}
+        existing_file_item_map = {}
         prev_local_file_versions = set()
         prev_publish_file_versions = set()
+
         for model_item in self._file_items(parent_item):
-            file = model_item.file_item
-            file_version_key = (file.key, file.version)
-            files_and_items[file_version_key] = (file, model_item)
-            if file.is_local:
+            self._dbg_write("   > A")
+            #data_idx = model_item.item_data_index
+            #item_data = self._item_data.get(data_idx)
+            #if not item_data:
+            #    continue
+            #file_item = item_data.file_item
+
+            #continue
+
+            file_item = model_item.file_item
+            self._dbg_write("   > B")
+            file_version_key = (file_item.key, file_item.version)
+            self._dbg_write("   > C")
+            existing_file_item_map[file_version_key] = (file_item, model_item)
+            if file_item.is_local:
                 prev_local_file_versions.add(file_version_key)
-            if file.is_published:
+            if file_item.is_published:
                 prev_publish_file_versions.add(file_version_key)
 
-        # iterate through files, adding items or updating them as needed:
-        new_rows = []
-        valid_file_versions = set()
-        for new_file in files:
-            file_version_key = (new_file.key, new_file.version)
-            current_file, model_item = files_and_items.get(file_version_key, (None, None))
+        self._dbg_write(" > Determining valid files...")
+
+        # build a list of existing files that we should keep in the model:
+        file_versions_to_keep = set()
+        if have_local and not have_publishes:
+            # keep all publishes that aren't local
+            file_versions_to_keep = prev_publish_file_versions
+        elif not have_local and have_publishes:
+            # keep all local that aren't publishes
+            file_versions_to_keep = prev_local_file_versions
+        valid_files = dict([(k, v[0]) for k, v in existing_file_item_map.iteritems() if k in file_versions_to_keep])
+
+        self._dbg_write(" > Matching files against items...")
+
+        # match files against existing items:
+        updated_items = []
+        files_to_add = []
+        for file_item in files:
+            file_version_key = (file_item.key, file_item.version)
+            current_file, model_item = existing_file_item_map.get(file_version_key, (None, None))
             if current_file and model_item:
                 # update the existing file:
-                if new_file.is_published:
-                    current_file.update_from_publish(new_file)
-                if new_file.is_local:
-                    current_file.update_from_work_file(new_file)
+                if file_item.is_published:
+                    current_file.update_from_publish(file_item)
+                if file_item.is_local:
+                    current_file.update_from_work_file(file_item)
+                updated_items.append(model_item)
             else:
-                # add a new item:
-                model_item = FileModel._FileItem(new_file, environment)
-                new_rows.append(model_item)
-                files_and_items[file_version_key] = (new_file, model_item)
+                # file not in model yet so we'll need to add it:
+                files_to_add.append(file_item)
 
-                # and make sure we keep an eye on any changes to the file:
-                new_file.data_changed.connect(self._on_file_data_changed)
-                self._file_to_item_map[id(new_file)] = (new_file, weakref.ref(model_item)) 
+            # add to the list of valid files:
+            valid_files[file_version_key] = file_item
 
-            valid_file_versions.add(file_version_key)
-
-            # if this is from a published file then we want to retrieve the thumbnail
-            # if one is available:
-            if new_file.is_published and new_file.thumbnail_path and not new_file.thumbnail:
+            ## if this is from a published file then we want to retrieve the thumbnail
+            ## if one is available:
+            if file_item.is_published and file_item.thumbnail_path and not file_item.thumbnail:
                 # request the thumbnail using the data retriever:
-                request_id = self._sg_data_retriever.request_thumbnail(new_file.thumbnail_path, 
-                                                                       "PublishedFile", 
-                                                                       new_file.published_file_id,
-                                                                       "image")
-                self._pending_thumbnail_requests[request_id] = (new_file, environment)
+                #request_id = self._sg_data_retriever.request_thumbnail(file_item.thumbnail_path, 
+                #                                                       "PublishedFile", 
+                #                                                       file_item.published_file_id,
+                #                                                       "image")
+                #self._pending_thumbnail_requests[request_id] = (file_item, environment)
+                pass
 
-        # update any files that are no longer in the corresponding set:
+        self._dbg_write(" > Calculating dead items...")
+
+        # figure out if any existing items are no longer needed:
+        valid_file_versions = set(valid_files.keys())
+        file_versions_to_remove = set(existing_file_item_map.keys()) - valid_file_versions
+        rows_to_remove = set([v[1].row() for k, v in existing_file_item_map.iteritems() if k in file_versions_to_remove])
+
+        # update any files that are no longer in the corresponding set but which aren't going to be removed:
         if have_local:
-            for file_version in prev_local_file_versions:
-                if file_version not in valid_file_versions:
-                    # file is no longer local!
-                    file, _ = files_and_items[file_version]
-                    file.set_not_work_file()
-
+            for file_version_key in (prev_local_file_versions - valid_file_versions) - file_versions_to_remove:
+                file_item, model_item = existing_file_item_map[file_version_key]
+                file_item.set_not_work_file()
+                updated_items.append(model_item)
         if have_publishes:
-            for file_version in prev_publish_file_versions:
-                if file_version not in valid_file_versions:
-                    # file is no longer a publish!
-                    file, _ = files_and_items[file_version]
-                    file.set_not_published()
+            for file_version_key in (prev_publish_file_versions - valid_file_versions) - file_versions_to_remove:
+                file_item, model_item = existing_file_item_map[file_version_key]
+                file_item.set_not_published()
+                updated_items.append(model_item)
 
-        # figure out the set of file-version keys that are no longer valid and should be removed
-        # completely from the model:
-        file_versions_to_remove = set()
-        if have_local:
-            if not have_publishes:
-                # all local that aren't published
-                file_versions_to_remove = prev_local_file_versions - prev_publish_file_versions
-            else:
-                # all local and all published
-                file_versions_to_remove = prev_local_file_versions | prev_publish_file_versions
-        elif have_publishes:
-            # all published that aren't local
-            file_versions_to_remove = prev_publish_file_versions - prev_local_file_versions
-        # substract all valid files from the set:
-        file_versions_to_remove = file_versions_to_remove - valid_file_versions
+        self._dbg_write(" > Updating the cache...")
 
-        # update the cache:
-        valid_files = [v[0] for k, v in files_and_items.iteritems() if k not in file_versions_to_remove]
-        self._search_cache.add(environment, valid_files)
+        # update the cache - it's important this is done _before_ adding/updating the model items:
+        self._search_cache.add(environment, valid_files.values())
+        self._all_files.extend(valid_files.values())
+        self._all_envs.append(environment)
 
-        # remove items:
-        for file_version_key in file_versions_to_remove:
-            _, item_to_remove = files_and_items[file_version_key]
-            item_to_remove.parent().removeRow(item_to_remove.row())
+        self._dbg_write(" > Removing %d items..." % len(rows_to_remove))
 
-        # add new rows to the model:
-        if new_rows:
-            # we have new rows so lets add them to the model:
-            parent_item.appendRows(new_rows)
+        """
+        # now lets remove, add and update items as needed:
+        # 1. Remove items that are no longer needed:
+        if rows_to_remove:
+            self._dbg_write(" > Removing %d file items..." % len(rows_to_remove))
+            for row in sorted(rows_to_remove, reverse=True):
+                self._dbg_write("   > Removing row %d" % row)
+                self._safe_remove_row(row, parent_item)
+                self._dbg_write("     Done!")
+                
+        self._dbg_write(" > Adding %d items..." % len(files_to_add))
+        """
+        # 2. Add new items:
+        if files_to_add:
+            self._dbg_write(" > Appending %d new file items..." % len(files_to_add))
+            new_items = []
+            for file_item in files_to_add:
+                self._dbg_write("   > Appending new file item for %s, v%03d" % (file_item.name, file_item.version))
+                #model_item = FileModel._FileItem(file_item, environment)
+                model_item = self._add_file_item(file_item, environment)
+                #parent_item.appendRow(model_item)
+                new_items.append(model_item)
+                # add to file-item map:
+                #self._file_to_item_map[id(file_item)] = (file_item, weakref.ref(model_item))
+                self._dbg_write("     Done!")
+            if new_items:
+                parent_item.appendRows(new_items)
+                
+        self._dbg_write(" > Updating %d items..." % len(updated_items))
+        """
+        # 3. Emit data changed for any updated model items:
+        if updated_items:
+            self._dbg_write(" > Emitting data changed signal for %d modified file items..." % len(updated_items))
+            for model_item in updated_items:
+                file_item = model_item.file_item
+                self._dbg_write("   > Emitting data changed signal for file item for %s, v%03d" % (file_item.name, file_item.version))
+                self.dataChanged.emit(model_item.index(), model_item.index())
+                self._dbg_write("     Done!")
+        """
+        self._dbg_write(" > Cleaning up file-to-item map!")
 
         # and clean up the file-to-item map:
         self._cleanup_file_to_item_map()
 
-    def _on_file_data_changed(self):
-        """
-        Slot triggered when data is changed on a FileItem instance.
-        """
-        file_item = self.sender()
-        if not file_item:
-            return
-
-        _, model_item_ref = self._file_to_item_map.get(id(file_item), (None, None))
-        if model_item_ref is None:
-            return
-
-        if model_item_ref() is not None:
-            # trigger the data changed signal for the model item:
-            model_item_ref().emitDataChanged()
-        else:
-            # disconnect from the file item:
-            file_item.data_changed.disconnect(self._on_file_data_changed)
-            # as the model item is no longer valid we also remove it from the lookup:
-            del self._file_to_item_map[id(file_item)]
+        self._dbg_write(" > Finished processing found files!")
 
     def _cleanup_file_to_item_map(self):
         """
@@ -616,16 +1181,13 @@ class FileModel(QtGui.QStandardItemModel):
             if model_item_ref() is not None:
                 # model item still exists so keep it in map:
                 new_file_to_item_map[k] = (file_item, model_item_ref)
-            else:
-                # disconnect from the file item:
-                file_item.data_changed.disconnect(self._on_file_data_changed)
+
         self._file_to_item_map = new_file_to_item_map
 
     def _on_finder_work_area_found(self, search_id, work_area):
         """
         Called when the finder has found a work area for the search.
         """
-        #print "[%d] Found Sandbox Users: %s" % (search_id, work_area.work_area_sandbox_users)
         if search_id not in self._in_progress_searches:
             # ignore result
             return
@@ -652,7 +1214,7 @@ class FileModel(QtGui.QStandardItemModel):
                 for user in area.sandbox_users:
                     if user:
                         users_by_id[user["id"]] = user
-                        
+
         # and current user is _always_ available:
         if g_user_cache.current_user:
             users_by_id[g_user_cache.current_user["id"]] = g_user_cache.current_user
@@ -664,13 +1226,13 @@ class FileModel(QtGui.QStandardItemModel):
         """
         Called when the finder has found some files.
         """
-        #print "Found %d files for search %s, user '%s'" % (len(file_list), search_id, environment.context.user["name"])
+        print "Found %d files for search %s, user '%s'" % (len(file_list), search_id, environment.context.user["name"])
         self._process_found_files(search_id, file_list, environment, have_local=True, have_publishes=False)
     
     def _on_finder_publishes_found(self, search_id, file_list, environment):
         """
         """
-        #print "Found %d publishes for search %s, user '%s'" % (len(file_list), search_id, environment.context.user["name"])
+        print "Found %d publishes for search %s, user '%s'" % (len(file_list), search_id, environment.context.user["name"])
         self._process_found_files(search_id, file_list, environment, have_local=False, have_publishes=True)
 
     def _process_found_files(self, search_id, file_list, environment, have_local, have_publishes):
@@ -684,10 +1246,13 @@ class FileModel(QtGui.QStandardItemModel):
 
         # find the group item for this search:
         group_key = (self._entity_key(search.entity), self._entity_key(search_user))
-        group_idx = self._entity_user_group_map.get(group_key)
-        group_item = None
-        if group_idx and group_idx.isValid():
-            group_item = self.itemFromIndex(group_idx)
+        found_group = False
+        for group_item in self._group_items():
+            if group_item.key == group_key:
+                found_group = True
+                break
+
+        if found_group:
             # and make sure the environment is up-to-date:
             group_item.work_area = environment
         else:
@@ -695,31 +1260,32 @@ class FileModel(QtGui.QStandardItemModel):
                 # no files so don't bother creating a group!
                 return
 
-            # we don't have a group item for this search so lets add one now:
-            group_item = FileModel._GroupItem(search.name, search.entity, environment)
-            # (TODO) need to insert it into the right place in the list!
-            self.invisibleRootItem().appendRow(group_item)
-            group_idx = QtCore.QPersistentModelIndex(group_item.index())
-            self._entity_user_group_map[group_key] = group_idx
+            group_item = self._add_new_group(search.name, group_key, environment)
+
+            ## we don't have a group item for this search so lets add one now:
+            #group_item = self._add_group_item(search.name, group_key, environment)
+            ## (TODO) need to insert it into the right place in the list!
+            ##self.invisibleRootItem().appendRow(group_item)
+            #self.invisibleRootItem().appendRows([group_item])
 
             # add children
             self._update_group_child_entity_items(group_item, search.child_entities or [])
 
         # process files:
-        self._process_files(file_list, environment, group_item, have_local, have_publishes)#, search_id)
+        self._process_files(file_list, environment, group_item, have_local, have_publishes)
 
     def _on_finder_search_completed(self, search_id):
         """
         Called when the finder search is completed
         """
-        #print "Search %s completed" % search_id
+        print "Search %s completed" % search_id
         self._process_search_completion(search_id, FileModel.SEARCH_COMPLETED)
 
     def _on_finder_search_failed(self, search_id, error_msg):
         """
         Called when the finder search fails for some reason!
         """
-        #print "Search %d failed - %s" % (search_id, error_msg)
+        print "Search %d failed - %s" % (search_id, error_msg)
         self._process_search_completion(search_id, FileModel.SEARCH_FAILED, error_msg)
 
     def _process_search_completion(self, search_id, status, error_msg=None):
@@ -732,14 +1298,16 @@ class FileModel(QtGui.QStandardItemModel):
         search = self._in_progress_searches[search_id]
         del(self._in_progress_searches[search_id])
 
+        group_map = {}
+        for group_item in self._group_items():
+            group_map[group_item.key] = group_item
+
         entity_key = self._entity_key(search.entity)
         for user in self._current_users:
             group_key = (entity_key, self._entity_key(user))
-            group_idx = self._entity_user_group_map.get(group_key)
-            if not group_idx or not group_idx.isValid():
+            group_item = group_map.get(group_key)
+            if not group_item:
                 continue
-
-            group_item = self.itemFromIndex(group_idx)
             group_item.set_search_status(status, error_msg)
 
     def _on_data_retriever_work_completed(self, uid, request_type, data):
@@ -747,7 +1315,7 @@ class FileModel(QtGui.QStandardItemModel):
         """
         if uid not in self._pending_thumbnail_requests:
             return
-        file, env = self._pending_thumbnail_requests[uid]
+        file_item, env = self._pending_thumbnail_requests[uid]
         del(self._pending_thumbnail_requests[uid])
         
         thumb_path = data.get("thumb_path")
@@ -760,11 +1328,13 @@ class FileModel(QtGui.QStandardItemModel):
             return
 
         # update the thumbnail on the file for this item:
-        file.thumbnail = thumb
+        # (AD) - THIS ISN'T GOING TO WORK AS THE MODEL ITEM IS NO LONGER EMITTING THE DATA
+        # CHANGED SIGNAL - NEED TO FIX!
+        file_item.thumbnail = thumb
     
         # See of there are any work file versions of this file that don't have a
         # thumbnail that could make use of this thumbnail:
-        file_versions = self.get_file_versions(file.key, env) or {}
+        file_versions = self.get_file_versions(file_item.key, env) or {}
         
         for v, file_version in sorted(file_versions.iteritems(), reverse=True):
             if (v > file_version.version 

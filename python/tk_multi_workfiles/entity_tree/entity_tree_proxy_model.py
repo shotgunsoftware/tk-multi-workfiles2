@@ -19,10 +19,10 @@ from ..user_cache import g_user_cache
 class EntityTreeProxyModel(EntityProxyModel):
     """
     """
-    def __init__(self, compare_sg_fields=None, parent=None):
+    def __init__(self, parent, compare_sg_fields):
         """
         """
-        EntityProxyModel.__init__(self, compare_sg_fields, parent)
+        EntityProxyModel.__init__(self, parent, compare_sg_fields)
         self._only_show_my_tasks = False
 
     #@property
@@ -35,23 +35,33 @@ class EntityTreeProxyModel(EntityProxyModel):
             self.invalidateFilter()
     only_show_my_tasks=property(_get_only_show_my_tasks, _set_only_show_my_tasks)
 
-    def _is_item_accepted(self, item, parent_accepted):
+    def _is_row_accepted(self, src_row, src_parent_idx, parent_accepted):
         """
         """
         if self._only_show_my_tasks:
-            
-            sg_entity = item.model().get_entity(item)
-            if sg_entity and sg_entity["type"] == "Task":
-                
-                assignees = sg_entity.get("task_assignees", [])
-                assignee_ids = [a["id"] for a in assignees if "id" in a]
-                
-                # make sure that the current user is in this lise of assignees:
-                current_user = g_user_cache.current_user
-                if not current_user or current_user["id"] not in assignee_ids:
-                    # task isn't assigned to the current user so this item
-                    # is definitely not accepted!
-                    return False
+            # filter out any tasks that aren't assigned to the current user:
+            current_user = g_user_cache.current_user
+            if not current_user:
+                return False
 
-        # fall back to the base implementation:        
-        return EntityProxyModel._is_item_accepted(self, item, parent_accepted)
+            src_idx = self.sourceModel().index(src_row, 0, src_parent_idx)
+            if not src_idx.isValid():
+                return False
+
+            item = src_idx.model().itemFromIndex(src_idx)
+            sg_entity = src_idx.model().get_entity(item)
+
+            if not sg_entity or sg_entity["type"] != "Task":
+                return False
+
+            assignees = sg_entity.get("task_assignees", [])
+            assignee_ids = [a["id"] for a in assignees if "id" in a]
+            if current_user["id"] not in assignee_ids:
+                return False
+
+        # we accept this row so lets check with the base implementation:        
+        return EntityProxyModel._is_row_accepted(self, src_row, src_parent_idx, parent_accepted)
+
+
+
+

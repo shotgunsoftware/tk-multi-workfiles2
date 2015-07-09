@@ -24,7 +24,7 @@ from sgtk import TankError
 
 from .file_form_base import FileFormBase
 from .ui.file_save_form import Ui_FileSaveForm
-from .runnable_task import RunnableTask
+from .background_task_manager import RunnableTask
 from .work_area import WorkArea
 from .file_item import FileItem
 from .file_finder import FileFinder
@@ -71,11 +71,11 @@ class FileSaveForm(FileFormBase):
         try:
             # doing this inside a try-except to ensure any exceptions raised don't 
             # break the UI and crash the dcc horribly!
-            self._init()
+            self._do_init()
         except:
             app.log_exception("Unhandled exception during File Save Form construction!")
         
-    def _init(self):
+    def _do_init(self):
         """
         Actual construction!
         """
@@ -143,6 +143,18 @@ class FileSaveForm(FileFormBase):
             self._ui.expand_checkbox.setChecked(True)
             self._on_expand_toggled(True)
 
+    def closeEvent(self, event):
+        """
+        Called when the widget is being closed - do as much as possible here to help the GC
+
+        :param event:   The close event
+        """
+        # clean up the browser:
+        self._ui.browser.shut_down()
+
+        # be sure to call the base clase implementation
+        return FileFormBase.closeEvent(self, event)
+
     # ------------------------------------------------------------------------------------------
     # protected methods
 
@@ -182,6 +194,7 @@ class FileSaveForm(FileFormBase):
         ext_idx = self._ui.file_type_menu.currentIndex() 
         ext = self._extension_choices[ext_idx] if ext_idx >= 0 else ""
 
+        # TODO - change this to use the background task manager
         self._preview_task = RunnableTask(self._generate_path,
                                           env = self._current_env,
                                           name = name,
@@ -668,6 +681,9 @@ class FileSaveForm(FileFormBase):
             QtGui.QMessageBox.critical(self, "Failed to save file!", "Failed to save file!\n\n%s" % e)
             app.log_exception("Failed to save file!")
             return
+
+        # construct a temporary file item:
+        file_item = FileItem(key=None, is_work_file=True, work_path=path_to_save)
 
         # Build and execute the save action:
         action = SaveAsFileAction(path_to_save, self._current_env)

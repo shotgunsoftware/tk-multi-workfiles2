@@ -81,15 +81,15 @@ class FileOpenForm(FileFormBase):
         self._ui.open_options_btn.hide()
 
         # hook up signals on controls:
+        self._ui.cancel_btn.clicked.connect(self._on_cancel)
+        self._ui.open_btn.clicked.connect(self._on_open)
+        self._ui.new_file_btn.clicked.connect(self._on_new_file)
+
         self._ui.browser.create_new_task.connect(self._on_create_new_task)
         self._ui.browser.file_selected.connect(self._on_browser_file_selected)
         self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)
         self._ui.browser.file_context_menu_requested.connect(self._on_browser_context_menu_requested)
         self._ui.browser.work_area_changed.connect(self._on_browser_work_area_changed)
-
-        self._ui.cancel_btn.clicked.connect(self._on_cancel)
-        self._ui.open_btn.clicked.connect(self._on_open)
-        self._ui.new_file_btn.clicked.connect(self._on_new_file)
 
         self._ui.nav.navigate.connect(self._on_navigate)
         self._ui.nav.home_clicked.connect(self._on_navigate_home)
@@ -99,6 +99,18 @@ class FileOpenForm(FileFormBase):
         current_file = self._get_current_file()
         self._ui.browser.select_work_area(app.context)
         self._ui.browser.select_file(current_file, app.context)
+
+    def closeEvent(self, event):
+        """
+        Called when the widget is being closed - do as much as possible here to help the GC
+
+        :param event:   The close event
+        """
+        # clean up the browser:
+        self._ui.browser.shut_down()
+
+        # be sure to call the base clase implementation
+        return FileFormBase.closeEvent(self, event)
 
     def _on_browser_file_selected(self, file, env):
         """
@@ -179,6 +191,7 @@ class FileOpenForm(FileFormBase):
             self._ui.open_options_btn.setEnabled(True)
             
             # build the menu and add the actions to it:
+            print "Populating open menu on button"
             menu = self._ui.open_options_btn.menu()
             if not menu:
                 menu = QtGui.QMenu(self._ui.open_options_btn)

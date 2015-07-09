@@ -15,16 +15,14 @@ from sgtk.platform.qt import QtCore, QtGui
 
 from .file_action import FileAction
 from ..scene_operation import save_file, SAVE_FILE_AS_ACTION
-from ..file_item import FileItem
 
 class SaveAsFileAction(FileAction):
     """
     """
-    def __init__(self, file_path, environment):
+    def __init__(self, file_item, environment):
         """
         """
-        file = FileItem(key=None, is_work_file=True, work_path=file_path)
-        FileAction.__init__(self, "Save As", file, None, environment)
+        FileAction.__init__(self, "Save As", file_item, None, environment)
 
     def execute(self, parent_ui):
         """

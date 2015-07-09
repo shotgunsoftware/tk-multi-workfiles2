@@ -16,16 +16,17 @@ import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
 from ..ui.task_widget import Ui_TaskWidget
+from ..util import set_widget_property
 
 class TaskWidget(QtGui.QWidget):
     """
     """
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         """
         Construction
         """
         QtGui.QWidget.__init__(self, parent)
-        
+
         # set up the UI
         self._ui = Ui_TaskWidget()
         self._ui.setupUi(self)
@@ -33,10 +34,9 @@ class TaskWidget(QtGui.QWidget):
     def set_selected(self, selected=True):
         """
         """
-        self._ui.background.setProperty("selected", selected)
-        self._ui.background.style().unpolish(self._ui.background)
-        self._ui.background.ensurePolished()
-        
+        set_widget_property(self._ui.background, "selected", selected, 
+                            refresh_style=True, refresh_children=True)
+
     def set_thumbnail(self, thumb):
         """
         """

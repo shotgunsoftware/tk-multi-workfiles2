@@ -32,7 +32,7 @@ class OpenOptionsForm(QtGui.QWidget):
     def exit_code(self):
         return self._exit_code    
     
-    def __init__(self, app, work_file, publish_file, mode, next_version, publish_requires_copy=True, parent=None):
+    def __init__(self, parent, app, work_file, publish_file, mode, next_version, publish_requires_copy=True):
         """
         Construction
 

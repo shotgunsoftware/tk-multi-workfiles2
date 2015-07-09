@@ -24,7 +24,7 @@ class UserFilterButton(QtGui.QPushButton):
     """
     users_selected = QtCore.Signal(object)# list of users
     
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         """
         """
         QtGui.QPushButton.__init__(self, parent)

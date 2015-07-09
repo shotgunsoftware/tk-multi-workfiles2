@@ -28,7 +28,7 @@ class FileFilters(QtCore.QObject):
     # signal emitted whenever the users changed:
     users_changed = QtCore.Signal(object)# list of users
     
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         """
         Construction
 

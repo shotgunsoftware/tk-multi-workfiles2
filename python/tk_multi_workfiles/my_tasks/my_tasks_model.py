@@ -15,34 +15,27 @@ import sgtk
 from sgtk.platform.qt import QtGui
 
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
-ShotgunModel = shotgun_model.ShotgunModel
+ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 
-class MyTasksModel(ShotgunModel):
+class MyTasksModel(ShotgunEntityModel):
     """
     """
-    def __init__(self, filters, extra_display_fields, parent=None):
+    def __init__(self, filters, extra_display_fields, parent, bg_task_manager=None):
         """
         """
-        ShotgunModel.__init__(self, parent=parent, download_thumbs=True)
-
         self.extra_display_fields = extra_display_fields or []
-
         fields = ["image", "sg_status_list", "description", "entity", "content", "step", "project"]
         fields.extend(self.extra_display_fields)
 
-        self._load_data("Task", filters, ["id"], fields)
-    
-    def async_refresh(self):
-        """
-        Trigger an asynchronous refresh of the model
-        """
-        self._refresh_data()
-    
+        ShotgunEntityModel.__init__(self, "Task", filters, ["id"], fields, parent,
+                                    download_thumbs=True, 
+                                    bg_task_manager=bg_task_manager)
+
     def _populate_default_thumbnail(self, item):
         """
         """
         pass
-    
+
     def _populate_thumbnail(self, item, field, path):
         """
         """
@@ -51,6 +44,6 @@ class MyTasksModel(ShotgunModel):
             # (in particular, created_by.HumanUser.image) - these ones we just want to 
             # ignore and not display.
             return
-    
+
         # set the item icon to be the thumbnail:
         item.setIcon(QtGui.QIcon(path))

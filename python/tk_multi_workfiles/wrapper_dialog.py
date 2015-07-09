@@ -16,14 +16,14 @@ from sgtk.platform.qt import QtCore, QtGui
 class WrapperDialog(QtGui.QDialog):
 
     @staticmethod
-    def show_modal(widget, title=None, fixed_size=None, parent=None):
-        dlg = WrapperDialog(widget, title, fixed_size, parent)
+    def show_modal(widget, parent, title=None, fixed_size=None):
+        dlg = WrapperDialog(widget, parent, title, fixed_size)
         try:
             return dlg.exec_()
         finally:
             dlg.clean_up()
     
-    def __init__(self, widget, title=None, fixed_size=None, parent=None):
+    def __init__(self, widget, parent, title=None, fixed_size=None):
         QtGui.QDialog.__init__(self, parent)
         
         self._widget = widget

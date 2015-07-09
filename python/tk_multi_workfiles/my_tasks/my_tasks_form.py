@@ -21,6 +21,7 @@ from .my_task_item_delegate import MyTaskItemDelegate
 from ..entity_proxy_model import EntityProxyModel
 from ..ui.my_tasks_form import Ui_MyTasksForm
 from ..framework_qtwidgets import Breadcrumb, ShotgunModelOverlayWidget
+from ..util import map_to_source, get_source_model
 
 class MyTasksForm(QtGui.QWidget):
     """
@@ -40,7 +41,7 @@ class MyTasksForm(QtGui.QWidget):
     # Signal emitted when the 'New Task' button is clicked
     create_new_task = QtCore.Signal(object, object)# entity, step
 
-    def __init__(self, model, allow_task_creation, parent=None):
+    def __init__(self, tasks_model, allow_task_creation, parent):
         """
         Construction
 
@@ -61,8 +62,10 @@ class MyTasksForm(QtGui.QWidget):
         # tmp until we have a usable filter button!
         self._ui.filter_btn.hide()
 
+        # setup the search control:
         self._ui.search_ctrl.set_placeholder_text("Search My Tasks")
-        
+        self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
+
         # enable/hide the new task button depending if task creation is allowed:
         if allow_task_creation:
             self._ui.new_task_btn.clicked.connect(self._on_new_task)
@@ -70,28 +73,75 @@ class MyTasksForm(QtGui.QWidget):
         else:
             self._ui.new_task_btn.hide()
 
-        # connect up controls:
-        self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
+        # create the overlay 'busy' widget - this is displayed initiallt when there is nothing
+        # in the model and it is populating itself from Shotgun
+        self._overlay_widget = None#ShotgunModelOverlayWidget(None, self._ui.task_tree)
 
-        # create the overlay 'busy' widget:
-        self._overlay_widget = ShotgunModelOverlayWidget(None, self._ui.task_tree)
-        self._overlay_widget.set_model(model)
+        self._item_delegate = None
+        if tasks_model:
+            # connect the overlay widget:
+            #self._overlay_widget.set_model(tasks_model)
 
-        # create a filter proxy model between the source model and the task tree view:
-        filter_fields = ["content", {"entity":"name"}]
-        filter_fields.extend(model.extra_display_fields)
-        self._filter_model = EntityProxyModel(filter_fields, self)
-        self._filter_model.rowsInserted.connect(self._on_filter_model_rows_inserted)
-        self._filter_model.setSourceModel(model)
-        self._ui.task_tree.setModel(self._filter_model)
+            if False:
+                # create a filter proxy model between the source model and the task tree view:
+                filter_fields = ["content", {"entity":"name"}]
+                filter_fields.extend(tasks_model.extra_display_fields)
+                filter_model = EntityProxyModel(self, filter_fields)
+                filter_model.rowsInserted.connect(self._on_filter_model_rows_inserted)
+                filter_model.setSourceModel(tasks_model)
+                self._ui.task_tree.setModel(filter_model)
 
-        item_delegate = MyTaskItemDelegate(model.extra_display_fields, self._ui.task_tree)
-        self._ui.task_tree.setItemDelegate(item_delegate)
+                # create the item delegate - make sure we keep a reference to the delegate otherwise 
+                # things may crash later on!
+                self._item_delegate = None#MyTaskItemDelegate(tasks_model.extra_display_fields, self._ui.task_tree)
+                #self._ui.task_tree.setItemDelegate(self._item_delegate)
+            else:
+                self._ui.task_tree.setModel(tasks_model)
 
         # connect to the selection model for the tree view:
         selection_model = self._ui.task_tree.selectionModel()
         if selection_model:
             selection_model.selectionChanged.connect(self._on_selection_changed)
+
+    def shut_down(self):
+        """
+        Clean up as much as we can to help the gc once the widget is finished with.
+        """
+        signals_blocked = self.blockSignals(True)
+        try:
+            # clear any references:
+            self._current_item_ref = None
+
+            # detach the overlay widget:
+            if self._overlay_widget:
+                self._overlay_widget.set_model(None)
+                self._overlay_widget = None
+
+            # clear the selection:
+            if self._ui.task_tree.selectionModel():
+                self._ui.task_tree.selectionModel().clear()
+
+            # detach the filter model from the view:
+            view_model = self._ui.task_tree.model()
+            if view_model:
+                old_selection_model = self._ui.task_tree.selectionModel()
+                self._ui.task_tree.setModel(None)
+                if old_selection_model and not old_selection_model.parent():
+                    old_selection_model.deleteLater()
+                if isinstance(view_model, EntityProxyModel):
+                    view_model.setSourceModel(None)
+                    view_model.deleteLater()
+                    view_model = None
+
+            # detach and clean up the item delegate:
+            self._ui.task_tree.setItemDelegate(None)
+            if self._item_delegate:
+                self._item_delegate.setParent(None)
+                self._item_delegate.deleteLater()
+                self._item_delegate = None
+
+        finally:
+            self.blockSignals(signals_blocked)
 
     def select_task(self, task_id):
         """
@@ -179,8 +229,8 @@ class MyTasksForm(QtGui.QWidget):
         :param idx: The model index to find the item for
         :returns:   The item in the model represented by the index
         """
-        src_idx = self._filter_model.mapToSource(idx)
-        return self._filter_model.sourceModel().itemFromIndex(src_idx)
+        src_idx = map_to_source(idx)
+        return src_idx.model().itemFromIndex(src_idx)
 
     def _update_selection(self, prev_selected_item=None):
         """
@@ -189,22 +239,27 @@ class MyTasksForm(QtGui.QWidget):
         to filtering.  This allows it to be tracked so that the selection state is correctly restored when 
         it becomes visible again.
         """
+        tasks_model = get_source_model(self._ui.task_tree.model())
+        if not tasks_model:
+            return
+
         # we want to make sure we don't emit any signals whilst we are 
         # manipulating the selection:
         signals_blocked = self.blockSignals(True)
         try:
             item = None
-            if self._task_id_to_select:
+            if tasks_model and self._task_id_to_select:
                 # we know about a task that we should try to select:
-                src_model = self._filter_model.sourceModel()
-                item = src_model.item_from_entity("Task", self._task_id_to_select)
+                item = tasks_model.item_from_entity("Task", self._task_id_to_select)
             elif self._current_item_ref:
                 # an item was previously selected and we are tracking it
                 item = self._current_item_ref()
 
             if item:
-                # try to get an index from the current filtered model:
-                idx = self._filter_model.mapFromSource(item.index())
+                view_model = self._ui.task_tree.model()
+                idx = item.index()
+                if isinstance(view_model, QtGui.QAbstractProxyModel):
+                    idx = view_model.mapFromSource(idx)
                 if idx.isValid():
                     # scroll to the item in the list:
                     self._ui.task_tree.scrollTo(idx)
@@ -305,9 +360,13 @@ class MyTasksForm(QtGui.QWidget):
 
         :param search_text: The new search text to update the filter model with
         """
+        view_model = self._ui.task_tree.model()
+        if not isinstance(view_model, EntityProxyModel):
+            return
+
         # update the proxy filter search text:
         filter_reg_exp = QtCore.QRegExp(search_text, QtCore.Qt.CaseInsensitive, QtCore.QRegExp.FixedString)
-        self._filter_model.setFilterRegExp(filter_reg_exp)
+        view_model.setFilterRegExp(filter_reg_exp)
 
     def _on_new_task(self):
         """
