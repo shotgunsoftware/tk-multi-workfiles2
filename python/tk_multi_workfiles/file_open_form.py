@@ -74,31 +74,31 @@ class FileOpenForm(FileFormBase):
         self._ui.setupUi(self)
 
         # start by dissabling buttons:
-        self._ui.open_btn.setEnabled(False)
-        self._ui.open_options_btn.setEnabled(False)
+        #self._ui.open_btn.setEnabled(False)
+        #self._ui.open_options_btn.setEnabled(False)
 
         # tmp - disable some controls that currently don't work!
         self._ui.open_options_btn.hide()
 
         # hook up signals on controls:
-        self._ui.cancel_btn.clicked.connect(self._on_cancel)
-        self._ui.open_btn.clicked.connect(self._on_open)
-        self._ui.new_file_btn.clicked.connect(self._on_new_file)
+        #self._ui.cancel_btn.clicked.connect(self._on_cancel)
+        #self._ui.open_btn.clicked.connect(self._on_open)
+        #self._ui.new_file_btn.clicked.connect(self._on_new_file)
 
-        self._ui.browser.create_new_task.connect(self._on_create_new_task)
-        self._ui.browser.file_selected.connect(self._on_browser_file_selected)
-        self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)
-        self._ui.browser.file_context_menu_requested.connect(self._on_browser_context_menu_requested)
-        self._ui.browser.work_area_changed.connect(self._on_browser_work_area_changed)
+        #self._ui.browser.create_new_task.connect(self._on_create_new_task)
+        #self._ui.browser.file_selected.connect(self._on_browser_file_selected)
+        #self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)
+        #self._ui.browser.file_context_menu_requested.connect(self._on_browser_context_menu_requested)
+        #self._ui.browser.work_area_changed.connect(self._on_browser_work_area_changed)
 
-        self._ui.nav.navigate.connect(self._on_navigate)
-        self._ui.nav.home_clicked.connect(self._on_navigate_home)
+        #self._ui.nav.navigate.connect(self._on_navigate)
+        #self._ui.nav.home_clicked.connect(self._on_navigate_home)
 
         # initialize the browser widget:
         self._ui.browser.set_models(self._my_tasks_model, self._entity_models, self._file_model)
-        current_file = self._get_current_file()
-        self._ui.browser.select_work_area(app.context)
-        self._ui.browser.select_file(current_file, app.context)
+        #current_file = self._get_current_file()
+        #self._ui.browser.select_work_area(app.context)
+        #self._ui.browser.select_file(current_file, app.context)
 
     def closeEvent(self, event):
         """

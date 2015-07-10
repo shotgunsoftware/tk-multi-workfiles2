@@ -552,7 +552,9 @@ class FileModel(QtGui.QStandardItemModel):
     def _update_groups(self):
         """
         """
-        self.clear()
+        #self.clear()
+        if self.invisibleRootItem().hasChildren():
+            self.invisibleRootItem().removeRows(0, self.invisibleRootItem().rowCount())
 
         new_items = []
 

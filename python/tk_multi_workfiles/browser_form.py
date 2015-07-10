@@ -62,8 +62,8 @@ class BrowserForm(QtGui.QWidget):
         self._ui = Ui_BrowserForm()
         self._ui.setupUi(self)
 
-        self._ui.file_browser_tabs.currentChanged.connect(self._on_file_tab_changed)
-        self._ui.task_browser_tabs.currentChanged.connect(self._on_task_tab_changed)
+        #self._ui.file_browser_tabs.currentChanged.connect(self._on_file_tab_changed)
+        #self._ui.task_browser_tabs.currentChanged.connect(self._on_task_tab_changed)
 
         self._file_filters = FileFilters(parent=None)
         dbg_connect_to_destroyed(self._file_filters, "Browser file filters")
@@ -139,7 +139,7 @@ class BrowserForm(QtGui.QWidget):
         """
         """
         app = sgtk.platform.current_bundle()
-        allow_task_creation = app.get_setting("allow_task_creation")
+        #allow_task_creation = app.get_setting("allow_task_creation")
         """
         if my_tasks_model:
             # create my tasks form:
@@ -165,12 +165,12 @@ class BrowserForm(QtGui.QWidget):
             # add an 'all files' tab:
             all_files_form = FileListForm(self, "All Files", self._file_filters, show_work_files=True, show_publishes=True)
             self._ui.file_browser_tabs.addTab(all_files_form, "All")
-            all_files_form.enable_show_all_versions(self._enable_show_all_versions)
-            all_files_form.enable_user_filtering(self._enable_user_filtering)
+            #all_files_form.enable_show_all_versions(self._enable_show_all_versions)
+            #all_files_form.enable_user_filtering(self._enable_user_filtering)
             all_files_form.set_model(self._file_model)
-            all_files_form.file_selected.connect(self._on_file_selected)
-            all_files_form.file_double_clicked.connect(self.file_double_clicked)
-            all_files_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
+            #all_files_form.file_selected.connect(self._on_file_selected)
+            #all_files_form.file_double_clicked.connect(self.file_double_clicked)
+            #all_files_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
             self._file_browser_forms.append(all_files_form)
 
             """

@@ -14,9 +14,9 @@ class Ui_CrashDbgForm(object):
         CrashDbgForm.resize(503, 395)
         self.verticalLayout = QtGui.QVBoxLayout(CrashDbgForm)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.treeView = QtGui.QTreeView(CrashDbgForm)
-        self.treeView.setObjectName("treeView")
-        self.verticalLayout.addWidget(self.treeView)
+        self.tree_view = QtGui.QTreeView(CrashDbgForm)
+        self.tree_view.setObjectName("tree_view")
+        self.verticalLayout.addWidget(self.tree_view)
 
         self.retranslateUi(CrashDbgForm)
         QtCore.QMetaObject.connectSlotsByName(CrashDbgForm)

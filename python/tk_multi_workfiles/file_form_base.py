@@ -114,7 +114,7 @@ class FileFormBase(QtGui.QWidget):
         # DEBUG TEST
         self._sg_runner_threads = []
         self._sg_runner_threads.append(SgRunner())
-        #self._sg_runner_threads.append(SgRunner())
+        self._sg_runner_threads.append(SgRunner())
         for thread in self._sg_runner_threads:
             thread.start()
 
@@ -270,7 +270,7 @@ class FileFormBase(QtGui.QWidget):
     def _refresh_all_async(self):
         """
         """
-        print "Refreshing"
+        #print "Refreshing"
 
         self._dbg_re_populate_model()
         return
