@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'my_tasks_form.ui'
 #
-#      by: pyside-uic 0.2.13 running on PySide 1.1.0
+#      by: pyside-uic 0.2.13 running on PySide 1.0.9
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -44,6 +44,8 @@ class Ui_MyTasksForm(object):
         self.horizontalLayout_2.addWidget(self.search_ctrl)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
         self.task_tree = QtGui.QTreeView(MyTasksForm)
+        self.task_tree.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
+        self.task_tree.setProperty("showDropIndicator", False)
         self.task_tree.setRootIsDecorated(False)
         self.task_tree.setObjectName("task_tree")
         self.task_tree.header().setVisible(False)

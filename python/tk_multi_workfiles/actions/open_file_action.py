@@ -175,7 +175,7 @@ class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
                                                dst_work_area.version_compare_ignore_fields)
     
             # look for all files that match this key:
-            finder = FileFinder()
+            finder = FileFinder(None, None)
             found_files = finder.find_files(dst_work_area.work_template, 
                                             dst_work_area.publish_template, 
                                             dst_work_area.context, 

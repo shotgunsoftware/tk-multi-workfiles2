@@ -139,7 +139,9 @@ class OpenOptionsForm(QtGui.QWidget):
             wf_details += "<br>" + self._work_file.format_modified_by_details()
             self._ui.work_file_details.setText(wf_details)
 
-            if self._work_file.thumbnail_path:
+            if self._work_file.thumbnail:
+                self._set_thumbnail(self._ui.work_file_thumbnail, self._work_file.thumbnail)
+            elif self._work_file.thumbnail_path:
                 thumbnail_path = self._download_thumbnail(self._work_file.thumbnail_path)
                 if thumbnail_path:
                     self._set_thumbnail(self._ui.work_file_thumbnail, QtGui.QPixmap(thumbnail_path))
@@ -178,7 +180,9 @@ class OpenOptionsForm(QtGui.QWidget):
         else:
             self._ui.publish_note.setText("")
         
-        if self._publish_file.thumbnail_path:
+        if self._publish_file.thumbnail:
+                self._set_thumbnail(self._ui.publish_thumbnail, self._publish_file.thumbnail)
+        elif self._publish_file.thumbnail_path:
             thumbnail_path = self._download_thumbnail(self._publish_file.thumbnail_path)
             if thumbnail_path:
                 self._set_thumbnail(self._ui.publish_thumbnail, QtGui.QPixmap(thumbnail_path))
@@ -287,7 +291,7 @@ class OpenOptionsForm(QtGui.QWidget):
         try:
             path_to_cached_thumb = shotgun_data.ShotgunDataRetriever.download_thumbnail(url, self._app)
         except Exception, e:
-            self._app.log_info("Could not get thumbnail for url '%s'. Error: %s" % (url, e))
+            self._app.log_debug("Could not get thumbnail for url '%s'. Error: %s" % (url, e))
             path_to_cached_thumb = None
         
         return path_to_cached_thumb

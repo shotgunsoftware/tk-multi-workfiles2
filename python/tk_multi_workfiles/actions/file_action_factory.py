@@ -71,7 +71,7 @@ class FileActionFactory(object):
             # in addition to the simple check it's currently doing.
 
         # get the list of file versions for the file:
-        file_versions = file_model.get_file_versions(file.key, work_area) or {}
+        file_versions = file.versions
         current_user_file_versions = {}
         if in_other_users_sandbox:
             # build a file key by extracting fields from the path:

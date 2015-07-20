@@ -114,13 +114,13 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
 
             if not self._filters.show_all_versions:
                 # Filter based on latest version.
-                src_model = self.sourceModel()
+                #src_model = self.sourceModel()
                 # need to check if this is the latest version of the file:
-                all_versions = src_model.get_file_versions(file_item.key, work_area) or {}
+                all_versions = file_item.versions
 
-                visible_versions = [v for v, file in all_versions.iteritems() 
-                                        if (file.is_local and self._show_workfiles) 
-                                            or (file.is_published and self._show_publishes)]
+                visible_versions = [v for v, f in all_versions.iteritems() 
+                                        if (f.is_local and self._show_workfiles) 
+                                            or (f.is_published and self._show_publishes)]
 
                 if not (visible_versions and file_item.version == max(visible_versions)):
                     return False
@@ -192,14 +192,9 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
         if left_item.key != right_item.key:
             # items represent different files but we want to group all file versions together. 
             # Therefore, we find the maximum version for each file and compare those instead.
-            left_env = get_model_data(left_src_idx, FileModel.WORK_AREA_ROLE)
-            left_versions = self.sourceModel().get_file_versions(left_item.key, left_env)
-            right_env = get_model_data(right_src_idx, FileModel.WORK_AREA_ROLE)            
-            right_versions = self.sourceModel().get_file_versions(right_item.key, right_env)
-            
-            if left_versions and right_versions:
-                max_left_version = left_versions[max(left_versions.keys())]
-                max_right_version = right_versions[max(right_versions.keys())]
+            if left_item.versions and right_item.versions:
+                max_left_version = left_item.versions[max(left_item.versions.keys())]
+                max_right_version = right_item.versions[max(right_item.versions.keys())]
                 return max_left_version.compare(max_right_version) < 0
 
         # compare the two files!

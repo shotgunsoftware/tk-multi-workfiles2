@@ -41,21 +41,21 @@ class FileWidget(QtGui.QWidget):
         self._lock_icon.setPixmap(QtGui.QPixmap(":/tk-multi-workfiles2/padlock.png"))
         self._lock_icon.hide()
 
-        rhs_layout = QtGui.QVBoxLayout(self)
+        rhs_layout = QtGui.QVBoxLayout()
         rhs_layout.setContentsMargins(0, 0, 0, 0)
         rhs_layout.setSpacing(0)
         rhs_layout.addWidget(self._lock_icon)
         rhs_layout.addStretch(1)
         rhs_layout.addWidget(self._publish_icon)
 
-        thumb_layout = QtGui.QHBoxLayout(self)
+        thumb_layout = QtGui.QHBoxLayout(self._ui.thumbnail)
         thumb_layout.setContentsMargins(4, 4, 4, 4)
         thumb_layout.setSpacing(0)
         thumb_layout.addStretch()
         thumb_layout.addLayout(rhs_layout)
 
         self._ui.thumbnail.setLayout(thumb_layout)
-
+        
         self._is_selected = False
         self._update_ui()
 

@@ -67,12 +67,13 @@ class FileListForm(QtGui.QWidget):
         self._show_work_files = show_work_files
         self._show_publishes = show_publishes
         self._enable_user_filtering = True
-        
+
         # set up the UI
         self._ui = Ui_FileListForm()
         self._ui.setupUi(self)
 
-        #self._ui.details_radio_btn.setEnabled(False) # (AD) - temp
+        # (AD) - temp disable switching views until we've actually implemented the other view!
+        self._ui.details_radio_btn.setEnabled(False)
         self._ui.details_radio_btn.toggled.connect(self._on_view_toggled)
 
         self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
@@ -214,14 +215,14 @@ class FileListForm(QtGui.QWidget):
 
         :param model:    The FileModel model to attach to the control to
         """
-        if False:
+        if True:
             # create a filter model around the source model:
             filter_model = FileProxyModel(self,
                                           filters = self._file_filters,
                                           show_work_files=self._show_work_files,
                                           show_publishes=self._show_publishes)
-            filter_model.setSourceModel(model)
             filter_model.rowsInserted.connect(self._on_filter_model_rows_inserted)
+            filter_model.setSourceModel(model)
     
             # set automatic sorting on the model:
             filter_model.sort(0, QtCore.Qt.DescendingOrder)
@@ -264,7 +265,8 @@ class FileListForm(QtGui.QWidget):
                 # we know about a file we should try to select:
                 src_model = get_source_model(self._ui.file_list_view.model())
                 file_item, _ = self._file_to_select
-                item = src_model.item_from_file(file_item) if src_model else None
+                items = src_model.items_from_file(file_item)
+                item = items[0] if items else None
             elif self._current_item_ref:
                 # no item to select but we do know about a current item:
                 item = self._current_item_ref()

@@ -40,7 +40,7 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
             return True 
 
         reg_exp = self.filterRegExp()
-        if reg_exp.isEmpty():
+        if not reg_exp or reg_exp.isEmpty():
             # early out
             return True
 

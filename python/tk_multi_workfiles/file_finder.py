@@ -29,7 +29,7 @@ shotgun_data = sgtk.platform.import_framework("tk-framework-shotgunutils", "shot
 BackgroundTaskManager = shotgun_data.BackgroundTaskManager
 
 from .work_area import WorkArea
-from .util import dbg_connect_to_destroyed
+from .util import monitor_qobject_lifetime
 
 class FileFinder(QtCore.QObject):
     """
@@ -146,8 +146,7 @@ class FileFinder(QtCore.QObject):
             self.find_publishes_tasks = set()
             self.user_work_areas = {}
 
-
-    _FIND_PUBLISHES_PRIORITY, _FIND_FILES_PRIORITY, _PASS_THROUGH_PRIORITY = range(3)
+    _FIND_PUBLISHES_PRIORITY, _FIND_FILES_PRIORITY = (20, 40)
 
     # Signals
     work_area_found = QtCore.Signal(object, object) # search_id, WorkArea
@@ -156,7 +155,7 @@ class FileFinder(QtCore.QObject):
     search_failed = QtCore.Signal(object, object) # search_id, message
     search_completed = QtCore.Signal(object) # search_id
 
-    def __init__(self, parent):
+    def __init__(self, parent, bg_task_manager):
         """
         Construction
         """
@@ -166,13 +165,12 @@ class FileFinder(QtCore.QObject):
         self._searches = {}
         self._available_publish_models = []
 
-        self._bg_task_manager = BackgroundTaskManager(self, max_threads=8)
+        self._bg_task_manager = bg_task_manager or BackgroundTaskManager(self, max_threads=8)
+        self._owns_task_manager = bg_task_manager is not None
         self._bg_task_manager.task_completed.connect(self._on_background_task_completed)
         self._bg_task_manager.task_failed.connect(self._on_background_task_failed)
         self._bg_task_manager.task_group_finished.connect(self._on_background_search_finished)
         self._bg_task_manager.start_processing()
-
-        #self._crash_lock = threading.Lock()
 
     def shut_down(self):
         """
@@ -190,13 +188,21 @@ class FileFinder(QtCore.QObject):
 
         # and shut down the task manager
         if self._bg_task_manager:
-            self._bg_task_manager.shut_down()
-            self._bg_task_manager.deleteLater()
-            self._bg_task_manager = None
+            if self._owns_task_manager:
+                # we own the task manager so we'll need to completely shut it down before
+                # returning
+                self._bg_task_manager.shut_down()
+                self._bg_task_manager.deleteLater()
+                self._bg_task_manager = None
+            else:
+                # just disconnect:
+                self._bg_task_manager.task_completed.disconnect(self._on_background_task_completed)
+                self._bg_task_manager.task_failed.disconnect(self._on_background_task_failed)
+                self._bg_task_manager.task_group_finished.disconnect(self._on_background_search_finished)
 
     def begin_search(self, entity, users = None):
         """
-        A full search involves three stages:
+        A full search involves several stages:
 
         Stage 1;
            - Construct Work Area
@@ -224,7 +230,6 @@ class FileFinder(QtCore.QObject):
         # get a publish model - re-use if possible, otherwise create a new one.  Max number of publish
         # models created will be the max number of searches at any one time.
         publish_model = None
-        """
         if self._available_publish_models:
             # re-use an existing publish model:
             publish_model = self._available_publish_models.pop(0)
@@ -233,126 +238,50 @@ class FileFinder(QtCore.QObject):
             publish_model = SgPublishedFilesModel(search_id, self._bg_task_manager, parent=None)
             publish_model.data_refreshed.connect(self._on_publish_model_refreshed)
             publish_model.data_refresh_fail.connect(self._on_publish_model_refresh_failed)
-            dbg_connect_to_destroyed(publish_model, "Finder publish model")
+            monitor_qobject_lifetime(publish_model, "Finder publish model")
         publish_model.uid = search_id
-        """
 
         # construct the new search data:
         search = FileFinder._SearchData(search_id, entity, users, publish_model)
         self._searches[search.id] = search
-        
+
         # begin the search stage 1:
         self._begin_search_stage_1(search)
 
         # and return the search id:
         return search.id
 
-    def do_inline_search(self, entity, users=None):
-        """
-        """
-        users = users or []
-
-        # get a publish model - re-use if possible, otherwise create a new one.  Max number of publish
-        # models created will be the max number of searches at any one time.
-        publish_model = None
-        
-        search = FileFinder._SearchData(0, entity, users, publish_model)
-
-        if search.entity:
-            # build a context from the search details:
-            context = self.__app.sgtk.context_from_entity_dictionary(search.entity)
-
-            # build the work area for this context:
-            work_area = WorkArea(context)
-            
-            work_area.resolve_user_sandboxes()
-
-        for user in search.users:
-            user_id = user["id"] if user else None
-
-            # create a copy of the work area for this user:
-            user_work_area = work_area#work_area.create_copy_for_user(user) if user else work_area
-            search.user_work_areas[user_id] = user_work_area
-
-        # 2a. Add tasks to find and filter work files:
-        res = []
-        for user in search.users:
-            user_id = user["id"] if user else None
-            user_work_area = search.user_work_areas[user_id]
-
-            # this runs in main thread!
-            work_item_args = self._do_find(user_work_area, search.name_map).values()
-
-            files = [FileItem(**kwargs) for kwargs in work_item_args]
-            
-            res.append((files, user_work_area))
-
-        return res
-
-        
     def _begin_search_stage_1(self, search):
         """
         """
-        work_area = None
-        if search.entity:
-            # build a context from the search details:
-            context = self.__app.sgtk.context_from_entity_dictionary(search.entity)
-
-            # build the work area for this context:
-            work_area = WorkArea(context)
-            
-            work_area.resolve_user_sandboxes()
-            
-            
-
-
-        ## start Stage 1 to construct the work area:
-        ## 1a. Construct a work area for the entity.  The work area contains the context as well as
-        ## all settings, etc. specific to the work area.
-        #search.construct_work_area_task = self._bg_task_manager.add_task(self._task_construct_work_area,
-        #                                                                 group=search.id, 
-        #                                                                 entity=search.entity)
+        # start Stage 1 to construct the work area:
+        # 1a. Construct a work area for the entity.  The work area contains the context as well as
+        # all settings, etc. specific to the work area.
+        search.construct_work_area_task = self._bg_task_manager.add_task(self._task_construct_work_area,
+                                                                         group=search.id, 
+                                                                         entity=search.entity)
 
         # 1b. Resolve sandbox users for the work area (if there are any)
         search.find_work_area_task = self._bg_task_manager.add_task(self._task_resolve_sandbox_users,
                                                                     group=search.id,
-                                                                    #upstream_task_ids = [search.construct_work_area_task],
-                                                                    environment = work_area)
+                                                                    upstream_task_ids = [search.construct_work_area_task])
 
-    #def _begin_search_stage_2(self, search, work_area):
+    def _begin_search_for_work_files(self, search, work_area):
         """
         """
-        # generate user work area for each user:
+        # 2a. Add tasks to find and filter work files:
         for user in search.users:
             user_id = user["id"] if user else None
 
             # create a copy of the work area for this user:
-            user_work_area = work_area#work_area.create_copy_for_user(user) if user else work_area
+            user_work_area = work_area.create_copy_for_user(user) if user else work_area
             search.user_work_areas[user_id] = user_work_area
-
-        # 2a. Add tasks to find and filter work files:
-        for user in search.users:
-            user_id = user["id"] if user else None
-            user_work_area = search.user_work_areas[user_id]
-            
-            find_task = self._bg_task_manager.add_pass_through_task(group=search.id,
-                                                                    priority=FileFinder._FIND_FILES_PRIORITY,
-                                                                    environment = user_work_area)
-            search.find_work_files_tasks.add(find_task)
-                                                        
-
-            """
-            ent = user_work_area.context.task or user_work_area.context.entity or {}
-            ent_name = ent.get("name", "no_name")
-            ent_id = str(ent.get("id") or "no_id")
-            args = {ent_name:None, ent_id:None, ("ctx_%d" % id(user_work_area.context)):None}
 
             # find work files:
             find_work_files_task = self._bg_task_manager.add_task(self._task_find_work_files, 
                                                                   group=search.id,
                                                                   priority=FileFinder._FIND_FILES_PRIORITY,
-                                                                  environment=user_work_area,
-                                                                  **args)
+                                                                  environment=user_work_area)
 
             # filter work files:
             filter_work_files_task = self._bg_task_manager.add_task(self._task_filter_work_files,
@@ -369,14 +298,32 @@ class FileFinder(QtCore.QObject):
                                                                      environment=user_work_area,
                                                                      name_map = search.name_map)
             search.find_work_files_tasks.add(process_work_items_task)
-            """
 
-        # 2b. Add a task that will result in the loading of cached publishes on the main thread...  
-        # Although the load takes place in the main thread, we use a background task to start it to avoid 
-        # blocking the UI - it also lets the background task manager manage priority correctly
-        search.load_cached_pubs_task = self._bg_task_manager.add_pass_through_task(group = search.id,
-                                                                                   priority=FileFinder._FIND_PUBLISHES_PRIORITY,
-                                                                                   environment = work_area)
+    def _begin_search_process_publishes(self, search, sg_publishes):
+        """
+        """
+        # 3a. Process publishes
+        for user in search.users:
+            user_id = user["id"] if user else None
+            user_work_area = search.user_work_areas[user_id]
+
+            users_publishes = copy.deepcopy(sg_publishes)
+
+            # filter publishes:
+            filter_publishes_task = self._bg_task_manager.add_task(self._task_filter_publishes,
+                                                                   group=search.id,
+                                                                   priority=FileFinder._FIND_PUBLISHES_PRIORITY,
+                                                                   environment = user_work_area,
+                                                                   sg_publishes = users_publishes)
+            # build publish items:
+            process_publish_items_task = self._bg_task_manager.add_task(self._task_process_publish_items,
+                                                                        group=search.id,
+                                                                        priority=FileFinder._FIND_PUBLISHES_PRIORITY,
+                                                                        upstream_task_ids = [filter_publishes_task],
+                                                                        environment = user_work_area,
+                                                                        name_map = search.name_map)
+
+            search.find_publishes_tasks.add(process_publish_items_task)
 
     def _on_publish_model_refreshed(self, data_changed):
         """
@@ -390,84 +337,50 @@ class FileFinder(QtCore.QObject):
         # get any publishes from the publish model:
         sg_publishes = copy.deepcopy(search.publish_model.get_sg_data())
 
-        self._begin_search_stage_3(search, sg_publishes)
+        # and begin processing:
+        self._begin_search_process_publishes(search, sg_publishes)
 
-
-    def _begin_search_stage_3(self, search, sg_publishes):
+    def _on_publish_model_refresh_failed(self, msg):
         """
         """
-        # 3a. Process publishes
-        for user in search.users:
-            user_id = user["id"] if user else None
-            user_work_area = search.user_work_areas[user_id]
-
-            # filter publishes:
-            filter_publishes_task = self._bg_task_manager.add_task(self._task_filter_publishes,
-                                                                   group=search.id,
-                                                                   priority=FileFinder._FIND_PUBLISHES_PRIORITY,
-                                                                   environment = user_work_area,
-                                                                   sg_publishes = sg_publishes)
-            # build publish items:
-            process_publish_items_task = self._bg_task_manager.add_task(self._task_process_publish_items,
-                                                                        group=search.id,
-                                                                        priority=FileFinder._FIND_PUBLISHES_PRIORITY,
-                                                                        upstream_task_ids = [filter_publishes_task],
-                                                                        environment = user_work_area,
-                                                                        name_map = search.name_map)
-
-            search.find_publishes_tasks.add(process_publish_items_task)
-
-    def _do_find(self, work_area, name_map):
-        """
-        """
-        if not work_area or not work_area.work_template or not work_area.context:
-            return {}
-        
-        work_file_paths = self._find_work_files(work_area.context_work_fields, 
-                                                work_area.work_template, 
-                                                work_area.version_compare_ignore_fields)
-        
-        work_files = self._filter_work_files(work_file_paths, work_area.valid_file_extensions)
-        
-        work_items = self._process_work_files(work_files, 
-                                              work_area.work_template, 
-                                              work_area.context,
-                                              name_map,
-                                              work_area.version_compare_ignore_fields)
-        
-        return work_items
+        model = self.sender()
+        search_id = model.search_id
+        if search_id not in self._searches:
+            return
+        self.stop_search(search_id)
+        self.search_failed.emit(search_id, msg)
 
     def _on_background_task_completed(self, task_id, search_id, result):
         """
+        Runs in main thread
         """
         if search_id not in self._searches:
             return
-
         search = self._searches[search_id]
         work_area = result.get("environment")
 
-        if task_id == search.load_cached_pubs_task:
-            search.load_cached_pubs_task = None
-            """
-            # ok so now it's time to load the cached publishes:
-            sg_publishes = self._load_cached_publishes(search, work_area)
-            # begin stage 3 for the un-cached publishes:
-            self._begin_search_stage_3(search, sg_publishes)
-            # we can also start the background refresh of the publishes model:
-            search.publish_model.refresh()
-            """
-
-        #elif task_id == search.construct_work_area_task:
-        #    search.construct_work_area_task = None
-        #    # we have successfully constructed a work area that we can 
-        #    # use for the next stage so begin stage 2:
-        #    if search.users:
-        #        self._begin_search_stage_2(search, work_area)
-
+        if task_id == search.construct_work_area_task:
+            search.construct_work_area_task = None
+            # we have successfully constructed a work area that we can 
+            # use for the next stage so begin searching for work files:
+            self._begin_search_for_work_files(search, work_area)
+            # and also add a task to process cached publishes:
+            search.load_cached_pubs_task = self._bg_task_manager.add_pass_through_task(group = search.id,
+                                                                                       priority=FileFinder._FIND_PUBLISHES_PRIORITY,
+                                                                                       environment = work_area)
         elif task_id == search.find_work_area_task:
             search.find_work_area_task = None
             # found a work area so emit it:
-            #self.work_area_found.emit(search_id, work_area)
+            self.work_area_found.emit(search_id, work_area)
+
+        elif task_id == search.load_cached_pubs_task:
+            search.load_cached_pubs_task = None
+            # ok so now it's time to load the cached publishes:
+            sg_publishes = self._load_cached_publishes(search, work_area)
+            # begin stage 3 for the un-cached publishes:
+            self._begin_search_process_publishes(search, sg_publishes)
+            # we can also start the background refresh of the publishes model:
+            search.publish_model.refresh()
 
         elif task_id in search.find_publishes_tasks:
             search.find_publishes_tasks.remove(task_id)
@@ -478,12 +391,8 @@ class FileFinder(QtCore.QObject):
 
         elif task_id in search.find_work_files_tasks:
             search.find_work_files_tasks.remove(task_id)
-            
-            # this runs in main thread!
-            work_item_args = self._do_find(work_area, search.name_map).values()
-            
             # found work files:
-            #work_item_args = result.get("work_items", {}).values()
+            work_item_args = result.get("work_items", {}).values()
             files = [FileItem(**kwargs) for kwargs in work_item_args]
             self.files_found.emit(search_id, files, work_area)
 
@@ -497,22 +406,11 @@ class FileFinder(QtCore.QObject):
         # emit signal:
         self.search_failed.emit(search_id, "%s, %s" % (msg, stack_trace))
 
-    def _on_publish_model_refresh_failed(self, msg):
-        """
-        """
-        model = self.sender()
-        search_id = model.search_id
-        if search_id not in self._searches:
-            return
-        self.stop_search(search_id)
-        self.search_failed.emit(search_id, msg)
-
     def _on_background_search_finished(self, search_id):
         """
         """
         if search_id not in self._searches:
             return
-
         search = self._searches[search_id]
 
         # because of the way the search is split into stages, this signal may
@@ -520,7 +418,7 @@ class FileFinder(QtCore.QObject):
         # that the search has actually finished!
         if search.users:
             if (search.find_publishes_tasks or search.find_work_files_tasks 
-                #or search.load_cached_pubs_task or not search.publish_model_refreshed
+                or search.load_cached_pubs_task or not search.publish_model_refreshed
                 ):
                 # we still have work outstanding!
                 return
@@ -573,8 +471,7 @@ class FileFinder(QtCore.QObject):
         """
         """
         if environment:
-            pass
-            #environment.resolve_user_sandboxes()
+            environment.resolve_user_sandboxes()
         return {"environment":environment}
 
     def _load_cached_publishes(self, search, work_area):
@@ -597,6 +494,7 @@ class FileFinder(QtCore.QObject):
     def _task_filter_publishes(self, sg_publishes, environment, **kwargs):
         """
         """
+        #time.sleep(5)
         filtered_publishes = []
         if sg_publishes and environment and environment.publish_template and environment.context:
 
@@ -611,7 +509,7 @@ class FileFinder(QtCore.QObject):
                                                         environment.publish_template, 
                                                         environment.valid_file_extensions)
         return {"sg_publishes":filtered_publishes}    
-    
+
     def _task_process_publish_items(self, sg_publishes, environment, name_map, **kwargs):
         """
         """
@@ -625,93 +523,18 @@ class FileFinder(QtCore.QObject):
                                                       name_map,
                                                       environment.version_compare_ignore_fields)
         return {"publish_items":publish_items, "environment":environment}
-    
 
     def _task_find_work_files(self, environment, **kwargs):
         """
         """
-        if not environment or not environment.context:
-            return {"work_files":[]}
-
+        #time.sleep(5)
         work_files = []
-
-
-
-        if (environment and environment.context_contains_all_work_fields and environment.work_template):
-            """
-            work_files = self.__app.engine.execute_in_main_thread(self._find_work_files,
-                                                                  environment.context_work_fields, 
-                                                                  environment.work_template, 
-                                                                  environment.version_compare_ignore_fields)
-            """
-            
-            work_files = self._find_work_files(environment.context_work_fields, 
+        if (environment and environment.context and environment.work_template):
+            work_files = self._find_work_files(environment.context, 
                                                environment.work_template, 
                                                environment.version_compare_ignore_fields)
-            
-            """
-            self._crash_lock.acquire()
-            try:
-                work_files = self._find_work_files(environment.context_work_fields, 
-                                                   environment.work_template, 
-                                                   environment.version_compare_ignore_fields)
-            finally:
-                self._crash_lock.release()
-            """
-        #time.sleep(random.randint(0, 50)/100.0)
-
         return {"work_files":work_files}
-        work_files = []
 
-        """
-        from pprint import pprint
-        print environment.context.entity
-        print environment.context.task
-        pprint (work_files)
-        """
-
-        
-        if (environment.context.entity and environment.context.entity["id"] == 874 
-            and environment.context.task and environment.context.task["id"] == 232):
-            work_files = ['/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/scene.v001.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/writenodetest.v001.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/writenodeconversiontest.v002.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/osxreviewtest.v002.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/sendtoreviewtest.v001.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/writenodeconversiontest.v001.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/scene1.v001.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/writenodetestBAD.v001.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/testscene.v003.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/writenodeconversiontest.v003.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/writenodeconversiontest.v004.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/sendtoreviewtest.v002.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/writenodeconversiontestb.v003.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/testscene.v001.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/writenodetestBAD.v002.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/testscene.v004.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/testscene.v002.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/shot_010/Light/work/nuke/osxreviewtest.v001.nk']
-        elif (environment.context.entity and environment.context.entity["id"] == 914 
-              and environment.context.task and environment.context.task["id"] == 230):
-            work_files = ['/tank_testbed/another_demo_project/sequences/Sequence-01/123/Anm/work/nuke/scene.v001.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/123/Anm/work/nuke/reviewtest.v006.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/123/Anm/work/nuke/reviewtest.v005.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/123/Anm/work/nuke/reviewtest.v004.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/123/Anm/work/nuke/reviewtest.v011.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/123/Anm/work/nuke/reviewtest.v003.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/123/Anm/work/nuke/reviewtest.v008.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/123/Anm/work/nuke/reviewtest.v012.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/123/Anm/work/nuke/launchtest.v001.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/123/Anm/work/nuke/reviewtest.v007.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/123/Anm/work/nuke/reviewtest.v001.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/123/Anm/work/nuke/crashtest.v001.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/123/Anm/work/nuke/shouldbreak.v001.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/123/Anm/work/nuke/reviewtest.v010.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/123/Anm/work/nuke/colourspacetest.v001.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/123/Anm/work/nuke/reviewtest.v009.nk',
-                         '/tank_testbed/another_demo_project/sequences/Sequence-01/123/Anm/work/nuke/reviewtest.v002.nk']
-
-        return {"work_files":work_files}
 
     def _task_filter_work_files(self, work_files, environment, **kwargs):
         """
@@ -727,48 +550,14 @@ class FileFinder(QtCore.QObject):
         work_items = {}
         if (work_files and environment and environment.work_template 
             and environment.context and name_map):
-            
-            """
-            work_items = self.__app.engine.execute_in_main_thread(self._process_work_files, 
-                                                           work_files, 
-                                                           environment.work_template, 
-                                                           environment.context,
-                                                           name_map,
-                                                           environment.version_compare_ignore_fields)
-            work_items = copy.deepcopy(work_items)
-            """
-            #self._crash_lock.acquire()
-            #try:
             work_items = self._process_work_files(work_files, 
                                                   environment.work_template, 
                                                   environment.context,
                                                   name_map,
                                                   environment.version_compare_ignore_fields)
-            #finally:
-            #    self._crash_lock.release()
-
         return {"work_items":work_items, "environment":environment}
 
 
-    def _task_aggregate_files(self, publish_items, work_items, environment, **kwargs):
-        """
-        """
-        publish_items = publish_items or {}
-        work_items = work_items or {}
-        
-        file_items = list(work_items.values())
-        for file_key_and_version, publish in publish_items.iteritems():
-            work_file = work_items.get(file_key_and_version)
-            if not work_file:
-                file_items.append(publish)
-                continue
-            else:
-                # merge with work file:
-                work_file.update_from_publish(publish)
- 
-        return {"files":file_items, "environment":environment}
-
-    ################################################################################################
     ################################################################################################
 
     def find_files(self, work_template, publish_template, context, filter_file_key=None):
@@ -802,21 +591,8 @@ class FileFinder(QtCore.QObject):
         # get list of fields that should be ignored when comparing work files:
         version_compare_ignore_fields = self.__app.get_setting("version_compare_ignore_fields", [])    
 
-        # get the context work template fields:
-        work_fields = []
-        try:
-            work_fields = context.as_template_fields(work_template, validate=True)
-        except TankError:
-            # could not resolve fields from this context. This typically happens
-            # when the context object does not have any corresponding objects on 
-            # disk / in the path cache. In this case, we cannot continue with any
-            # file system resolution, so just exit early insted.
-            work_fields = None
-    
         # find all work & publish files and filter out any that should be ignored:
-        work_files = []
-        if work_fields is not None:
-            work_files = self._find_work_files(work_fields, work_template, version_compare_ignore_fields)
+        work_files = self._find_work_files(context, work_template, version_compare_ignore_fields)
         filtered_work_files = self._filter_work_files(work_files, valid_file_extensions)
         
         published_files = self._find_publishes(publish_filters)
@@ -1009,32 +785,9 @@ class FileFinder(QtCore.QObject):
         :returns:                   List of dictionaries, each one containing the details
                                     of an individual published file
         """
-        sg_publishes = []
-
-        # create a temporary Shotgun model to use to query the publishes:
-        model = SgPublishedFilesModel(parent=None)
-        try:
-            # populate the fields we want to load in the model:
-            fields = ["id", "description", "version_number", "image", "created_at", "created_by", "name", "path", "task"]
-            model.load_data(filters = publish_filters, fields = fields)
-            if refresh_from_sg:
-                # refresh data from Shotgun:
-                model.refresh()
-
-            sg_publishes = copy.deepcopy(model.get_sg_data())
-        finally:
-            # clean up the model
-            #model.clear()
-            model.destroy()
-            model = None
-
-        # convert created_at unix time stamp to shotgun std time stamp for all publishes
-        for sg_publish in sg_publishes:
-            created_at = sg_publish.get("created_at")
-            if created_at:
-                created_at = datetime.fromtimestamp(created_at, sg_timezone.LocalTimezone())
-                sg_publish["created_at"] = created_at
-
+        fields = ["id", "description", "version_number", "image", "created_at", "created_by", "name", "path", "task"]
+        published_file_type = sgtk.util.get_published_file_entity_type(self.__app.sgtk)
+        sg_publishes = self.__app.shotgun.find(published_file_type, publish_filters, fields)
         return sg_publishes
 
     def _filter_publishes(self, sg_publishes, publish_template, valid_file_extensions):
@@ -1096,25 +849,27 @@ class FileFinder(QtCore.QObject):
         return published_files
     
         
-    def _find_work_files(self, work_fields, work_template, version_compare_ignore_fields):
+    def _find_work_files(self, context, work_template, version_compare_ignore_fields):
         """
         Find all work files for the specified context and work template
         
-        :param context:             The context to find work files for
-        :param publish_template:    The work template to match found files against
-        :returns:                   List of dictionaries, each one containing the details
-                                    of an individual work file        
+        :param context:                         The context to find work files for
+        :param work_template:                   The work template to match found files against
+        :param version_compare_ignore_fields:   List of fields to ignore when comparing files in order to find 
+                                                different versions of the same file
+        :returns:                               List of dictionaries, each one containing the details
+                                                of an individual work file        
         """
         # find work files that match the current work template:
-        #work_fields = []
-        #try:
-        #    work_fields = context.as_template_fields(work_template, validate=True)
-        #except TankError:
-        #    # could not resolve fields from this context. This typically happens
-        #    # when the context object does not have any corresponding objects on 
-        #    # disk / in the path cache. In this case, we cannot continue with any
-        #    # file system resolution, so just exit early insted.
-        #    return []
+        work_fields = []
+        try:
+            work_fields = context.as_template_fields(work_template, validate=True)
+        except TankError:
+            # could not resolve fields from this context. This typically happens
+            # when the context object does not have any corresponding objects on 
+            # disk / in the path cache. In this case, we cannot continue with any
+            # file system resolution, so just exit early insted.
+            return []
 
         # build list of fields to ignore when looking for files:
         skip_fields = list(version_compare_ignore_fields or [])

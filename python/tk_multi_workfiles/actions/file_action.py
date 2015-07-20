@@ -26,7 +26,7 @@ class FileAction(Action):
         Create folders for specified context
         """
         app = sgtk.platform.current_bundle()
-        app.log_info("Creating folders for context %s" % ctx)
+        app.log_debug("Creating folders for context %s" % ctx)
 
         # create folders:
         QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)

@@ -24,7 +24,6 @@ from sgtk import TankError
 
 from .file_form_base import FileFormBase
 from .ui.file_save_form import Ui_FileSaveForm
-from .background_task_manager import RunnableTask
 from .work_area import WorkArea
 from .file_item import FileItem
 from .file_finder import FileFinder
@@ -184,7 +183,7 @@ class FileSaveForm(FileFormBase):
         """
         # stop previous running task:
         if self._preview_task:
-            self._preview_task.stop()
+            self._bg_task_manager.stop_task(self._preview_task)
             self._preview_task = None
 
         # get the name, version and extension from the UI:
@@ -194,23 +193,23 @@ class FileSaveForm(FileFormBase):
         ext_idx = self._ui.file_type_menu.currentIndex() 
         ext = self._extension_choices[ext_idx] if ext_idx >= 0 else ""
 
-        # TODO - change this to use the background task manager
-        self._preview_task = RunnableTask(self._generate_path,
-                                          env = self._current_env,
-                                          name = name,
-                                          version = version,
-                                          use_next_version = use_next_version,
-                                          ext = ext,
-                                          require_path = False)
-        self._preview_task.completed.connect(self._on_preview_generation_complete)
-        self._preview_task.failed.connect(self._on_preview_generation_failed)
-        
-        self._preview_task.start()
+        self._bg_task_manager.task_completed.connect(self._on_preview_generation_complete)
+        self._bg_task_manager.task_failed.connect(self._on_preview_generation_failed)
+        self._bg_task_manager.start_processing()
 
-    def _on_preview_generation_complete(self, task, result):
+        self._preview_task = self._bg_task_manager.add_task(self._generate_path,
+                                                            priority = 35,
+                                                            env = self._current_env,
+                                                            name = name,
+                                                            version = version,
+                                                            use_next_version = use_next_version,
+                                                            ext = ext,
+                                                            require_path = False)
+
+    def _on_preview_generation_complete(self, task_id, group, result):
         """
         """
-        if task != self._preview_task:
+        if task_id != self._preview_task:
             return
         self._preview_task = None
 
@@ -243,18 +242,18 @@ class FileSaveForm(FileFormBase):
 
         self._ui.save_btn.setEnabled(True)
 
-    def _on_preview_generation_failed(self, task, msg, stack_trace):
+    def _on_preview_generation_failed(self, task_id, group, msg, stack_trace):
         """
         """
-        if task != self._preview_task:
+        if task_id != self._preview_task:
             return
         self._preview_task = None
-        
+
         self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.warning_page)
         self._ui.warning.setText("<p style='color:rgb%s'>%s</p>" % (FileSaveForm._WARNING_COLOUR, msg))
-        
+
         self._ui.save_btn.setEnabled(False)
-    
+
     def _generate_path(self, env, name, version, use_next_version, ext, require_path=False):
         """
         :returns:   Tuple containing (path, min_version)
@@ -315,7 +314,7 @@ class FileSaveForm(FileFormBase):
             file_versions = self._file_model.get_file_versions(file_key, env)
             if file_versions == None:
                 # fall back to finding the files manually - this will be slower!  
-                finder = FileFinder()
+                finder = FileFinder(None, self._bg_task_manager)
                 try:
                     files = finder.find_files(env.work_template, 
                                               env.publish_template, 
@@ -686,7 +685,7 @@ class FileSaveForm(FileFormBase):
         file_item = FileItem(key=None, is_work_file=True, work_path=path_to_save)
 
         # Build and execute the save action:
-        action = SaveAsFileAction(path_to_save, self._current_env)
+        action = SaveAsFileAction(file_item, self._current_env)
         file_saved = action.execute(self)
 
         if file_saved:

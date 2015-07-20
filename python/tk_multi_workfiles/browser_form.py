@@ -27,7 +27,7 @@ from .framework_qtwidgets import Breadcrumb
 
 from .file_list.file_proxy_model import FileProxyModel
 from .file_filters import FileFilters
-from .util import dbg_connect_to_destroyed
+from .util import monitor_qobject_lifetime
 
 class BrowserForm(QtGui.QWidget):
     """
@@ -62,12 +62,12 @@ class BrowserForm(QtGui.QWidget):
         self._ui = Ui_BrowserForm()
         self._ui.setupUi(self)
 
-        #self._ui.file_browser_tabs.currentChanged.connect(self._on_file_tab_changed)
-        #self._ui.task_browser_tabs.currentChanged.connect(self._on_task_tab_changed)
+        self._ui.file_browser_tabs.currentChanged.connect(self._on_file_tab_changed)
+        self._ui.task_browser_tabs.currentChanged.connect(self._on_task_tab_changed)
 
         self._file_filters = FileFilters(parent=None)
-        dbg_connect_to_destroyed(self._file_filters, "Browser file filters")
-        #self._file_filters.users_changed.connect(self._on_file_filters_users_changed)
+        monitor_qobject_lifetime(self._file_filters, "Browser file filters")
+        self._file_filters.users_changed.connect(self._on_file_filters_users_changed)
 
     def shut_down(self):
         """
@@ -139,8 +139,8 @@ class BrowserForm(QtGui.QWidget):
         """
         """
         app = sgtk.platform.current_bundle()
-        #allow_task_creation = app.get_setting("allow_task_creation")
-        """
+        allow_task_creation = app.get_setting("allow_task_creation")
+
         if my_tasks_model:
             # create my tasks form:
             self._my_tasks_form = MyTasksForm(my_tasks_model, allow_task_creation, parent=self)
@@ -155,26 +155,25 @@ class BrowserForm(QtGui.QWidget):
             self._ui.task_browser_tabs.addTab(entity_form, caption)
             entity_form.create_new_task.connect(self.create_new_task)
             self._entity_tree_forms.append(entity_form)
-        """
+
         if file_model:
             # attach file model to the file views:
             self._file_model = file_model
-            #self._file_model.available_sandbox_users_changed.connect(self._on_available_sandbox_users_changed)
-            #self._file_model.set_users(self._file_filters.users)
+            self._file_model.available_sandbox_users_changed.connect(self._on_available_sandbox_users_changed)
+            self._file_model.set_users(self._file_filters.users)
 
             # add an 'all files' tab:
             all_files_form = FileListForm(self, "All Files", self._file_filters, show_work_files=True, show_publishes=True)
             self._ui.file_browser_tabs.addTab(all_files_form, "All")
-            #all_files_form.enable_show_all_versions(self._enable_show_all_versions)
-            #all_files_form.enable_user_filtering(self._enable_user_filtering)
+            all_files_form.enable_show_all_versions(self._enable_show_all_versions)
+            all_files_form.enable_user_filtering(self._enable_user_filtering)
             all_files_form.set_model(self._file_model)
-            #all_files_form.file_selected.connect(self._on_file_selected)
-            #all_files_form.file_double_clicked.connect(self.file_double_clicked)
-            #all_files_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
+            all_files_form.file_selected.connect(self._on_file_selected)
+            all_files_form.file_double_clicked.connect(self.file_double_clicked)
+            all_files_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
             self._file_browser_forms.append(all_files_form)
 
-            """
-            # create the workfiles proxy model & form:
+            # create the workfiles only tab:
             work_files_form = FileListForm(self, "Work Files", self._file_filters, show_work_files=True, show_publishes=False)
             self._ui.file_browser_tabs.addTab(work_files_form, "Working")
             work_files_form.enable_show_all_versions(self._enable_show_all_versions)
@@ -185,7 +184,7 @@ class BrowserForm(QtGui.QWidget):
             work_files_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
             self._file_browser_forms.append(work_files_form)
 
-            # create the publish proxy model & form:
+            # create the publishes only tab:
             publishes_form = FileListForm(self, "Publishes", self._file_filters, show_work_files=False, show_publishes=True)
             self._ui.file_browser_tabs.addTab(publishes_form, "Publishes")
             publishes_form.enable_show_all_versions(self._enable_show_all_versions)
@@ -195,12 +194,10 @@ class BrowserForm(QtGui.QWidget):
             publishes_form.file_double_clicked.connect(self.file_double_clicked)
             publishes_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
             self._file_browser_forms.append(publishes_form)
-            """
 
     def select_work_area(self, context):
         """
         """
-        return
         if not context:
             return
 
@@ -225,7 +222,6 @@ class BrowserForm(QtGui.QWidget):
     def select_file(self, file, context):
         """
         """
-        return
         # try to select the file in all file browser tabs:
         for ti in range(self._ui.file_browser_tabs.count()):
             widget = self._ui.file_browser_tabs.widget(ti)
@@ -234,7 +230,6 @@ class BrowserForm(QtGui.QWidget):
     def navigate_to(self, breadcrumb_trail):
         """
         """
-        return
         if not breadcrumb_trail or not isinstance(breadcrumb_trail[0], BrowserForm._EntityTabBreadcrumb):
             return
 
@@ -278,7 +273,6 @@ class BrowserForm(QtGui.QWidget):
     def _update_selected_entity(self, entity_type, entity_id, skip_current=True):
         """
         """
-        return
         current_widget = self._ui.task_browser_tabs.currentWidget()
 
         # loop through all widgets and update the selection in each one:
@@ -352,18 +346,6 @@ class BrowserForm(QtGui.QWidget):
             self._update_selected_entity(selected_entity["type"], selected_entity["id"])
         else:
             self._update_selected_entity(None, None)
-            
-        # debug - create and destroy a bunch of QObjects
-        """
-        p_obj = QtCore.QObject()
-        rects = []
-        for i in range(10000):
-            r = QtCore.QRect(i, i, 100, 100)
-            rects.append(r)
-            obj = QtCore.QObject()
-            obj.deleteLater()
-        p_obj.deleteLater()
-        """
 
     def _on_selected_entity_changed(self, selection_details, breadcrumb_trail):
         """
@@ -398,19 +380,17 @@ class BrowserForm(QtGui.QWidget):
 
         # refresh files:
         if self._file_model:
-            print "dummy_search_details = []"
             p_details = []
             for search in search_details:
                 p_details.append({"name":search.name, 
                        "entity":search.entity, 
                        "is_leaf":search.is_leaf, 
                        "child_entities":search.child_entities})
-            print "dummy_search_details.append(%s)" % p_details
 
             self._file_model.set_entity_searches(search_details)
 
         # emit work-area-changed signal:
-        #self._emit_work_area_changed(primary_entity or None, breadcrumb_trail)
+        self._emit_work_area_changed(primary_entity or None, breadcrumb_trail)
         
         return primary_entity
 

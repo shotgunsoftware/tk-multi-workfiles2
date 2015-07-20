@@ -86,6 +86,7 @@ class CrashDbgForm(QtGui.QWidget):
         # create model:
         self._model = QtGui.QStandardItemModel()
         self._ui.tree_view.setModel(self._model)
+        self._ui.list_view.setModel(self._model)
 
         # create sg query threads:
         self._sg_runner_threads = []

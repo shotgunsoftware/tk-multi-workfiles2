@@ -21,7 +21,7 @@ from .my_task_item_delegate import MyTaskItemDelegate
 from ..entity_proxy_model import EntityProxyModel
 from ..ui.my_tasks_form import Ui_MyTasksForm
 from ..framework_qtwidgets import Breadcrumb, ShotgunModelOverlayWidget
-from ..util import map_to_source, get_source_model
+from ..util import map_to_source, get_source_model, monitor_qobject_lifetime
 
 class MyTasksForm(QtGui.QWidget):
     """
@@ -62,9 +62,7 @@ class MyTasksForm(QtGui.QWidget):
         # tmp until we have a usable filter button!
         self._ui.filter_btn.hide()
 
-        # setup the search control:
         self._ui.search_ctrl.set_placeholder_text("Search My Tasks")
-        self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
 
         # enable/hide the new task button depending if task creation is allowed:
         if allow_task_creation:
@@ -75,26 +73,30 @@ class MyTasksForm(QtGui.QWidget):
 
         # create the overlay 'busy' widget - this is displayed initiallt when there is nothing
         # in the model and it is populating itself from Shotgun
-        self._overlay_widget = None#ShotgunModelOverlayWidget(None, self._ui.task_tree)
+        self._overlay_widget = ShotgunModelOverlayWidget(None, self._ui.task_tree)
 
         self._item_delegate = None
         if tasks_model:
             # connect the overlay widget:
-            #self._overlay_widget.set_model(tasks_model)
+            self._overlay_widget.set_model(tasks_model)
 
-            if False:
+            if True:
                 # create a filter proxy model between the source model and the task tree view:
                 filter_fields = ["content", {"entity":"name"}]
                 filter_fields.extend(tasks_model.extra_display_fields)
                 filter_model = EntityProxyModel(self, filter_fields)
+                monitor_qobject_lifetime(filter_model, "My Tasks filter model")
                 filter_model.rowsInserted.connect(self._on_filter_model_rows_inserted)
                 filter_model.setSourceModel(tasks_model)
                 self._ui.task_tree.setModel(filter_model)
 
                 # create the item delegate - make sure we keep a reference to the delegate otherwise 
                 # things may crash later on!
-                self._item_delegate = None#MyTaskItemDelegate(tasks_model.extra_display_fields, self._ui.task_tree)
-                #self._ui.task_tree.setItemDelegate(self._item_delegate)
+                self._item_delegate = MyTaskItemDelegate(tasks_model.extra_display_fields, self._ui.task_tree)
+                monitor_qobject_lifetime(self._item_delegate)
+                self._ui.task_tree.setItemDelegate(self._item_delegate)
+
+                self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
             else:
                 self._ui.task_tree.setModel(tasks_model)
 
@@ -124,14 +126,10 @@ class MyTasksForm(QtGui.QWidget):
             # detach the filter model from the view:
             view_model = self._ui.task_tree.model()
             if view_model:
-                old_selection_model = self._ui.task_tree.selectionModel()
                 self._ui.task_tree.setModel(None)
-                if old_selection_model and not old_selection_model.parent():
-                    old_selection_model.deleteLater()
                 if isinstance(view_model, EntityProxyModel):
                     view_model.setSourceModel(None)
                     view_model.deleteLater()
-                    view_model = None
 
             # detach and clean up the item delegate:
             self._ui.task_tree.setItemDelegate(None)
@@ -292,8 +290,6 @@ class MyTasksForm(QtGui.QWidget):
         # clear the selection before changing anything - reset clears the selection
         # without emitting any signals:
         prev_selected_item = self._reset_selection()
-        #self._ui.task_tree.selectionModel().reset()
-        #self._update_ui()
         try:
             # update the proxy filter search text:
             self._update_filter(search_text)
@@ -328,8 +324,7 @@ class MyTasksForm(QtGui.QWidget):
 
         # emit selection_changed signal:
         self._emit_task_selected(task)
-        #self.task_selected.emit(task)
-        
+
     def _on_filter_model_rows_inserted(self, parent, first, last):
         """
         Slot triggered when new rows are inserted into the filter model.  This allows us

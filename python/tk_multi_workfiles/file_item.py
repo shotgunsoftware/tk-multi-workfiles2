@@ -9,7 +9,6 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import sgtk
-#from sgtk.platform.qt import QtCore
 
 import os
 from datetime import datetime, timedelta
@@ -87,15 +86,11 @@ class FileItem(object):
         # e.g. (('sequence', 'Sequence01'), ('shot', 'shot_010'), ('name', 'foo'))
         return tuple(sorted(file_key.iteritems()))
 
-    # Signal emitted whenever something changes in this instance.
-    #data_changed = QtCore.Signal()
-
     def __init__(self, key, is_work_file=False, work_path=None, work_details=None, 
                  is_published=False, publish_path=None, publish_details=None):
         """
         Construction
 
-        :param parent:          The parent QObject for this instance
         :param key:             Unique key representing all versions of this file
         :param is_work_file:    True if this instance represents a work file
         :param work_path:       Work path on disk of this file
@@ -104,8 +99,6 @@ class FileItem(object):
         :param publish_path:    Publish path on disk of this file
         :param publish_details: Dictionary containing additional information about this publish
         """
-        #QtCore.QObject.__init__(self, parent)# parent being None is a serious problem here!
-
         self._key = key
 
         self._is_local = is_work_file
@@ -118,6 +111,8 @@ class FileItem(object):
         
         self._thumbnail_path = None
         self._thumbnail_image = None
+        
+        self._versions = {}
 
     # ------------------------------------------------------------------------------------------
     # General properties
@@ -158,7 +153,6 @@ class FileItem(object):
         if value != self.thumbnail_path:
             self._thumbnail_path = value
             self._thumbnail_image = None
-            #self.data_changed.emit()
     thumbnail_path=property(_get_thumbnail_path, _set_thumbnail_path)
 
     #@property
@@ -167,8 +161,15 @@ class FileItem(object):
     #@thumbnail.setter
     def _set_thumbnail(self, value):
         self._thumbnail_image = value
-        #self.data_changed.emit()
     thumbnail=property(_get_thumbnail, _set_thumbnail)
+
+    #@property
+    def _get_versions(self):
+        return self._versions
+    #@versions.setter
+    def _set_versions(self, value):
+        self._versions = value
+    versions=property(_get_versions, _set_versions)
 
     # ------------------------------------------------------------------------------------------
     # Work file properties
@@ -236,7 +237,6 @@ class FileItem(object):
         self._is_published = publish._is_published
         self._publish_path = publish._publish_path
         self._publish_details = copy.deepcopy(publish._publish_details or {})
-        #self.data_changed.emit()
 
     def update_from_work_file(self, work_file):
         """
@@ -244,21 +244,18 @@ class FileItem(object):
         self._is_local = work_file._is_local
         self._path = work_file._path
         self._details = copy.deepcopy(work_file._details or {})
-        #self.data_changed.emit()
 
     def set_not_work_file(self):
         """
         """
         if self._is_local:
             self._is_local = False
-            #self.data_changed.emit()
 
     def set_not_published(self):
         """
         """
         if self._is_published:
             self._is_published = False
-            #self.data_changed.emit()
 
     def format_published_by_details(self):
         """

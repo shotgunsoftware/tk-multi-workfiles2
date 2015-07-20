@@ -11,7 +11,7 @@
 """
 Various utility methods used by the app code
 """
-
+import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
 def value_to_str(value):
@@ -130,9 +130,40 @@ def refresh_widget_style_r(widget, refresh_children=False):
             continue
         refresh_widget_style_r(child, refresh_children)
 
-def obj_destroyed_slot(name):
-    print "%s Destroyed!" % name
+_monitored_qobjects = {}
 
-def dbg_connect_to_destroyed(obj, name):
-    obj.destroyed.connect(lambda n=name:obj_destroyed_slot(n))
+def monitor_qobject_lifetime(obj, name=""):
+    """
+    """
+    msg = type(obj).__name__
+    if name:
+        msg = "%s [%s]" % (msg, name)
+    global _monitored_qobjects
+    uid = len(_monitored_qobjects)
+    _monitored_qobjects[uid] = msg
+    obj.destroyed.connect(lambda: _on_qobject_destroyed(msg, uid))
+
+def report_non_destroyed_qobjects():
+    """
+    """
+    app = sgtk.platform.current_bundle()
+    global _monitored_qobjects
+    app.log_debug("%d monitored QObjects have not been destroyed!" % len(_monitored_qobjects))
+    for msg in _monitored_qobjects.values():
+        app.log_debug(" - %s" % msg)
+    _monitored_qobjects = {}
+
+def _on_qobject_destroyed(name, uid):
+    """
+    """
+    app = sgtk.platform.current_bundle()
+    app.log_debug("%s destroyed" % name)
+    global _monitored_qobjects
+    if uid in _monitored_qobjects:
+        del _monitored_qobjects[uid]
+
+
+
+    
+    
 
