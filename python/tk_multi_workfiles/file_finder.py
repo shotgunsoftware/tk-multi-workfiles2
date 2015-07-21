@@ -668,12 +668,11 @@ class FileFinder(QtCore.QObject):
                 if context.task:
                     file_details["task"] = context.task
                 else:
-                    pass
                     # try to create a context from the path and see if that contains a task:
-                    #wf_ctx = self.__app.sgtk.context_from_path(work_path, context)
-                    #if wf_ctx and wf_ctx.task:
-                    #    file_details["task"] = wf_ctx.task 
-            
+                    wf_ctx = self.__app.sgtk.context_from_path(work_path, context)
+                    if wf_ctx and wf_ctx.task:
+                        file_details["task"] = wf_ctx.task 
+
             # add additional fields:
             #
     
@@ -682,8 +681,12 @@ class FileFinder(QtCore.QObject):
 
             # file modified details:
             if not file_details["modified_at"]:
-                #modified_time = os.path.getmtime(work_path)
-                file_details["modified_at"] = datetime.fromtimestamp(os.path.getmtime(work_path), tz=sg_timezone.local)
+                try:
+                    modified_at = os.path.getmtime(work_path)
+                    file_details["modified_at"] = datetime.fromtimestamp(modified_at, tz=sg_timezone.local)
+                except OSError:
+                    # ignore OSErrors as it's probably a permissions thing!
+                    pass
 
             if not file_details["modified_by"]:
                 file_details["modified_by"] = g_user_cache.get_file_last_modified_user(work_path)
@@ -758,7 +761,12 @@ class FileFinder(QtCore.QObject):
         
             # local file modified details:
             if os.path.exists(publish_path):
-                file_details["modified_at"] = datetime.fromtimestamp(os.path.getmtime(publish_path), tz=sg_timezone.local)
+                try:
+                    modified_at = os.path.getmtime(publish_path)
+                    file_details["modified_at"] = datetime.fromtimestamp(modified_at, tz=sg_timezone.local)
+                except OSError:
+                    # ignore OSErrors as it's probably a permissions thing!
+                    pass
                 file_details["modified_by"] = g_user_cache.get_file_last_modified_user(publish_path)
             else:
                 # just use the publish info
