@@ -77,7 +77,7 @@ def map_to_source(idx, recursive=True):
     """
     src_idx = idx
     while src_idx.isValid() and isinstance(src_idx.model(), QtGui.QAbstractProxyModel):
-        src_idx = idx.model().mapToSource(src_idx)
+        src_idx = src_idx.model().mapToSource(src_idx)
         if not recursive:
             break
     return src_idx

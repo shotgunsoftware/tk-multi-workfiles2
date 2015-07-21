@@ -19,6 +19,7 @@ ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 
 from .task_widget import TaskWidget
 from ..framework_qtwidgets import WidgetDelegate
+from ..util import map_to_source
 
 class MyTaskItemDelegate(WidgetDelegate):
     """
@@ -80,15 +81,15 @@ class MyTaskItemDelegate(WidgetDelegate):
     def _setup_widget(self, widget, model_index, style_options):
         """
         """
-        model = model_index.model()
+        src_index = map_to_source(model_index)
+        if not src_index or not src_index.isValid():
+            return
+        
+        model = src_index.model()
         if not model:
             return
-
-        while isinstance(model, QtGui.QAbstractProxyModel):
-            model_index = model.mapToSource(model_index)
-            model = model.sourceModel()
-
-        item = model.itemFromIndex(model_index)
+        
+        item = model.itemFromIndex(src_index)
         if not item:
             return
 

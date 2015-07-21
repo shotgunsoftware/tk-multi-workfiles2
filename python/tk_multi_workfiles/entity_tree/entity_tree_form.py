@@ -190,7 +190,7 @@ class EntityTreeForm(QtGui.QWidget):
         selected_indexes = self._ui.entity_tree.selectionModel().selectedIndexes()
         if len(selected_indexes) == 1:
             selection_details = self._get_entity_details(selected_indexes[0])
-            breadcrumb_trail = self._build_breadcrumb_trail()
+            breadcrumb_trail = self._build_breadcrumb_trail(selected_indexes[0])
 
         return (selection_details, breadcrumb_trail)
 
@@ -431,13 +431,11 @@ class EntityTreeForm(QtGui.QWidget):
             # will emit an entity_selected signal:
             selected_item = self._get_selected_item()
             if id(selected_item) != id(prev_selected_item):
-                # emit a selection changed signal:
-                selection_details = None
-                if selected_item:
-                    selection_details = self._get_entity_details(selected_item.index())
+                # get the selected entity details:
+                selection_details, breadcrumbs = self.get_selection()
 
-                # emit the signal
-                self._emit_entity_selected(selection_details)
+                # emit a selection changed signal:
+                self._emit_entity_selected(selection_details, breadcrumbs)
 
     def _update_ui(self):
         """
@@ -471,10 +469,12 @@ class EntityTreeForm(QtGui.QWidget):
         # out tree is single-selection so extract the newly selected item from the
         # list of indexes:
         selection_details = {}
+        breadcrumbs = []
         item = None
         selected_indexes = selected.indexes()
         if len(selected_indexes) == 1:
             selection_details = self._get_entity_details(selected_indexes[0])
+            breadcrumbs = self._build_breadcrumb_trail(selected_indexes[0])
             item = self._item_from_index(selected_indexes[0])
 
         # update the UI
@@ -488,7 +488,7 @@ class EntityTreeForm(QtGui.QWidget):
             self._entity_to_select = None
 
         # emit selection_changed signal:
-        self._emit_entity_selected(selection_details)
+        self._emit_entity_selected(selection_details, breadcrumbs)
 
     def _on_filter_model_rows_inserted(self, parent_idx, first, last):
         """
@@ -648,17 +648,15 @@ class EntityTreeForm(QtGui.QWidget):
         # and emit the signal for this entity:
         self.create_new_task.emit(entity, step)
 
-    def _build_breadcrumb_trail(self):
+    def _build_breadcrumb_trail(self, idx):
         """
         """
+        if not idx.isValid():
+            return []
+
+        # walk up the tree starting with the specified index:
         breadcrumbs = []
-
-        selected_indexes = self._ui.entity_tree.selectionModel().selectedIndexes()
-        if len(selected_indexes) != 1:
-            return {}
-
-        # now, walk up the tree
-        src_index = map_to_source(selected_indexes[0])
+        src_index = map_to_source(idx)
         entity_model = src_index.model()
         while src_index.isValid():
             entity = entity_model.get_entity(entity_model.itemFromIndex(src_index))
@@ -675,9 +673,8 @@ class EntityTreeForm(QtGui.QWidget):
         # return reversed list:
         return breadcrumbs[::-1]
 
-    def _emit_entity_selected(self, entity_details):
+    def _emit_entity_selected(self, entity_details, breadcrumbs):
         """
         """
-        breadcrumbs = self._build_breadcrumb_trail()
         self.entity_selected.emit(entity_details, breadcrumbs)
 
