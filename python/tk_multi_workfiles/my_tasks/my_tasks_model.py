@@ -46,4 +46,4 @@ class MyTasksModel(ShotgunEntityModel):
             return
 
         # set the item icon to be the thumbnail:
-        #item.setIcon(QtGui.QIcon(path))
+        item.setIcon(QtGui.QIcon(path))
