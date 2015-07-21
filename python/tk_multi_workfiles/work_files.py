@@ -71,6 +71,10 @@ class TimedGc(QtCore.QObject):
 
 def managed_gc(func):
     """
+    Decorator function to disable cyclic garbage collection whilst the wrapped function is run.  
+    Whilst it is running, gc.collect() is instead run on a timer - this ensure that it always 
+    runs in the main thread to avoid gc issues with PySide/Qt objects being deleted from another, 
+    non-main thread.
     """
     def wrapper(*args, **kwargs):
         timed_gc = TimedGc()
@@ -82,33 +86,60 @@ def managed_gc(func):
             timed_gc.deleteLater()
     return wrapper
 
-def dbg_watch_memory(func):
-    def wrapper(*args, **kwargs):
-        #import PySide
-        #print "PySide v%s" % PySide.__version__
-        #print "Qt v%s" % QtCore.__version__
+def dbg_info(func):
+    """
+    Decorator function used to track memory and other useful debug information around the file-open
+    and file-save modal dialog calls.  If debug is enabled, this will print out a list of monitored
+    QObject's that aren't destroyed correctly together with some Python memory/object stats.
 
-        # grab the pre-run info:
+    Note that the list of QObjects is misleading if the QApplication is set to close when the last
+    window is closed and the dialog is the last window.
+    """
+    def wrapper(*args, **kwargs):
+        """
+        """
+        # create a SignalWait instance now and connect it up to the application.  This is to
+        # ensure that when we later call it using wait.wait() it doesn't hang forever if the
+        # application event loop has finished!
+        wait = SignalWait()
+        q_app = QtGui.QApplication.instance()
+        if q_app and isinstance(q_app, QtGui.QApplication):
+            # note, in Nuke 6.3/PySide 1.0.9 QtGui.QApplication.instance() rather unhelpfully returns
+            # a QtCore.QCoreApplication instance!
+            if q_app.quitOnLastWindowClosed():
+                # we don't want to wait if the event loop has finished cause we'll be waiting forever!
+                q_app.lastWindowClosed.connect(wait.finish)
+
+        # grab the pre-run memory info:
         num_objects_before = len(gc.get_objects())
         bytes_before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024.0/1024.0
 
         # run the function:
         res = func(*args, **kwargs)
 
-        # cleanup and grab the post-run info:
+        # wait for any QObjects to be cleaned up in the main event loop:
+        QtCore.QTimer.singleShot(100, wait.finish)
+        wait.wait()
+        wait = None
+        
+        # report any non-destroyed QObjects:
+        report_non_destroyed_qobjects()
+
+        # cleanup and grab the post-run memory info:
         gc.collect()
         bytes_after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024.0/1024.0
         num_objects_after = len(gc.get_objects())
 
-        # and report any difference:
+        # and report any difference in memory usage:
         bytes_diff = bytes_after - bytes_before
         obj_diff = num_objects_after - num_objects_before
         msg = ("Memory before: %0.2fMb, current: %0.2fMb, leaked: %0.2fMb (%d new Python objects)" 
                % (bytes_before, bytes_after, bytes_diff, obj_diff))
         app = sgtk.platform.current_bundle()
         app.log_debug(msg)
-        return res
 
+        # return the result:
+        return res
     return wrapper
 
 class WorkFiles(object):
@@ -128,8 +159,8 @@ class WorkFiles(object):
         handler = WorkFiles()
         handler._show_file_save_dlg()
 
+    @dbg_info
     @managed_gc
-    @dbg_watch_memory
     def _show_file_open_dlg(self):
         """
         """
@@ -138,19 +169,11 @@ class WorkFiles(object):
             from .file_open_form import FileOpenForm
             #app.engine.show_dialog("File Open", app, FileOpenForm)
             app.engine.show_modal("File Open", app, FileOpenForm)
-
-            # run a separate event loop for a few ms whilst the main event loop processes
-            # any remaining deleteLater calls for any monitored QObjects and then report
-            # any qobjects that haven't been destroyed
-            wait = SignalWait()
-            QtCore.QTimer.singleShot(100, wait.finish)
-            wait.wait()
-            report_non_destroyed_qobjects()
         except:
             app.log_exception("Failed to create File Open dialog!")
 
+    @dbg_info
     @managed_gc
-    @dbg_watch_memory
     def _show_file_save_dlg(self):
         """
         """
@@ -158,14 +181,6 @@ class WorkFiles(object):
         try:
             from .file_save_form import FileSaveForm
             app.engine.show_modal("File Save", app, FileSaveForm)
-
-            # run a separate event loop for a few ms whilst the main event loop processes
-            # any remaining deleteLater calls for any monitored QObjects and then report
-            # any qobjects that haven't been destroyed
-            wait = SignalWait()
-            QtCore.QTimer.singleShot(100, wait.finish)
-            wait.wait()
-            report_non_destroyed_qobjects()
         except:
             app.log_exception("Failed to create File Save dialog!")
 
