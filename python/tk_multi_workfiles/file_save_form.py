@@ -17,6 +17,7 @@ the list of current work files.
 import threading
 import os
 from itertools import chain
+import time
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
@@ -197,6 +198,7 @@ class FileSaveForm(FileFormBase):
         self._bg_task_manager.task_failed.connect(self._on_preview_generation_failed)
         self._bg_task_manager.start_processing()
 
+        # create the preview task:
         self._preview_task = self._bg_task_manager.add_task(self._generate_path,
                                                             priority = 35,
                                                             env = self._current_env,
@@ -311,11 +313,13 @@ class FileSaveForm(FileFormBase):
             file_key = FileItem.build_file_key(fields, env.work_template, 
                                                env.version_compare_ignore_fields)
 
-            file_versions = self._file_model.get_file_versions(file_key, env)
+            file_versions = None
+            if self._file_model:
+                file_versions = self._file_model.get_file_versions(file_key, env)
             if file_versions == None:
                 # fall back to finding the files manually - this will be slower!  
-                finder = FileFinder(None, self._bg_task_manager)
                 try:
+                    finder = FileFinder()
                     files = finder.find_files(env.work_template, 
                                               env.publish_template, 
                                               env.context,

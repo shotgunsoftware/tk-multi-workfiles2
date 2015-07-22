@@ -113,16 +113,15 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
                 return False
 
             if not self._filters.show_all_versions:
-                # Filter based on latest version.
-                #src_model = self.sourceModel()
-                # need to check if this is the latest version of the file:
+                # Filter based on latest version - need to check if this is the latest 
+                # version of the file:
                 all_versions = file_item.versions
 
                 visible_versions = [v for v, f in all_versions.iteritems() 
                                         if (f.is_local and self._show_workfiles) 
                                             or (f.is_published and self._show_publishes)]
 
-                if not (visible_versions and file_item.version == max(visible_versions)):
+                if not visible_versions or file_item.version != max(visible_versions):
                     return False
 
 

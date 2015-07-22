@@ -16,10 +16,6 @@ from sgtk import TankError
 
 from .open_file_action import OpenFileAction, CopyAndOpenInCurrentWorkAreaAction, ContinueFromFileAction
 
-from ..work_area import WorkArea
-from ..file_item import FileItem
-from ..file_finder import FileFinder
-
 from ..user_cache import g_user_cache
 
 class OpenWorkfileAction(OpenFileAction):

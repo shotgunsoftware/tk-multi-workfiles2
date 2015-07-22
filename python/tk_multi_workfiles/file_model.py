@@ -17,7 +17,7 @@ from sgtk import TankError
 shotgun_data = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_data")
 ShotgunDataRetriever = shotgun_data.ShotgunDataRetriever
 
-from .file_finder import FileFinder
+from .file_finder import AsyncFileFinder
 from .user_cache import g_user_cache
 from .file_search_cache import FileSearchCache
 
@@ -232,7 +232,7 @@ class FileModel(QtGui.QStandardItemModel):
         self._pending_thumbnail_requests = {}
 
         # we'll need a file finder to be able to find files:
-        self._finder = FileFinder(parent=self, bg_task_manager=bg_task_manager)
+        self._finder = AsyncFileFinder(bg_task_manager, self)
         self._finder.files_found.connect(self._on_finder_files_found)
         self._finder.publishes_found.connect(self._on_finder_publishes_found)
         self._finder.search_completed.connect(self._on_finder_search_completed)

@@ -127,6 +127,427 @@ class FileFinder(QtCore.QObject):
             
             return name    
 
+    def __init__(self, parent=None):
+        """
+        Construction
+        """
+        QtCore.QObject.__init__(self, parent)
+        self._app = sgtk.platform.current_bundle()
+
+    ################################################################################################
+
+    def find_files(self, work_template, publish_template, context, filter_file_key=None):
+        """
+        Find files using the specified context, work and publish templates
+        
+        :param work_template:       The template to use when searching for work files
+        :param publish_template:    The template to use when searching for publish files
+        :param context:             The context to search for file with
+        :param filter_file_key:     A unique file 'key' that if specified will limit the returned list of files to just 
+                                    those that match.  This 'key' should be generated using the FileItem.build_file_key()
+                                    method.
+        :returns:                   A list of FileItem instances, one for each unique version of a file found in either 
+                                    the work or publish areas
+        """
+        # can't find anything without a work template!
+        if not work_template:
+            return []
+    
+        # determien the publish filters to use from the context:
+        publish_filters = [["entity", "is", context.entity or context.project]]
+        if context.task:
+            publish_filters.append(["task", "is", context.task])
+        else:
+            publish_filters.append(["task", "is", None])
+    
+        # get the list of valid file extensions if set:
+        valid_file_extensions = [".%s" % ext if not ext.startswith(".") else ext 
+                                 for ext in self._app.get_setting("file_extensions", [])]
+        
+        # get list of fields that should be ignored when comparing work files:
+        version_compare_ignore_fields = self._app.get_setting("version_compare_ignore_fields", [])    
+
+        # find all work & publish files and filter out any that should be ignored:
+        work_files = self._find_work_files(context, work_template, version_compare_ignore_fields)
+        filtered_work_files = self._filter_work_files(work_files, valid_file_extensions)
+        
+        published_files = self._find_publishes(publish_filters)
+        filtered_published_files = self._filter_publishes(published_files, 
+                                                          publish_template, 
+                                                          valid_file_extensions)
+        
+        # turn these into FileItem instances:
+        name_map = FileFinder._FileNameMap()
+        work_file_item_details = self._process_work_files(filtered_work_files, 
+                                                        work_template, 
+                                                        context, 
+                                                        name_map, 
+                                                        version_compare_ignore_fields, 
+                                                        filter_file_key)
+        work_file_items = dict([(k, FileItem(**kwargs)) for k, kwargs in work_file_item_details.iteritems()])
+
+        publish_item_details = self._process_publish_files(filtered_published_files, 
+                                                         publish_template, 
+                                                         work_template, 
+                                                         context, 
+                                                         name_map, 
+                                                         version_compare_ignore_fields,
+                                                         filter_file_key)
+        publish_items = dict([(k, FileItem(**kwargs)) for k, kwargs in publish_item_details.iteritems()])
+
+        # and aggregate the results:
+        file_items = list(work_file_items.values())
+        for file_key_and_version, publish in publish_items.iteritems():
+            work_file = work_file_items.get(file_key_and_version)
+            if not work_file:
+                file_items.append(publish)
+                continue
+
+            # merge with work file:
+            work_file.update_from_publish(publish)
+
+        return file_items
+
+    def _process_work_files(self, work_files, work_template, context, name_map, version_compare_ignore_fields, 
+                          filter_file_key=None):
+        """
+        """
+        files = {}
+        
+        for work_file in work_files:
+            
+            # always have the work path:
+            work_path = work_file["path"]
+            
+            # get fields for work file:
+            wf_fields = work_template.get_fields(work_path)
+            
+            # build the unique file key for the work path.  All files that share the same key are considered
+            # to be different versions of the same file.
+            #
+            file_key = FileItem.build_file_key(wf_fields, work_template, 
+                                               version_compare_ignore_fields)
+            if filter_file_key and file_key != filter_file_key:
+                # we can ignore this file completely!
+                continue
+            
+            # copy common fields from work_file:
+            #
+            file_details = dict([(k, v) for k, v in work_file.iteritems() if k != "path"])
+            
+            # get version from fields if not specified in work file:
+            if not file_details["version"]:
+                file_details["version"] = wf_fields.get("version", 0)
+            
+            # if no task try to determine from context or path:
+            if not file_details["task"]:
+                if context.task:
+                    file_details["task"] = context.task
+                else:
+                    # try to create a context from the path and see if that contains a task:
+                    wf_ctx = self._app.sgtk.context_from_path(work_path, context)
+                    if wf_ctx and wf_ctx.task:
+                        file_details["task"] = wf_ctx.task 
+
+            # add additional fields:
+            #
+    
+            # entity:
+            file_details["entity"] = context.entity
+
+            # file modified details:
+            if not file_details["modified_at"]:
+                try:
+                    modified_at = os.path.getmtime(work_path)
+                    file_details["modified_at"] = datetime.fromtimestamp(modified_at, tz=sg_timezone.local)
+                except OSError:
+                    # ignore OSErrors as it's probably a permissions thing!
+                    pass
+
+            if not file_details["modified_by"]:
+                file_details["modified_by"] = g_user_cache.get_file_last_modified_user(work_path)
+
+            # make sure all files with the same key have the same name:
+            file_details["name"] = name_map.get_name(file_key, work_path, work_template, wf_fields)
+
+            """
+            file_details["name"] = wf_fields.get("name", "unknown")
+            """
+            
+            # add to the list of files
+            files[(file_key, file_details["version"])] = {"key":file_key, 
+                                                          "is_work_file":True, 
+                                                          "work_path":work_path, 
+                                                          "work_details":file_details}
+                
+        return files
+        
+    def _process_publish_files(self, sg_publishes, publish_template, work_template, context, name_map, 
+                             version_compare_ignore_fields, filter_file_key=None):
+        """
+        """
+        files = {}
+        
+        # and add in publish details:
+        ctx_fields = context.as_template_fields(work_template)
+                    
+        for sg_publish in sg_publishes:
+            file_details = {}
+    
+            # always have a path:
+            publish_path = sg_publish["path"]
+            
+            # determine the work path fields from the publish fields + ctx fields:
+            # The order is important as it ensures that the user is correct if the 
+            # publish file is in a user sandbox but we also need to be careful not
+            # to overrwrite fields that are being ignored when comparing work files
+            publish_fields = publish_template.get_fields(publish_path)
+            wp_fields = publish_fields.copy()
+            for k, v in ctx_fields.iteritems():
+                if k not in version_compare_ignore_fields:
+                    wp_fields[k] = v
+            
+            # build the unique file key for the publish path.  All files that share the same key are considered
+            # to be different versions of the same file.
+            file_key = FileItem.build_file_key(wp_fields, work_template, 
+                                               version_compare_ignore_fields)
+            if filter_file_key and file_key != filter_file_key:
+                # we can ignore this file completely!
+                continue
+
+            # resolve the work path:
+            work_path = ""
+            try:
+                work_path = work_template.apply_fields(wp_fields)
+            except TankError, e:
+                # unable to generate a work path - this means we are probably missing a field so it's going to
+                # be a problem matching this publish up with its corresponding work file!
+                work_path = ""
+            
+            # copy common fields from sg_publish:
+            #
+            file_details = dict([(k, v) for k, v in sg_publish.iteritems() if k != "path"])
+            
+            # get version from fields if not specified in publish file:
+            if file_details["version"] == None:
+                file_details["version"] = publish_fields.get("version", 0)
+            
+            # entity
+            file_details["entity"] = context.entity
+        
+            # local file modified details:
+            if os.path.exists(publish_path):
+                try:
+                    modified_at = os.path.getmtime(publish_path)
+                    file_details["modified_at"] = datetime.fromtimestamp(modified_at, tz=sg_timezone.local)
+                except OSError:
+                    # ignore OSErrors as it's probably a permissions thing!
+                    pass
+                file_details["modified_by"] = g_user_cache.get_file_last_modified_user(publish_path)
+            else:
+                # just use the publish info
+                file_details["modified_at"] = sg_publish.get("published_at")
+                file_details["modified_by"] = sg_publish.get("published_by")
+
+            # make sure all files with the same key have the same name:
+            file_details["name"] = name_map.get_name(file_key, publish_path, publish_template, publish_fields)
+
+            # add new file item for this publish.  Note that we also keep track of the
+            # work path even though we don't know if this publish has a corresponding
+            # work file.
+            files[(file_key, file_details["version"])] = {"key":file_key, 
+                                                          "work_path":work_path,
+                                                          "is_published":True,
+                                                          "publish_path":publish_path,
+                                                          "publish_details":file_details}
+        return files
+
+    def _find_publishes(self, publish_filters):
+        """
+        Find all publishes for the specified context and publish template
+
+        :returns:                   List of dictionaries, each one containing the details
+                                    of an individual published file
+        """
+        fields = ["id", "description", "version_number", "image", "created_at", "created_by", "name", "path", "task"]
+        published_file_type = sgtk.util.get_published_file_entity_type(self._app.sgtk)
+        sg_publishes = self._app.shotgun.find(published_file_type, publish_filters, fields)
+        return sg_publishes
+
+    def _filter_publishes(self, sg_publishes, publish_template, valid_file_extensions):
+        """
+        """
+        # build list of publishes to send to the filter_publishes hook:
+        hook_publishes = [{"sg_publish":sg_publish} for sg_publish in sg_publishes]
+        
+        # execute the hook - this will return a list of filtered publishes:
+        hook_result = self._app.execute_hook("hook_filter_publishes", publishes = hook_publishes)
+        if not isinstance(hook_result, list):
+            self._app.log_error("hook_filter_publishes returned an unexpected result type '%s' - ignoring!" 
+                          % type(hook_result).__name__)
+            hook_result = []
+        
+        # split back out publishes:
+        published_files = []
+        for item in hook_result:
+            sg_publish = item.get("sg_publish")
+            if not sg_publish:
+                continue
+            
+            # all publishes should have a local path:
+            path = sg_publish.get("path", {}).get("local_path")
+            if not path:
+                continue
+            
+            # skip file if it doesn't contain a valid file extension:
+            if valid_file_extensions and os.path.splitext(path)[1] not in valid_file_extensions:
+                continue
+    
+            # make sure path matches the publish template:            
+            if not publish_template.validate(path):
+                continue
+    
+            # build file details for this publish:
+            file_details = {"path":path}
+            
+            # add in details from sg record:
+            file_details["version"] = sg_publish.get("version_number")
+            file_details["name"] = sg_publish.get("name")
+            file_details["task"] = sg_publish.get("task")
+            file_details["publish_description"] = sg_publish.get("description")
+            file_details["thumbnail"] = sg_publish.get("image")
+            
+            file_details["published_at"] = sg_publish.get("created_at")
+            file_details["published_by"] = sg_publish.get("created_by", {})
+            file_details["published_file_entity_id"] = sg_publish.get("id")
+            
+            # find additional information:
+            editable_info = item.get("editable")
+            if editable_info and isinstance(editable_info, dict):
+                file_details["editable"] = editable_info.get("can_edit", True)
+                file_details["editable_reason"] = editable_info.get("reason", "")
+            
+            # append to published files list:
+            published_files.append(file_details)    
+            
+        return published_files
+    
+        
+    def _find_work_files(self, context, work_template, version_compare_ignore_fields):
+        """
+        Find all work files for the specified context and work template
+        
+        :param context:                         The context to find work files for
+        :param work_template:                   The work template to match found files against
+        :param version_compare_ignore_fields:   List of fields to ignore when comparing files in order to find 
+                                                different versions of the same file
+        :returns:                               List of dictionaries, each one containing the details
+                                                of an individual work file        
+        """
+        # find work files that match the current work template:
+        work_fields = []
+        try:
+            work_fields = context.as_template_fields(work_template, validate=True)
+        except TankError:
+            # could not resolve fields from this context. This typically happens
+            # when the context object does not have any corresponding objects on 
+            # disk / in the path cache. In this case, we cannot continue with any
+            # file system resolution, so just exit early insted.
+            return []
+
+        # build list of fields to ignore when looking for files:
+        skip_fields = list(version_compare_ignore_fields or [])
+
+        # Skip any keys from work_fields that are _only_ optional in the template.  This is to
+        # ensure we find as wide a range of files as possible considering all optional keys.
+        # Note, this may be better as a general change to the paths_from_template method...
+        skip_fields += [n for n in work_fields.keys() if work_template.is_optional(n)]
+        
+        # Find all versions so skip the 'version' key if it's present:
+        skip_fields += ["version"]
+
+        # find paths:
+        work_file_paths = self._app.sgtk.paths_from_template(work_template, 
+                                                              work_fields, 
+                                                              skip_fields, 
+                                                              skip_missing_optional_keys=True)
+
+        return work_file_paths
+
+        # paths_from_template may have returned additional files that we don't want (aren't valid within this
+        # work area) if any of the fields were populated by the context.  Filter the list to remove these
+        # extra files.
+        filtered_paths = []
+        for p in work_file_paths:
+            # (AD) TODO - this should be optimized as it's doing 'get_fields' again 
+            # when this method returns!
+            fields = work_template.get_fields(p)
+            is_match = True
+            for wfn, wfv in work_fields.iteritems():
+                if wfn in fields:
+                    if fields[wfn] != wfv:
+                        is_match = False
+                        break
+                elif wfn not in skip_fields:
+                    is_match = False
+                    break
+            if is_match:
+                filtered_paths.append(p)
+        work_file_paths = filtered_paths
+        
+        return work_file_paths
+        
+    def _filter_work_files(self, work_file_paths, valid_file_extensions):
+        """
+        """
+        # build list of work files to send to the filter_work_files hook:
+        hook_work_files = [{"work_file":{"path":path}} for path in work_file_paths]
+        
+        # execute the hook - this will return a list of filtered publishes:
+        hook_result = self._app.execute_hook("hook_filter_work_files", work_files = hook_work_files)
+        if not isinstance(hook_result, list):
+            self._app.log_error("hook_filter_work_files returned an unexpected result type '%s' - ignoring!" 
+                          % type(hook_result).__name__)
+            hook_result = []
+    
+        # split back out work files:
+        work_files = []
+        for item in hook_result:
+            work_file = item.get("work_file")
+            if not work_file:
+                continue
+            
+            path = work_file.get("path")
+            if not path:
+                continue
+            
+            if valid_file_extensions and os.path.splitext(path)[1] not in valid_file_extensions:
+                continue
+            
+            file_details = {"path":path}
+            file_details["version"] = work_file.get("version_number")
+            file_details["name"] = work_file.get("name")
+            file_details["task"] = work_file.get("task")
+            file_details["description"] = work_file.get("description")
+            file_details["thumbnail"] = work_file.get("thumbnail")
+            file_details["modified_at"] = work_file.get("modified_at")
+            file_details["modified_by"] = work_file.get("modified_by", {})
+            
+            # find additional information:
+            editable_info = item.get("editable")
+            if editable_info and isinstance(editable_info, dict):
+                file_details["editable"] = editable_info.get("can_edit", True)
+                file_details["editable_reason"] = editable_info.get("reason", "")        
+            
+            work_files.append(file_details)
+            
+        return work_files
+
+class AsyncFileFinder(FileFinder):
+    """
+    Version of the file finder that can perform multiple searches asyncrounously emitting
+    any files found via signals as they are found.
+    """
     class _SearchData(object):
         def __init__(self, search_id, entity, users, publish_model):
             """
@@ -155,22 +576,18 @@ class FileFinder(QtCore.QObject):
     search_failed = QtCore.Signal(object, object) # search_id, message
     search_completed = QtCore.Signal(object) # search_id
 
-    def __init__(self, parent, bg_task_manager):
+    def __init__(self, bg_task_manager, parent=None):
         """
-        Construction
         """
-        QtCore.QObject.__init__(self, parent)
-        self.__app = sgtk.platform.current_bundle()
+        FileFinder.__init__(self, parent)
 
         self._searches = {}
         self._available_publish_models = []
 
-        self._bg_task_manager = bg_task_manager or BackgroundTaskManager(self, max_threads=8)
-        self._owns_task_manager = bg_task_manager is not None
+        self._bg_task_manager = bg_task_manager
         self._bg_task_manager.task_completed.connect(self._on_background_task_completed)
         self._bg_task_manager.task_failed.connect(self._on_background_task_failed)
         self._bg_task_manager.task_group_finished.connect(self._on_background_search_finished)
-        self._bg_task_manager.start_processing()
 
     def shut_down(self):
         """
@@ -188,17 +605,11 @@ class FileFinder(QtCore.QObject):
 
         # and shut down the task manager
         if self._bg_task_manager:
-            if self._owns_task_manager:
-                # we own the task manager so we'll need to completely shut it down before
-                # returning
-                self._bg_task_manager.shut_down()
-                self._bg_task_manager.deleteLater()
-                self._bg_task_manager = None
-            else:
-                # just disconnect:
-                self._bg_task_manager.task_completed.disconnect(self._on_background_task_completed)
-                self._bg_task_manager.task_failed.disconnect(self._on_background_task_failed)
-                self._bg_task_manager.task_group_finished.disconnect(self._on_background_search_finished)
+            # disconnect from the task manager:
+            self._bg_task_manager.task_completed.disconnect(self._on_background_task_completed)
+            self._bg_task_manager.task_failed.disconnect(self._on_background_task_failed)
+            self._bg_task_manager.task_group_finished.disconnect(self._on_background_search_finished)
+
 
     def begin_search(self, entity, users = None):
         """
@@ -242,7 +653,7 @@ class FileFinder(QtCore.QObject):
         publish_model.uid = search_id
 
         # construct the new search data:
-        search = FileFinder._SearchData(search_id, entity, users, publish_model)
+        search = AsyncFileFinder._SearchData(search_id, entity, users, publish_model)
         self._searches[search.id] = search
 
         # begin the search stage 1:
@@ -280,20 +691,20 @@ class FileFinder(QtCore.QObject):
             # find work files:
             find_work_files_task = self._bg_task_manager.add_task(self._task_find_work_files, 
                                                                   group=search.id,
-                                                                  priority=FileFinder._FIND_FILES_PRIORITY,
+                                                                  priority=AsyncFileFinder._FIND_FILES_PRIORITY,
                                                                   environment=user_work_area)
 
             # filter work files:
             filter_work_files_task = self._bg_task_manager.add_task(self._task_filter_work_files,
                                                                     group=search.id,
-                                                                    priority=FileFinder._FIND_FILES_PRIORITY,
+                                                                    priority=AsyncFileFinder._FIND_FILES_PRIORITY,
                                                                     upstream_task_ids = [find_work_files_task],
                                                                     environment=user_work_area)
 
             # build work items:
             process_work_items_task = self._bg_task_manager.add_task(self._task_process_work_items,
                                                                      group=search.id, 
-                                                                     priority=FileFinder._FIND_FILES_PRIORITY,
+                                                                     priority=AsyncFileFinder._FIND_FILES_PRIORITY,
                                                                      upstream_task_ids = [filter_work_files_task],
                                                                      environment=user_work_area,
                                                                      name_map = search.name_map)
@@ -312,13 +723,13 @@ class FileFinder(QtCore.QObject):
             # filter publishes:
             filter_publishes_task = self._bg_task_manager.add_task(self._task_filter_publishes,
                                                                    group=search.id,
-                                                                   priority=FileFinder._FIND_PUBLISHES_PRIORITY,
+                                                                   priority=AsyncFileFinder._FIND_PUBLISHES_PRIORITY,
                                                                    environment = user_work_area,
                                                                    sg_publishes = users_publishes)
             # build publish items:
             process_publish_items_task = self._bg_task_manager.add_task(self._task_process_publish_items,
                                                                         group=search.id,
-                                                                        priority=FileFinder._FIND_PUBLISHES_PRIORITY,
+                                                                        priority=AsyncFileFinder._FIND_PUBLISHES_PRIORITY,
                                                                         upstream_task_ids = [filter_publishes_task],
                                                                         environment = user_work_area,
                                                                         name_map = search.name_map)
@@ -366,7 +777,7 @@ class FileFinder(QtCore.QObject):
             self._begin_search_for_work_files(search, work_area)
             # and also add a task to process cached publishes:
             search.load_cached_pubs_task = self._bg_task_manager.add_pass_through_task(group = search.id,
-                                                                                       priority=FileFinder._FIND_PUBLISHES_PRIORITY,
+                                                                                       priority=AsyncFileFinder._FIND_PUBLISHES_PRIORITY,
                                                                                        environment = work_area)
         elif task_id == search.find_work_area_task:
             search.find_work_area_task = None
@@ -556,423 +967,6 @@ class FileFinder(QtCore.QObject):
                                                   name_map,
                                                   environment.version_compare_ignore_fields)
         return {"work_items":work_items, "environment":environment}
-
-
-    ################################################################################################
-
-    def find_files(self, work_template, publish_template, context, filter_file_key=None):
-        """
-        Find files using the specified context, work and publish templates
-        
-        :param work_template:       The template to use when searching for work files
-        :param publish_template:    The template to use when searching for publish files
-        :param context:             The context to search for file with
-        :param filter_file_key:     A unique file 'key' that if specified will limit the returned list of files to just 
-                                    those that match.  This 'key' should be generated using the FileItem.build_file_key()
-                                    method.
-        :returns:                   A list of FileItem instances, one for each unique version of a file found in either 
-                                    the work or publish areas
-        """
-        # can't find anything without a work template!
-        if not work_template:
-            return []
-    
-        # determien the publish filters to use from the context:
-        publish_filters = [["entity", "is", context.entity or context.project]]
-        if context.task:
-            publish_filters.append(["task", "is", context.task])
-        else:
-            publish_filters.append(["task", "is", None])
-    
-        # get the list of valid file extensions if set:
-        valid_file_extensions = [".%s" % ext if not ext.startswith(".") else ext 
-                                 for ext in self.__app.get_setting("file_extensions", [])]
-        
-        # get list of fields that should be ignored when comparing work files:
-        version_compare_ignore_fields = self.__app.get_setting("version_compare_ignore_fields", [])    
-
-        # find all work & publish files and filter out any that should be ignored:
-        work_files = self._find_work_files(context, work_template, version_compare_ignore_fields)
-        filtered_work_files = self._filter_work_files(work_files, valid_file_extensions)
-        
-        published_files = self._find_publishes(publish_filters)
-        filtered_published_files = self._filter_publishes(published_files, 
-                                                          publish_template, 
-                                                          valid_file_extensions)
-        
-        # turn these into FileItem instances:
-        name_map = FileFinder._FileNameMap()
-        work_file_item_details = self._process_work_files(filtered_work_files, 
-                                                        work_template, 
-                                                        context, 
-                                                        name_map, 
-                                                        version_compare_ignore_fields, 
-                                                        filter_file_key)
-        work_file_items = dict([(k, FileItem(**kwargs)) for k, kwargs in work_file_item_details.iteritems()])
-
-        publish_item_details = self._process_publish_files(filtered_published_files, 
-                                                         publish_template, 
-                                                         work_template, 
-                                                         context, 
-                                                         name_map, 
-                                                         version_compare_ignore_fields,
-                                                         filter_file_key)
-        publish_items = dict([(k, FileItem(**kwargs)) for k, kwargs in publish_item_details.iteritems()])
-        
-        # and aggregate the results:
-        file_items = list(work_file_items.values())
-        for file_key_and_version, publish in publish_items.iteritems():
-            work_file = work_file_items.get(file_key_and_version)
-            if not work_file:
-                file_items.append(publish)
-                continue
-            
-            # merge with work file:
-            work_file.update_from_publish(publish)
-
-        return file_items
-
-    def _process_work_files(self, work_files, work_template, context, name_map, version_compare_ignore_fields, 
-                          filter_file_key=None):
-        """
-        """
-        files = {}
-        
-        for work_file in work_files:
-            
-            # always have the work path:
-            work_path = work_file["path"]
-            
-            # get fields for work file:
-            wf_fields = work_template.get_fields(work_path)
-            
-            # build the unique file key for the work path.  All files that share the same key are considered
-            # to be different versions of the same file.
-            #
-            file_key = FileItem.build_file_key(wf_fields, work_template, 
-                                               version_compare_ignore_fields)
-            if filter_file_key and file_key != filter_file_key:
-                # we can ignore this file completely!
-                continue
-            
-            # copy common fields from work_file:
-            #
-            file_details = dict([(k, v) for k, v in work_file.iteritems() if k != "path"])
-            
-            # get version from fields if not specified in work file:
-            if not file_details["version"]:
-                file_details["version"] = wf_fields.get("version", 0)
-            
-            # if no task try to determine from context or path:
-            if not file_details["task"]:
-                if context.task:
-                    file_details["task"] = context.task
-                else:
-                    # try to create a context from the path and see if that contains a task:
-                    wf_ctx = self.__app.sgtk.context_from_path(work_path, context)
-                    if wf_ctx and wf_ctx.task:
-                        file_details["task"] = wf_ctx.task 
-
-            # add additional fields:
-            #
-    
-            # entity:
-            file_details["entity"] = context.entity
-
-            # file modified details:
-            if not file_details["modified_at"]:
-                try:
-                    modified_at = os.path.getmtime(work_path)
-                    file_details["modified_at"] = datetime.fromtimestamp(modified_at, tz=sg_timezone.local)
-                except OSError:
-                    # ignore OSErrors as it's probably a permissions thing!
-                    pass
-
-            if not file_details["modified_by"]:
-                file_details["modified_by"] = g_user_cache.get_file_last_modified_user(work_path)
-
-            # make sure all files with the same key have the same name:
-            file_details["name"] = name_map.get_name(file_key, work_path, work_template, wf_fields)
-
-            """
-            file_details["name"] = wf_fields.get("name", "unknown")
-            """
-            
-            # add to the list of files
-            files[(file_key, file_details["version"])] = {"key":file_key, 
-                                                          "is_work_file":True, 
-                                                          "work_path":work_path, 
-                                                          "work_details":file_details}
-                
-        return files
-        
-    def _process_publish_files(self, sg_publishes, publish_template, work_template, context, name_map, 
-                             version_compare_ignore_fields, filter_file_key=None):
-        """
-        """
-        files = {}
-        
-        # and add in publish details:
-        ctx_fields = context.as_template_fields(work_template)
-                    
-        for sg_publish in sg_publishes:
-            file_details = {}
-    
-            # always have a path:
-            publish_path = sg_publish["path"]
-            
-            # determine the work path fields from the publish fields + ctx fields:
-            # The order is important as it ensures that the user is correct if the 
-            # publish file is in a user sandbox but we also need to be careful not
-            # to overrwrite fields that are being ignored when comparing work files
-            publish_fields = publish_template.get_fields(publish_path)
-            wp_fields = publish_fields.copy()
-            for k, v in ctx_fields.iteritems():
-                if k not in version_compare_ignore_fields:
-                    wp_fields[k] = v
-            
-            # build the unique file key for the publish path.  All files that share the same key are considered
-            # to be different versions of the same file.
-            file_key = FileItem.build_file_key(wp_fields, work_template, 
-                                               version_compare_ignore_fields)
-            if filter_file_key and file_key != filter_file_key:
-                # we can ignore this file completely!
-                continue
-
-            # resolve the work path:
-            work_path = ""
-            try:
-                work_path = work_template.apply_fields(wp_fields)
-            except TankError, e:
-                # unable to generate a work path - this means we are probably missing a field so it's going to
-                # be a problem matching this publish up with its corresponding work file!
-                work_path = ""
-            
-            # copy common fields from sg_publish:
-            #
-            file_details = dict([(k, v) for k, v in sg_publish.iteritems() if k != "path"])
-            
-            # get version from fields if not specified in publish file:
-            if file_details["version"] == None:
-                file_details["version"] = publish_fields.get("version", 0)
-            
-            # entity
-            file_details["entity"] = context.entity
-        
-            # local file modified details:
-            if os.path.exists(publish_path):
-                try:
-                    modified_at = os.path.getmtime(publish_path)
-                    file_details["modified_at"] = datetime.fromtimestamp(modified_at, tz=sg_timezone.local)
-                except OSError:
-                    # ignore OSErrors as it's probably a permissions thing!
-                    pass
-                file_details["modified_by"] = g_user_cache.get_file_last_modified_user(publish_path)
-            else:
-                # just use the publish info
-                file_details["modified_at"] = sg_publish.get("published_at")
-                file_details["modified_by"] = sg_publish.get("published_by")
-
-            # make sure all files with the same key have the same name:
-            file_details["name"] = name_map.get_name(file_key, publish_path, publish_template, publish_fields)
-
-            # add new file item for this publish.  Note that we also keep track of the
-            # work path even though we don't know if this publish has a corresponding
-            # work file.
-            files[(file_key, file_details["version"])] = {"key":file_key, 
-                                                          "work_path":work_path,
-                                                          "is_published":True,
-                                                          "publish_path":publish_path,
-                                                          "publish_details":file_details}
-        return files
-
-    def _find_publishes(self, publish_filters, refresh_from_sg=True):
-        """
-        Find all publishes for the specified context and publish template
-
-        :returns:                   List of dictionaries, each one containing the details
-                                    of an individual published file
-        """
-        fields = ["id", "description", "version_number", "image", "created_at", "created_by", "name", "path", "task"]
-        published_file_type = sgtk.util.get_published_file_entity_type(self.__app.sgtk)
-        sg_publishes = self.__app.shotgun.find(published_file_type, publish_filters, fields)
-        return sg_publishes
-
-    def _filter_publishes(self, sg_publishes, publish_template, valid_file_extensions):
-        """
-        """
-        # build list of publishes to send to the filter_publishes hook:
-        hook_publishes = [{"sg_publish":sg_publish} for sg_publish in sg_publishes]
-        
-        # execute the hook - this will return a list of filtered publishes:
-        hook_result = self.__app.execute_hook("hook_filter_publishes", publishes = hook_publishes)
-        if not isinstance(hook_result, list):
-            self.__app.log_error("hook_filter_publishes returned an unexpected result type '%s' - ignoring!" 
-                          % type(hook_result).__name__)
-            hook_result = []
-        
-        # split back out publishes:
-        published_files = []
-        for item in hook_result:
-            sg_publish = item.get("sg_publish")
-            if not sg_publish:
-                continue
-            
-            # all publishes should have a local path:
-            path = sg_publish.get("path", {}).get("local_path")
-            if not path:
-                continue
-            
-            # skip file if it doesn't contain a valid file extension:
-            if valid_file_extensions and os.path.splitext(path)[1] not in valid_file_extensions:
-                continue
-    
-            # make sure path matches the publish template:            
-            if not publish_template.validate(path):
-                continue
-    
-            # build file details for this publish:
-            file_details = {"path":path}
-            
-            # add in details from sg record:
-            file_details["version"] = sg_publish.get("version_number")
-            file_details["name"] = sg_publish.get("name")
-            file_details["task"] = sg_publish.get("task")
-            file_details["publish_description"] = sg_publish.get("description")
-            file_details["thumbnail"] = sg_publish.get("image")
-            
-            file_details["published_at"] = sg_publish.get("created_at")
-            file_details["published_by"] = sg_publish.get("created_by", {})
-            file_details["published_file_entity_id"] = sg_publish.get("id")
-            
-            # find additional information:
-            editable_info = item.get("editable")
-            if editable_info and isinstance(editable_info, dict):
-                file_details["editable"] = editable_info.get("can_edit", True)
-                file_details["editable_reason"] = editable_info.get("reason", "")
-            
-            # append to published files list:
-            published_files.append(file_details)    
-            
-        return published_files
-    
-        
-    def _find_work_files(self, context, work_template, version_compare_ignore_fields):
-        """
-        Find all work files for the specified context and work template
-        
-        :param context:                         The context to find work files for
-        :param work_template:                   The work template to match found files against
-        :param version_compare_ignore_fields:   List of fields to ignore when comparing files in order to find 
-                                                different versions of the same file
-        :returns:                               List of dictionaries, each one containing the details
-                                                of an individual work file        
-        """
-        # find work files that match the current work template:
-        work_fields = []
-        try:
-            work_fields = context.as_template_fields(work_template, validate=True)
-        except TankError:
-            # could not resolve fields from this context. This typically happens
-            # when the context object does not have any corresponding objects on 
-            # disk / in the path cache. In this case, we cannot continue with any
-            # file system resolution, so just exit early insted.
-            return []
-
-        # build list of fields to ignore when looking for files:
-        skip_fields = list(version_compare_ignore_fields or [])
-
-        # Skip any keys from work_fields that are _only_ optional in the template.  This is to
-        # ensure we find as wide a range of files as possible considering all optional keys.
-        # Note, this may be better as a general change to the paths_from_template method...
-        skip_fields += [n for n in work_fields.keys() if work_template.is_optional(n)]
-        
-        # Find all versions so skip the 'version' key if it's present:
-        skip_fields += ["version"]
-
-        # find paths:
-        work_file_paths = self.__app.sgtk.paths_from_template(work_template, 
-                                                              work_fields, 
-                                                              skip_fields, 
-                                                              skip_missing_optional_keys=True)
-
-        return work_file_paths
-
-        # paths_from_template may have returned additional files that we don't want (aren't valid within this
-        # work area) if any of the fields were populated by the context.  Filter the list to remove these
-        # extra files.
-        filtered_paths = []
-        for p in work_file_paths:
-            # (AD) TODO - this should be optimized as it's doing 'get_fields' again 
-            # when this method returns!
-            fields = work_template.get_fields(p)
-            is_match = True
-            for wfn, wfv in work_fields.iteritems():
-                if wfn in fields:
-                    if fields[wfn] != wfv:
-                        is_match = False
-                        break
-                elif wfn not in skip_fields:
-                    is_match = False
-                    break
-            if is_match:
-                filtered_paths.append(p)
-        work_file_paths = filtered_paths
-        
-        return work_file_paths
-        
-    def _filter_work_files(self, work_file_paths, valid_file_extensions):
-        """
-        """
-        # build list of work files to send to the filter_work_files hook:
-        hook_work_files = [{"work_file":{"path":path}} for path in work_file_paths]
-        
-        # execute the hook - this will return a list of filtered publishes:
-        hook_result = self.__app.execute_hook("hook_filter_work_files", work_files = hook_work_files)
-        if not isinstance(hook_result, list):
-            self.__app.log_error("hook_filter_work_files returned an unexpected result type '%s' - ignoring!" 
-                          % type(hook_result).__name__)
-            hook_result = []
-    
-        # split back out work files:
-        work_files = []
-        for item in hook_result:
-            work_file = item.get("work_file")
-            if not work_file:
-                continue
-            
-            path = work_file.get("path")
-            if not path:
-                continue
-            
-            if valid_file_extensions and os.path.splitext(path)[1] not in valid_file_extensions:
-                continue
-            
-            file_details = {"path":path}
-            file_details["version"] = work_file.get("version_number")
-            file_details["name"] = work_file.get("name")
-            file_details["task"] = work_file.get("task")
-            file_details["description"] = work_file.get("description")
-            file_details["thumbnail"] = work_file.get("thumbnail")
-            file_details["modified_at"] = work_file.get("modified_at")
-            file_details["modified_by"] = work_file.get("modified_by", {})
-            
-            # find additional information:
-            editable_info = item.get("editable")
-            if editable_info and isinstance(editable_info, dict):
-                file_details["editable"] = editable_info.get("can_edit", True)
-                file_details["editable_reason"] = editable_info.get("reason", "")        
-            
-            work_files.append(file_details)
-            
-        return work_files
-
-
-
-
-
-
-
 
 
 
