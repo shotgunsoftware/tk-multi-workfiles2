@@ -10,10 +10,8 @@
 
 import os
 from datetime import datetime
-import threading
 import copy
 import time
-import random
 
 import sgtk
 from sgtk.platform.qt import QtCore
@@ -29,39 +27,36 @@ shotgun_data = sgtk.platform.import_framework("tk-framework-shotgunutils", "shot
 BackgroundTaskManager = shotgun_data.BackgroundTaskManager
 
 from .work_area import WorkArea
-from .util import monitor_qobject_lifetime
+from .util import monitor_qobject_lifetime, Threaded
 
 class FileFinder(QtCore.QObject):
     """
     Helper class to find work and publish files for a specified context and set of templates
     """
-    class _FileNameMap(object):
+    class _FileNameMap(Threaded):
         """
         """
         def __init__(self):
             """
             """
+            Threaded.__init__(self)
             self._name_map = {}
-            self._lock = threading.Lock()
-            
+
+        @Threaded.exclusive
         def get_name(self, file_key, path, template, fields=None):
             """
             Thread safe method to get the unique name for the specified file key
             """
-            self._lock.acquire()
-            try:
-                name = None
-                if file_key in self._name_map:
-                    name = self._name_map.get(file_key)
-                else:
-                    # generate the name:
-                    name = self._generate_name(path, template, fields)
-                    # and add it to the map:
-                    self._name_map[file_key] = name
-                return name
-            finally:
-                self._lock.release()
-            
+            name = None
+            if file_key in self._name_map:
+                name = self._name_map.get(file_key)
+            else:
+                # generate the name:
+                name = self._generate_name(path, template, fields)
+                # and add it to the map:
+                self._name_map[file_key] = name
+            return name
+
         def _generate_name(self, path, template, fields=None):
             """
             Return the 'name' to be used for the file - if possible

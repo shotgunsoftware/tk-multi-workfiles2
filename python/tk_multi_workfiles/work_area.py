@@ -16,6 +16,7 @@ import sgtk
 from sgtk import TankError
 
 from .user_cache import g_user_cache
+from .util import Threaded
 
 class WorkArea(object):
     """
@@ -23,34 +24,28 @@ class WorkArea(object):
     and other miscelaneous work-area specific settings.
     """
     
-    class _SettingsCache(object):
+    class _SettingsCache(Threaded):
         """
         Cache of settings per context, engine and app name.
         """
         def __init__(self):
+            Threaded.__init__(self)
             self._cache = {}
-            self._lock = threading.Lock()
-        
+
+        @Threaded.exclusive
         def get(self, engine_name, app_name, context):
             """
             """
-            self._lock.acquire()
-            try:
-                settings_by_context = self._cache.get((engine_name, app_name), [])
-                for ctx, settings in settings_by_context:
-                    if ctx == context:
-                        return settings
-            finally:
-                self._lock.release()
-        
+            settings_by_context = self._cache.get((engine_name, app_name), [])
+            for ctx, settings in settings_by_context:
+                if ctx == context:
+                    return settings
+
+        @Threaded.exclusive
         def add(self, engine_name, app_name, context, settings):
             """
             """
-            self._lock.acquire()
-            try:
-                self._cache.setdefault((engine_name, app_name), list()).append((context, copy.deepcopy(settings)))
-            finally:
-                self._lock.release()
+            self._cache.setdefault((engine_name, app_name), list()).append((context, copy.deepcopy(settings)))
     
     _settings_cache = _SettingsCache() 
     

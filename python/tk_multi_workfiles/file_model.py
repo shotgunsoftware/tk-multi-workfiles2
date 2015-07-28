@@ -279,11 +279,11 @@ class FileModel(QtGui.QStandardItemModel):
         if self._dbg_file:
             self._dbg_file.close()
 
-    def get_file_versions(self, key, work_area):
+    def get_file_versions(self, key, work_area, clean_only=False):
         """
         Find the file versions for the specified file key and work area
         """
-        return self._search_cache.find_file_versions(key, work_area.context)
+        return self._search_cache.find_file_versions(work_area, key)
 
     def items_from_file(self, file_item, ignore_version = False):
         """
@@ -450,7 +450,10 @@ class FileModel(QtGui.QStandardItemModel):
                 if group_item:
                     group_item.set_search_status(FileModel.SEARCHING)
 
-            # and actually start the search:
+                # and dirty the search cache:
+                self._search_cache.set_dirty(search.entity, user)
+
+            # actually start the search:
             search_id = self._finder.begin_search(search.entity, self._current_users)
             self._in_progress_searches[search_id] = search
             #print "Started search %d..." % search_id
@@ -923,6 +926,10 @@ class FileModel(QtGui.QStandardItemModel):
                 continue
             group_item.set_search_status(status, error_msg)
 
+            # clean the search cache entry for this item assuming the search completed successfully!
+            if status == FileModel.SEARCH_COMPLETED:
+                self._search_cache.set_dirty(search.entity, user, is_dirty=False)
+
     def _on_data_retriever_work_completed(self, uid, request_type, data):
         """
         Slot triggered when the data-retriever had finished doing some work (downloading thumbnails)
@@ -981,7 +988,7 @@ class FileModel(QtGui.QStandardItemModel):
         # process files for each key:
         for file_key in unique_file_keys:
             # get all file versions for this key:
-            file_versions = self.get_file_versions(file_key, work_area) or {}
+            file_versions = self._search_cache.find_file_versions(work_area, file_key) or {}
 
             # update thumbnail and versions for each version:
             thumb = None
@@ -1005,7 +1012,7 @@ class FileModel(QtGui.QStandardItemModel):
     def _update_version_thumbnails(self, file_key, group_key, work_area):
         """
         """
-        file_versions = self.get_file_versions(file_key, work_area) or {}
+        file_versions = self._search_cache.find_file_versions(work_area, file_key) or {}
         thumb = None
         for _, version in sorted(file_versions.iteritems(), reverse=False):
             if version.thumbnail_path:
