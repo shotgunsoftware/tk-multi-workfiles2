@@ -10,7 +10,7 @@
 
 """
 Wrapper for the various widgets used from frameworks so that they can be used
-easily from with Qt Designer
+easily from within Qt Designer
 """
 
 import sgtk
