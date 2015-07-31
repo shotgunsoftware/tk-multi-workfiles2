@@ -45,7 +45,7 @@ class FileFormBase(QtGui.QWidget):
 
         # create a single instance of the task manager that manages all
         # asynchrounous work/tasks.
-        self._bg_task_manager = BackgroundTaskManager(self, max_threads=16)
+        self._bg_task_manager = BackgroundTaskManager(self, max_threads=8)
         monitor_qobject_lifetime(self._bg_task_manager, "Main task manager")
         self._bg_task_manager.start_processing()
 
