@@ -324,6 +324,11 @@ class FileModel(QtGui.QStandardItemModel):
             user_ids = [user["id"] for user in self._current_users]
             if g_user_cache.current_user["id"] not in user_ids:
                 self._current_users.insert(0, g_user_cache.current_user)
+        elif not self._current_users:
+            # no users so use 'None' instead which will effectively search for the
+            # current user but handles the legacy case where the current user doesn't 
+            # match the log-in!
+            self._current_users = [None]
 
         # update groups:
         self._update_groups()

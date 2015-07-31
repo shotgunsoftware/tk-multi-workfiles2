@@ -8,8 +8,8 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+import sys
 import gc
-import resource
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui 
@@ -112,7 +112,10 @@ def dbg_info(func):
 
         # grab the pre-run memory info:
         num_objects_before = len(gc.get_objects())
-        bytes_before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024.0/1024.0
+        bytes_before = 0
+        if sys.platform == "Darwin":
+            import resource
+            bytes_before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024.0/1024.0
 
         # run the function:
         res = func(*args, **kwargs)
@@ -127,7 +130,9 @@ def dbg_info(func):
 
         # cleanup and grab the post-run memory info:
         gc.collect()
-        bytes_after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024.0/1024.0
+        bytes_after = 0
+        if sys.platform == "Darwin":
+            bytes_after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024.0/1024.0
         num_objects_after = len(gc.get_objects())
 
         # and report any difference in memory usage:
