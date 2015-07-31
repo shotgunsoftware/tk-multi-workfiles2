@@ -15,25 +15,7 @@ import sgtk
 from sgtk.platform.qt import QtCore, QtGui 
 from sgtk import TankError
 
-from .util import report_non_destroyed_qobjects, monitor_qobject_lifetime
-
-class SignalWait(QtCore.QObject):
-    """
-    """
-    def __init__(self, count=1):
-        QtCore.QObject.__init__(self)
-        self._count=count
-        self._loop = QtCore.QEventLoop(self)
-        monitor_qobject_lifetime(self._loop, "Signal wait event loop")
-
-    def wait(self):
-        if self._count > 0:
-            self._loop.exec_()
-
-    def finish(self):
-        self._count -= 1
-        if self._count == 0:
-            self._loop.exit()
+from .util import report_non_destroyed_qobjects
 
 class TimedGc(QtCore.QObject):
     """
@@ -98,18 +80,6 @@ def dbg_info(func):
     def wrapper(*args, **kwargs):
         """
         """
-        # create a SignalWait instance now and connect it up to the application.  This is to
-        # ensure that when we later call it using wait.wait() it doesn't hang forever if the
-        # application event loop has finished!
-        wait = SignalWait()
-        q_app = QtGui.QApplication.instance()
-        if q_app and isinstance(q_app, QtGui.QApplication):
-            # note, in Nuke 6.3/PySide 1.0.9 QtGui.QApplication.instance() rather unhelpfully returns
-            # a QtCore.QCoreApplication instance!
-            if q_app.quitOnLastWindowClosed():
-                # we don't want to wait if the event loop has finished cause we'll be waiting forever!
-                q_app.lastWindowClosed.connect(wait.finish)
-
         # grab the pre-run memory info:
         num_objects_before = len(gc.get_objects())
         bytes_before = 0
@@ -120,12 +90,9 @@ def dbg_info(func):
         # run the function:
         res = func(*args, **kwargs)
 
-        # wait for any QObjects to be cleaned up in the main event loop:
-        QtCore.QTimer.singleShot(100, wait.finish)
-        wait.wait()
-        wait = None
-        
         # report any non-destroyed QObjects:
+        # Note, this will usually run before the main objects have been destroyed by the
+        # event loop so it's important to cross-check the output with subsequent lines.
         report_non_destroyed_qobjects()
 
         # cleanup and grab the post-run memory info:
