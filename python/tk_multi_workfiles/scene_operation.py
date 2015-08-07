@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Shotgun Software Inc.
+# Copyright (c) 2015 Shotgun Software Inc.
 # 
 # CONFIDENTIAL AND PROPRIETARY
 # 
@@ -8,8 +8,9 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import tank
-from tank import TankError
+import sgtk
+from sgtk import TankError
+from sgtk.platform.qt import QtGui, QtCore
 
 OPEN_FILE_ACTION, SAVE_FILE_AS_ACTION, NEW_FILE_ACTION, VERSION_UP_FILE_ACTION = range(4)
 
@@ -42,6 +43,7 @@ def _do_scene_operation(app, action, context, operation, path=None, version=0, r
         raise TankError("Unrecognised action %s for scene operation" % action)
     
     result = None
+    QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
     try:
         result = app.execute_hook("hook_scene_operation", 
                                   operation=operation, 
@@ -56,6 +58,8 @@ def _do_scene_operation(app, action, context, operation, path=None, version=0, r
         if not str(e).startswith("Don't know how to perform scene operation '"):
             # just re-raise the exception:
             raise
+    finally:
+        QtGui.QApplication.restoreOverrideCursor()
         
     # validate the result if needed:
     if result_type and (result == None or not isinstance(result, result_type)):

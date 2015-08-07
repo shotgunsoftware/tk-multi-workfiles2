@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Shotgun Software Inc.
+# Copyright (c) 2015 Shotgun Software Inc.
 # 
 # CONFIDENTIAL AND PROPRIETARY
 # 
@@ -8,8 +8,10 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import tank
-from tank.platform.qt import QtCore, QtGui
+import sgtk
+from sgtk.platform.qt import QtCore, QtGui
+
+from .util import value_to_str
 
 class NewTaskForm(QtGui.QWidget):
     """
@@ -19,15 +21,19 @@ class NewTaskForm(QtGui.QWidget):
     
     @property
     def exit_code(self):
-        return self._exit_code    
+        return self._exit_code
     
-    def __init__(self, app, entity, user, parent=None):
+    @property
+    def hide_tk_title_bar(self):
+        return True
+    
+    def __init__(self, entity, step, user, parent):
         """
         Construction
         """
         QtGui.QWidget.__init__(self, parent)
 
-        self._app = app
+        self._app = sgtk.platform.current_bundle()
         self._entity = entity
         self._user = user
         self._exit_code = QtGui.QDialog.Rejected
@@ -38,14 +44,14 @@ class NewTaskForm(QtGui.QWidget):
         self._ui.setupUi(self)
 
         # populate entity name
-        entity_name = "%s %s" % (self._entity["type"], self._entity["code"])
+        entity_name = "%s %s" % (self._entity["type"], self._entity.get("code") or entity.get("name"))
         self._ui.entity.setText(entity_name)
         
         # populate user
-        username = self._user["name"] if self._user else "<unassigned>"
-        self._ui.assigned_to.setText(username)
+        username = self._user.get("name") if self._user else None
+        self._ui.assigned_to.setText(username or "<unassigned>")
         
-        # populate pipeline steps
+        # populate pipeline steps for this entity type:
         sg_result = self._app.shotgun.find("Step", [["entity_type", "is", self._entity["type"]]], ["code", "id"])
         self._pipeline_step_dict = {}
         for item in sg_result:
@@ -56,9 +62,9 @@ class NewTaskForm(QtGui.QWidget):
             self._pipeline_step_dict[item["id"]] = item
         
         # try to figure out a default pipeline step and task name
-        if self._app.context.step:
+        if step:
             # update menu to show the same step as the current app context:
-            step_id = self._app.context.step["id"]
+            step_id = step["id"]
             idx = self._ui.pipeline_step.findData(step_id)
             if idx != -1:
                 self._ui.pipeline_step.setCurrentIndex(idx)
@@ -103,29 +109,9 @@ class NewTaskForm(QtGui.QWidget):
     
     @property
     def task_name(self):
-        return self._safe_to_string(self._ui.task_name.text())
+        return value_to_str(self._ui.task_name.text())
 
     def _on_create_btn_clicked(self):
         self._exit_code = QtGui.QDialog.Accepted
         self.close()
-
-    def _safe_to_string(self, value):
-        """
-        Safely convert the value to a string - handles
-        QtCore.QString if usign PyQt
-        """
-        if isinstance(value, basestring):
-            # it's a string anyway so just return
-            return value
-        
-        if hasattr(QtCore, "QString"):
-            # running PyQt!
-            if isinstance(value, QtCore.QString):
-                # QtCore.QString inherits from str but supports 
-                # unicode, go figure!  Lets play safe and return
-                # a utf-8 string
-                return str(value.toUtf8())
-        
-        # For everything else, just return as string
-        return str(value)
 

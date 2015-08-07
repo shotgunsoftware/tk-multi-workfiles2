@@ -2,11 +2,11 @@
 
 # Form implementation generated from reading ui file 'new_task_form.ui'
 #
-#      by: pyside-uic 0.2.13 running on PySide 1.1.0
+#      by: pyside-uic 0.2.15 running on PySide 1.2.1
 #
 # WARNING! All changes made in this file will be lost!
 
-from tank.platform.qt import QtCore, QtGui
+from sgtk.platform.qt import QtCore, QtGui
 
 class Ui_NewTaskForm(object):
     def setupUi(self, NewTaskForm):

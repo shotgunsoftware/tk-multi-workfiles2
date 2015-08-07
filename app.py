@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Shotgun Software Inc.
+# Copyright (c) 2015 Shotgun Software Inc.
 # 
 # CONFIDENTIAL AND PROPRIETARY
 # 
@@ -9,126 +9,74 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
-Multi Publish
-
+Multi Work Files 2.  
+Provides File Open/Save functionality for Work Files
 """
+import sgtk
 
-import os
-import tank
-from tank import TankError
-
-class MultiWorkFiles(tank.platform.Application):
+class MultiWorkFiles(sgtk.platform.Application):
 
     def init_app(self):
         """
         Called as the application is being initialized
         """
+        self._tk_multi_workfiles = self.import_module("tk_multi_workfiles")
 
         application_has_scenes = True
         if self.engine.name == "tk-mari":
-            # Mari doesn't have the concept of a current scene!
+            # Mari doesn't have the concept of a current scene so this app shouldn't
+            # provide any commands!
             application_has_scenes = False
 
         # register commands:
-        #
-        
         if application_has_scenes:
-            # Shotgun file manager is available for all engines that have the concept of a scene file:
-            self.engine.register_command("Shotgun File Manager...", self.show_file_manager_dlg)
+            self.engine.register_command("File Open...", self.show_file_open_dlg, {"short_name":"file_open"})
+            self.engine.register_command("File Save...", self.show_file_save_dlg, {"short_name":"file_save"})
 
-        # change work area is only available if one or more entity types have been set 
-        # in the configuration: 
-        can_change_work_area = (len(self.get_setting("sg_entity_types", [])) > 0)
-        if can_change_work_area:
-            cmd = lambda enable_start_new=application_has_scenes: self.show_change_work_area_dlg(enable_start_new)
-            self.engine.register_command("Change Work Area...", cmd, {"type": "context_menu"})
-
-        # other commands are only valid if we have at least a valid work template.  Version
-        # up the current scene is only available of the work template also has a version key
-        template_work = self.get_template("template_work")
-        self._can_save_as = template_work is not None 
-        self._can_change_version = self._can_save_as and ("version" in template_work.keys)
-        if self._can_save_as:
-            self.engine.register_command("Shotgun Save As...", self.show_save_as_dlg)
-        if self._can_change_version:
-            self.engine.register_command("Version up Current Scene...", self.show_change_version_dlg)
-        
-        # process auto startup options - but only on certain supported platforms
+        # Process auto startup options - but only on certain supported platforms
         # because of the way QT inits and connects to different host applications
         # differently, in conjunction with the 'boot' process in different tools,
         # the behaviour can be very different.  
-        
+
         # currently, we have done basic QA on nuke and maya so we limit these options to 
         # those two engines for now. 
-        
         SUPPORTED_ENGINES = ["tk-nuke", "tk-maya", "tk-3dsmax"]
-        
-        if self.engine.has_ui and not hasattr(tank, '_tk_multi_workfiles_launch_at_startup'):
 
-            # this is the very first time we run this app
-            tank._tk_multi_workfiles_launch_at_startup = True
+        if self.engine.has_ui and not hasattr(sgtk, "_tk_multi_workfiles2_launch_at_startup"):
+
+            # this is the very first time we have run this application
+            sgtk._tk_multi_workfiles2_launch_at_startup = True
 
             if self.get_setting('launch_at_startup'):
                 # show the file manager UI
-                if self.engine.name in SUPPORTED_ENGINES:            
-                    self.show_file_manager_dlg()
-                else:
-                    self.log_warning("Sorry, the launch at startup option is currently not supported "
-                                     "in this engine! You can currently only use it with the following "
-                                     "engines: %s" % ", ".join(SUPPORTED_ENGINES))
-                            
-            elif self.get_setting('launch_change_work_area_at_startup') and can_change_work_area:
-                # show the change work area UI
                 if self.engine.name in SUPPORTED_ENGINES:
-                    self.show_change_work_area_dlg(False)
+                    # use a single-shot timer to show the open dialog to allow everything to
+                    # finish being set up first:
+                    from sgtk.platform.qt import QtCore
+                    QtCore.QTimer.singleShot(200, self.show_file_open_dlg)
                 else:
                     self.log_warning("Sorry, the launch at startup option is currently not supported "
                                      "in this engine! You can currently only use it with the following "
                                      "engines: %s" % ", ".join(SUPPORTED_ENGINES))
 
     def destroy_app(self):
-        self.log_debug("Destroying tk-multi-workfiles")
+        """
+        Clean up app
+        """
+        self.log_debug("Destroying tk-multi-workfiles2")
         
-    def show_file_manager_dlg(self):
+    def show_file_open_dlg(self):
         """
-        Show the file manager dialog
+        Launch the main File Open UI
         """
-        tk_multi_workfiles = self.import_module("tk_multi_workfiles")
-        tk_multi_workfiles.WorkFiles.show_file_manager_dlg(self)
-        
-    def show_change_work_area_dlg(self, enable_start_new=True):
-        """
-        Show a dialog for the user to change the current Work Area
-        """
-        tk_multi_workfiles = self.import_module("tk_multi_workfiles")
-        tk_multi_workfiles.WorkFiles.show_change_work_area_dlg(self, enable_start_new)
+        self._tk_multi_workfiles.WorkFiles.show_file_open_dlg()
 
-    def show_save_as_dlg(self):
+    def show_file_save_dlg(self):
         """
-        If save as is available, show the save as dialog.
+        Launch the main File Save UI
         """
-        if self._can_save_as:
-            tk_multi_workfiles = self.import_module("tk_multi_workfiles")
-            return tk_multi_workfiles.SaveAs.show_save_as_dlg(self)
-        else:
-            return False
+        self._tk_multi_workfiles.WorkFiles.show_file_save_dlg()
 
-    def show_change_version_dlg(self):
-        """
-        If save as is available, show the change version dialog.
-        """
-        if self._can_change_version:
-            tk_multi_workfiles = self.import_module("tk_multi_workfiles")
-            return tk_multi_workfiles.Versioning.show_change_version_dlg(self)
-        else:
-            return False
-
-    def can_save_as(self):
-        """
-        Returns True if save-as is available, False otherwise.
-        """
-        return self._can_save_as
-        
     @property
     def shotgun(self):
         """
@@ -136,7 +84,7 @@ class MultiWorkFiles(tank.platform.Application):
         This is a temporary arrangement to be able to time some of the shotgun calls. 
         """
         # get the real shotgun from the application base class
-        app_shotgun = tank.platform.Application.shotgun.fget(self)
+        app_shotgun = sgtk.platform.Application.shotgun.fget(self)
         # return a wrapper back which produces debug logging
         return DebugWrapperShotgun(app_shotgun, self.log_debug)
         

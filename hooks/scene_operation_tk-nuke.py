@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Shotgun Software Inc.
+# Copyright (c) 2015 Shotgun Software Inc.
 # 
 # CONFIDENTIAL AND PROPRIETARY
 # 
@@ -11,10 +11,10 @@
 import os
 import nuke
 
-import tank
-from tank import Hook
-from tank import TankError
-from tank.platform.qt import QtGui
+import sgtk
+from sgtk import Hook
+from sgtk import TankError
+from sgtk.platform.qt import QtGui
 
 class SceneOperation(Hook):
     """
@@ -119,7 +119,7 @@ class SceneOperation(Hook):
     def _reset_write_node_render_paths(self):
         """
         Use the tk-nuke-writenode app interface to find and reset
-        the render path of any Tank write nodes in the current script
+        the render path of any Shotgun Write nodes in the current script
         """
         write_node_app = self.parent.engine.apps.get("tk-nuke-writenode")
         if not write_node_app:

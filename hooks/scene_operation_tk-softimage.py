@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Shotgun Software Inc.
+# Copyright (c) 2015 Shotgun Software Inc.
 # 
 # CONFIDENTIAL AND PROPRIETARY
 # 
@@ -10,9 +10,9 @@
 
 import os
 
-import tank
-from tank import Hook
-from tank import TankError
+import sgtk
+from sgtk import Hook
+from sgtk import TankError
 
 import win32com
 from win32com.client import Dispatch, constants

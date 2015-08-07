@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Shotgun Software Inc.
+# Copyright (c) 2015 Shotgun Software Inc.
 # 
 # CONFIDENTIAL AND PROPRIETARY
 # 
@@ -11,8 +11,8 @@
 import os
 import hiero.core
 
-from tank import Hook
-from tank import TankError
+from sgtk import Hook
+from sgtk import TankError
 
 class SceneOperation(Hook):
     """

@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Shotgun Software Inc.
+# Copyright (c) 2015 Shotgun Software Inc.
 # 
 # CONFIDENTIAL AND PROPRIETARY
 # 
@@ -9,5 +9,3 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 from .work_files import WorkFiles
-from .versioning import Versioning
-from .save_as import SaveAs

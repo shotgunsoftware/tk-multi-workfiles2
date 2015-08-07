@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 
-# Copyright (c) 2013 Shotgun Software Inc.
+# Copyright (c) 2015 Shotgun Software Inc.
 # 
 # CONFIDENTIAL AND PROPRIETARY
 # 
@@ -21,8 +21,8 @@ function build_qt {
     # compile ui to python
     $1 $2 > $UI_PYTHON_PATH/$3.py
     
-    # replace PySide imports with tank.platform.qt and remove line containing Created by date
-    sed -i "" -e "s/from PySide import/from tank.platform.qt import/g" -e "/# Created:/d" $UI_PYTHON_PATH/$3.py
+    # replace PySide imports with sgtk.platform.qt and remove line containing Created by date
+    sed -i "" -e "s/from PySide import/from sgtk.platform.qt import/g" -e "/# Created:/d" $UI_PYTHON_PATH/$3.py
 }
 
 function build_ui {
@@ -36,13 +36,19 @@ function build_res {
 
 # build UI's:
 echo "building user interfaces..."
-build_ui select_work_area_form
-build_ui work_files_form
-build_ui change_version_form
-build_ui save_as_form
-build_ui open_file_form
+build_ui browser_form
+build_ui file_open_form
+build_ui file_save_form
+build_ui file_list_form
+build_ui my_tasks_form
+build_ui entity_tree_form
+build_ui task_widget
+build_ui file_widget
+build_ui file_group_widget
+build_ui open_options_form
 build_ui new_task_form
-build_ui file_item_form
+
+build_ui crash_dbg_form
 
 # build resources
 echo "building resources..."
