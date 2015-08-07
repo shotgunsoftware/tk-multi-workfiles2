@@ -201,12 +201,12 @@ class FileSaveForm(FileFormBase):
         # create the preview task:
         self._preview_task = self._bg_task_manager.add_task(self._generate_path,
                                                             priority = 35,
-                                                            env = self._current_env,
-                                                            name = name,
-                                                            version = version,
-                                                            use_next_version = use_next_version,
-                                                            ext = ext,
-                                                            require_path = False)
+                                                            task_kwargs = {"env":self._current_env,
+                                                                           "name":name,
+                                                                           "version":version,
+                                                                           "use_next_version":use_next_version,
+                                                                           "ext":ext,
+                                                                           "require_path":False})
 
     def _on_preview_generation_complete(self, task_id, group, result):
         """

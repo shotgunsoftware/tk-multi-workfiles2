@@ -665,7 +665,7 @@ class AsyncFileFinder(FileFinder):
         # all settings, etc. specific to the work area.
         search.construct_work_area_task = self._bg_task_manager.add_task(self._task_construct_work_area,
                                                                          group=search.id, 
-                                                                         entity=search.entity)
+                                                                         task_kwargs = {"entity":search.entity})
 
         # 1b. Resolve sandbox users for the work area (if there are any)
         search.find_work_area_task = self._bg_task_manager.add_task(self._task_resolve_sandbox_users,
@@ -687,22 +687,22 @@ class AsyncFileFinder(FileFinder):
             find_work_files_task = self._bg_task_manager.add_task(self._task_find_work_files, 
                                                                   group=search.id,
                                                                   priority=AsyncFileFinder._FIND_FILES_PRIORITY,
-                                                                  environment=user_work_area)
+                                                                  task_kwargs = {"environment":user_work_area})
 
             # filter work files:
             filter_work_files_task = self._bg_task_manager.add_task(self._task_filter_work_files,
                                                                     group=search.id,
                                                                     priority=AsyncFileFinder._FIND_FILES_PRIORITY,
                                                                     upstream_task_ids = [find_work_files_task],
-                                                                    environment=user_work_area)
+                                                                    task_kwargs = {"environment":user_work_area})
 
             # build work items:
             process_work_items_task = self._bg_task_manager.add_task(self._task_process_work_items,
                                                                      group=search.id, 
                                                                      priority=AsyncFileFinder._FIND_FILES_PRIORITY,
                                                                      upstream_task_ids = [filter_work_files_task],
-                                                                     environment=user_work_area,
-                                                                     name_map = search.name_map)
+                                                                     task_kwargs = {"environment":user_work_area,
+                                                                                    "name_map":search.name_map})
             search.find_work_files_tasks.add(process_work_items_task)
 
     def _begin_search_process_publishes(self, search, sg_publishes):
@@ -719,15 +719,15 @@ class AsyncFileFinder(FileFinder):
             filter_publishes_task = self._bg_task_manager.add_task(self._task_filter_publishes,
                                                                    group=search.id,
                                                                    priority=AsyncFileFinder._FIND_PUBLISHES_PRIORITY,
-                                                                   environment = user_work_area,
-                                                                   sg_publishes = users_publishes)
+                                                                   task_kwargs = {"environment":user_work_area,
+                                                                                  "sg_publishes":users_publishes})
             # build publish items:
             process_publish_items_task = self._bg_task_manager.add_task(self._task_process_publish_items,
                                                                         group=search.id,
                                                                         priority=AsyncFileFinder._FIND_PUBLISHES_PRIORITY,
                                                                         upstream_task_ids = [filter_publishes_task],
-                                                                        environment = user_work_area,
-                                                                        name_map = search.name_map)
+                                                                        task_kwargs = {"environment":user_work_area,
+                                                                                       "name_map":search.name_map})
 
             search.find_publishes_tasks.add(process_publish_items_task)
 
@@ -772,8 +772,8 @@ class AsyncFileFinder(FileFinder):
             self._begin_search_for_work_files(search, work_area)
             # and also add a task to process cached publishes:
             search.load_cached_pubs_task = self._bg_task_manager.add_pass_through_task(group = search.id,
-                                                                                       priority=AsyncFileFinder._FIND_PUBLISHES_PRIORITY,
-                                                                                       environment = work_area)
+                                                                    priority=AsyncFileFinder._FIND_PUBLISHES_PRIORITY,
+                                                                    task_kwargs = {"environment":work_area})
         elif task_id == search.find_work_area_task:
             search.find_work_area_task = None
             # found a work area so emit it:
