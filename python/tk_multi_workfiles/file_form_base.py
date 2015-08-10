@@ -35,9 +35,14 @@ from .util import monitor_qobject_lifetime
 
 class FileFormBase(QtGui.QWidget):
     """
+    Implementation of file form base class.  Contains initialisation and functionality
+    used by both the File Open & File Save dialogs.
     """
     def __init__(self, parent):
         """
+        Construction
+
+        :param parent:  The parent QWidget for this form
         """
         QtGui.QWidget.__init__(self, parent)
 
@@ -98,6 +103,11 @@ class FileFormBase(QtGui.QWidget):
 
     def _build_my_tasks_model(self):
         """
+        Build the My Tasks to be used by the file open/save dialogs.
+
+        :returns:   An instance of MyTasksModel that represents all tasks assigned to the
+                    current user in the current project.  If the current user is not known
+                    or the My Tasks view is disabled in the config then this returns None
         """
         if not g_user_cache.current_user:
             # can't show my tasks if we don't know who 'my' is!
@@ -120,21 +130,25 @@ class FileFormBase(QtGui.QWidget):
         monitor_qobject_lifetime(model, "My Tasks Model")
         model.async_refresh()
         return model 
-        
+
     def _build_entity_models(self):
         """
+        Build all entity models to be used by the file open/save dialogs.
+
+        :returns:   A list of ShotgunEntityModel instances for each entity (and hierarchy) defined
+                    in the app configuration
         """
         app = sgtk.platform.current_bundle()
-        
+
         entity_models = []
-        
+
         # set up any defined task trees:
         entities = app.get_setting("entities", [])
         for ent in entities:
             caption = ent.get("caption", None)
             entity_type = ent.get("entity_type")
             filters = ent.get("filters")
-            
+
             # resolve any magic tokens in the filter
             # Note, we always filter on the current project as the app needs templates
             # in the config to be able to find files and there is currently no way to 
@@ -153,9 +167,9 @@ class FileFormBase(QtGui.QWidget):
                         field = app.context.user
                     resolved_filter.append(field)
                 resolved_filters.append(resolved_filter)
-                            
+
             hierarchy = ent.get("hierarchy")
-            
+
             # create an entity model for this query:
             fields = ["image", "description", "project", "name", "code"]
             if entity_type == "Task":
@@ -166,18 +180,27 @@ class FileFormBase(QtGui.QWidget):
             monitor_qobject_lifetime(model, "Entity Model")
             entity_models.append((caption, model))
             model.async_refresh()
-            
+
         return entity_models
 
     def _build_file_model(self):
         """
+        Build the single file model to be used by the file open/save dialogs.
+
+        :returns:   A FileModel instance that represents all the files found for a set of entities
+                    and users.
         """
         file_model = FileModel(self._bg_task_manager, parent=None)
         monitor_qobject_lifetime(file_model, "File Model")
         return file_model
-    
+
     def _on_create_new_task(self, entity, step):
         """
+        Slot triggered when the user requests that a new task be created.  If a task is created then
+        all models will be immediately refreshed.
+
+        :param entity:  The entity the task should be created for
+        :param step:    The initial step to select in the new task dialog.
         """
         action = NewTaskAction(entity, step)
         if action.execute(self):
@@ -185,11 +208,15 @@ class FileFormBase(QtGui.QWidget):
 
     def _on_refresh_triggered(self, checked=False):
         """
+        Slot triggered when a refresh is requested via the refresh keyboard shortcut
+
+        :param checked:    True if the refresh action is checked - ignored
         """
         self._refresh_all_async()
 
     def _refresh_all_async(self):
         """
+        Asynchrounously refresh all models.
         """
         if self._my_tasks_model:
             self._my_tasks_model.async_refresh()
@@ -200,50 +227,58 @@ class FileFormBase(QtGui.QWidget):
 
     def _get_current_file(self):
         """
+        Get a FileItem representing the currently open file/scene
+
+        :returns:   A FileItem representing the current file if possible, otherwise None
         """
         if not self._current_file:
             app = sgtk.platform.current_bundle()
 
             # build environment details for this context:
             try:
-                env = WorkArea(app.context)
+                work_area = WorkArea(app.context)
             except Exception, e:
                 return None
 
             # get the current file path:
             try:
-                current_path = get_current_path(app, SAVE_FILE_AS_ACTION, env.context)
+                current_path = get_current_path(app, SAVE_FILE_AS_ACTION, work_area.context)
             except Exception, e:
                 return None
 
-            self._current_file = self._fileitem_from_path(current_path, env)
+            self._current_file = self._fileitem_from_path(current_path, work_area)
         return self._current_file
 
-    def _fileitem_from_path(self, path, env):
+    def _fileitem_from_path(self, path, work_area):
         """
+        Build a FileItem from the specified path and work area
+
+        :param path:        The path of the file to construct a FileItem for
+        :param work_area:   A WorkArea instance representing the work area the file is in
+        :returns:           A FileItem representing the specified path in the specified work area
         """
-        if not path or not env or not env.work_template:
+        if not path or not work_area or not work_area.work_template:
             return None
 
         # figure out if it's a publish or a work file:
         is_publish = False
-        if env.work_template and env.work_template.validate(path):
+        if work_area.work_template and work_area.work_template.validate(path):
             is_publish = False
-        elif env.publish_template and env.publish_template.validate(path):
+        elif work_area.publish_template and work_area.publish_template.validate(path):
             is_publish = True
         else:
             # it's neither or we don't have a template that validates against it:
             return None
 
         # build fields dictionary and construct key:
-        fields = env.context.as_template_fields(env.work_template)
+        fields = work_area.context.as_template_fields(work_area.work_template)
 
-        base_template = env.publish_template if is_publish else env.work_template
+        base_template = work_area.publish_template if is_publish else work_area.work_template
         template_fields = base_template.get_fields(path)
         fields = dict(chain(template_fields.iteritems(), fields.iteritems()))
 
-        file_key = FileItem.build_file_key(fields, env.work_template, 
-                                           env.version_compare_ignore_fields)
+        file_key = FileItem.build_file_key(fields, work_area.work_template, 
+                                           work_area.version_compare_ignore_fields)
 
         # extract details from the fields:
         details = {}
@@ -259,9 +294,9 @@ class FileFormBase(QtGui.QWidget):
                              is_published = is_publish,
                              publish_path = path if is_publish else None,
                              publish_details = fields if is_publish else None)
-        
+
         return file_item
-        
-        
+
+
 
     
