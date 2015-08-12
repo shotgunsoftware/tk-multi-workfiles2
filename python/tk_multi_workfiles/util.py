@@ -118,6 +118,16 @@ def get_model_str(item_or_index, role=QtCore.Qt.DisplayRole):
 
 def map_to_source(idx, recursive=True):
     """
+    Map the specified index to it's source model.  This can be done recursively to map
+    back through a chain of proxy models to the source model at the beginning of the chain
+
+    :param idx:         The index to map from
+    :param recursive:   If true then the function will recurse up the model chain until it
+                        finds an index belonging to a model that doesn't derive from 
+                        QAbstractProxyModel.  If false then it will just return the index
+                        from the imediate parent model.
+    :returns:           QModelIndex in the source model or the first model in the chain that
+                        isn't a proxy model if recursive is True.
     """
     src_idx = idx
     while src_idx.isValid() and isinstance(src_idx.model(), QtGui.QAbstractProxyModel):
@@ -128,6 +138,14 @@ def map_to_source(idx, recursive=True):
 
 def get_source_model(model, recursive=True):
     """
+    Return the source model for the specified model.  If recursive is True then this will return
+    the first model in the model chain that isn't a proxy model.
+
+    :param model:       The model to get the source model from
+    :param recursive:   If True then recurse up the model chain until we find a model that isn't
+                        derived from QAbstractProxyModel.  If false then just return the immediate
+                        parent model.
+    :returns:           The source model or the first non-proxy model if recursive is True
     """
     src_model = model
     while src_model and isinstance(src_model, QtGui.QAbstractProxyModel):
@@ -174,37 +192,56 @@ def refresh_widget_style_r(widget, refresh_children=False):
             continue
         refresh_widget_style_r(child, refresh_children)
 
-_monitored_qobjects = {}
+# storage for any tracked qobjects
+_g_monitored_qobjects = {}
 
 def monitor_qobject_lifetime(obj, name=""):
     """
+    Debug method to help track the lifetime of a QObject derived instance.  Hooks into
+    the instances destroyed signal to report when the QObject has been destroyed.
+
+    :param obj:     The QObject instance to monitor
+    :param name:    An optional name to be appended to the debug output, useful for identifying
+                    a specific instance of a class.
     """
     msg = type(obj).__name__
     if name:
         msg = "%s [%s]" % (msg, name)
-    global _monitored_qobjects
-    uid = len(_monitored_qobjects)
-    _monitored_qobjects[uid] = msg
-    obj.destroyed.connect(lambda: _on_qobject_destroyed(msg, uid))
-
-def report_non_destroyed_qobjects():
-    """
-    """
-    app = sgtk.platform.current_bundle()
-    global _monitored_qobjects
-    app.log_debug("%d monitored QObjects have not been destroyed!" % len(_monitored_qobjects))
-    for msg in _monitored_qobjects.values():
-        app.log_debug(" - %s" % msg)
-    _monitored_qobjects = {}
+    global _g_monitored_qobjects
+    uid = len(_g_monitored_qobjects)
+    _g_monitored_qobjects[uid] = msg
+    obj.destroyed.connect(lambda m=msg, u=uid: _on_qobject_destroyed(m, u))
 
 def _on_qobject_destroyed(name, uid):
     """
+    Slot triggered whenever a monitored qobject is destroyed - reports to debug that the object
+    was destroyed.
+
+    :param name:    Name of the instance that was destroyed
+    :param uid:     Unique id of the QObject used to look it up in the monitored list
     """
     app = sgtk.platform.current_bundle()
     app.log_debug("%s destroyed" % name)
-    global _monitored_qobjects
-    if uid in _monitored_qobjects:
-        del _monitored_qobjects[uid]
+    global _g_monitored_qobjects
+    if uid in _g_monitored_qobjects:
+        del _g_monitored_qobjects[uid]
+
+def report_non_destroyed_qobjects(clear_list = True):
+    """
+    Report any monitored QObjects that have not yet been destroyed.  Care should be taken to
+    account for QObjects that are pending destruction via deleteLater signals that may be 
+    pending.
+
+    :param clear_list:  If true then the list of monitored QObjects will be cleared after
+                        this function has reported them.
+    """
+    app = sgtk.platform.current_bundle()
+    global _g_monitored_qobjects
+    app.log_debug("%d monitored QObjects have not been destroyed!" % len(_g_monitored_qobjects))
+    for msg in _g_monitored_qobjects.values():
+        app.log_debug(" - %s" % msg)
+    if clear_list:
+        _g_monitored_qobjects = {}
 
 
 

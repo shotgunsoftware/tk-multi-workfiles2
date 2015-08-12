@@ -19,9 +19,16 @@ from .util import report_non_destroyed_qobjects
 
 class TimedGc(QtCore.QObject):
     """
+    Helper class that disables cyclic garbage collection and runs it periodically
+    on the main thread through use of a QTimer.  This is used to avoid Qt objects being
+    gc'd from non-main threads which was causing instability older PySide/Python
+    versions (Python 2.6 in Nuke 6 being one example).
     """
     def __init__(self, parent=None):
         """
+        Construction
+
+        :param parent:  The parent QObject for this instance
         """
         QtCore.QObject.__init__(self, parent)
         self._timer = QtCore.QTimer(self)
@@ -30,6 +37,7 @@ class TimedGc(QtCore.QObject):
 
     def start(self):
         """
+        Disable the gc and start the timer
         """
         self._gc_enabled = gc.isenabled()
         if self._gc_enabled:
@@ -38,6 +46,7 @@ class TimedGc(QtCore.QObject):
 
     def stop(self):
         """
+        Stop the timer and re-enable the gc
         """
         self._timer.stop()
         if self._gc_enabled:
@@ -48,6 +57,8 @@ class TimedGc(QtCore.QObject):
 
     def _do_gc_collect(self):
         """
+        Slot triggered by the timer's timeout signal to perform
+        a gc collect at the timed interval.
         """
         gc.collect()
 
@@ -116,10 +127,12 @@ def dbg_info(func):
 
 class WorkFiles(object):
     """
+    Main entry point for all commands in the app.
     """
     @staticmethod
     def show_file_open_dlg():
         """
+        Show the file open dialog
         """
         handler = WorkFiles()
         handler._show_file_open_dlg()
@@ -127,6 +140,7 @@ class WorkFiles(object):
     @staticmethod
     def show_file_save_dlg():
         """
+        Show the file save dialog
         """
         handler = WorkFiles()
         handler._show_file_save_dlg()
@@ -135,6 +149,7 @@ class WorkFiles(object):
     @managed_gc
     def _show_file_open_dlg(self):
         """
+        Show the file open dialog
         """
         app = sgtk.platform.current_bundle()
         try:
@@ -148,6 +163,7 @@ class WorkFiles(object):
     @managed_gc
     def _show_file_save_dlg(self):
         """
+        Show the file save dialog
         """
         app = sgtk.platform.current_bundle()
         try:

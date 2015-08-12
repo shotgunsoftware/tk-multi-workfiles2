@@ -37,9 +37,8 @@ class MultiWorkFiles(sgtk.platform.Application):
         # because of the way QT inits and connects to different host applications
         # differently, in conjunction with the 'boot' process in different tools,
         # the behaviour can be very different.  
-
-        # currently, we have done basic QA on nuke and maya so we limit these options to 
-        # those two engines for now. 
+        #
+        # currently, we have done QA on the following engines:
         SUPPORTED_ENGINES = ["tk-nuke", "tk-maya", "tk-3dsmax"]
 
         if self.engine.has_ui and not hasattr(sgtk, "_tk_multi_workfiles2_launch_at_startup"):
@@ -64,7 +63,7 @@ class MultiWorkFiles(sgtk.platform.Application):
         Clean up app
         """
         self.log_debug("Destroying tk-multi-workfiles2")
-        
+
     def show_file_open_dlg(self):
         """
         Launch the main File Open UI
