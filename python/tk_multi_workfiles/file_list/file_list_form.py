@@ -89,9 +89,14 @@ class FileListForm(QtGui.QWidget):
         self._ui.user_filter_btn.hide()
 
         self._ui.file_list_view.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
-        self._ui.file_list_view.doubleClicked.connect(self._on_item_double_clicked)
         self._ui.file_list_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self._ui.file_list_view.customContextMenuRequested.connect(self._on_context_menu_requested)
+
+        # we want to handle double-click on items but we only want double-clicks to work when using
+        # the left mouse button.  To achieve this we connect to the doubleClicked slot but also install
+        # an event filter that will swallow any non-left-mouse-button double-clicks.
+        self._ui.file_list_view.doubleClicked.connect(self._on_item_double_clicked)
+        self._ui.file_list_view.viewport().installEventFilter(self)
 
         # Note, we have to keep a handle to the item delegate to help GC
         self._item_delegate = FileListItemDelegate(self._ui.file_list_view)
@@ -243,6 +248,26 @@ class FileListForm(QtGui.QWidget):
 
     # ------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------
+
+    def eventFilter(self, obj, event):
+        """
+        Overriden from base class - filters events on QObjects that this instance is installed as 
+        an event filter for.  Used to swallow non-left-mouse-button double-clicks in the file list 
+        view.
+
+        :param obj:     The QObject that events are being filtered for
+        :param event:   The QEvent to filter
+        :returns:       True if the event should be consumed and blocked for further use otherwise
+                        False if this method ignores the event 
+        """
+        if obj == self._ui.file_list_view.viewport():
+            if (event.type() == QtCore.QEvent.MouseButtonDblClick
+                and event.button() != QtCore.Qt.LeftButton):
+                # supress double-clicks that aren't from the left mouse button as this
+                # can feel very odd to the user!
+                return True
+        # we ignore all other events
+        return False
 
     def _update_selection(self, prev_selected_item=None):
         """

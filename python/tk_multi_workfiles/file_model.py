@@ -731,7 +731,6 @@ class FileModel(QtGui.QStandardItemModel):
             new_rows = []
             for name, entity in entities_to_add:
                 folder_item = FileModel._FolderModelItem(name, entity)
-                #folder_item.setIcon(QtGui.QIcon(":/tk-multi-workfiles2/folder_512x400.png"))
                 new_rows.append(folder_item)
             parent_item.appendRows(new_rows)
 

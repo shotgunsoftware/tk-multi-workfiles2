@@ -26,6 +26,7 @@ class FileListItemDelegate(GroupedListViewItemDelegate):
         GroupedListViewItemDelegate.__init__(self, view)
         
         self._item_widget = None
+        self._folder_icon = QtGui.QPixmap(":/tk-multi-workfiles2/folder_512x400.png")
 
     def create_group_widget(self, parent):
         return FileGroupWidget(parent)
@@ -57,32 +58,40 @@ class FileListItemDelegate(GroupedListViewItemDelegate):
         # get the data for the model index:
         label = ""
         icon = None
-        is_publish = False
-        is_editable = True
-        file_item = get_model_data(model_index, FileModel.FILE_ITEM_ROLE)
-        if file_item:
-            # build label:
-            label = "<b>%s, v%03d</b>" % (file_item.name, file_item.version)
-            if file_item.is_published:
-                label += "<br>%s" % file_item.format_published_by_details()
-            elif file_item.is_local:
-                label += "<br>%s" % file_item.format_modified_by_details()
+        item_type = get_model_data(model_index, FileModel.NODE_TYPE_ROLE)
+        if item_type == FileModel.FILE_NODE_TYPE:
 
-            # retrieve the icon:                
-            icon = file_item.thumbnail
-            is_publish = file_item.is_published
-            is_editable = file_item.editable
-        else:
-            # just use the data from the standard display and decoration roles:
+            is_publish = False
+            is_editable = True
+            file_item = get_model_data(model_index, FileModel.FILE_ITEM_ROLE)
+            if file_item:
+                # build label:
+                label = "<b>%s, v%03d</b>" % (file_item.name, file_item.version)
+                if file_item.is_published:
+                    label += "<br>%s" % file_item.format_published_by_details()
+                elif file_item.is_local:
+                    label += "<br>%s" % file_item.format_modified_by_details()
+
+                # retrieve the icon:
+                icon = file_item.thumbnail
+                is_publish = file_item.is_published
+                is_editable = file_item.editable
+
+            widget.set_is_publish(is_publish)
+            widget.set_is_editable(is_editable)
+
+        elif item_type == FileModel.FOLDER_NODE_TYPE:
+            # get the lavel from the index and use the default folder icon
             label = get_model_str(model_index)
-            icon = get_model_data(model_index, QtCore.Qt.DecorationRole)
+            icon = self._folder_icon
+        else:
+            # just use the label from the standard display role:
+            label = get_model_str(model_index)
 
-        # update widget:
+        # update the widget:
         widget.title = label
         widget.set_thumbnail(icon)
         widget.selected = (style_options.state & QtGui.QStyle.State_Selected) == QtGui.QStyle.State_Selected
-        widget.set_is_publish(is_publish)
-        widget.set_is_editable(is_editable)
 
     def sizeHint(self, style_options, model_index):
         """
