@@ -153,7 +153,21 @@ class FileFormBase(QtGui.QWidget):
             # Note, we always filter on the current project as the app needs templates
             # in the config to be able to find files and there is currently no way to 
             # get these from a config belonging to a different project!
-            resolved_filters = [["project", "is", app.context.project]]
+            resolved_filters = []
+
+            # we always filter within the current project as it's not currently possible
+            # to manage work files across projects (as we can't access the other project's 
+            # templates and folder schema).
+            #
+            # Note that this currently doesn't work for non-project entities!
+            if entity_type == "Project":
+                # special case if the entity type is 'Project' - this will show only
+                # the current project in the tree!
+                resolved_filters.append(["id", "is", app.context.project["id"]])
+            else:
+                # filter entities on the current project:
+                resolved_filters.append(["project", "is", app.context.project])
+
             for filter in filters:
                 resolved_filter = []
                 for field in filter:
@@ -168,7 +182,12 @@ class FileFormBase(QtGui.QWidget):
                     resolved_filter.append(field)
                 resolved_filters.append(resolved_filter)
 
+            # Get the hierarchy to use for the model for this entity:
             hierarchy = ent.get("hierarchy")
+            if not hierarchy:
+                app.log_error("No hierarchy found for entity type '%s' - at least one level of "
+                              "hierarchy must be specified in the app configuration.  Skipping!" % entity_type)
+                continue
 
             # create an entity model for this query:
             fields = ["image", "description", "project", "name", "code"]
