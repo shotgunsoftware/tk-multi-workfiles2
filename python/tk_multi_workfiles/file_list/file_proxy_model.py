@@ -167,12 +167,6 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
         # get the items:        
         left_item = get_model_data(left_src_idx, FileModel.FILE_ITEM_ROLE)
         right_item = get_model_data(right_src_idx, FileModel.FILE_ITEM_ROLE)
-        if hasattr(QtCore, "QVariant"):
-            # damned PyQt!
-            if isinstance(left_item, QtCore.QVariant):
-                left_item = left_item.toPyObject()
-            if isinstance(right_item, QtCore.QVariant):
-                right_item = right_item.toPyObject()
 
         # handle the case where one or both items are not file items:
         if not left_item:

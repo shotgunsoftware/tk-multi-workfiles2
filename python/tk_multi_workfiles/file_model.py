@@ -23,18 +23,35 @@ from .file_search_cache import FileSearchCache
 
 class FileModel(QtGui.QStandardItemModel):
     """
+    The FileModel maintains a model of all files (work files and publishes) found for a matrix of 
+    entities and users.  Details of each 'version' of a file are contained in a FileItem instance
+    and presented as a single model item.
+
+    File items are grouped into groups that represent both the entity and the user that the files
+    were found for (the WorkArea).
+
+    Additional items are added to a group to represent additional hierarchy in the model.
     """
     class SearchDetails(object):
         """
-        Storage of details needed to search for files.
+        Representation of details needed to search for a set of files.  A single instance
+        of this class represents a single entity to be grouped in the model
         """
         def __init__(self, name=None):
+            """
+            Construction
+            :param name:    The string name to be used for the search.  This is used when constructing
+                            the group name in the model.
+            """
             self.name = name
             self.entity = None
             self.child_entities = []
             self.is_leaf = False
 
         def __repr__(self):
+            """
+            :returns:    The string representation of these details
+            """
             return ("%s\n"
                     " - Entity: %s\n"
                     " - Is leaf: %s\n%s"
@@ -54,17 +71,26 @@ class FileModel(QtGui.QStandardItemModel):
     SEARCH_STATUS_ROLE = _BASE_ROLE + 4     # search status data
     SEARCH_MSG_ROLE = _BASE_ROLE    + 5     # search message data
 
-    class _BaseItem(QtGui.QStandardItem):
+    class _BaseModelItem(QtGui.QStandardItem):
         """
+        Base model item for storage of the file data in the model.
         """
         def __init__(self, typ, text=None):
             """
+            Construction
+
+            :param typ:     The type of item this represents (see enumeration of node types above)
+            :param text:    String used for the label/display role for this item
             """
             QtGui.QStandardItem.__init__(self, text or "")
             self._type = typ
 
         def data(self, role=QtCore.Qt.UserRole+1):
             """
+            Return the data from the item for the specified role.
+
+            :param role:    The role to return data for.
+            :returns:       Data for the specified role
             """
             if role == FileModel.NODE_TYPE_ROLE:
                 return self._type
@@ -74,6 +100,10 @@ class FileModel(QtGui.QStandardItemModel):
 
         def setData(self, value, role=QtCore.Qt.UserRole+1):
             """
+            Set the data on the item for the specified role
+
+            :param value:   The value to set the data with
+            :param role:    The role to set the data for
             """
             if role == FileModel.NODE_TYPE_ROLE:
                 # do nothing as the data can't be set:
@@ -82,26 +112,41 @@ class FileModel(QtGui.QStandardItemModel):
                 # call the base implementation:
                 QtGui.QStandardItem.setData(self, value, role) 
 
-    class _FileItem(_BaseItem):
+    class _FileModelItem(_BaseModelItem):
         """
+        Model item that represents a single FileItem in the model
         """
         def __init__(self, file_item, work_area):
             """
+            Construction
+
+            :param file_item:    The FileItem instance this model item represents
+            :param work_area:    The WorkArea this file item belongs to
             """
-            FileModel._BaseItem.__init__(self, typ=FileModel.FILE_NODE_TYPE)
+            FileModel._BaseModelItem.__init__(self, typ=FileModel.FILE_NODE_TYPE)
             self._file_item = file_item
             self._work_area = work_area
 
         @property
         def file_item(self):
+            """
+            :returns:    The file item this model item represents
+            """
             return self._file_item
 
         @property
-        def environment(self):
+        def work_area(self):
+            """
+            :returns:    The work area the file belongs to
+            """
             return self._work_area
 
         def data(self, role=QtCore.Qt.UserRole+1):
             """
+            Return the data from the item for the specified role.
+
+            :param role:    The role to return data for.
+            :returns:       Data for the specified role
             """
             if role == QtCore.Qt.DisplayRole:
                 return "%s, v%0d" % (self._file_item.name, self._file_item.version)
@@ -111,10 +156,14 @@ class FileModel(QtGui.QStandardItemModel):
                 return self._work_area
             else:
                 # just return the default implementation:
-                return FileModel._BaseItem.data(self, role)
+                return FileModel._BaseModelItem.data(self, role)
 
         def setData(self, value, role=QtCore.Qt.UserRole+1):
             """
+            Set the data on the item for the specified role
+
+            :param value:   The value to set the data with
+            :param role:    The role to set the data for
             """
             if role == QtCore.Qt.DisplayRole:
                 # do nothing as it can't be set!
@@ -127,24 +176,44 @@ class FileModel(QtGui.QStandardItemModel):
                 self.emitDataChanged()
             else:
                 # call the base implementation:
-                FileModel._BaseItem.setData(self, value, role) 
+                FileModel._BaseModelItem.setData(self, value, role) 
 
-    class _FolderItem(_BaseItem):
+    class _FolderModelItem(_BaseModelItem):
         """
+        Model item that represents a folder in the model.  These are used when a group has entity
+        children that need to be represented in the model.
         """
         def __init__(self, name, entity):
-            FileModel._BaseItem.__init__(self, typ=FileModel.FOLDER_NODE_TYPE, text=name)
+            """
+            Construction
+
+            :param name:    The name to use for the model item display role
+            :param entity:  A Shotgun entity dictionary for the entity that this folder item represents
+            """
+            FileModel._BaseModelItem.__init__(self, typ=FileModel.FOLDER_NODE_TYPE, text=name)
             self._entity = entity
 
         @property
         def entity(self):
+            """
+            :returns:   An entity dictionary representing the entity represented by this item
+            """
             return self._entity
 
-    class _GroupItem(_BaseItem):
+    class _GroupModelItem(_BaseModelItem):
         """
+        Model item that represents a group in the model.  A group is a per-user, per-entity item that contains
+        the files found for the group as well as any additional child entities.
         """
         def __init__(self, name, key, work_area=None):
-            FileModel._BaseItem.__init__(self, typ=FileModel.GROUP_NODE_TYPE, text=name)
+            """
+            Construction
+
+            :param name:        The name to use for the model items display role
+            :param key:         A unique key representing this group
+            :param work_area:   A WorkArea instance that this group represents
+            """
+            FileModel._BaseModelItem.__init__(self, typ=FileModel.GROUP_NODE_TYPE, text=name)
 
             self._search_status = FileModel.SEARCH_COMPLETED
             self._search_msg = ""
@@ -153,19 +222,34 @@ class FileModel(QtGui.QStandardItemModel):
 
         @property
         def key(self):
+            """
+            :returns:   The unique key for this group
+            """
             return self._key
 
         #@property
         def _get_work_area(self):
+            """
+            :returns:   The WorkArea instance associated with this item
+            """
             return self._work_area
         #@work_area.setter
         def _set_work_area(self, work_area):
+            """
+            Set the work area associated with this item
+
+            :param work_area:   The WorkArea to associate with this item
+            """
             self._work_area = work_area
             self.emitDataChanged()
         work_area=property(_get_work_area, _set_work_area)
 
         def set_search_status(self, status, msg=None):
             """
+            Set the search status for this item and emit a dataChanged signal to indicate it's changed.
+
+            :param status:  The search status (see the search status enumeration above) to update this item with
+            :param msg:     The status message if any to update this item with
             """
             self._search_status = status
             self._search_msg = msg
@@ -173,6 +257,10 @@ class FileModel(QtGui.QStandardItemModel):
 
         def data(self, role=QtCore.Qt.UserRole+1):
             """
+            Return the data from the item for the specified role.
+
+            :param role:    The role to return data for.
+            :returns:       Data for the specified role
             """
             if role == FileModel.SEARCH_STATUS_ROLE:
                 return self._search_status
@@ -182,10 +270,14 @@ class FileModel(QtGui.QStandardItemModel):
                 return self._work_area
             else:
                 # just return the default implementation:
-                return FileModel._BaseItem.data(self, role)
+                return FileModel._BaseModelItem.data(self, role)
 
         def setData(self, value, role=QtCore.Qt.UserRole+1):
             """
+            Set the data on the item for the specified role
+
+            :param value:   The value to set the data with
+            :param role:    The role to set the data for
             """
             if role == FileModel.SEARCH_STATUS_ROLE:
                 self._search_status = value
@@ -198,19 +290,23 @@ class FileModel(QtGui.QStandardItemModel):
                 self.emitDataChanged()
             else:
                 # call the base implementation:
-                FileModel._BaseItem.setData(self, value, role) 
+                FileModel._BaseModelItem.setData(self, value, role) 
 
     # Signal emitted when the available sandbox users have changed
-    available_sandbox_users_changed = QtCore.Signal(object)
+    available_sandbox_users_changed = QtCore.Signal(list)# list of users
 
     def __init__(self, bg_task_manager, parent):
         """
         Construction
+
+        :param bg_task_manager: A BackgroundTaskManager instance that will be used for all background/threaded
+                                work that needs undertaking
+        :param parent:          The parent QObject for this instance
         """
         QtGui.QStandardItemModel.__init__(self, parent)
 
-        app = sgtk.platform.current_bundle()
-        self._published_file_type = sgtk.util.get_published_file_entity_type(app.sgtk)
+        self._app = sgtk.platform.current_bundle()
+        self._published_file_type = sgtk.util.get_published_file_entity_type(self._app.sgtk)
 
         # sg data retriever is used to download thumbnails in the background
         self._sg_data_retriever = ShotgunDataRetriever(bg_task_manager=bg_task_manager)
@@ -226,7 +322,7 @@ class FileModel(QtGui.QStandardItemModel):
         self._in_progress_searches = {}
         self._search_cache = FileSearchCache()
 
-        # self._current_item_map[search_id][file.key][file.version] = model._FileItem
+        # self._current_item_map[search_id][file.key][file.version] = model._FileModelItem
         self._current_item_map = {}
         # self._pending_thumbnail_requests[request_id] = (group_key, file_key, file_version)
         self._pending_thumbnail_requests = {}
@@ -239,18 +335,10 @@ class FileModel(QtGui.QStandardItemModel):
         self._finder.search_failed.connect(self._on_finder_search_failed)
         self._finder.work_area_found.connect(self._on_finder_work_area_found)
 
-        self._dbg_file = None#open("/Users/Alan_Dann/worfiles_v2_dbg.txt", "w")
-
-    def _dbg_write(self, msg):
-        """
-        Temp, to be removed.
-        """
-        if self._dbg_file:
-            self._dbg_file.write("%s\n" % msg)
-            self._dbg_file.flush()
-
     def destroy(self):
         """
+        Called to clean-up and shutdown any internal objects when the model has been finished 
+        with.  Failure to call this may result in instability or unexpected behaviour!
         """
         # clear the model:
         self.clear()
@@ -276,18 +364,29 @@ class FileModel(QtGui.QStandardItemModel):
             self._finder.shut_down()
             self._finder = None
 
-        if self._dbg_file:
-            self._dbg_file.close()
-
-    def get_file_versions(self, key, work_area, clean_only=False):
+    def get_cached_file_versions(self, key, work_area, clean_only=False):
         """
-        Find the file versions for the specified file key and work area
+        Return the cached file versions for the specified file key and work area.  Note that this isn't
+        garunteed to find all versions of a file that exist if the cache hasn't been populated yet/is dirty
+        if clean_only is False.
+
+        :param key:         The unique file key to find file versions for
+        :param work_area:   A WorkArea instance to find file versions for
+        :param clean_only:  If true then the cached file versions will only be returned if the cache is 
+                            up-to-date.  If false then file versions will be returned even if the model is still
+                            searching for files.
+        :returns:           A dictionary {version:FileItem} of all file versions found.
         """
         return self._search_cache.find_file_versions(work_area, key)
 
     def items_from_file(self, file_item, ignore_version = False):
         """
-        Find the model item(s) for the specified file.
+        Find the model item(s) for the specified file item.
+
+        :param file_item:       The FileItem instance to find the model item(s) for
+        :param ignore_version:  If True then all versions that match the FileItem key will be returned.  If False
+                                then only items that match the exact version of the FileItem will be returned.
+        :returns:               A list of any found model items representing the specified FileItem
         """
         if not file_item:
             return []
@@ -296,9 +395,14 @@ class FileModel(QtGui.QStandardItemModel):
     # Interface for modifying the entities in the model:
     def set_entity_searches(self, searches):
         """
-        Set the entity searches that the model should populate itself with
+        Set the entity searches that the model should populate itself with.  The model will 
+        be updated to contain a group item for each search+user combination and will initiate a
+        search for all files (work files and publishes) in this group.
+
+        :param searches:    A list of SearchDetails instances containing information about the entities
+                            to search for
         """
-        #print "Setting entity searches on model to: %s" % [s.name for s in searches if s]
+        self._app.log_debug("File Model: Setting entity searches on model to: %s" % [s.name for s in searches if s])
         # stop any in-progress searches:
         self._stop_in_progress_searches()
         self._current_searches = searches or []
@@ -312,9 +416,12 @@ class FileModel(QtGui.QStandardItemModel):
     # Interface for modifying the users in the model:
     def set_users(self, users):
         """
-        Set the users the model should populate itself with
+        Set the users the model should populate itself with.  The model will be updated to contain a group 
+        item for each search+user combination and will initiate a search for all files (work files and 
+        publishes) in this group.
+
+        :param users:    A list of Shotgun user dictionaries that should be represented in the model
         """
-        #print "Setting users on model to: %s" % [u["name"] for u in users if u]
         # stop any in-progress searches:
         self._stop_in_progress_searches()
 
@@ -348,7 +455,7 @@ class FileModel(QtGui.QStandardItemModel):
 
     def clear(self):
         """
-        Overriden from base class.  Clear the model in a safe way  
+        Overriden from base class.  Clear the model in a safe way.
         """
         # stop all current searches:
         self._stop_in_progress_searches()
@@ -366,7 +473,12 @@ class FileModel(QtGui.QStandardItemModel):
 
     def _safe_remove_row(self, row, parent_item=None):
         """
-        Remove the specified row from the parent item in a PySide/Shoboken friendly way
+        Remove the specified row from the parent item in a PySide/Shoboken friendly way by removing
+        all its children first in a bottom-up fashion.
+
+        :param row:         The row to remove
+        :param parent_item: The parent QStandardItem of the item to remove.  If None then the row
+                            is removed from the root item.
         """
         parent_item = parent_item or self.invisibleRootItem()
 
@@ -381,7 +493,9 @@ class FileModel(QtGui.QStandardItemModel):
 
     def _clear_children_r(self, parent_item):
         """
-        Recursively clear the children from the specified parent item
+        Recursively clear the children from the specified parent item in a bottom-up fashion
+
+        :param parent_item: The parent QStandardItem to remove all children for
         """
         num_rows = parent_item.rowCount()
         if num_rows == 0:
@@ -400,6 +514,11 @@ class FileModel(QtGui.QStandardItemModel):
         """
         Item generator that yields all items under the specified parent that are of
         the specified type.
+
+        :param parent_item: The parent QStandardItem to search under
+        :param item_type:   The class type of the model items to generate
+        :returns:           A generator that yields all child items of the parent that
+                            are of the specified type
         """
         for ri in range(parent_item.rowCount()):
             child_item = parent_item.child(ri)
@@ -408,20 +527,29 @@ class FileModel(QtGui.QStandardItemModel):
 
     def _group_items(self):
         """
-        Return an item generator that enumerates all group items in the model
+        Iterate over all root items in the model and yield all _GroupModelItems that are found
+
+        :returns:   A generator that yields all _GroupModelItems in the model
         """
-        return self._item_generator(self.invisibleRootItem(), FileModel._GroupItem)
+        return self._item_generator(self.invisibleRootItem(), FileModel._GroupModelItem)
 
     def _file_items(self, parent_item):
         """
-        Return an item generator that enumerates all file model items under the 
-        specified parent item
+        Iterate over all child items for the specified parent and yield all _FileModelItems that 
+        are found
+
+        :param parent_item: The parent item to yield _FileModelItems for
+        :returns:           A generator that yields all _FileModelItems under the specified parent
         """
-        return self._item_generator(parent_item, FileModel._FileItem)
+        return self._item_generator(parent_item, FileModel._FileModelItem)
 
     def _gen_entity_key(self, entity_dict):
         """
-        Generate a key for the specified Shotgun entity dictionary.
+        Generate a unique key for the specified Shotgun entity dictionary.
+
+        :param entity_dict: A Shotgun entity dictionary containing at least id and type.  Can be None.
+        :returns:           A tuple containing (type, id) of the entity that can be used as a unique key to
+                            identify the entity.
         """
         if not entity_dict:
             return (None, None)
@@ -430,7 +558,7 @@ class FileModel(QtGui.QStandardItemModel):
 
     def _start_searches(self):
         """
-        Start all searches for all users
+        Start all searches for all users that should be presented in the model.
         """
         if not self._current_searches:
             # nothing to do!
@@ -461,7 +589,7 @@ class FileModel(QtGui.QStandardItemModel):
             # actually start the search:
             search_id = self._finder.begin_search(search.entity, self._current_users)
             self._in_progress_searches[search_id] = search
-            #print "Started search %d..." % search_id
+            self._app.log_debug("File Model: Started search %d..." % search_id)
 
     def _stop_in_progress_searches(self):
         """
@@ -480,12 +608,13 @@ class FileModel(QtGui.QStandardItemModel):
     def _update_groups(self):
         """
         Update groups in the model.  Remove any that are no longer needed and insert any that are
-        needed but are missing.  This will ensure that _all_ groups are added for the current user
-        Groups for other users are only added if/when files are found unless they already exist in
-        which case they are left in the model.
-        """
-        self._dbg_write("Updating groups")
+        needed but are missing.
 
+        This will ensure that _all_ groups are added for the current user but groups for other users 
+        are only added if/when files are found unless they already exist in which case they are left 
+        in the model.  This provides the most consistent experience for any views hooked up to the 
+        model.
+        """
         # get existing groups:
         group_map = {}
         for group_item in self._group_items():
@@ -528,14 +657,14 @@ class FileModel(QtGui.QStandardItemModel):
                         cached_result = self._search_cache.find(search.entity, user)
                         if (user_key == primary_user_key or cached_result):
                             # always add a group for the primary user or if we already have a cached result:
-                            group_item = FileModel._GroupItem(search.name, group_key)
+                            group_item = FileModel._GroupModelItem(search.name, group_key)
                             self.insertRow(previous_valid_row + 1, group_item)
 
                             if cached_result:
                                 # we have a cached result so populate the group:
-                                files, environment = cached_result
-                                self._process_files(files, environment, group_item)
-                                group_item.work_area = environment
+                                files, work_area = cached_result
+                                self._process_files(files, work_area, group_item)
+                                group_item.work_area = work_area
 
                     if group_item:
                         # make sure the name and entity children are up-to-date:
@@ -555,19 +684,22 @@ class FileModel(QtGui.QStandardItemModel):
         # and clean up the file-to-item map:
         self._cleanup_current_item_map()
 
-        self._dbg_write(" > Finished updating groups")
-
     def _update_group_child_entity_items(self, parent_item, child_details):
         """
-        Update the non-file child entity items for a group item
-        """
-        self._dbg_write("Updating group child entity items...")
+        Update the non-file child entity items for a group item.  This adds/removes rows accordingly
+        to ensure the children match the entity details.
 
+        :param parent_item:     The parent _GroupModelItem to update the entity children under
+        :param child_details:   A list of dictionaries containing the details of any child entities that
+                                should be represented in this group.  Each dictionary should contain
+                                {name, entity} where name is a string used for the name of the model item and
+                                entity is a Shotgun entity dictionary representing the entity itself.
+        """
         # build a map from the entity key to row for all folder items:
         current_entity_row_map = {}
         for ri in range(parent_item.rowCount()):
             child_item = parent_item.child(ri)
-            if isinstance(child_item, FileModel._FolderItem):
+            if isinstance(child_item, FileModel._FolderModelItem):
                 child_name = child_item.text()
                 child_entity = child_item.entity
                 child_key = (child_name, self._gen_entity_key(child_entity))
@@ -588,7 +720,8 @@ class FileModel(QtGui.QStandardItemModel):
                 entities_to_add.append((child_name, child_entity))
 
         # figure out which rows to remove...
-        rows_to_remove = set([row for key, row in current_entity_row_map.iteritems() if key not in valid_gen_entity_keys])
+        rows_to_remove = set([row for key, row in current_entity_row_map.iteritems() 
+                                if key not in valid_gen_entity_keys])
         # and remove them:
         for row in sorted(rows_to_remove, reverse=True):
             self._safe_remove_row(row, parent_item)
@@ -597,25 +730,33 @@ class FileModel(QtGui.QStandardItemModel):
         if entities_to_add:
             new_rows = []
             for name, entity in entities_to_add:
-                folder_item = FileModel._FolderItem(name, entity)
+                folder_item = FileModel._FolderModelItem(name, entity)
                 #folder_item.setIcon(QtGui.QIcon(":/tk-multi-workfiles2/folder_512x400.png"))
                 new_rows.append(folder_item)
             parent_item.appendRows(new_rows)
 
-        self._dbg_write(" > Finished Updating group child entity items!")
-
-    def _process_files(self, files, environment, group_item, have_local=True, have_publishes=True):
+    def _process_files(self, files, work_area, group_item, have_local=True, have_publishes=True):
         """
         Update the file items under the specified parent.  This adds/removes/updates file model items
         as needed effectively performing an in-place refresh.  This avoids having to do a complete
         clear/rebuild which would be a much more intrusive user experience.
+
+        This method is typically called when the finder returns some results and will be called multiple
+        times within the scope of a single search.  It may be called with local work files, publishes or
+        both but only ever updates the corresponding file items.  This means it will only remove model
+        items if it is certain that the file/publish no longer exists/should be represented in the model.
+
+        e.g. if updating publishes only, it will never remove file items that only represent work files.
+
+        :param files:           A list of FileItem instances representing the files to process
+        :param work_area:       A WorkArea instance representing the work area the files were found in
+        :param group_item:      The _GroupModelItem the files should be updated for
+        :param have_local:      True if the files list contains details about work files, false otherwise
+        :param have_publishes:  True if the files list contains details about publishes, false otherwise
         """
         if not have_local and not have_publishes:
             # nothing to do then!
             return
-        self._dbg_write("Processing %d found files for item '%s'" % (len(files), group_item.text()))
-
-        self._dbg_write(" > Getting info from existing items...")
 
         # get details about existing items:
         existing_file_item_map = {}
@@ -631,8 +772,6 @@ class FileModel(QtGui.QStandardItemModel):
             if file_item.is_published:
                 prev_publish_file_versions.add(file_version_key)
 
-        self._dbg_write(" > Determining valid files...")
-
         # build a list of existing files that we should keep in the model:
         file_versions_to_keep = set()
         if have_local and not have_publishes:
@@ -642,8 +781,6 @@ class FileModel(QtGui.QStandardItemModel):
             # keep all local that aren't publishes
             file_versions_to_keep = prev_local_file_versions
         valid_files = dict([(k, v[0]) for k, v in existing_file_item_map.iteritems() if k in file_versions_to_keep])
-
-        self._dbg_write(" > Matching files against items...")
 
         # match files against existing items:
         files_to_add = []
@@ -671,10 +808,9 @@ class FileModel(QtGui.QStandardItemModel):
                 request_id = self._sg_data_retriever.request_thumbnail(file_item.thumbnail_path, 
                                                                        self._published_file_type, 
                                                                        file_item.published_file_id,
-                                                                       "image")
+                                                                       "image",
+                                                                       load_image = True)
                 self._pending_thumbnail_requests[request_id] = (group_item.key, file_item.key, file_item.version)
-
-        self._dbg_write(" > Calculating dead items...")
 
         # figure out if any existing items are no longer needed:
         valid_file_versions = set(valid_files.keys())
@@ -691,33 +827,23 @@ class FileModel(QtGui.QStandardItemModel):
                 file_item, model_item = existing_file_item_map[file_version_key]
                 file_item.set_not_published()
 
-        self._dbg_write(" > Updating the cache...")
-
         # update the cache - it's important this is done _before_ adding/updating the model items:
-        self._search_cache.add(environment, valid_files.values())
+        self._search_cache.add(work_area, valid_files.values())
 
         # now lets remove, add and update items as needed:
         # 1. Remove items that are no longer needed:
-        self._dbg_write(" > Removing %d items..." % len(rows_to_remove))
         if rows_to_remove:
-            self._dbg_write(" > Removing %d file items..." % len(rows_to_remove))
             for row in sorted(rows_to_remove, reverse=True):
-                self._dbg_write("   > Removing row %d" % row)
                 self._safe_remove_row(row, group_item)
-                self._dbg_write("     Done!")
 
         # 2. Add new items:
-        self._dbg_write(" > Adding %d items..." % len(files_to_add))
         if files_to_add:
-            self._dbg_write(" > Appending %d new file items..." % len(files_to_add))
             new_items = []
             for file_item in files_to_add:
-                self._dbg_write("   > Appending new file item for %s, v%03d" % (file_item.name, file_item.version))
-                model_item = FileModel._FileItem(file_item, environment)
+                model_item = FileModel._FileModelItem(file_item, work_area)
                 new_items.append(model_item)
                 # and track this item:
-                self._track_current_item(group_item, file_item, model_item)
-                self._dbg_write("     Done!")
+                self._track_current_file_item(model_item, group_item)
             if new_items:
                 group_item.appendRows(new_items)
 
@@ -725,23 +851,31 @@ class FileModel(QtGui.QStandardItemModel):
         self._update_group_file_items(group_item)
 
         # and clean up the file-to-item map:
-        self._dbg_write(" > Cleaning up current item map!")
         self._cleanup_current_item_map()
 
-        self._dbg_write(" > Finished processing found files!")
+    def _track_current_file_item(self, file_model_item, group_model_item):
+        """
+        Track a current _FileModelItem so that it can be found easily later
 
-    def _track_current_item(self, group_item, file_item, model_item):
+        :param file_model_item:     The _FileModelItem to keep track of
+        :param group_model_item:    The parent _GroupModelItem for the file model item (note that it may not have
+                                    been parented yet!)
         """
-        Track a current model item
-        """
-        # self._current_item_map[group_key][file_key][file_version] = weakref.ref(_FileItem)
-        file_map = self._current_item_map.setdefault(group_item.key, {})
+        file_item = file_model_item.file_item
+
+        # self._current_item_map[group_key][file_key][file_version] = weakref.ref(_FileModelItem)
+        file_map = self._current_item_map.setdefault(group_model_item.key, {})
         version_map = file_map.setdefault(file_item.key, {})
-        version_map[file_item.version] = weakref.ref(model_item)
+        version_map[file_item.version] = weakref.ref(file_model_item)
 
     def _find_version_items(self, version_map, file_version):
         """
-        Find current model items for the specified file version in the specified map
+        Find current model items for the specified file version in the specified map.  If file_version is
+        None then all valid model items in the map are returned.
+
+        :param version_map:     A dictionary mapping file version to weakrefs of _FileModelItems
+        :param file_version:    The file version to find all matching items for
+        :returns:               A list of _FileModelItems that were found that match the specified file version
         """
         found_items = []
         if file_version is not None:
@@ -759,7 +893,14 @@ class FileModel(QtGui.QStandardItemModel):
  
     def _find_file_items(self, file_map, file_key, file_version):
         """
-        Find current model items for the specified file key and version in the specified map
+        Find current model items for the specified file key and version in the specified map.  If file key
+        is None then all items that match the version are returned.
+
+        :param file_map:        A dictionary mapping file key to a dictionary of {file version:_FileModelItem}s
+        :param file_key:        The file key to find all matching items for
+        :param file_version:    The file version to find all matching items for
+        :returns:               A list of _FileModelItems that were found that match the specified file key and
+                                version
         """
         found_items = []
         if file_key is not None:
@@ -773,7 +914,14 @@ class FileModel(QtGui.QStandardItemModel):
 
     def _find_current_items(self, group_key, file_key, file_version):
         """
-        Find current model items for the specified group key, file key and file version
+        Find current model items for the specified group key, file key and file version.  If group key
+        is None then all items that match the file key and version are returned.
+
+        :param group_key:       The group key to find all matching items for
+        :param file_key:        The file key to find all matching items for
+        :param file_version:    The file version to find all matching items for
+        :returns:               A list of _FileModelItems that were found that match the specified group key, 
+                                file key and file version
         """
         found_items = []
         if group_key is not None:
@@ -787,7 +935,8 @@ class FileModel(QtGui.QStandardItemModel):
 
     def _cleanup_current_item_map(self):
         """
-        Cleanup the current item map by removing any entries that are no longer valid
+        Cleanup the current item map by removing any entries that are no longer valid, e.g. the weakref
+        to the _FileModelItem is None.
         """
         new_item_map = {}
         for group_key, file_map in self._current_item_map.iteritems():
@@ -805,7 +954,12 @@ class FileModel(QtGui.QStandardItemModel):
 
     def _on_finder_work_area_found(self, search_id, work_area):
         """
-        Called when the finder has found a work area for the search.
+        Slot triggered when the finder has found a work area during the search.  If the work area
+        contains user sandboxes this will emit the available_sandbox_users_changed signal with the
+        list of users.
+
+        :param search_id:    The id of the search that the work area was found for
+        :param work_area:    The WorkArea instance that was found
         """
         if search_id not in self._in_progress_searches:
             # ignore result
@@ -841,30 +995,46 @@ class FileModel(QtGui.QStandardItemModel):
         if have_user_sandboxes:
             self.available_sandbox_users_changed.emit(users_by_id.values())
 
-    def _on_finder_files_found(self, search_id, file_list, environment):
+    def _on_finder_files_found(self, search_id, file_list, work_area):
         """
-        Called when the finder has found some files.
-        """
-        #print "Found %d files for search %s, user '%s'" % (len(file_list), search_id, environment.context.user["name"])
-        self._process_found_files(search_id, file_list, environment, have_local=True, have_publishes=False)
-    
-    def _on_finder_publishes_found(self, search_id, file_list, environment):
-        """
-        Called when the finder has found some publishes
-        """
-        #print "Found %d publishes for search %s, user '%s'" % (len(file_list), search_id, environment.context.user["name"])
-        self._process_found_files(search_id, file_list, environment, have_local=False, have_publishes=True)
+        Slot triggered when the finder has found some work files for a search.
 
-    def _process_found_files(self, search_id, file_list, environment, have_local, have_publishes):
+        :param search_id:    The id of the search that the work files were found for
+        :param file_list:    The list of FileItems that were found
+        :param work_area:    The work area that the files were found in
         """
-        Process files/publishes found by the finder.  This ensures that the group model item
-        exists and then updates the group with files that were found.
+        self._app.log_debug("File Model: Found %d files for search %s, user '%s'" 
+                            % (len(file_list), search_id, work_area.context.user["name"]))
+        self._process_found_files(search_id, file_list, work_area, have_local=True, have_publishes=False)
+
+    def _on_finder_publishes_found(self, search_id, file_list, work_area):
+        """
+        Slot triggered when the finder has found some publishes for a search
+
+        :param search_id:    The id of the search that the publishes were found for
+        :param file_list:    The list of FileItems that were found
+        :param work_area:    The work area that the publishes were found in
+        """
+        self._app.log_debug("File Model: Found %d publishes for search %s, user '%s'" 
+                            % (len(file_list), search_id, work_area.context.user["name"]))
+        self._process_found_files(search_id, file_list, work_area, have_local=False, have_publishes=True)
+
+    def _process_found_files(self, search_id, file_list, work_area, have_local, have_publishes):
+        """
+        Process files/publishes found by the finder.  This ensures that the parent _GroupModelItem for the
+        search entity+user exists and then updates the group with files that were found.
+
+        :param search_id:       The id of the search that the files were found for
+        :param file_list:       The list of FileItems that were found
+        :param work_area:       The work area that the files were found in
+        :param have_local:      True if work files were found, otherwise false
+        :param have_publishes:  True if publishes were found, otherwise false
         """
         if search_id not in self._in_progress_searches:
             # ignore result
             return
         search = self._in_progress_searches[search_id]
-        search_user = environment.context.user
+        search_user = work_area.context.user
 
         # find the group item for this search:
         group_key = (self._gen_entity_key(search.entity), self._gen_entity_key(search_user))
@@ -875,15 +1045,15 @@ class FileModel(QtGui.QStandardItemModel):
                 break
 
         if found_group:
-            # and make sure the environment is up-to-date:
-            group_item.work_area = environment
+            # and make sure the work area is up-to-date:
+            group_item.work_area = work_area
         else:
             if not file_list:
                 # no files so don't bother creating a group!
                 return
 
             # we don't have a group item for this search so lets add one now:
-            group_item = FileModel._GroupItem(search.name, group_key, environment)
+            group_item = FileModel._GroupModelItem(search.name, group_key, work_area)
             # (TODO) need to insert it into the right place in the list!
             self.appendRow(group_item)
 
@@ -891,26 +1061,37 @@ class FileModel(QtGui.QStandardItemModel):
             self._update_group_child_entity_items(group_item, search.child_entities or [])
 
         # process files:
-        self._process_files(file_list, environment, group_item, have_local, have_publishes)
+        self._process_files(file_list, work_area, group_item, have_local, have_publishes)
 
     def _on_finder_search_completed(self, search_id):
         """
-        Called when the finder search is completed
+        Slot triggered when a finder search has completed.  This gets called once all search 
+        tasks have been completed successfully.
+
+        :param search_id:   The id of the search that has completed
         """
-        #print "Search %s completed" % search_id
+        self._app.log_debug("File Model: Search %s completed" % search_id)
         self._process_search_completion(search_id, FileModel.SEARCH_COMPLETED)
 
     def _on_finder_search_failed(self, search_id, error_msg):
         """
-        Called when the finder search fails for some reason!
+        Slot triggered when a finder search fails for some reason!
+
+        :param search_id:   The id of the search that has failed
+        :param error_msg:   The error message reported by the search
         """
-        #print "Search %d failed - %s" % (search_id, error_msg)
+        self._app.log_debug("File Model: Search %d failed - %s" % (search_id, error_msg))
         self._process_search_completion(search_id, FileModel.SEARCH_FAILED, error_msg)
 
     def _process_search_completion(self, search_id, status, error_msg=None):
         """
         Slot triggered when the a search has completely completed.  This is used
         to update the status of the group item and give feedback to the user.
+
+        :param search_id:   The id of the search that has failed
+        :param status:      The status of the completed search - see the search status enumeration
+                            above
+        :param error_msg:   The error message reported by the search
         """
         if search_id not in self._in_progress_searches:
             # ignore result
@@ -937,15 +1118,24 @@ class FileModel(QtGui.QStandardItemModel):
 
     def _on_data_retriever_work_completed(self, uid, request_type, data):
         """
-        Slot triggered when the data-retriever had finished doing some work (downloading thumbnails)
+        Slot triggered when the data-retriever has finished doing some work.  The data retriever is currently
+        just used to download thumbnails for published files so this will be triggered when a new thumbnail
+        has been downloaded and loaded from disk.
+
+        :param uid:             The unique id representing a task being executed by the data retriever
+        :param request_type:    A string representing the type of request that has been completed
+        :param data:            The result from completing the work
         """
         if uid not in self._pending_thumbnail_requests:
+            # the completed work is of no interest to us!
             return
         (group_key, file_key, file_version) = self._pending_thumbnail_requests[uid]
         del(self._pending_thumbnail_requests[uid])
 
+        # extract the thumbnail path and QImage from the data/result
         thumb_path = data.get("thumb_path")
-        if not thumb_path:
+        thumb_image = data.get("image")
+        if not thumb_path or not thumb_image:
             return
 
         # find all file items for this file:
@@ -960,12 +1150,12 @@ class FileModel(QtGui.QStandardItemModel):
                 work_area = group_item.work_area
                 break
 
-        # create a pixmap for the path:
-        thumb = self._build_thumbnail(thumb_path)
+        # prepare a pixmap from the thumbnail image:
+        thumb = self._build_thumbnail(thumb_image)
         if not thumb:
             return
 
-        # and update all files and items with this thumbnail:
+        # update all files and items with this thumbnail:
         for model_item in model_items:
             file_item = model_item.file_item
             file_item.thumbnail = thumb
@@ -975,8 +1165,24 @@ class FileModel(QtGui.QStandardItemModel):
                 # update thumbnails on all file versions:
                 self._update_version_thumbnails(file_item.key, group_key, work_area)
 
+    def _on_data_retriever_work_failed(self, uid, error_msg):
+        """
+        Slot triggered when the data retriever fails to do some work!
+
+        :param uid:         The unique id representing the task that the data retriever failed on
+        :param error_msg:   The error message for the failed task
+        """
+        if uid in self._pending_thumbnail_requests:
+            del(self._pending_thumbnail_requests[uid])
+        self._app.log_debug("File Model: Failed to find thumbnail for id %s: %s" % (uid, error_msg))
+
     def _update_group_file_items(self, group_item):
         """
+        Update all file model items within the specified group model item.  This updates each file's 
+        tooltip, associated versions and thumbnail and ensures that the correct dataChanged signal is 
+        emitted for them.
+
+        :param group_item:  The _GroupModelItem representing the group in the model
         """
         work_area = group_item.work_area
         if not work_area:
@@ -987,6 +1193,7 @@ class FileModel(QtGui.QStandardItemModel):
         for item in self._file_items(group_item):
             file_item = item.file_item
             unique_file_keys.add(file_item.key)
+
         if not unique_file_keys:
             return
 
@@ -1008,6 +1215,14 @@ class FileModel(QtGui.QStandardItemModel):
                 # store the file versions on the file as well:
                 version.versions = file_versions
 
+        # update tooltips on all file items:
+        for file_model_item in self._file_items(group_item):
+            file_item = file_model_item.file_item
+            tooltip = ""
+            if file_item:
+                tooltip = file_item.format_tooltip()
+            file_model_item.setToolTip(tooltip)
+
         # emit data changed signal for all items in the group:
         row_count = group_item.rowCount()
         tl_idx = self.index(0, 0, group_item.index())
@@ -1016,6 +1231,12 @@ class FileModel(QtGui.QStandardItemModel):
 
     def _update_version_thumbnails(self, file_key, group_key, work_area):
         """
+        Update the thumbnail for all versions of a file.  If a file version doesn't have a thumnail set and
+        a previous version did then it will re-use the file from the previous version instead.
+
+        :param file_key:    A unique key that identifies all versions of the same file
+        :param group_key:   A unique key that represents a single file group
+        :param work_area:   A WorkArea instance that all files in this group belong to
         """
         file_versions = self._search_cache.find_file_versions(work_area, file_key) or {}
         thumb = None
@@ -1024,28 +1245,33 @@ class FileModel(QtGui.QStandardItemModel):
                 # this file version should have a thumbnail!
                 thumb = version.thumbnail
             else:
-                # lets use the current thumbnail for this version:
-                version.thumbnail = thumb
+                if version.thumbnail != thumb:
+                    # lets use the current thumbnail for this version:
+                    version.thumbnail = thumb
 
-                # update any model items that are affected:
-                version_items = self._find_current_items(group_key, version.key, version.version)
-                for item in version_items:
-                    item.emitDataChanged()
+                    # emit a data changed signal for any model items that are affected:
+                    version_items = self._find_current_items(group_key, version.key, version.version)
+                    for item in version_items:
+                        item.emitDataChanged()
 
-    def _build_thumbnail(self, thumb_path):
+    def _build_thumbnail(self, thumb_path_or_image):
         """
-        Build a thumbnail from the specified path.
+        Build a thumbnail from the specified path or QImage with uniform dimensions.
+
+        :param thumb_path_or_image: A string representing the path on disk of the thumbnail to load
+                                    or a QImage containing the thumbnail to use.
+        :returns:                   A QPixmap of size 576/374 pixels containing the scaled thumbnail
         """
         # load the thumbnail
-        thumb = QtGui.QPixmap(thumb_path)
+        thumb = QtGui.QPixmap(thumb_path_or_image)
         if not thumb or thumb.isNull():
             return
-        
+
         # make sure the thumbnail is a good size with the correct aspect ratio:
         MAX_WIDTH = 576#96
         MAX_HEIGHT = 374#64
         ASPECT = float(MAX_WIDTH)/MAX_HEIGHT
-        
+
         thumb_sz = thumb.size()
         thumb_aspect = float(thumb_sz.width())/thumb_sz.height()
         max_thumb_sz = QtCore.QSize(MAX_WIDTH, MAX_HEIGHT)
@@ -1075,7 +1301,7 @@ class FileModel(QtGui.QStandardItemModel):
         painter = QtGui.QPainter(thumb_base)
         try:
             painter.setRenderHint(QtGui.QPainter.Antialiasing)
-            
+
             # paint the thumbnail into this base making sure it's centered:
             diff = max_thumb_sz - thumb.size()
             offset = diff/2
@@ -1085,17 +1311,8 @@ class FileModel(QtGui.QStandardItemModel):
             painter.drawRect(0, 0, thumb.width(), thumb.height())
         finally:
             painter.end()
-        
-        return thumb_base
-    
-    def _on_data_retriever_work_failed(self, uid, error_msg):
-        """
-        Slot triggered when the data retriever fails to do some work!
-        """
-        if uid in self._pending_thumbnail_requests:
-            del(self._pending_thumbnail_requests[uid])
-        #print "Failed to find thumbnail for id %s: %s" % (uid, error_msg)        
 
+        return thumb_base
 
 
 

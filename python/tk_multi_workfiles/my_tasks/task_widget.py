@@ -62,7 +62,7 @@ class TaskWidget(QtGui.QWidget):
         else:
             self._ui.task_icon.show()
             self._set_label_image(self._ui.task_icon, icon, 20, 20)
-    
+
     def set_other(self, text):
         """
         """
@@ -76,40 +76,17 @@ class TaskWidget(QtGui.QWidget):
             # make sure it's cleared
             label.setPixmap(QtGui.QPixmap())
             return
-            
+
         pm = image
         if isinstance(pm, QtGui.QIcon):
             # extract the largest pixmap from the icon:
             max_sz = max([(sz.width(), sz.height()) for sz in image.availableSizes()] or [(256, 256)])
             pm = image.pixmap(max_sz[0], max_sz[1])
-            
+
         # and scale the pm if needed:
         scaled_pm = pm
         if pm.width() > w or pm.height() > h:
             scaled_pm = pm.scaled(w, h, QtCore.Qt.KeepAspectRatioByExpanding, QtCore.Qt.SmoothTransformation)
-            
+
         label.setPixmap(scaled_pm)
-        
-            
-            
 
-    def _icon_to_pixmap(self, icon, w, h):
-
-        if not icon:
-            return None
-
-        if icon:
-            max_sz = max([(sz.width(), sz.height()) for sz in icon.availableSizes()] or [(256, 256)])
-            thumb = icon.pixmap(max_sz[0], max_sz[1])
-
-
-    def _build_style_string(self, ui_name, style):
-        """
-        """
-        return "#%s {%s}" % (ui_name, ";".join(["%s: %s" % (key, value) for key, value in style.iteritems()]))
-    
-    
-    
-    
-    
-    

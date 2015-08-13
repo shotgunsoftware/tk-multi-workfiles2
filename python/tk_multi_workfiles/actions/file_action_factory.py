@@ -89,7 +89,7 @@ class FileActionFactory(object):
                 ctx_fields = user_work_area.context.as_template_fields(template)
                 fields.update(ctx_fields)
                 file_key = FileItem.build_file_key(fields, template, user_work_area.version_compare_ignore_fields)
-                current_user_file_versions = file_model.get_file_versions(file_key, user_work_area) or {}
+                current_user_file_versions = file_model.get_cached_file_versions(file_key, user_work_area) or {}
         else:
             # not using sandboxes so the two lists of versions are the same
             current_user_file_versions = file_versions

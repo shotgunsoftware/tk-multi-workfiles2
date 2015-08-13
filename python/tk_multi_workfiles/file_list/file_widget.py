@@ -81,15 +81,14 @@ class FileWidget(QtGui.QWidget):
         """
         self._publish_icon.setVisible(is_publish)
 
-    def set_is_editable(self, editable, not_editable_reason = None):
+    def set_is_editable(self, editable):
         """
         Set if the file this item represents is editable - if not editable 
-        then an additional padlock icon is shown with it's tooltip indicating 
-        the reason why.
+        then an additional padlock icon is shown on the thumbnail for this item
+
+        :param editable:    True if the file is editable, otherwise False
         """
         self._lock_icon.setVisible(not editable)
-        # (AD) - this doesn't actually work as there is no concrete widget to show the tooltip on!
-        self._lock_icon.setToolTip(not_editable_reason or "")
 
     def set_thumbnail(self, thumb):
         """

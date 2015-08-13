@@ -41,17 +41,24 @@ class FileListItemDelegate(GroupedListViewItemDelegate):
 
     def _on_before_paint(self, widget, model_index, style_options):
         """
+        Overriden method called before painting to allow the delegate to set up the
+        widget for the specified model index.
+
+        :param widget:          The widget that will be used to paint with
+        :param model_index:     The QModelIndex representing the index in the model that is
+                                being painted
+        :param style_options:   The style options that should be used to paint the widget for
+                                the index
         """
         if not isinstance(widget, FileWidget):
             # this class only paints FileWidget widgets
             return
-        
+
+        # get the data for the model index:
         label = ""
         icon = None
         is_publish = False
         is_editable = True
-        not_editable_reason = None
-        
         file_item = get_model_data(model_index, FileModel.FILE_ITEM_ROLE)
         if file_item:
             # build label:
@@ -65,8 +72,8 @@ class FileListItemDelegate(GroupedListViewItemDelegate):
             icon = file_item.thumbnail
             is_publish = file_item.is_published
             is_editable = file_item.editable
-            not_editable_reason = file_item.not_editable_reason
         else:
+            # just use the data from the standard display and decoration roles:
             label = get_model_str(model_index)
             icon = get_model_data(model_index, QtCore.Qt.DecorationRole)
 
@@ -75,7 +82,7 @@ class FileListItemDelegate(GroupedListViewItemDelegate):
         widget.set_thumbnail(icon)
         widget.selected = (style_options.state & QtGui.QStyle.State_Selected) == QtGui.QStyle.State_Selected
         widget.set_is_publish(is_publish)
-        widget.set_is_editable(is_editable, not_editable_reason)
+        widget.set_is_editable(is_editable)
 
     def sizeHint(self, style_options, model_index):
         """
