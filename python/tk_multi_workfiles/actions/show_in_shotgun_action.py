@@ -19,12 +19,12 @@ from .file_action import FileAction
 class ShowInShotgunAction(FileAction):
     """
     """
-    def _open_url_for_published_file(self, file):
+    def _open_url_for_published_file(self, file_item):
         """
         """
         # construct the url:
         published_file_entity_type = sgtk.util.get_published_file_entity_type(self._app.sgtk)
-        url = "%s/detail/%s/%d" % (self._app.sgtk.shotgun.base_url, published_file_entity_type, file.published_file_id)
+        url = "%s/detail/%s/%d" % (self._app.sgtk.shotgun.base_url, published_file_entity_type, file_item.published_file_id)
         
         # and open it:
         QtGui.QDesktopServices.openUrl(QtCore.QUrl(url))
@@ -33,8 +33,8 @@ class ShowInShotgunAction(FileAction):
 class ShowPublishInShotgunAction(ShowInShotgunAction):
     """
     """
-    def __init__(self, file, file_versions, environment):
-        ShowInShotgunAction.__init__(self, "Show Publish in Shotgun", file, file_versions, environment)
+    def __init__(self, file_item, environment):
+        ShowInShotgunAction.__init__(self, "Show Publish in Shotgun", file_item, environment)
         
     def execute(self, parent_ui):
         """
@@ -47,15 +47,15 @@ class ShowPublishInShotgunAction(ShowInShotgunAction):
 class ShowLatestPublishInShotgunAction(ShowInShotgunAction):
     """
     """
-    def __init__(self, file, file_versions, environment):
-        ShowInShotgunAction.__init__(self, "Show Latest Publish in Shotgun", file, file_versions, environment)
+    def __init__(self, file_item, environment):
+        ShowInShotgunAction.__init__(self, "Show Latest Publish in Shotgun", file_item, environment)
         
     def execute(self, parent_ui):
         """
         """
-        publish_versions = [v for v, f in self.file_versions.iteritems() if f.is_published]
+        publish_versions = [v for v, f in self.file.versions.iteritems() if f.is_published]
         if not publish_versions:
             return
         
         max_publish_version = max(publish_versions)
-        self._open_url_for_published_file(self.file_versions[max_publish_version])
+        self._open_url_for_published_file(self.file.versions[max_publish_version])

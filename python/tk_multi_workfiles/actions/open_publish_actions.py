@@ -21,19 +21,19 @@ from ..user_cache import g_user_cache
 class OpenPublishAction(OpenFileAction):
     """
     """
-    def __init__(self, file, file_versions, environment):
+    def __init__(self, file_item, environment):
         """
         """
-        all_versions = [v for v, f in file_versions.iteritems()]
+        all_versions = [v for v, f in file_item.versions.iteritems()]
         max_version = max(all_versions) if all_versions else 0
         
         label = ""
-        if file.version == max_version:
+        if file_item.version == max_version:
             label = "Open from the Publish Area"
         else:
-            label = "Open v%03d from the Publish Area" % file.version
+            label = "Open v%03d from the Publish Area" % file_item.version
         
-        OpenFileAction.__init__(self, label, file, file_versions, environment)
+        OpenFileAction.__init__(self, label, file_item, environment)
     
     def execute(self, parent_ui):
         """
@@ -51,10 +51,10 @@ class OpenPublishAction(OpenFileAction):
 class ContinueFromPublishAction(ContinueFromFileAction):
     """
     """
-    def __init__(self, file, file_versions, environment):
+    def __init__(self, file_item, environment, max_version):
         """
         """
-        ContinueFromFileAction.__init__(self, "Continue Working From Publish", file, file_versions, environment)
+        ContinueFromFileAction.__init__(self, "Continue Working From Publish", file_item, environment, max_version)
 
     def execute(self, parent_ui):
         """
@@ -71,8 +71,8 @@ class ContinueFromPublishAction(ContinueFromFileAction):
 class CopyAndOpenPublishInCurrentWorkAreaAction(CopyAndOpenInCurrentWorkAreaAction):
     """
     """
-    def __init__(self, file, file_versions, environment):
-        CopyAndOpenInCurrentWorkAreaAction.__init__(self, "Open Publish in Current Work Area...", file, file_versions, environment)
+    def __init__(self, file_item, environment):
+        CopyAndOpenInCurrentWorkAreaAction.__init__(self, "Open Publish in Current Work Area...", file_item, environment)
 
     def execute(self, parent_ui):
         """

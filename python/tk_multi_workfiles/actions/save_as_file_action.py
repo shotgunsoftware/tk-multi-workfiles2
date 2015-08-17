@@ -22,7 +22,7 @@ class SaveAsFileAction(FileAction):
     def __init__(self, file_item, environment):
         """
         """
-        FileAction.__init__(self, "Save As", file_item, None, environment)
+        FileAction.__init__(self, "Save As", file_item, environment)
 
     def execute(self, parent_ui):
         """

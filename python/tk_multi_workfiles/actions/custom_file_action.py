@@ -47,19 +47,19 @@ class CustomFileAction(FileAction):
         return work_file_versions, publish_versions
 
     @staticmethod
-    def get_action_details(file, file_versions, environment, workfiles_visible, publishes_visible):
+    def get_action_details(file_item, environment, workfiles_visible, publishes_visible):
         """
         """
         app = sgtk.platform.current_bundle()
         
         # build hook-friendly data:
-        work_file, publish = CustomFileAction._prepare_file_data_for_hook([file])
+        work_file, publish = CustomFileAction._prepare_file_data_for_hook([file_item])
         hook_file = None
         if workfiles_visible:
             hook_file = work_file[0] if work_file else None
         if not hook_file and publishes_visible:
             hook_file = publish[0] if publish else None
-        work_versions, publish_versions = CustomFileAction._prepare_file_data_for_hook(file_versions.values())
+        work_versions, publish_versions = CustomFileAction._prepare_file_data_for_hook(file_item.versions.values())
 
         # execute hook method to get actions:
         action_info = []
@@ -76,11 +76,11 @@ class CustomFileAction(FileAction):
         return action_info
         
     
-    def __init__(self, name, label, file, file_versions, environment, workfiles_visible, publishes_visible):
+    def __init__(self, name, label, file_item, environment, workfiles_visible, publishes_visible):
         """
         Construction
         """
-        FileAction.__init__(self, label, file, file_versions, environment)
+        FileAction.__init__(self, label, file_item, environment)
         self._name = name
         self._workfiles_visible = workfiles_visible
         self._publishes_visible = publishes_visible
@@ -98,7 +98,7 @@ class CustomFileAction(FileAction):
             hook_file = work_file[0] if work_file else None
         if not hook_file and self._publishes_visible:
             hook_file = publish[0] if publish else None
-        work_versions, publish_versions = CustomFileAction._prepare_file_data_for_hook(self.file_versions.values())
+        work_versions, publish_versions = CustomFileAction._prepare_file_data_for_hook(self.file.versions.values())
 
         # execute hook method to execute action:
         result = False

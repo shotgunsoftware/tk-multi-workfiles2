@@ -9,6 +9,8 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
+Factory class that constructs the actions that are available for a file
+in the File Open dialog.
 """
 import sgtk
 
@@ -38,12 +40,22 @@ from ..user_cache import g_user_cache
 
 class FileActionFactory(object):
     """
+    File action factory class implementation
     """
-    
-    def get_actions(self, file, work_area, file_model, workfiles_visible=True, publishes_visible=True):
+
+    def get_actions(self, file_item, work_area, file_model, workfiles_visible=True, publishes_visible=True):
         """
+        Get the actions that are available for the specified file item in the specified work area.
+
+        :param file_item:           The FileItem instance to get the avvailable actions for
+        :param work_area:           The WorkArea representing the work area the file belongs to
+        :param file_model:          A FileModel containing the cached results of any file searches that have 
+                                    already been executed
+        :param workfiles_visible:   True if workfiles are visisble in the UI, False otherwise
+        :param publishes_visible:   True if publishes are visible in the UI, False otherwise
+        :returns:                   List of FileAction instances that can be executed for the file
         """
-        if not file or not work_area or not file_model:
+        if not file_item or not work_area or not file_model:
             return []
 
         app = sgtk.platform.current_bundle()
@@ -67,21 +79,20 @@ class FileActionFactory(object):
             can_copy_to_work_area = current_env.work_template is not None
             # (AD) TODO - it's possible the work template for the current work area has different requirements than
             # the source work area (e.g. it may require a name where the source work template doesn't!)  This should 
-            # probably check that file.path is translatable to the current work area (contains all the required keys)
+            # probably check that file_item.path is translatable to the current work area (contains all the required keys)
             # in addition to the simple check it's currently doing.
 
         # get the list of file versions for the file:
-        file_versions = file.versions
         current_user_file_versions = {}
         if in_other_users_sandbox:
             # build a file key by extracting fields from the path:
             template = None
             path = None
-            if file.path and user_work_area.work_area_contains_user_sandboxes:
-                path = file.path
+            if file_item.path and user_work_area.work_area_contains_user_sandboxes:
+                path = file_item.path
                 template = user_work_area.work_template
-            elif file.publish_path and user_work_area.publish_area_contains_user_sandboxes:
-                path = file.publish_path
+            elif file_item.publish_path and user_work_area.publish_area_contains_user_sandboxes:
+                path = file_item.publish_path
                 template = user_work_area.publish_template
 
             if template and path:
@@ -92,56 +103,55 @@ class FileActionFactory(object):
                 current_user_file_versions = file_model.get_cached_file_versions(file_key, user_work_area) or {}
         else:
             # not using sandboxes so the two lists of versions are the same
-            current_user_file_versions = file_versions
+            current_user_file_versions = file_item.versions
+        max_current_user_file_version = max(current_user_file_versions.iterkeys()) if current_user_file_versions else 0
 
         actions = []
 
         # always add the interactive 'open' action.  This is the
         # default/generic open action that gets run whenever someone
         # double-clicks on a file or just hits the 'Open' button
-        actions.append(InteractiveOpenAction(file, file_versions, work_area, workfiles_visible, publishes_visible))
+        actions.append(InteractiveOpenAction(file_item, work_area, workfiles_visible, publishes_visible))
 
-        #if workfiles_visible and file.is_local:
-        if file.is_local:
+        if file_item.is_local:
             # all actions available when selection is a work file
 
             # ------------------------------------------------------------------
             actions.append(SeparatorAction())
 
             # add the general open action - this just opens the file in-place.
-            actions.append(OpenWorkfileAction(file, file_versions, work_area))
+            actions.append(OpenWorkfileAction(file_item, work_area))
 
             if in_other_users_sandbox:
                 # file is in another user sandbox so add appropriate actions:
-                actions.append(ContinueFromWorkFileAction(file, current_user_file_versions, work_area))
+                actions.append(ContinueFromWorkFileAction(file_item, work_area, max_current_user_file_version))
 
                 if change_work_area and can_copy_to_work_area:
-                    actions.append(CopyAndOpenFileInCurrentWorkAreaAction(file, current_user_file_versions, work_area))
+                    actions.append(CopyAndOpenFileInCurrentWorkAreaAction(file_item, work_area))
 
             else:
                 # file isn't in a different sandbox so add regular open actions:
-                if file.editable:
+                if file_item.editable:
                     # determine if this version is the latest:
-                    all_versions = [v for v, f in file_versions.iteritems()]
-                    max_version = max(all_versions) if all_versions else 0
-                    if file.version != max_version:
-                        actions.append(ContinueFromWorkFileAction(file, file_versions, work_area))
+                    max_version = max(file_item.versions.iterkeys()) if file_item.versions else 0
+                    if file_item.version != max_version:
+                        actions.append(ContinueFromWorkFileAction(file_item, work_area))
 
                 if change_work_area and can_copy_to_work_area:
-                    actions.append(CopyAndOpenFileInCurrentWorkAreaAction(file, file_versions, work_area))
+                    actions.append(CopyAndOpenFileInCurrentWorkAreaAction(file_item, work_area))
 
-        if file.is_published:
+        if file_item.is_published:
             # all actions available when selection is a work file:
 
             # ------------------------------------------------------------------
             actions.append(SeparatorAction())
-            actions.append(OpenPublishAction(file, file_versions, work_area))
-            if file.path:
-                # file has a local path so it's possible to carry copy it to the local work area! 
-                actions.append(ContinueFromPublishAction(file, current_user_file_versions, work_area))
+            actions.append(OpenPublishAction(file_item, work_area))
+            if file_item.path:
+                # file has a local path so it's possible to carry copy it to the local work area!
+                actions.append(ContinueFromPublishAction(file_item, work_area, max_current_user_file_version))
 
                 if change_work_area and can_copy_to_work_area:
-                    actions.append(CopyAndOpenPublishInCurrentWorkAreaAction(file, current_user_file_versions, work_area))
+                    actions.append(CopyAndOpenPublishInCurrentWorkAreaAction(file_item, work_area))
 
         if not in_other_users_sandbox:
             if NewFileAction.can_do_new_file(work_area):
@@ -149,40 +159,39 @@ class FileActionFactory(object):
 
                 # ------------------------------------------------------------------
                 actions.append(SeparatorAction())
-                actions.append(NewFileAction(file, file_versions, work_area))
+                actions.append(NewFileAction(file_item, work_area))
 
         # query for any custom actions:
-        custom_actions = CustomFileAction.get_action_details(file, file_versions, work_area, 
-                                                          workfiles_visible, publishes_visible)
+        custom_actions = CustomFileAction.get_action_details(file_item, work_area, workfiles_visible, publishes_visible)
         if custom_actions:
             # ------------------------------------------------------------------
             actions.append(SeparatorAction())
         for action_dict in custom_actions:
             name = action_dict.get("name")
             label = action_dict.get("caption") or name
-            custom_action = CustomFileAction(name, label, file, file_versions, work_area, 
+            custom_action = CustomFileAction(name, label, file_item, work_area, 
                                              workfiles_visible, publishes_visible)
             actions.append(custom_action)
 
         # finally add the 'show in' actions:
         show_in_actions = []
-        if file.is_local:
-            show_in_actions.append(ShowWorkFileInFileSystemAction(file, file_versions, work_area))
+        if file_item.is_local:
+            show_in_actions.append(ShowWorkFileInFileSystemAction(file_item, work_area))
         else:
             if work_area.work_area_template:
-                show_in_actions.append(ShowWorkAreaInFileSystemAction(file, file_versions, work_area))
+                show_in_actions.append(ShowWorkAreaInFileSystemAction(file_item, work_area))
 
-        if file.is_published:
-            show_in_actions.append(ShowPublishInFileSystemAction(file, file_versions, work_area))
-            show_in_actions.append(ShowPublishInShotgunAction(file, file_versions, work_area))
+        if file_item.is_published:
+            show_in_actions.append(ShowPublishInFileSystemAction(file_item, work_area))
+            show_in_actions.append(ShowPublishInShotgunAction(file_item, work_area))
         else:
             if work_area.publish_area_template:
-                show_in_actions.append(ShowPublishAreaInFileSystemAction(file, file_versions, work_area))            
+                show_in_actions.append(ShowPublishAreaInFileSystemAction(file_item, work_area))
 
             # see if we have any publishes:
-            publish_versions = [v for v, f in file_versions.iteritems() if f.is_published]
+            publish_versions = [v for v, f in file_item.versions.iteritems() if f.is_published]
             if publish_versions:
-                show_in_actions.append(ShowLatestPublishInShotgunAction(file, file_versions, work_area))
+                show_in_actions.append(ShowLatestPublishInShotgunAction(file_item, work_area))
 
         if show_in_actions:
             # ------------------------------------------------------------------

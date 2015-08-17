@@ -21,10 +21,10 @@ from ..user_cache import g_user_cache
 class OpenWorkfileAction(OpenFileAction):
     """
     """
-    def __init__(self, file, file_versions, environment):
+    def __init__(self, file_item, environment):
         """
         """
-        all_versions = [v for v, f in file_versions.iteritems()]
+        all_versions = [v for v, f in file_item.versions.iteritems()]
         max_version = max(all_versions) if all_versions else 0
 
         sandbox_user = None
@@ -34,16 +34,16 @@ class OpenWorkfileAction(OpenFileAction):
             sandbox_user = environment.context.user.get("name", "Unknown").split(" ")[0]
 
         label = ""
-        if file.version == max_version:
+        if file_item.version == max_version:
             label = "Open"
         else:
-            label = "Open v%03d" % file.version
-        if not file.editable:
+            label = "Open v%03d" % file_item.version
+        if not file_item.editable:
             label = "%s (Read-only)" % label
         if sandbox_user is not None:
             label = "%s from %s's Sandbox" % (label, sandbox_user)
             
-        OpenFileAction.__init__(self, label, file, file_versions, environment)
+        OpenFileAction.__init__(self, label, file_item, environment)
         
     def execute(self, parent_ui):
         """
@@ -63,7 +63,7 @@ class OpenWorkfileAction(OpenFileAction):
 class ContinueFromWorkFileAction(ContinueFromFileAction):
     """
     """
-    def __init__(self, file, file_versions, environment):
+    def __init__(self, file_item, environment, max_version):
         """
         """
         label = ""
@@ -75,7 +75,7 @@ class ContinueFromWorkFileAction(ContinueFromFileAction):
         else:
             label = "Continue Working"
 
-        ContinueFromFileAction.__init__(self, label, file, file_versions, environment)
+        ContinueFromFileAction.__init__(self, label, file_item, environment, max_version)
 
     def execute(self, parent_ui):
         """
@@ -94,10 +94,10 @@ class CopyAndOpenFileInCurrentWorkAreaAction(CopyAndOpenInCurrentWorkAreaAction)
     Action that copies a file to the current work area as the next available version
     and opens it from there
     """
-    def __init__(self, file, file_versions, environment):
+    def __init__(self, file_item, environment):
         """
         """
-        CopyAndOpenInCurrentWorkAreaAction.__init__(self, "Open in Current Work Area...", file, file_versions, environment)
+        CopyAndOpenInCurrentWorkAreaAction.__init__(self, "Open in Current Work Area...", file_item, environment)
 
     def execute(self, parent_ui):
         """

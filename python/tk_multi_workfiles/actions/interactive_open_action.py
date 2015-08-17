@@ -21,10 +21,10 @@ from ..user_cache import g_user_cache
 
 class InteractiveOpenAction(OpenFileAction):
 
-    def __init__(self, file, file_versions, environment, workfiles_visible, publishes_visible):
+    def __init__(self, file_item, environment, workfiles_visible, publishes_visible):
         """
         """
-        OpenFileAction.__init__(self, "Open", file, file_versions, environment)
+        OpenFileAction.__init__(self, "Open", file_item, environment)
         
         self._workfiles_visible = workfiles_visible
         self._publishes_visible = publishes_visible
@@ -40,8 +40,8 @@ class InteractiveOpenAction(OpenFileAction):
         #print "Opening file '%s' which is in user sandbox '%s'" % (self.file.path, self.environment.context.user["name"])
 
         # get information about the max local & publish versions:
-        local_versions = [v for v, f in self.file_versions.iteritems() if f.is_local]
-        publish_versions = [v for v, f in self.file_versions.iteritems() if f.is_published]
+        local_versions = [v for v, f in self.file.versions.iteritems() if f.is_local]
+        publish_versions = [v for v, f in self.file.versions.iteritems() if f.is_published]
         max_local_version = max(local_versions) if local_versions else None
         max_publish_version = max(publish_versions) if publish_versions else None
         max_version = max(max_local_version, max_publish_version)
@@ -56,7 +56,7 @@ class InteractiveOpenAction(OpenFileAction):
                 # opening the most recent version of a publish!
                 latest_work_file = None
                 if max_local_version != None:
-                    latest_work_file = self.file_versions[max_local_version]
+                    latest_work_file = self.file.versions[max_local_version]
                 return self._open_publish_with_check(self.file, latest_work_file, self.environment, max_version+1, parent_ui)        
 
         elif (self._workfiles_visible and self.file.is_local):
@@ -71,7 +71,7 @@ class InteractiveOpenAction(OpenFileAction):
                 # opening the most recent version of a work file!
                 latest_publish = None
                 if max_publish_version != None:
-                    latest_publish = self.file_versions[max_publish_version]
+                    latest_publish = self.file.versions[max_publish_version]
                 return self._open_workfile_with_check(self.file, latest_publish, self.environment, max_version+1, parent_ui)
         else:
             # this shouldn't happen and is in here primarily for debug purposes!

@@ -59,8 +59,8 @@ class ShowInFileSystemAction(FileAction):
 class ShowPublishInFileSystemAction(ShowInFileSystemAction):
     """
     """
-    def __init__(self, file, file_versions, environment):
-        ShowInFileSystemAction.__init__(self, "Show Publish In File System", file, file_versions, environment)
+    def __init__(self, file_item, environment):
+        ShowInFileSystemAction.__init__(self, "Show Publish In File System", file_item, environment)
         
     def execute(self, parent_ui):
         """
@@ -71,8 +71,8 @@ class ShowPublishInFileSystemAction(ShowInFileSystemAction):
 class ShowWorkFileInFileSystemAction(ShowInFileSystemAction):
     """
     """
-    def __init__(self, file, file_versions, environment):
-        ShowInFileSystemAction.__init__(self, "Show In File System", file, file_versions, environment)
+    def __init__(self, file_item, environment):
+        ShowInFileSystemAction.__init__(self, "Show In File System", file_item, environment)
         
     def execute(self, parent_ui):
         """
@@ -116,8 +116,8 @@ class ShowAreaInFileSystemAction(ShowInFileSystemAction):
 class ShowWorkAreaInFileSystemAction(ShowAreaInFileSystemAction):
     """
     """
-    def __init__(self, file, file_versions, environment):
-        ShowAreaInFileSystemAction.__init__(self, "Show Work Area In File System", file, file_versions, environment)
+    def __init__(self, file_item, environment):
+        ShowAreaInFileSystemAction.__init__(self, "Show Work Area In File System", file_item, environment)
         
     def execute(self, parent_ui):
         """
@@ -133,8 +133,8 @@ class ShowWorkAreaInFileSystemAction(ShowAreaInFileSystemAction):
 class ShowPublishAreaInFileSystemAction(ShowAreaInFileSystemAction):
     """
     """
-    def __init__(self, file, file_versions, environment):
-        ShowAreaInFileSystemAction.__init__(self, "Show Publish Area In File System", file, file_versions, environment)
+    def __init__(self, file_item, environment):
+        ShowAreaInFileSystemAction.__init__(self, "Show Publish Area In File System", file_item, environment)
 
     def execute(self, parent_ui):
         """

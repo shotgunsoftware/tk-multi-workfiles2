@@ -35,10 +35,10 @@ class NewFileAction(FileAction):
                       and env.work_area_template != None)
         return can_do_new
 
-    def __init__(self, file, file_versions, environment):
+    def __init__(self, file_item, environment):
         """
         """
-        FileAction.__init__(self, "New File", file, file_versions, environment)
+        FileAction.__init__(self, "New File", file_item, environment)
 
     def execute(self, parent_ui):
         """
