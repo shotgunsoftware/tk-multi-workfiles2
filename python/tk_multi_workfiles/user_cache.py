@@ -135,14 +135,19 @@ class UserCache(Threaded):
         :param login_name:  The login name of the user to find
         :returns:           A Shotgun entity dictionary for the HumanUser entity found
         """
-        # first look to see if we've already found it:
+        # first look to see if we've already found the user:
         sg_user = self._get_user_for_login(login_name)
         if not sg_user:
             # have to do a Shotgun lookup:
             try:
                 sg_user = self._app.shotgun.find_one("HumanUser", [["login", "is", login_name]], self._sg_fields)
-            except Exception:
-                sg_user = {}
+                # handle sg_user being None
+                sg_user = sg_user or {}
+            except Exception, e:
+                # this isn't critical so just log as debug
+                self._app.log_debug("Failed to retrieve Shotgun user for login '%s': %s" % (login_name, e))
+
+            # cache the sg user so we don't have to look for it again
             self._cache_user(login_name, sg_user.get("id"), sg_user)
 
         return sg_user
