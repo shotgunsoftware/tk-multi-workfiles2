@@ -1003,7 +1003,8 @@ class FileModel(QtGui.QStandardItemModel):
         :param work_area:    The work area that the files were found in
         """
         self._app.log_debug("File Model: Found %d files for search %s, user '%s'" 
-                            % (len(file_list), search_id, work_area.context.user["name"]))
+                            % (len(file_list), search_id, 
+                               work_area.context.user["name"] if work_area.context.user else "Unknown"))
         self._process_found_files(search_id, file_list, work_area, have_local=True, have_publishes=False)
 
     def _on_finder_publishes_found(self, search_id, file_list, work_area):
@@ -1015,7 +1016,8 @@ class FileModel(QtGui.QStandardItemModel):
         :param work_area:    The work area that the publishes were found in
         """
         self._app.log_debug("File Model: Found %d publishes for search %s, user '%s'" 
-                            % (len(file_list), search_id, work_area.context.user["name"]))
+                            % (len(file_list), search_id, 
+                               work_area.context.user["name"] if work_area.context.user else "Unknown"))
         self._process_found_files(search_id, file_list, work_area, have_local=False, have_publishes=True)
 
     def _process_found_files(self, search_id, file_list, work_area, have_local, have_publishes):
