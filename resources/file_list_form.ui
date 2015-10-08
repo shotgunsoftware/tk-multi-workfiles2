@@ -30,123 +30,13 @@
     <number>2</number>
    </property>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,0,1,0">
+    <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,1,0">
      <property name="leftMargin">
       <number>1</number>
      </property>
      <property name="rightMargin">
       <number>1</number>
      </property>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <property name="spacing">
-        <number>0</number>
-       </property>
-       <item>
-        <widget class="QRadioButton" name="grid_radio_btn">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>26</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="toolTip">
-          <string>List view</string>
-         </property>
-         <property name="layoutDirection">
-          <enum>Qt::RightToLeft</enum>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">#grid_radio_btn::indicator {
-width: 26;
-height: 24;
-}
-
-#grid_radio_btn::indicator::unchecked {
-	image: url(:/tk-multi-workfiles2/grid_view_unchecked.png);
-}
-
-#grid_radio_btn::indicator::unchecked::hover {
-	image: url(:/tk-multi-workfiles2/grid_view_unchecked_hover.png);
-}
-
-#grid_radio_btn::indicator::checked {
-    image: url(:/tk-multi-workfiles2/grid_view_checked.png);
-}
-
-/*#grid_radio_btn::indicator::checked::hover {
-    image: url(:/tk-multi-workfiles2/grid_view_checked_hover.png);
-}*/</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>20</width>
-           <height>20</height>
-          </size>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QRadioButton" name="details_radio_btn">
-         <property name="enabled">
-          <bool>true</bool>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>26</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="toolTip">
-          <string>Details view</string>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">#details_radio_btn::indicator {
-width: 26;
-height: 24;
-}
-
-#details_radio_btn::indicator::unchecked {
-	image: url(:/tk-multi-workfiles2/details_view_unchecked.png);
-}
-
-#details_radio_btn::indicator::unchecked::hover {
-	image: url(:/tk-multi-workfiles2/details_view_unchecked_hover.png);
-}
-
-#details_radio_btn::indicator::checked {
-    image: url(:/tk-multi-workfiles2/details_view_checked.png);
-}
-
-/*#details_radio_btn::indicator::checked::hover {
-    image: url(:/tk-multi-workfiles2/details_view_checked_hover.png);
-}*/</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>20</width>
-           <height>20</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
      <item>
       <widget class="UserFilterButton" name="user_filter_btn">
        <property name="styleSheet">

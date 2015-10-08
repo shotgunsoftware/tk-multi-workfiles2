@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'file_list_form.ui'
 #
-#      by: pyside-uic 0.2.15 running on PySide 1.2.1
+#      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -19,66 +19,6 @@ class Ui_FileListForm(object):
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
         self.horizontalLayout_3.setContentsMargins(1, -1, 1, -1)
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.horizontalLayout = QtGui.QHBoxLayout()
-        self.horizontalLayout.setSpacing(0)
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.grid_radio_btn = QtGui.QRadioButton(FileListForm)
-        self.grid_radio_btn.setMinimumSize(QtCore.QSize(0, 0))
-        self.grid_radio_btn.setMaximumSize(QtCore.QSize(26, 16777215))
-        self.grid_radio_btn.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.grid_radio_btn.setStyleSheet("#grid_radio_btn::indicator {\n"
-"width: 26;\n"
-"height: 24;\n"
-"}\n"
-"\n"
-"#grid_radio_btn::indicator::unchecked {\n"
-"    image: url(:/tk-multi-workfiles2/grid_view_unchecked.png);\n"
-"}\n"
-"\n"
-"#grid_radio_btn::indicator::unchecked::hover {\n"
-"    image: url(:/tk-multi-workfiles2/grid_view_unchecked_hover.png);\n"
-"}\n"
-"\n"
-"#grid_radio_btn::indicator::checked {\n"
-"    image: url(:/tk-multi-workfiles2/grid_view_checked.png);\n"
-"}\n"
-"\n"
-"/*#grid_radio_btn::indicator::checked::hover {\n"
-"    image: url(:/tk-multi-workfiles2/grid_view_checked_hover.png);\n"
-"}*/")
-        self.grid_radio_btn.setText("")
-        self.grid_radio_btn.setIconSize(QtCore.QSize(20, 20))
-        self.grid_radio_btn.setChecked(True)
-        self.grid_radio_btn.setObjectName("grid_radio_btn")
-        self.horizontalLayout.addWidget(self.grid_radio_btn)
-        self.details_radio_btn = QtGui.QRadioButton(FileListForm)
-        self.details_radio_btn.setEnabled(True)
-        self.details_radio_btn.setMaximumSize(QtCore.QSize(26, 16777215))
-        self.details_radio_btn.setStyleSheet("#details_radio_btn::indicator {\n"
-"width: 26;\n"
-"height: 24;\n"
-"}\n"
-"\n"
-"#details_radio_btn::indicator::unchecked {\n"
-"    image: url(:/tk-multi-workfiles2/details_view_unchecked.png);\n"
-"}\n"
-"\n"
-"#details_radio_btn::indicator::unchecked::hover {\n"
-"    image: url(:/tk-multi-workfiles2/details_view_unchecked_hover.png);\n"
-"}\n"
-"\n"
-"#details_radio_btn::indicator::checked {\n"
-"    image: url(:/tk-multi-workfiles2/details_view_checked.png);\n"
-"}\n"
-"\n"
-"/*#details_radio_btn::indicator::checked::hover {\n"
-"    image: url(:/tk-multi-workfiles2/details_view_checked_hover.png);\n"
-"}*/")
-        self.details_radio_btn.setText("")
-        self.details_radio_btn.setIconSize(QtCore.QSize(20, 20))
-        self.details_radio_btn.setObjectName("details_radio_btn")
-        self.horizontalLayout.addWidget(self.details_radio_btn)
-        self.horizontalLayout_3.addLayout(self.horizontalLayout)
         self.user_filter_btn = UserFilterButton(FileListForm)
         self.user_filter_btn.setStyleSheet("#user_filter_btn {\n"
 "    width: 40;\n"
@@ -139,7 +79,7 @@ class Ui_FileListForm(object):
 "}")
         self.search_ctrl.setObjectName("search_ctrl")
         self.horizontalLayout_3.addWidget(self.search_ctrl)
-        self.horizontalLayout_3.setStretch(3, 1)
+        self.horizontalLayout_3.setStretch(2, 1)
         self.verticalLayout.addLayout(self.horizontalLayout_3)
         self.view_pages = QtGui.QStackedWidget(FileListForm)
         self.view_pages.setObjectName("view_pages")
@@ -171,8 +111,6 @@ class Ui_FileListForm(object):
 
     def retranslateUi(self, FileListForm):
         FileListForm.setWindowTitle(QtGui.QApplication.translate("FileListForm", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.grid_radio_btn.setToolTip(QtGui.QApplication.translate("FileListForm", "List view", None, QtGui.QApplication.UnicodeUTF8))
-        self.details_radio_btn.setToolTip(QtGui.QApplication.translate("FileListForm", "Details view", None, QtGui.QApplication.UnicodeUTF8))
         self.user_filter_btn.setProperty("user_style", QtGui.QApplication.translate("FileListForm", "current", None, QtGui.QApplication.UnicodeUTF8))
         self.all_versions_cb.setText(QtGui.QApplication.translate("FileListForm", "All Versions", None, QtGui.QApplication.UnicodeUTF8))
 
