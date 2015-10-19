@@ -72,10 +72,6 @@ class FileListForm(QtGui.QWidget):
         self._ui = Ui_FileListForm()
         self._ui.setupUi(self)
 
-        # (AD) - temp disable switching views until we've actually implemented the other view!
-        self._ui.details_radio_btn.setEnabled(False)
-        self._ui.details_radio_btn.toggled.connect(self._on_view_toggled)
-
         self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
         self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
 
@@ -374,20 +370,6 @@ class FileListForm(QtGui.QWidget):
 
         # emit a more specific signal:
         self.file_context_menu_requested.emit(file_item, env_details, pnt)
-
-    def _on_view_toggled(self, checked):
-        """
-        Signal triggered when the view radio-button is toggled.  Changes the current view
-        to the respective one.
-
-        :param checked: Ignored by this method!
-        """
-        if self._ui.details_radio_btn.isChecked():
-            # show the details view:
-            self._ui.view_pages.setCurrentWidget(self._ui.details_page)
-        else:
-            # show the grouped list view:
-            self._ui.view_pages.setCurrentWidget(self._ui.list_page)
 
     def _get_selected_item(self):
         """
