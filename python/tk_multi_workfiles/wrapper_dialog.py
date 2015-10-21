@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Shotgun Software Inc.
+# Copyright (c) 2015 Shotgun Software Inc.
 # 
 # CONFIDENTIAL AND PROPRIETARY
 # 
@@ -10,20 +10,20 @@
 
 import sys
 
-import tank
-from tank.platform.qt import QtCore, QtGui 
+import sgtk
+from sgtk.platform.qt import QtCore, QtGui 
 
 class WrapperDialog(QtGui.QDialog):
 
     @staticmethod
-    def show_modal(widget, title=None, fixed_size=None, parent=None):
-        dlg = WrapperDialog(widget, title, fixed_size, parent)
+    def show_modal(widget, parent, title=None, fixed_size=None):
+        dlg = WrapperDialog(widget, parent, title, fixed_size)
         try:
             return dlg.exec_()
         finally:
             dlg.clean_up()
     
-    def __init__(self, widget, title=None, fixed_size=None, parent=None):
+    def __init__(self, widget, parent, title=None, fixed_size=None):
         QtGui.QDialog.__init__(self, parent)
         
         self._widget = widget
@@ -41,7 +41,7 @@ class WrapperDialog(QtGui.QDialog):
     
     def clean_up(self):
         # ensure that dialog is safey cleaned up when running nuke on a Mac
-        if sys.platform == "darwin" and tank.platform.current_engine().name == "tk-nuke":
+        if sys.platform == "darwin" and sgtk.platform.current_engine().name == "tk-nuke":
             self.deleteLater()
     
     def __enter__(self):

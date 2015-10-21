@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>FileWidget</class>
+ <widget class="QWidget" name="FileWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>291</width>
+    <height>76</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true"/>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout" stretch="0">
+   <property name="margin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QFrame" name="background">
+     <property name="styleSheet">
+      <string notr="true">#background {
+border-style: solid;
+border-width: 2px;
+border-radius: 2px;
+}
+
+#background[selected=false] {
+	background-color: rgb(0,0,0,0);
+	border-color: rgb(0,0,0,0);
+}
+
+#background[selected=true] {
+/*
+	background-color: rgb(135, 166, 185, 50);
+	border-color: rgb(135, 166, 185);
+*/
+	background-color: rgb(0, 178, 236, 30);
+	border-color: rgb(0, 178, 236);
+}</string>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Plain</enum>
+     </property>
+     <property name="lineWidth">
+      <number>2</number>
+     </property>
+     <property name="selected" stdset="0">
+      <bool>true</bool>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,1">
+      <property name="margin">
+       <number>4</number>
+      </property>
+      <item>
+       <widget class="QLabel" name="thumbnail">
+        <property name="minimumSize">
+         <size>
+          <width>96</width>
+          <height>64</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>96</width>
+          <height>64</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true"/>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="textFormat">
+         <enum>Qt::AutoText</enum>
+        </property>
+        <property name="pixmap">
+         <pixmap resource="resources.qrc">:/tk-multi-workfiles2/thumb_empty.png</pixmap>
+        </property>
+        <property name="scaledContents">
+         <bool>true</bool>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,1">
+        <property name="spacing">
+         <number>2</number>
+        </property>
+        <item>
+         <spacer name="verticalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>&lt;b&gt;Title&lt;/b&gt;</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
+ <connections/>
+</ui>

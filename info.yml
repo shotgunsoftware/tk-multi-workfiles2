@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Shotgun Software Inc.
+# Copyright (c) 2015 Shotgun Software Inc.
 # 
 # CONFIDENTIAL AND PROPRIETARY
 # 
@@ -12,9 +12,24 @@
 
 # expected fields in the configuration file for this app
 configuration:
+
+    # Startup options
+    #
+
+    launch_at_startup:
+        type: bool
+        description: A flag whether to launch the UI at application startup.
+                     This option is not supported on all engines because of 
+                     differences in the way some platforms start up. Currently, only maya 
+                     nuke and 3ds Max support this option.
+        default_value: False
+
+    # templates
+    #
+
     template_work:
         type: template
-        fields: context, [version], [name], *
+        fields: context, [name], [version], [extension], *
         description: A reference to a template which locates a work file on disk.
         allows_empty: True
 
@@ -26,105 +41,91 @@ configuration:
 
     template_publish:
         type: template
-        fields: context, [version], [name], *
+        fields: context, [name], [version], [extension], *
         description: A reference to a template which locates a publish file on disk.
         allows_empty: True
-           
+
     template_publish_area:
         type: template
         description: A reference to a template which locates the publish directory on
                      disk
         allows_empty: True
-           
-    sg_entity_types:
-        type: list
-        description: "List of Shotgun Entity Types to include in the listings when
-                      picking a work area."
-        default_value: [Shot, Asset]
-        values:
-            type: shotgun_entity_type
-        allows_empty: True
-           
-    sg_entity_type_filters:
-        type: dict
-        description: "Allows you to filter the entity types specified in the sg_entity_types 
-                      setting. Uses shotgun API query syntax. For example, if you have specified
-                      Shot as an entity type you wish to display in the sg_entity_types setting,
-                      but you only want to show shots that are in progress in the task selector
-                      UI, you can set this up by specifying a filter. Like this:
-                      sg_entity_type_filters: {'Shot': [['sg_status_list', 'is', 'ip']]} "
-                      
-        default_value: {}
 
-    sg_entity_type_extra_display_fields:
-      type: dict
-      description:  "Specify additional fields to display for each entity type in the task browser. 
-                     Each entry in the dictionary maps an entity type to a dictionary of 'label:field'
-                     name pairs.  For example, to display the name of the sequence that a shot belongs 
-                     to, specify: {Shot:{Sequence: sg_sequence.Sequence.code}}"
-      default_value: {}
-           
-    sg_task_filters:
-        type: list
-        description: "Allows you to filter the Tasks linked to the entities in the sg_entity_types 
-                      setting. Uses shotgun API query syntax. For example, if you only want to show 
-                      Tasks that are in progress in the task selector UI, you can set this up by 
-                      specifying a filter. Like this:
-                      sg_task_filters: [['sg_status_list', 'is', 'ip']]"            
-        default_value: []
-        values:
-          type: shotgun_filter
-        allows_empty: True
-
-    allow_task_creation:
-        type: bool
-        description: Controls whether new tasks can be created from the app.
-        default_value: True
-
-    launch_change_work_area_at_startup:
-        type: bool
-        description: A flag whether to launch a dialog at startup for the user to select 
-                     the work area. This option is not supported on all engines because of 
-                     differences in the way some platforms start up. Currently, only maya 
-                     nuke and 3ds Max support this option. 
-        default_value: False
-
-    launch_at_startup:
-        type: bool
-        description: A flag whether to launch the UI at application startup.
-                     This option is not supported on all engines because of 
-                     differences in the way some platforms start up. Currently, only maya 
-                     nuke and 3ds Max support this option.
-        default_value: False
+    # Hooks
+    #
 
     hook_scene_operation:
         type: hook
         parameters: [operation, file_path, context, parent_action, file_version, read_only]
-        default_value: "scene_operation_{engine_name}"
+        default_value: "{self}/scene_operation_{engine_name}.py"
         description: All the application specific scene operations (open, save etc) that 
                      the app needs to carry out are collected together in this hook.
         
     hook_copy_file:
         type: hook
         parameters: [source_path, target_path]
-        default_value: copy_file
+        default_value: "{self}/copy_file.py"
         description: Specify a hook that will be used to copy the file 'source_path' 
                      to 'target_path'.
 
     hook_filter_work_files:
         type: hook
         parameters: [work_files]
-        default_value: filter_work_files
+        default_value: "{self}/filter_work_files.py"
         description: Specify a hook that, if needed, can filter the raw list of work files found
                      for the current work area 
 
     hook_filter_publishes:
         type: hook
         parameters: [publishes]
-        default_value: filter_publishes
+        default_value: "{self}/filter_publishes.py"
         description: Specify a hook that, if needed, can filter the raw list of publishes returned
                      from Shotgun for the current Work area.
-           
+
+    custom_actions_hook:
+        type: hook
+        default_value: "{self}/custom_actions.py"
+        description: Hook which contains all custom action methods.
+
+    # General preferences
+    #
+    entities:
+        type: list
+        description: "This setting defines the different tabs that will show up on the left hand side.
+                      Each tab represents a Shotgun query, grouped by some shotgun fields to form a tree. 
+                      This setting is a list of dictionaries. Each dictionary in the list defines one tab,
+                      and should have the following keys: *caption* specifies the name of the tab, *entity_type*
+                      specifies the shotgun entity type to display. *filters* is a list of standard API Shotgun 
+                      filters. *hierarchy* is a list of shotgun fields relative to the entity type, defining the 
+                      grouping of the tree."
+        allows_empty: False
+        values:
+          type: dict
+        default_value:
+        - caption: Assets
+          entity_type: Task
+          filters:
+          - [entity, type_is, Asset]
+          hierarchy: [entity.Asset.sg_asset_type, entity, step, content]
+        - caption: Shots
+          entity_type: Task
+          filters:
+          - [entity, type_is, Shot]
+          hierarchy: [entity.Shot.sg_sequence, entity, step, content]
+
+    show_my_tasks:
+        type: bool
+        description: Define if the My Tasks view should be visible or not.
+        default_value: True
+
+    my_tasks_extra_display_fields:
+      type: list
+      description: List of additional fields to display with the task in the My Tasks list.
+      values:
+        type: str
+      allows_empty: True
+      default_value: []
+
     file_extensions:
         type: list
         description: List of file extensions to be shown in the work files view. If
@@ -132,30 +133,8 @@ configuration:
         values:
             type: str
         allows_empty: True
-        default_value: []   
-  
-    saveas_default_name:
-      type: str
-      description: The default name that gets used by when saving a work file using the
-                   save-as command
-      default_value: scene
+        default_value: []
 
-    saveas_prefer_version_up:
-      type: bool
-      description: Control how the save-as command determines the inital name to be used.  If 
-                   set to True then the name from the current scene will be used and the version 
-                   incremented.  If False then a new unique name will be used and the version 
-                   reset
-      default_value: False
-
-    task_extra_display_fields:
-      type: list
-      description: List of the fields to use to display with the task name in the task browser.
-      values:
-        type: str
-      allows_empty: True
-      default_value: []
-      
     version_compare_ignore_fields:
       type: list
       description:  A list of fields that should be ignored when comparing files to
@@ -170,19 +149,39 @@ configuration:
       allows_empty: True
       default_value: []
 
+    allow_task_creation:
+        type: bool
+        description: Controls whether new tasks can be created from the app.
+        default_value: True
+
+    # Save specific options
+    #
+
+    saveas_default_name:
+      type: str
+      description: The default name that gets used by when saving a work file using the
+                   save-as command
+      default_value: scene
+
+    saveas_prefer_version_up:
+      type: bool
+      description: Control how the save-as command determines the inital name to be used.  If 
+                   set to True then the name from the current scene will be used and the version 
+                   incremented.  If False then a new unique name will be used and the version 
+                   reset
+      default_value: False
+
 # the Shotgun fields that this app needs in order to operate correctly
 requires_shotgun_fields:
 
 # More verbose description of this item 
-display_name: "Manage your Work Files"
-description: "Using this app you can change the current work area and 
-              browse work files and publishes.  The app additionally 
-              provides 'Save As' and 'Change Version' commands for 
-              managing work files"
+display_name: "Manage your Work Files 2"
+description: "Using this app you can browse, open and save 
+              your Work Files and Publishes."
               
 # Required minimum versions for this item to run
 requires_shotgun_version:
-requires_core_version: "v0.15.0"
+requires_core_version: "v0.15.23"
 requires_engine_version: 
 
 # the engines that this app can operate in:
@@ -191,5 +190,6 @@ supported_engines:
 # the frameworks required to run this app
 frameworks:
     - {"name": "tk-framework-widget", "version": "v0.2.x"}
-    - {"name": "tk-framework-shotgunutils", "version": "v2.x.x"}
+    - {"name": "tk-framework-shotgunutils", "version": "v3.x.x"}
+    - {"name": "tk-framework-qtwidgets", "version": "v2.x.x"}    
     

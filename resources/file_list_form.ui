@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>FileListForm</class>
+ <widget class="QWidget" name="FileListForm">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>675</width>
+    <height>632</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1">
+   <property name="spacing">
+    <number>4</number>
+   </property>
+   <property name="leftMargin">
+    <number>2</number>
+   </property>
+   <property name="topMargin">
+    <number>6</number>
+   </property>
+   <property name="rightMargin">
+    <number>2</number>
+   </property>
+   <property name="bottomMargin">
+    <number>2</number>
+   </property>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,1,0">
+     <property name="leftMargin">
+      <number>1</number>
+     </property>
+     <property name="rightMargin">
+      <number>1</number>
+     </property>
+     <item>
+      <widget class="UserFilterButton" name="user_filter_btn">
+       <property name="styleSheet">
+        <string notr="true">#user_filter_btn {
+	width: 40;
+	height: 24;
+	border: 0px, none;
+	border-image: url(:/tk-multi-workfiles2/users_none.png);
+}
+#user_filter_btn::hover, #user_filter_btn::pressed {
+	border-image: url(:/tk-multi-workfiles2/users_none_hover.png);
+}
+
+#user_filter_btn[user_style=&quot;none&quot;] {
+	border-image: url(:/tk-multi-workfiles2/users_none.png);
+}
+#user_filter_btn[user_style=&quot;current&quot;] {
+	border-image: url(:/tk-multi-workfiles2/users_current.png);
+}
+#user_filter_btn[user_style=&quot;other&quot;] {
+	border-image: url(:/tk-multi-workfiles2/users_other.png);
+}
+#user_filter_btn[user_style=&quot;all&quot;] {
+	border-image: url(:/tk-multi-workfiles2/users_all.png);
+}
+
+#user_filter_btn::hover[user_style=&quot;none&quot;], #user_filter_btn::pressed[user_style=&quot;none&quot;] {
+	border-image: url(:/tk-multi-workfiles2/users_none_hover.png);
+}
+#user_filter_btn::hover[user_style=&quot;current&quot;], #user_filter_btn::pressed[user_style=&quot;current&quot;] {
+	border-image: url(:/tk-multi-workfiles2/users_current_hover.png);
+}
+#user_filter_btn::hover[user_style=&quot;other&quot;], #user_filter_btn::pressed[user_style=&quot;other&quot;] {
+	border-image: url(:/tk-multi-workfiles2/users_other_hover.png);
+}
+#user_filter_btn::hover[user_style=&quot;all&quot;], #user_filter_btn::pressed[user_style=&quot;all&quot;] {
+	border-image: url(:/tk-multi-workfiles2/users_all_hover.png);
+}
+
+#user_filter_btn::menu-indicator, #user_filter_btn::menu-indicator::pressed, #user_filter_btn::menu-indicator::open {
+	left: -2px;
+	top: -2px;
+	width: 8px;
+	height: 6px;
+}
+</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="flat">
+        <bool>true</bool>
+       </property>
+       <property name="user_style" stdset="0">
+        <string>current</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="all_versions_cb">
+       <property name="text">
+        <string>All Versions</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="SearchWidget" name="search_ctrl" native="true">
+       <property name="minimumSize">
+        <size>
+         <width>100</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">#search_ctrl {
+background-color: rgb(255, 128, 0);
+}</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QStackedWidget" name="view_pages">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="list_page">
+      <layout class="QHBoxLayout" name="horizontalLayout_5">
+       <property name="margin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="GroupedListView" name="file_list_view" native="true">
+         <property name="styleSheet">
+          <string notr="true"/>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="details_page">
+      <layout class="QHBoxLayout" name="horizontalLayout_4">
+       <property name="margin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="FileDetailsView" name="file_details_view"/>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>SearchWidget</class>
+   <extends>QWidget</extends>
+   <header>..framework_qtwidgets</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>FileDetailsView</class>
+   <extends>QTableView</extends>
+   <header>..file_list.file_details_view</header>
+  </customwidget>
+  <customwidget>
+   <class>GroupedListView</class>
+   <extends>QWidget</extends>
+   <header>..framework_qtwidgets</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>UserFilterButton</class>
+   <extends>QPushButton</extends>
+   <header>..file_list.user_filter_button</header>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
+ <connections/>
+</ui>
