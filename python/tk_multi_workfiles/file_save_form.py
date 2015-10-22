@@ -68,12 +68,19 @@ class FileSaveForm(FileFormBase):
             preview_colour = font_colour.darker(140)
         self._preview_colour = (preview_colour.red(), preview_colour.green(), preview_colour.blue())
 
+        self._initializing = False
         try:
             # doing this inside a try-except to ensure any exceptions raised don't 
             # break the UI and crash the dcc horribly!
+            self._initializing = True
             self._do_init()
+            # Manually invoke the preview update here so it is only called once due to the
+            # _initializing flag.
+            self._start_preview_update()
         except:
             app.log_exception("Unhandled exception during File Save Form construction!")
+        finally:
+            self._initializing = False
         
     def _do_init(self):
         """
@@ -182,6 +189,14 @@ class FileSaveForm(FileFormBase):
     def _start_preview_update(self):
         """
         """
+        # When initializing the gui, the event is fired multiple times due to signals
+        # emitted from the widgets. Here we are muting the start_preview_update call
+        # to creating and deleting the preview task multiple times, which is not only
+        # wasteful but also makes the code harder to debug since 5 tasks end up computing
+        # the preview.
+        if self._initializing:
+            return
+
         # stop previous running task:
         if self._preview_task:
             self._bg_task_manager.stop_task(self._preview_task)
@@ -308,7 +323,6 @@ class FileSaveForm(FileFormBase):
         if version_is_used:
             # version is used so we need to find the latest version - this means 
             # searching for files...
-
             # need a file key to find all versions so lets build it:
             file_key = FileItem.build_file_key(fields, env.work_template, 
                                                env.version_compare_ignore_fields)
