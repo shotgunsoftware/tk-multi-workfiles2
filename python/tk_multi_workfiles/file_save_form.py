@@ -191,7 +191,7 @@ class FileSaveForm(FileFormBase):
         """
         # When initializing the gui, the event is fired multiple times due to signals
         # emitted from the widgets. Here we are muting the start_preview_update call
-        # to creating and deleting the preview task multiple times, which is not only
+        # to avoid creating and deleting the preview task multiple times, which is not only
         # wasteful but also makes the code harder to debug since 5 tasks end up computing
         # the preview.
         if self._initializing:
