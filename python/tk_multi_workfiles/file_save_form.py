@@ -74,14 +74,14 @@ class FileSaveForm(FileFormBase):
             # break the UI and crash the dcc horribly!
             self._initializing = True
             self._do_init()
+            self._initializing = False
             # Manually invoke the preview update here so it is only called once due to the
             # _initializing flag.
             self._start_preview_update()
         except:
-            app.log_exception("Unhandled exception during File Save Form construction!")
-        finally:
             self._initializing = False
-        
+            app.log_exception("Unhandled exception during File Save Form construction!")
+
     def _do_init(self):
         """
         Actual construction!
@@ -326,7 +326,6 @@ class FileSaveForm(FileFormBase):
             # need a file key to find all versions so lets build it:
             file_key = FileItem.build_file_key(fields, env.work_template, 
                                                env.version_compare_ignore_fields)
-
             file_versions = None
             if self._file_model:
                 file_versions = self._file_model.get_cached_file_versions(file_key, env, clean_only=True)
