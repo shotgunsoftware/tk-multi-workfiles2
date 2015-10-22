@@ -377,7 +377,7 @@ class FileModel(QtGui.QStandardItemModel):
                             searching for files.
         :returns:           A dictionary {version:FileItem} of all file versions found.
         """
-        return self._search_cache.find_file_versions(work_area, key)
+        return self._search_cache.find_file_versions(work_area, key, include_dirty=not clean_only)
 
     def items_from_file(self, file_item, ignore_version = False):
         """
