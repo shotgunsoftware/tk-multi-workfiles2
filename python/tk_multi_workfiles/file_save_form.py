@@ -67,17 +67,17 @@ class FileSaveForm(FileFormBase):
             preview_colour = font_colour.darker(140)
         self._preview_colour = (preview_colour.red(), preview_colour.green(), preview_colour.blue())
 
-        self._initializing = True
+        self._disallow_preview_update = True
         try:
             # doing this inside a try-except to ensure any exceptions raised don't 
             # break the UI and crash the dcc horribly!
             self._do_init()
-            self._initializing = False
+            self._disallow_preview_update = False
             # Manually invoke the preview update here so it is only called once due to the
-            # _initializing flag.
+            # _disallow_preview_update flag.
             self._start_preview_update()
         except:
-            self._initializing = False
+            self._disallow_preview_update = False
             app.log_exception("Unhandled exception during File Save Form construction!")
 
     def _do_init(self):
@@ -195,7 +195,7 @@ class FileSaveForm(FileFormBase):
         # to avoid creating and deleting the preview task multiple times, which is not only
         # wasteful but also makes the code harder to debug since 5 tasks end up computing
         # the preview.
-        if self._initializing:
+        if self._disallow_preview_update:
             return
 
         # Disable the button while the path is computed.
