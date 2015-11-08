@@ -113,8 +113,11 @@ class UserCache(Threaded):
 
         login_name = None
         if sys.platform == "win32":
-            # TODO: add windows support..
-            pass
+            try:
+                from .win_32_api import get_file_owner
+                login_name = get_file_owner(path)
+            except:
+                pass
         else:
             try:
                 from pwd import getpwuid
