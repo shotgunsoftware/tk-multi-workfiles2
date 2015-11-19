@@ -18,8 +18,8 @@ from itertools import chain
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-shotgun_data = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_data")
-BackgroundTaskManager = shotgun_data.BackgroundTaskManager
+task_manager = sgtk.platform.import_framework("tk-framework-shotgunutils", "task_manager")
+BackgroundTaskManager = task_manager.BackgroundTaskManager
 
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel

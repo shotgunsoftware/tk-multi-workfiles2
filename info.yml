@@ -175,7 +175,7 @@ configuration:
 requires_shotgun_fields:
 
 # More verbose description of this item 
-display_name: "Manage your Work Files 2"
+display_name: "Shotgun File Manager"
 description: "Using this app you can browse, open and save 
               your Work Files and Publishes."
               
@@ -189,7 +189,6 @@ supported_engines:
 
 # the frameworks required to run this app
 frameworks:
-    - {"name": "tk-framework-widget", "version": "v0.2.x"}
-    - {"name": "tk-framework-shotgunutils", "version": "v3.x.x"}
+    - {"name": "tk-framework-shotgunutils", "version": "v4.x.x"}
     - {"name": "tk-framework-qtwidgets", "version": "v2.x.x"}    
     
