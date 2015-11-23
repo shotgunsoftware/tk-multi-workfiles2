@@ -14,10 +14,8 @@ current work file.  Also give the user the option to select the file to save fro
 the list of current work files.
 """
 
-import threading
 import os
 from itertools import chain
-import time
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
@@ -32,6 +30,7 @@ from .util import value_to_str
 
 from .actions.save_as_file_action import SaveAsFileAction
 
+
 class FileSaveForm(FileFormBase):
     """
     UI for saving a work file
@@ -41,7 +40,7 @@ class FileSaveForm(FileFormBase):
     @property
     def exit_code(self):
         return self._exit_code
-    
+
     def __init__(self, parent=None):
         """
         Construction
@@ -68,13 +67,19 @@ class FileSaveForm(FileFormBase):
             preview_colour = font_colour.darker(140)
         self._preview_colour = (preview_colour.red(), preview_colour.green(), preview_colour.blue())
 
+        self._allow_preview_update = False
         try:
             # doing this inside a try-except to ensure any exceptions raised don't 
             # break the UI and crash the dcc horribly!
             self._do_init()
+            self._allow_preview_update = True
+            # Manually invoke the preview update here so it is only called once due to the
+            # _allow_preview_update flag.
+            self._start_preview_update()
         except:
+            self._allow_preview_update = True
             app.log_exception("Unhandled exception during File Save Form construction!")
-        
+
     def _do_init(self):
         """
         Actual construction!
@@ -181,7 +186,21 @@ class FileSaveForm(FileFormBase):
 
     def _start_preview_update(self):
         """
+        Starts the path preview task if we're not initializing the gui. If a preview task is
+        currently running, it will be stopped and a new one will be launched.
         """
+
+        # When initializing the gui, events are fired multiple times due to signals
+        # emitted from the widgets. Here we are muting the start_preview_update call
+        # to avoid creating and deleting the preview task multiple times, which is not only
+        # wasteful but also makes the code harder to debug since 5 tasks end up computing
+        # the preview.
+        if not self._allow_preview_update:
+            return
+
+        # Disable the button while the path is computed.
+        self._disable_save("Please wait while Toolkit calculates the next available file name.")
+
         # stop previous running task:
         if self._preview_task:
             self._bg_task_manager.stop_task(self._preview_task)
@@ -191,7 +210,7 @@ class FileSaveForm(FileFormBase):
         name = value_to_str(self._ui.name_edit.text())
         version = self._ui.version_spinner.value()
         use_next_version = self._ui.use_next_available_cb.isChecked()
-        ext_idx = self._ui.file_type_menu.currentIndex() 
+        ext_idx = self._ui.file_type_menu.currentIndex()
         ext = self._extension_choices[ext_idx] if ext_idx >= 0 else ""
 
         self._bg_task_manager.task_completed.connect(self._on_preview_generation_complete)
@@ -242,7 +261,23 @@ class FileSaveForm(FileFormBase):
         next_version = result.get("next_version") or 1
         self._update_version_spinner(version, next_version)
 
+        self._enable_save()
+
+    def _enable_save(self):
+        """
+        Enables the save button and clears the tooltip.
+        """
         self._ui.save_btn.setEnabled(True)
+        self._ui.save_btn.setToolTip("")
+
+    def _disable_save(self, reason):
+        """
+        Disables save button and sets the tooltip.
+
+        :param reason: Tooltip text for the save button.
+        """
+        self._ui.save_btn.setEnabled(False)
+        self._ui.save_btn.setToolTip(reason)
 
     def _on_preview_generation_failed(self, task_id, group, msg, stack_trace):
         """
@@ -254,7 +289,7 @@ class FileSaveForm(FileFormBase):
         self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.warning_page)
         self._ui.warning.setText("<p style='color:rgb%s'>%s</p>" % (FileSaveForm._WARNING_COLOUR, msg))
 
-        self._ui.save_btn.setEnabled(False)
+        self._disable_save(msg)
 
     def _generate_path(self, env, name, version, use_next_version, ext, require_path=False):
         """
@@ -298,7 +333,7 @@ class FileSaveForm(FileFormBase):
                 # and raise a new, clearer exception for this specific use case:
                 raise TankError("Unable to resolve template fields!  This could mean there is a mismatch "
                                 "between your folder schema and templates.  Please email "
-                                "toolkitsupport@shotgunsoftware.com if you need help fixing this.")
+                                "support@shotgunsoftware.com if you need help fixing this.")
 
             # it's ok not to have a path preview at this point!
             return {}
@@ -308,11 +343,9 @@ class FileSaveForm(FileFormBase):
         if version_is_used:
             # version is used so we need to find the latest version - this means 
             # searching for files...
-
             # need a file key to find all versions so lets build it:
             file_key = FileItem.build_file_key(fields, env.work_template, 
                                                env.version_compare_ignore_fields)
-
             file_versions = None
             if self._file_model:
                 file_versions = self._file_model.get_cached_file_versions(file_key, env, clean_only=True)
