@@ -63,7 +63,7 @@ class NewFileAction(FileAction):
                 # and raise a new, clearer exception for this specific use case:
                 raise TankError("Unable to resolve template fields after folder creation!  This could mean "
                                 "there is a mismatch between your folder schema and templates.  Please email "
-                        "toolkitsupport@shotgunsoftware.com if you need help fixing this.") 
+                                "support@shotgunsoftware.com if you need help fixing this.") 
 
             # reset the current scene:
             if not reset_current_scene(self._app, NEW_FILE_ACTION, self.environment.context):

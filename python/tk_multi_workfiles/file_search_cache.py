@@ -85,14 +85,14 @@ class FileSearchCache(Threaded):
         self._cache[key] = new_entry
 
     @Threaded.exclusive
-    def find_file_versions(self, work_area, file_key, include_dirty=True):
+    def find_file_versions(self, work_area, file_key, clean_only=False):
         """
         Find all file versions for the specified file key and context.
 
         :param work_area:       The work area to find the file version for
         :param file_key:        A unique file key that can be used to locate all versions of a single file
-        :param include_dirty:   If True then dirty cache entries will be included in the returned results.  If
-                                False then they will be omitted.
+        :param clean_only:      If False then dirty cache entries will be included in the returned results.  If
+                                True then they will be omitted. Defaults to False.
         :returns:               A dictionary {version:FileItem} of all file versions found.
         """
         _, entry = self._find_entry(work_area)
@@ -100,7 +100,7 @@ class FileSearchCache(Threaded):
             # return None as we don't have a cached result for this context!
             return None
 
-        if not include_dirty and entry.is_dirty:
+        if clean_only and entry.is_dirty:
             return None
 
         file_info = entry.file_info.get(file_key)
