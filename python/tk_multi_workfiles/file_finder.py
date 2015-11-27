@@ -23,8 +23,8 @@ from .user_cache import g_user_cache
 
 from .sg_published_files_model import SgPublishedFilesModel
 
-shotgun_data = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_data")
-BackgroundTaskManager = shotgun_data.BackgroundTaskManager
+task_manager = sgtk.platform.import_framework("tk-framework-shotgunutils", "task_manager")
+BackgroundTaskManager = task_manager.BackgroundTaskManager
 
 from .work_area import WorkArea
 from .util import monitor_qobject_lifetime, Threaded
