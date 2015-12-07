@@ -231,6 +231,10 @@ class FileFormBase(QtGui.QWidget):
 
         :param checked:    True if the refresh action is checked - ignored
         """
+        app = sgtk.platform.current_bundle()
+        app.log_debug("Synchronizing remote path cache...")
+        app.sgtk.synchronize_filesystem_structure()
+        app.log_debug("Path cache up to date!")
         self._refresh_all_async()
 
     def _refresh_all_async(self):

@@ -125,10 +125,21 @@ def dbg_info(func):
         return res
     return wrapper
 
+
 class WorkFiles(object):
     """
     Main entry point for all commands in the app.
     """
+
+    def __init__(self):
+        """
+        Constructor.
+        """
+        app = sgtk.platform.current_bundle()
+        app.log_debug("Synchronizing remote path cache...")
+        app.sgtk.synchronize_filesystem_structure()
+        app.log_debug("Path cache up to date!")
+
     @staticmethod
     def show_file_open_dlg():
         """
@@ -154,7 +165,6 @@ class WorkFiles(object):
         app = sgtk.platform.current_bundle()
         try:
             from .file_open_form import FileOpenForm
-            #app.engine.show_dialog("File Open", app, FileOpenForm)
             app.engine.show_modal("File Open", app, FileOpenForm)
         except:
             app.log_exception("Failed to create File Open dialog!")
