@@ -256,7 +256,7 @@ class FileActionFactory(object):
 
         # If there are no previous versions to show, return an empty list.
         if not previous_versions:
-            return 
+            return
 
         previous_versions_actions = []
         # Gives us the last ten versions, from the latest to the earliest.
