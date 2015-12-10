@@ -178,12 +178,12 @@ class FileActionFactory(object):
         if first_level:
             # ------------------------------------------------------------------
             actions.append(SeparatorAction())
-            actions.extend(self.__create_previous_versions_actions(
-                file, work_area, file_model, workfiles_visible, publishes_visible, pick_locals=True)
+            self.__append_previous_versions_actions(
+                actions, file, work_area, file_model, workfiles_visible, publishes_visible, pick_locals=True
             )
 
-            actions.extend(self.__create_previous_versions_actions(
-                file, work_area, file_model, workfiles_visible, publishes_visible, pick_locals=False)
+            self.__append_previous_versions_actions(
+                actions, file, work_area, file_model, workfiles_visible, publishes_visible, pick_locals=False
             )
 
         # A New File can only be created from the first level of the menu.
@@ -235,7 +235,7 @@ class FileActionFactory(object):
 
         return actions
 
-    def __create_previous_versions_actions(self, file, work_area, file_model, workfiles_visible, publishes_visible, pick_locals):
+    def __append_previous_versions_actions(self, actions, file, work_area, file_model, workfiles_visible, publishes_visible, pick_locals):
         """
         Retrives the list of actions for all the previous versions of a given type.
 
@@ -256,7 +256,7 @@ class FileActionFactory(object):
 
         # If there are no previous versions to show, return an empty list.
         if not previous_versions:
-            return []
+            return 
 
         previous_versions_actions = []
         # Gives us the last ten versions, from the latest to the earliest.
@@ -268,4 +268,6 @@ class FileActionFactory(object):
             )
             previous_versions_actions.append(ActionGroup("Version %d" % item.version, version_actions))
 
-        return [ActionGroup("Previous Work Files" if pick_locals else "Previous Publishes", previous_versions_actions)]
+        actions.append(
+            ActionGroup("Previous Work Files" if pick_locals else "Previous Publishes", previous_versions_actions)
+        )
