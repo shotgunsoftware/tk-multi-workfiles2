@@ -17,7 +17,7 @@ import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
 from .actions.file_action_factory import FileActionFactory
-from .actions.action import SeparatorAction
+from .actions.action import SeparatorAction, ActionGroup
 from .actions.file_action import FileAction
 from .actions.new_file_action import NewFileAction
 
@@ -253,7 +253,11 @@ class FileOpenForm(FileFormBase):
             if isinstance(action, SeparatorAction):
                 if add_separators:
                     menu.addSeparator()
-                    
+                # ensure that we only add separators after at least one action item and
+                # never more than one!
+                add_separators = False
+            elif isinstance(action, ActionGroup):
+                self._populate_open_menu(menu.addMenu(action.label), action.actions)
                 # ensure that we only add separators after at least one action item and
                 # never more than one!
                 add_separators = False
@@ -262,8 +266,8 @@ class FileOpenForm(FileFormBase):
                 slot = lambda a=action: self._perform_action(a)
                 q_action.triggered[()].connect(slot)
                 menu.addAction(q_action)
-                add_separators = True      
-        
+                add_separators = True
+
     def _on_open(self):
         """
         """

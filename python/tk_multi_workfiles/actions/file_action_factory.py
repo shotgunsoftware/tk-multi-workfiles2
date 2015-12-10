@@ -12,7 +12,7 @@
 """
 import sgtk
 
-from .action import SeparatorAction
+from .action import SeparatorAction, ActionGroup
 
 from .interactive_open_action import InteractiveOpenAction
 
@@ -40,7 +40,7 @@ class FileActionFactory(object):
     """
     """
     
-    def get_actions(self, file, work_area, file_model, workfiles_visible=True, publishes_visible=True):
+    def get_actions(self, file, work_area, file_model, workfiles_visible=True, publishes_visible=True, recurse=True):
         """
         """
         if not file or not work_area or not file_model:
@@ -143,6 +143,15 @@ class FileActionFactory(object):
                 if change_work_area and can_copy_to_work_area:
                     actions.append(CopyAndOpenPublishInCurrentWorkAreaAction(file, current_user_file_versions, work_area))
 
+        if recurse:
+            # ------------------------------------------------------------------
+            actions.append(SeparatorAction())
+            if workfiles_visible:
+                actions.extend(self._create_previous_versions_actions(file, work_area, file_model, pick_locals=True))
+
+            if publishes_visible:
+                actions.extend(self._create_previous_versions_actions(file, work_area, file_model, pick_locals=False))
+
         if not in_other_users_sandbox:
             if NewFileAction.can_do_new_file(work_area):
                 # New file action
@@ -191,3 +200,27 @@ class FileActionFactory(object):
 
         return actions
 
+    def _create_previous_versions_actions(self, file, work_area, file_model, pick_locals):
+
+        # Pick the right verion type.
+        if pick_locals:
+            previous_versions = [item for item in file.versions.values() if item.is_local]
+        else:
+            previous_versions = [item for item in file.versions.values() if item.is_published]
+
+        # If there are no previous versions to show, return an empty list.
+        if not previous_versions:
+            return []
+
+        previous_versions_actions = []
+        # Gives us the last twenty versions, from the latest to the earliest.
+        for item in previous_versions[-1:-21:-1]:
+            version_actions = self.get_actions(
+                item, work_area, file_model,
+                workfiles_visible=pick_locals is True,
+                publishes_visible=pick_locals is False,
+                recurse=False
+            )
+            previous_versions_actions.append(ActionGroup("Version %d" % item.version, version_actions))
+
+        return [ActionGroup("Previous versions" if pick_locals else "Previous published versions", previous_versions_actions)]
