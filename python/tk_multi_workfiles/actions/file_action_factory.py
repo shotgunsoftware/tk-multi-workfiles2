@@ -204,9 +204,9 @@ class FileActionFactory(object):
 
         # Pick the right verion type.
         if pick_locals:
-            previous_versions = [item for item in file.versions.values() if item.is_local]
+            previous_versions = [item for item in file.versions.values() if file.version > item.version and item.is_local]
         else:
-            previous_versions = [item for item in file.versions.values() if item.is_published]
+            previous_versions = [item for item in file.versions.values() if file.version > item.version and item.is_published]
 
         # If there are no previous versions to show, return an empty list.
         if not previous_versions:
