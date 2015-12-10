@@ -1,11 +1,11 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
@@ -14,7 +14,7 @@ so that they can choose one to open
 """
 
 import sgtk
-from sgtk.platform.qt import QtCore, QtGui
+from sgtk.platform.qt import QtGui
 
 from .actions.file_action_factory import FileActionFactory
 from .actions.action import SeparatorAction, ActionGroup
@@ -25,9 +25,7 @@ from .file_form_base import FileFormBase
 from .ui.file_open_form import Ui_FileOpenForm
 
 from .work_area import WorkArea
-from .framework_qtwidgets import Breadcrumb
 
-from .user_cache import g_user_cache
 
 class FileOpenForm(FileFormBase):
     """
@@ -37,28 +35,28 @@ class FileOpenForm(FileFormBase):
     @property
     def exit_code(self):
         return self._exit_code
-    
+
     def __init__(self, parent=None):
         """
         Construction
         """
         app = sgtk.platform.current_bundle()
-        
+
         FileFormBase.__init__(self, parent)
-        
+
         self._exit_code = QtGui.QDialog.Rejected
-        
+
         self._new_file_env = None
         self._default_open_action = None
-        
+
         self._navigating = False
-        
+
         # create the action factory - this is used to generate actions
         # for the selected file
         self._file_action_factory = FileActionFactory()
-        
+
         try:
-            # doing this inside a try-except to ensure any exceptions raised don't 
+            # doing this inside a try-except to ensure any exceptions raised don't
             # break the UI and crash the dcc horribly!
             self._do_init()
         except:
@@ -124,7 +122,7 @@ class FileOpenForm(FileFormBase):
         """
         env_details = None
         if entity:
-            # (AD) - we need to build a context and construct the environment details 
+            # (AD) - we need to build a context and construct the environment details
             # instance for it but this may be slow enough that we should cache it!
             # Keep an eye on it and consider threading if it's noticeably slow!
             app = sgtk.platform.current_bundle()
@@ -137,7 +135,7 @@ class FileOpenForm(FileFormBase):
             destination_label = breadcrumbs[-1].label if breadcrumbs else "..."
             self._ui.nav.add_destination(destination_label, breadcrumbs)
         self._ui.breadcrumbs.set(breadcrumbs)
-    
+
     def _on_browser_file_double_clicked(self, file, env):
         """
         """
@@ -208,7 +206,7 @@ class FileOpenForm(FileFormBase):
             self._new_file_env = env
         else:
             self._new_file_env = None
-        self._ui.new_file_btn.setEnabled(self._new_file_env != None)
+        self._ui.new_file_btn.setEnabled(self._new_file_env is not None)
 
     def _on_browser_context_menu_requested(self, file, env, pnt):
         """
@@ -233,20 +231,30 @@ class FileOpenForm(FileFormBase):
 
     def _get_available_file_actions(self, file, env):
         """
+        Retrieves the actions for a given file.
+
+        :param file: FileItem to retrieve the actions for.
+        :param env: WorkArea instance representing the context for this particular file.
+
+        :returns: List of Actions.
         """
         if not file or not env:
             return []
         file_actions = self._file_action_factory.get_actions(
-                                        file,
-                                        env,
-                                        self._file_model, 
-                                        workfiles_visible=self._ui.browser.work_files_visible, 
-                                        publishes_visible=self._ui.browser.publishes_visible
-                                        )
+            file,
+            env,
+            self._file_model,
+            workfiles_visible=self._ui.browser.work_files_visible,
+            publishes_visible=self._ui.browser.publishes_visible
+        )
         return file_actions
 
     def _populate_open_menu(self, menu, file_actions):
         """
+        Creates menu entries based on a list of file actions.
+
+        :param menu: Target menu for the entries.
+        :param file_actions: List of Actions to add under the menu.
         """
         add_separators = False
         for action in file_actions:
@@ -257,10 +265,9 @@ class FileOpenForm(FileFormBase):
                 # never more than one!
                 add_separators = False
             elif isinstance(action, ActionGroup):
+                # This is an action group, so we'll add the entries in a sub-menu.
                 self._populate_open_menu(menu.addMenu(action.label), action.actions)
-                # ensure that we only add separators after at least one action item and
-                # never more than one!
-                add_separators = False
+                add_separators = True
             else:
                 q_action = QtGui.QAction(action.label, menu)
                 slot = lambda a=action: self._perform_action(a)
@@ -306,7 +313,7 @@ class FileOpenForm(FileFormBase):
         # some debug:
         app = sgtk.platform.current_bundle()
         if isinstance(action, FileAction) and action.file:
-            app.log_debug("Performing action '%s' on file '%s, v%03d'" 
+            app.log_debug("Performing action '%s' on file '%s, v%03d'"
                           % (action.label, action.file.name, action.file.version))
         else:
             app.log_debug("Performing action '%s'" % action.label)
@@ -322,9 +329,3 @@ class FileOpenForm(FileFormBase):
             # refresh all models in case something changed as a result of
             # the action (especially important with custom actions):
             self._refresh_all_async()
-
-
-
-
-
-
