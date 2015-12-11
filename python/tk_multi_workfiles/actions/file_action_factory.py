@@ -140,76 +140,15 @@ class FileActionFactory(object):
 
         actions = []
 
-        # Default Open is only at the root level.
-        if first_level:
-            # add the interactive 'open' action.  This is the
-            # default/generic open action that gets run whenever someone
-            # double-clicks on a file or just hits the 'Open' button
-            actions.append(InteractiveOpenAction(file, self._file_versions, self._work_area, self._workfiles_visible, self._publishes_visible))
+        # add the interactive 'open' action.  This is the
+        # default/generic open action that gets run whenever someone
+        # double-clicks on a file or just hits the 'Open' button
+        actions.append(InteractiveOpenAction(file, self._file_versions, self._work_area, self._workfiles_visible, self._publishes_visible))
 
-        if file.is_local:
-            # if workfiles_visible and file.is_local:
-            # all actions available when selection is a work file
-
-            # ------------------------------------------------------------------
-            actions.append(SeparatorAction())
-
-            # add the general open action - this just opens the file in-place.
-            actions.append(OpenWorkfileAction(file, self._file_versions, self._work_area))
-
-            if self._in_other_users_sandbox:
-                # file is in another user sandbox so add appropriate actions:
-                actions.append(ContinueFromWorkFileAction(file, self._current_user_file_versions, self._work_area))
-
-                if self._change_work_area and self._can_copy_to_work_area:
-                    actions.append(CopyAndOpenFileInCurrentWorkAreaAction(file, self._current_user_file_versions, self._work_area))
-
-            else:
-                # file isn't in a different sandbox so add regular open actions:
-                if file.editable:
-                    # determine if this version is the latest:
-                    all_versions = [v for v, f in self._file_versions.iteritems()]
-                    max_version = max(all_versions) if all_versions else 0
-                    if file.version != max_version:
-                        actions.append(ContinueFromWorkFileAction(file, self._file_versions, self._work_area))
-
-                if self._change_work_area and self._can_copy_to_work_area:
-                    actions.append(CopyAndOpenFileInCurrentWorkAreaAction(file, self._file_versions, self._work_area))
-
-        if file.is_published:
-            # all actions available when selection is a work file:
-
-            # ------------------------------------------------------------------
-            actions.append(SeparatorAction())
-            actions.append(OpenPublishAction(file, self._file_versions, self._work_area))
-            if file.path:
-                # file has a local path so it's possible to carry copy it to the local work area!
-                actions.append(ContinueFromPublishAction(file, self._current_user_file_versions, self._work_area))
-
-                if self._change_work_area and self._can_copy_to_work_area:
-                    actions.append(CopyAndOpenPublishInCurrentWorkAreaAction(file, self._current_user_file_versions, self._work_area))
-
-        # If we are at the first level of the menu, we will show previous versions of the current file,
-        # if available.
-        if first_level:
-            # ------------------------------------------------------------------
-            actions.append(SeparatorAction())
-            self.__append_previous_versions_actions(
-                actions, file, pick_locals=True
-            )
-
-            self.__append_previous_versions_actions(
-                actions, file, pick_locals=False
-            )
-
-        # A New File can only be created from the first level of the menu.
-        if first_level and not self._in_other_users_sandbox:
-            if NewFileAction.can_do_new_file(self._work_area):
-                # New file action
-
-                # ------------------------------------------------------------------
-                actions.append(SeparatorAction())
-                actions.append(NewFileAction(file, self._file_versions, self._work_area))
+        actions.extend(self._create_local_file_actions(file))
+        actions.extend(self._create_published_file_actions(file))
+        actions.extend(self._create_previous_versions_actions(file))
+        actions.extend(self._create_file_new_actions(file))
 
         # query for any custom actions:
         custom_actions = CustomFileAction.get_action_details(file, self._file_versions, self._work_area,
@@ -251,7 +190,75 @@ class FileActionFactory(object):
 
         return actions
 
-    def __append_previous_versions_actions(self, actions, file, pick_locals):
+    def _create_local_file_actions(self, file):
+
+        actions = []
+
+        if not file.is_local:
+            return actions
+
+        # all actions available when selection is a work file
+        # ------------------------------------------------------------------
+        actions.append(SeparatorAction())
+
+        # add the general open action - this just opens the file in-place.
+        actions.append(OpenWorkfileAction(file, self._file_versions, self._work_area))
+
+        if self._in_other_users_sandbox:
+            # file is in another user sandbox so add appropriate actions:
+            actions.append(ContinueFromWorkFileAction(file, self._current_user_file_versions, self._work_area))
+
+            if self._change_work_area and self._can_copy_to_work_area:
+                actions.append(CopyAndOpenFileInCurrentWorkAreaAction(file, self._current_user_file_versions, self._work_area))
+
+        else:
+            # file isn't in a different sandbox so add regular open actions:
+            if file.editable:
+                # determine if this version is the latest:
+                all_versions = [v for v, f in self._file_versions.iteritems()]
+                max_version = max(all_versions) if all_versions else 0
+                if file.version != max_version:
+                    actions.append(ContinueFromWorkFileAction(file, self._file_versions, self._work_area))
+
+            if self._change_work_area and self._can_copy_to_work_area:
+                actions.append(CopyAndOpenFileInCurrentWorkAreaAction(file, self._file_versions, self._work_area))
+
+        return actions
+
+    def _create_published_file_actions(self, file):
+        actions = []
+        if not file.is_published:
+            return actions
+
+        # all actions available when selection is a work file:
+        # ------------------------------------------------------------------
+        actions.append(SeparatorAction())
+        actions.append(OpenPublishAction(file, self._file_versions, self._work_area))
+        if file.path:
+            # file has a local path so it's possible to carry copy it to the local work area!
+            actions.append(ContinueFromPublishAction(file, self._current_user_file_versions, self._work_area))
+
+            if self._change_work_area and self._can_copy_to_work_area:
+                actions.append(CopyAndOpenPublishInCurrentWorkAreaAction(file, self._current_user_file_versions, self._work_area))
+
+        return actions
+
+    def _create_previous_versions_actions(self, file):
+
+        actions = []
+        # ------------------------------------------------------------------
+        actions.append(SeparatorAction())
+        actions.extend(self.__create_previous_versions_actions_for_type(
+            file, pick_locals=True
+        ))
+
+        actions.extend(self.__create_previous_versions_actions_for_type(
+            file, pick_locals=False
+        ))
+
+        return actions
+
+    def __create_previous_versions_actions_for_type(self, actions, file, pick_locals):
         """
         Retrives the list of actions for all the previous versions of a given type.
 
