@@ -234,8 +234,9 @@ class FileOpenForm(FileFormBase):
 
         :returns: List of Actions.
         """
-        if not file or not env:
+        if not file or not env or not self._file_model:
             return []
+
         file_actions = FileActionFactory(
             file,
             env,
