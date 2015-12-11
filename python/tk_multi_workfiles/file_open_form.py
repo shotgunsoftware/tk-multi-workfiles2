@@ -225,25 +225,24 @@ class FileOpenForm(FileFormBase):
         # finally, show the context menu:
         context_menu.exec_(pnt)
 
-    def _get_available_file_actions(self, file, env):
+    def _get_available_file_actions(self, file_item, env):
         """
         Retrieves the actions for a given file.
 
-        :param file: FileItem to retrieve the actions for.
+        :param file_item: FileItem to retrieve the actions for.
         :param env: WorkArea instance representing the context for this particular file.
 
         :returns: List of Actions.
         """
-        if not file or not env or not self._file_model:
+        if not file_item or not env or not self._file_model:
             return []
 
         file_actions = FileActionFactory(
-            file,
             env,
             self._file_model,
             workfiles_visible=self._ui.browser.work_files_visible,
             publishes_visible=self._ui.browser.publishes_visible
-        ).get_actions()
+        ).get_actions(file_item)
         return file_actions
 
     def _populate_open_menu(self, menu, file_actions):
