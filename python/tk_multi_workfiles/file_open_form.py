@@ -294,7 +294,7 @@ class FileOpenForm(FileFormBase):
         if not self._new_file_env or not NewFileAction.can_do_new_file(self._new_file_env):
             return
 
-        new_file_action = NewFileAction(None, None, self._new_file_env)
+        new_file_action = NewFileAction(self._new_file_env)
 
         # perform the action - this may result in the UI being closed so don't do
         # anything after this call!

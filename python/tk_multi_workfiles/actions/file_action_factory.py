@@ -54,7 +54,7 @@ class FileActionFactory(object):
         :param publishes_visible: True if publishes are visible. Defauls to True.
         """
         self._work_area = work_area
-        self._file_item_model = file_model
+        self._file_model = file_model
         self._workfiles_visible = workfiles_visible
         self._publishes_visible = publishes_visible
 
@@ -68,11 +68,11 @@ class FileActionFactory(object):
         )
 
         # determine if this file is in a different work area:
-        user_work_area = work_area
+        self._user_work_area = work_area
         self._change_work_area = (work_area.context != app.context)
         if self._change_work_area and self._in_other_users_sandbox:
-            user_work_area = work_area.create_copy_for_user(g_user_cache.current_user)
-            self._change_work_area = (user_work_area.context != app.context)
+            self._user_work_area = work_area.create_copy_for_user(g_user_cache.current_user)
+            self._change_work_area = (self._user_work_area.context != app.context)
 
         # and if it's possible to copy this file to the work area:
         self._can_copy_to_work_area = False
