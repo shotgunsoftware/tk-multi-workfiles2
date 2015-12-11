@@ -51,10 +51,6 @@ class FileOpenForm(FileFormBase):
 
         self._navigating = False
 
-        # create the action factory - this is used to generate actions
-        # for the selected file
-        self._file_action_factory = FileActionFactory()
-
         try:
             # doing this inside a try-except to ensure any exceptions raised don't
             # break the UI and crash the dcc horribly!
@@ -240,13 +236,13 @@ class FileOpenForm(FileFormBase):
         """
         if not file or not env:
             return []
-        file_actions = self._file_action_factory.get_actions(
+        file_actions = FileActionFactory(
             file,
             env,
             self._file_model,
             workfiles_visible=self._ui.browser.work_files_visible,
             publishes_visible=self._ui.browser.publishes_visible
-        )
+        ).get_actions()
         return file_actions
 
     def _populate_open_menu(self, menu, file_actions):
