@@ -125,7 +125,7 @@ class FileActionFactory(object):
 
         actions.extend(self._create_local_file_actions(self._file_item))
         actions.extend(self._create_published_file_actions(self._file_item))
-        actions.extend(self._create_previous_versions_actions(self._file_item))
+        actions.extend(self._create_previous_versions_actions_menus(self._file_item))
         actions.extend(self._create_new_file_action())
         actions.extend(self._create_custom_actions(self._file_item))
         actions.extend(self._create_show_in_actions(self._file_item))
@@ -199,9 +199,9 @@ class FileActionFactory(object):
 
         return actions
 
-    def _create_previous_versions_actions(self, file_item):
+    def _create_previous_versions_actions_menus(self, file_item):
         """
-        Creates a list of actions if the file has previous versions.
+        Creates a list of previous versions menus if the file item has previous versions.
 
         :param file_item: File item to generate actions for.
 
@@ -210,15 +210,65 @@ class FileActionFactory(object):
         actions = []
         # ------------------------------------------------------------------
         actions.append(SeparatorAction())
-        actions.extend(self._create_previous_versions_actions_for_type(
-            file_item, pick_locals=True
-        ))
 
-        actions.extend(self._create_previous_versions_actions_for_type(
-            file_item, pick_locals=False
-        ))
+        actions.extend(
+            self._create_previous_versions_actions_menu(
+                "Previous Work Files",
+                [item for item in file_item.versions.itervalues() if file_item.version > item.version and item.is_local]
+            )
+        )
+
+        actions.extend(
+            self._create_previous_versions_actions_menu(
+                "Previous Publishes",
+                [item for item in file_item.versions.itervalues() if file_item.version > item.version and item.is_published],
+            )
+        )
 
         return actions
+
+    def _create_previous_versions_actions_menu(self, label, previous_versions):
+        """
+        Creates a menu of actions if the file has previous versions.
+
+        :param label: Name of the menu.
+        :previous_versions: List of versions to generate a menu for.
+
+        :returns: List of menu of actions.
+        """
+        if not previous_versions:
+            return []
+
+        version_versions_actions = self._create_previous_versions_actions(
+            previous_versions
+        )
+        return [ActionGroup(label, version_versions_actions)]
+
+    def _create_previous_versions_actions(self, previous_versions):
+        """
+        Creates a list of actions for all the previous versions of a given type.
+
+        :param pick_locals: True if we want to show previous actions for workfiles, False if we want them for publishes.
+
+        :returns: List of Actions.
+        """
+
+        previous_versions_actions = []
+
+        # Gives us the last ten versions, from the latest to the earliest.
+        for previous_file_item in previous_versions[-1:-11:-1]:
+
+            version_actions = []
+            # Retrieve all the actions for a version submenu. We're not interested into New, the default Open or
+            # previous version actions for this sub menu, so we won't add them here.
+            version_actions.extend(self._create_local_file_actions(previous_file_item))
+            version_actions.extend(self._create_published_file_actions(previous_file_item))
+            version_actions.extend(self._create_custom_actions(previous_file_item))
+            version_actions.extend(self._create_show_in_actions(previous_file_item))
+
+            previous_versions_actions.append(ActionGroup("Version %d" % previous_file_item.version, version_actions))
+
+        return previous_versions_actions
 
     def _create_new_file_action(self):
         """
@@ -240,7 +290,13 @@ class FileActionFactory(object):
         return actions
 
     def _create_custom_actions(self, file_item):
+        """
+        Creates a list of custom actions
 
+        :param file_item: File item to generate actions for.
+
+        :returns: List of actions.
+        """
         actions = []
         # query for any custom actions:
         custom_actions = CustomFileAction.get_action_details(file_item, self._file_item_versions, self._work_area,
@@ -258,7 +314,13 @@ class FileActionFactory(object):
         return actions
 
     def _create_show_in_actions(self, file_item):
+        """
+        Creates a list of actions to show the file item in Shotgun or on the file system.
 
+        :param file_item: File item to generate actions for.
+
+        :returns: List of actions.
+        """
         show_in_actions = []
         if file_item.is_local:
             show_in_actions.append(ShowWorkFileInFileSystemAction(file_item, self._file_item_versions, self._work_area))
@@ -285,43 +347,3 @@ class FileActionFactory(object):
             actions.extend(show_in_actions)
 
         return actions
-
-    def _create_previous_versions_actions_for_type(self, file_item, pick_locals):
-        """
-        Retrives the list of actions for all the previous versions of a given type.
-
-        :param pick_locals: True if we want to show previous actions for workfiles, False if we want them for publishes.
-
-        :returns: List of Actions.
-        """
-        # Pick the right verion type.
-        if pick_locals:
-            previous_versions = [
-                item for item in file_item.versions.values() if file_item.version > item.version and item.is_local
-            ]
-        else:
-            previous_versions = [
-                item for item in file_item.versions.values() if file_item.version > item.version and item.is_published
-            ]
-
-        # If there are no previous versions to show, return an empty list.
-        if not previous_versions:
-            return []
-
-        previous_versions_actions = []
-        # Gives us the last ten versions, from the latest to the earliest.
-        for previous_file_item in previous_versions[-1:-11:-1]:
-
-            version_actions = []
-            # Retrieve all the actions for a version submenu. We're not interested into New, the default Open or
-            # previous version actions for this sub menu, so we won't add them here.
-            version_actions.extend(self._create_local_file_actions(previous_file_item))
-            version_actions.extend(self._create_published_file_actions(previous_file_item))
-            version_actions.extend(self._create_custom_actions(previous_file_item))
-            version_actions.extend(self._create_show_in_actions(previous_file_item))
-
-            previous_versions_actions.append(ActionGroup("Version %d" % previous_file_item.version, version_actions))
-
-        return [
-            ActionGroup("Previous Work Files" if pick_locals else "Previous Publishes", previous_versions_actions)
-        ]
