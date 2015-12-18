@@ -44,6 +44,8 @@ class FileActionFactory(object):
     grouped actions and seperators that should be displayed in the UI.
     """
 
+    __nb_versions_in_menu = 10
+
     def __init__(self, work_area, file_model, workfiles_visible=True, publishes_visible=True):
         """
         Constructor.
@@ -68,7 +70,11 @@ class FileActionFactory(object):
         )
 
         # determine if this file is in a different work area:
+        # Normally, the work area where a file is being opened is the one it will be opened from. However,
+        # when working with user sandboxes, the context will change since the user won't be the same.
         self._user_work_area = work_area
+        # Change work area tracks if the current context is different than the context of the file
+        # being opened.
         self._change_work_area = (work_area.context != app.context)
         if self._change_work_area and self._in_other_users_sandbox:
             self._user_work_area = work_area.create_copy_for_user(g_user_cache.current_user)
@@ -87,6 +93,8 @@ class FileActionFactory(object):
     def get_actions(self, file_item):
         """
         Retrives the list of actions for the given file
+
+        :param file_item: File item we wish to retrieve the file versions from.
 
         :returns: List of Actions.
         """
@@ -107,11 +115,17 @@ class FileActionFactory(object):
             )
         )
 
+        # Creates Open actions for a workfile.
         actions.extend(self._create_local_file_actions(file_item, current_user_file_versions))
+        # Creates open actions for publishes.
         actions.extend(self._create_published_file_actions(file_item, current_user_file_versions))
+        # Creates actions for previous versions of the current file.
         actions.extend(self._create_previous_versions_actions_menus(file_item))
+        # Creates a New action.
         actions.extend(self._create_new_file_action())
+        # Creates actions provided by the custom_ ctions hook.
         actions.extend(self._create_custom_actions(file_item, current_user_file_versions))
+        # Creates actions that allow to shot the files the OS's file browser or in Shotgun.
         actions.extend(self._create_show_in_actions(file_item, current_user_file_versions))
 
         return actions
@@ -268,14 +282,15 @@ class FileActionFactory(object):
         """
         Creates a list of actions for all the previous versions of a given type.
 
-        :param pick_locals: True if we want to show previous actions for workfiles, False if we want them for publishes.
+        :param file_versions: List of previous versions to create menu actions for in the Previous
+            Versions sub-menu.
 
         :returns: List of Actions.
         """
         previous_versions_actions = []
 
         # Gives us the last ten versions, from the latest to the earliest.
-        for previous_file_item in previous_versions[-1:-11:-1]:
+        for previous_file_item in previous_versions[-1: -self.__nb_versions_in_menu - 1: -1]:
 
             current_user_file_versions = self._get_current_user_file_versions(previous_file_item)
 
@@ -294,8 +309,6 @@ class FileActionFactory(object):
     def _create_new_file_action(self):
         """
         Creates a list of actions to create a new file.
-
-        :param file_item: File item to generate actions for.
 
         :returns: List of actions.
         """
