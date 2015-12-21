@@ -1,15 +1,15 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
-Implementation of the entity tree widget consisting of a tree view that displays the 
+Implementation of the entity tree widget consisting of a tree view that displays the
 contents of a Shotgun Data Model, a text search and a filter control.
 """
 import weakref
@@ -23,7 +23,8 @@ ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 from ..ui.entity_tree_form import Ui_EntityTreeForm
 from .entity_tree_proxy_model import EntityTreeProxyModel
 from ..framework_qtwidgets import Breadcrumb, ShotgunModelOverlayWidget
-from ..util import get_model_data, get_model_str, map_to_source, get_source_model, monitor_qobject_lifetime
+from ..util import get_model_str, map_to_source, get_source_model, monitor_qobject_lifetime
+
 
 class EntityTreeForm(QtGui.QWidget):
     """
@@ -44,6 +45,9 @@ class EntityTreeForm(QtGui.QWidget):
     # Signal emitted when the 'New Task' button is clicked.
     create_new_task = QtCore.Signal(object, object)# entity, step
 
+    # List of entity types that can have tasks on them.
+    __enities_with_tasks = None
+
     def __init__(self, entity_model, search_label, allow_task_creation, parent):
         """
         Construction
@@ -53,7 +57,16 @@ class EntityTreeForm(QtGui.QWidget):
         :param parent:          The parent QWidget for this control
         """
         QtGui.QWidget.__init__(self, parent)
-        
+
+        # Initialize the list of entities that can have tasks associated to them.
+        # This list is initialized on first use for performance reasons.
+        if EntityTreeForm.__enities_with_tasks is None:
+            app = sgtk.platform.current_bundle()
+            # Retrieve the schema for Tasks and find which types can be used with them.
+            EntityTreeForm.__enities_with_tasks = app.shotgun.schema_field_read(
+                "Task"
+            )["entity"]["properties"]["valid_types"]["value"]
+
         # control if step->tasks in the entity hierarchy should be collapsed when building
         # the search details.
         self._collapse_steps_with_tasks = True
@@ -61,13 +74,13 @@ class EntityTreeForm(QtGui.QWidget):
         self._entity_to_select = None
         # keep track of the currently selected item:
         self._current_item_ref = None
-        
+
         # keep track of expanded items as items in the tree are expanded/collapsed.  We
         # also want to auto-expand root items the first time they appear so track them
         # as well
         self._expanded_items = set()
         self._auto_expanded_root_items = set()
-        
+
         # set up the UI
         self._ui = Ui_EntityTreeForm()
         self._ui.setupUi(self)
@@ -104,12 +117,14 @@ class EntityTreeForm(QtGui.QWidget):
                 filter_model.rowsInserted.connect(self._on_filter_model_rows_inserted)
                 filter_model.setSourceModel(entity_model)
                 self._ui.entity_tree.setModel(filter_model)
-    
-                # connect up the filter controls: 
+
+                # connect up the filter controls:
                 self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
                 self._ui.my_tasks_cb.toggled.connect(self._on_my_tasks_only_toggled)
             else:
                 self._ui.entity_tree.setModel(entity_model)
+
+        self._entity_model = entity_model
 
         self._expand_root_rows()
 
@@ -173,7 +188,7 @@ class EntityTreeForm(QtGui.QWidget):
 
     def get_selection(self):
         """
-        Get the currently selected item as well as the breadcrumb trail that represents 
+        Get the currently selected item as well as the breadcrumb trail that represents
         the path for the selection.
 
         :returns:   A Tuple containing the details and breadcrumb trail of the current selection:
@@ -217,7 +232,7 @@ class EntityTreeForm(QtGui.QWidget):
                     child_item = current_item.child(row)
                     sg_entity = entity_model.get_entity(child_item)
                     if (sg_entity["type"] == crumb.entity["type"]
-                        and sg_entity["id"] == crumb.entity["id"]):
+                            and sg_entity["id"] == crumb.entity["id"]):
                         found_item = child_item
                         break
             else:
@@ -279,17 +294,17 @@ class EntityTreeForm(QtGui.QWidget):
     def _get_entity_details(self, idx):
         """
         Get entity details for the specified model index.  If steps are being collapsed into tasks
-        then these details will reflect that and will not be a 1-1 representation of the tree itself. 
+        then these details will reflect that and will not be a 1-1 representation of the tree itself.
 
-        :param idx: The QModelIndex of the item to get the entity details for. 
-        :returns:   A dictionary containing entity information about the specified index containing the 
+        :param idx: The QModelIndex of the item to get the entity details for.
+        :returns:   A dictionary containing entity information about the specified index containing the
                     following information:
-                    
+
                         {"label":label, "entity":entity, "children":[children]}
 
                     - label:      The label of the corresponding item
                     - entity:     The entity dictionary for the corresponding item
-                    - children:   A list of immediate children for the corresponding item - each item in 
+                    - children:   A list of immediate children for the corresponding item - each item in
                                   the list is a dictionary containing 'label' and 'entity'.
         """
         if not idx.isValid():
@@ -307,18 +322,18 @@ class EntityTreeForm(QtGui.QWidget):
         # get details for children:
         children = []
         collapsed_children = []
-        
-        view_model = self._ui.entity_tree.model() 
+
+        view_model = self._ui.entity_tree.model()
         for row in range(view_model.rowCount(idx)):
             child_idx = view_model.index(row, 0, idx)
             child_item = self._item_from_index(child_idx)
             if not child_item:
                 continue
-            
+
             child_label = get_model_str(child_item)
             child_entity = entity_model.get_entity(child_item)
             children.append({"label":child_label, "entity":child_entity})
-            
+
             if self._collapse_steps_with_tasks and child_entity and child_entity["type"] == "Step":
                 # see if grand-child is actually a task:
                 for child_row in range(view_model.rowCount(child_idx)):
@@ -326,7 +341,7 @@ class EntityTreeForm(QtGui.QWidget):
                     grandchild_item = self._item_from_index(grandchild_idx)
                     if not grandchild_item:
                         continue
-                    
+
                     grandchild_label = get_model_str(grandchild_item)
                     grandchild_entity = entity_model.get_entity(grandchild_item)
                     if grandchild_entity and grandchild_entity["type"] == "Task":
@@ -347,11 +362,11 @@ class EntityTreeForm(QtGui.QWidget):
                 if child_entity and child_entity["type"] == "Task":
                     collapsed_child_label = "%s - %s" % (label, child_label)
                     collapsed_children.append({"label":collapsed_child_label, "entity":child_entity})
-                    
+
             if collapsed_children:
                 entity = None
                 children = collapsed_children
-        
+
         return {"label":label, "entity":entity, "children":children}
 
     def _on_search_changed(self, search_text):
@@ -375,7 +390,7 @@ class EntityTreeForm(QtGui.QWidget):
         """
         Slot triggered when the show-my-tasks checkbox is toggled
 
-        :param checked: True if the checkbox has been checked, otherwise False 
+        :param checked: True if the checkbox has been checked, otherwise False
         """
         # reset the current selection without emitting any signals:
         prev_selected_item = self._reset_selection()
@@ -388,16 +403,16 @@ class EntityTreeForm(QtGui.QWidget):
 
     def _update_selection(self, prev_selected_item):
         """
-        Update the selection to either the to-be-selected entity if set or the current item if known.  The 
-        current item is the item that was last selected but which may no longer be visible in the view due 
-        to filtering.  This allows it to be tracked so that the selection state is correctly restored when 
+        Update the selection to either the to-be-selected entity if set or the current item if known.  The
+        current item is the item that was last selected but which may no longer be visible in the view due
+        to filtering.  This allows it to be tracked so that the selection state is correctly restored when
         it becomes visible again.
         """
         entity_model = get_source_model(self._ui.entity_tree.model())
         if not entity_model:
             return
 
-        # we want to make sure we don't emit any signals whilst we are 
+        # we want to make sure we don't emit any signals whilst we are
         # manipulating the selection:
         signals_blocked = self.blockSignals(True)
         try:
@@ -449,7 +464,7 @@ class EntityTreeForm(QtGui.QWidget):
             entity_model = get_source_model(selected_indexes[0].model())
             if item and entity_model:
                 entity = entity_model.get_entity(item)
-                #if entity and entity.get("type") in ("Step", "Task"):
+                # if entity and entity.get("type") in ("Step", "Task"):
                 if entity and entity["type"] != "Step":
                     if entity["type"] == "Task":
                         if entity.get("entity"):
@@ -486,6 +501,13 @@ class EntityTreeForm(QtGui.QWidget):
         if self._current_item_ref:
             # clear the entity-to-select as the current item now takes precedence
             self._entity_to_select = None
+
+        # If we are allowing to create task for this tree view...
+        if self._ui.new_task_btn.isVisible():
+            # ... we have to determine the state of the New Task button.
+            self._ui.new_task_btn.setEnabled(
+                self._can_create_task_from_selection(item)
+            )
 
         # emit selection_changed signal:
         self._emit_entity_selected(selection_details, breadcrumbs)
@@ -678,3 +700,28 @@ class EntityTreeForm(QtGui.QWidget):
         """
         self.entity_selected.emit(entity_details, breadcrumbs)
 
+    def _can_create_task_from_selection(self, item):
+        """
+        Returns if we can create a task from the current selection.
+
+        :param item: Selected item.
+
+        :returns: True if the entity can have a task, False otherwise.
+        """
+        # No selection, so no tasks can be created.
+        if not item:
+            return False
+
+        entity = self._entity_model.get_entity(item)
+
+        # There's no actual Shotgun entity attached to this item, so no tasks can be created.
+        if not entity:
+            return False
+
+        # The picked entity is already a task, so we'll be able to create another task
+        # from it.
+        if entity["type"] == "Task":
+            return True
+
+        # Check if this is one of the entity types that support tasks.
+        return entity["type"] in self.__enities_with_tasks

@@ -124,4 +124,14 @@ class DebugWrapperShotgun(object):
         data = self._sg.insert(*args, **kwargs)
         self._log_fn("SG API insert end")
         return data
-    
+
+    def __getattr__(self, name):
+        """
+        Invoked when an attribute is not found on this instance, this will retrieve the attribute
+        on the wrapped Shotgun instance.
+
+        :param name: Name of the attribute to retrieve.
+
+        :returns: The attribute matching the given name.
+        """
+        return getattr(self._sg, name)
