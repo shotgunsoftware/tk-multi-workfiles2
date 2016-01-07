@@ -174,9 +174,12 @@ class WorkFiles(object):
         from .file_save_form import FileSaveForm
         handler._show_file_dlg_modally("File Save", FileSaveForm)
 
-    def _show_file_dlg_modally(self, dlg_name, form):
+    def _show_file_dlg(self, dlg_name, form):
         """
-        Show a dialog modally
+        Shows the file dialog modally or not depending on the current DCC and settings.
+
+        :param dlg_name: Title of the dialog.
+        :param form: Factory for the dialog class.
         """
         app = sgtk.platform.current_bundle()
         try:
