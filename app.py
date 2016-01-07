@@ -1,18 +1,19 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
-Multi Work Files 2.  
+Multi Work Files 2.
 Provides File Open/Save functionality for Work Files
 """
 import sgtk
+
 
 class MultiWorkFiles(sgtk.platform.Application):
 
@@ -21,6 +22,7 @@ class MultiWorkFiles(sgtk.platform.Application):
         Called as the application is being initialized
         """
         self._tk_multi_workfiles = self.import_module("tk_multi_workfiles")
+        self.__is_pyside_unstable = None
 
         application_has_scenes = True
         if self.engine.name == "tk-mari":
@@ -36,7 +38,7 @@ class MultiWorkFiles(sgtk.platform.Application):
         # Process auto startup options - but only on certain supported platforms
         # because of the way QT inits and connects to different host applications
         # differently, in conjunction with the 'boot' process in different tools,
-        # the behaviour can be very different.  
+        # the behaviour can be very different.
         #
         # currently, we have done QA on the following engines:
         SUPPORTED_ENGINES = ["tk-nuke", "tk-maya", "tk-3dsmax"]
@@ -76,25 +78,75 @@ class MultiWorkFiles(sgtk.platform.Application):
         """
         self._tk_multi_workfiles.WorkFiles.show_file_save_dlg()
 
+    def _is_pyside_unstable(self):
+        """
+        Returns if a given DCC has been shown to be unstable with the workfiles
+        app due to certain versions of Python and PySide. Right now, we're only
+        aware of Nuke 6, so we'll filter for that.
+        """
+        if self.__is_pyside_unstable is not None:
+            return self.__is_pyside_unstable
+        try:
+            # we could go for the engine name, but we are not guaranteed that it will necessarily
+            # be ours.
+            import nuke
+        except ImportError:
+            self.__is_pyside_unstable = False
+        else:
+            self.__is_pyside_unstable = nuke.env.get("NukeVersionMajor") <= 7
+
+        return self.__is_pyside_unstable
+
+    @property
+    def use_modal_dialog(self):
+        """
+        Flag indicating if the dialogs should be modal.
+
+        :returns: True if modal is required, False otherwise.
+        """
+        # Debug dialogs need to be modal.
+        # Unstable PySide version need to be modal
+        return self.use_debug_dialog or self.use_managed_gc
+
+    @property
+    def use_managed_gc(self):
+        """
+        Flag indicating if the dialogs need managed garbage collection.
+
+        :returns: True if managed garbage collection is required, False otherwise.
+        """
+        return self._is_pyside_unstable()
+
+    @property
+    def use_debug_dialog(self):
+        """
+        Flag indicating if the dialogs should be invoked in debug mode. In debug
+        mode the dialog will be modal and leaked PySide objects will be reported
+        after the dialog is closed.
+
+        :returns: True if the debug_dialog setting is True, False otherwise.
+        """
+        return self.get_setting("debug_dialog", False)
+
     @property
     def shotgun(self):
         """
-        Subclassing of the shotgun property on the app base class. 
-        This is a temporary arrangement to be able to time some of the shotgun calls. 
+        Subclassing of the shotgun property on the app base class.
+        This is a temporary arrangement to be able to time some of the shotgun calls.
         """
         # get the real shotgun from the application base class
         app_shotgun = sgtk.platform.Application.shotgun.fget(self)
         # return a wrapper back which produces debug logging
         return DebugWrapperShotgun(app_shotgun, self.log_debug)
-        
-        
+
+
 class DebugWrapperShotgun(object):
-    
+
     def __init__(self, sg_instance, log_fn):
         self._sg = sg_instance
         self._log_fn = log_fn
         self.config = sg_instance.config
-        
+
     def find(self, *args, **kwargs):
         self._log_fn("SG API find start: %s %s" % (args, kwargs))
         data = self._sg.find(*args, **kwargs)
@@ -124,4 +176,3 @@ class DebugWrapperShotgun(object):
         data = self._sg.insert(*args, **kwargs)
         self._log_fn("SG API insert end")
         return data
-    
