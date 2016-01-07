@@ -163,7 +163,7 @@ class WorkFiles(object):
         """
         handler = WorkFiles()
         from .file_open_form import FileOpenForm
-        handler._show_file_dlg_modally("File Open", FileOpenForm)
+        handler._show_file_dlg("File Open", FileOpenForm)
 
     @staticmethod
     def show_file_save_dlg():
@@ -172,7 +172,7 @@ class WorkFiles(object):
         """
         handler = WorkFiles()
         from .file_save_form import FileSaveForm
-        handler._show_file_dlg_modally("File Save", FileSaveForm)
+        handler._show_file_dlg("File Save", FileSaveForm)
 
     def _show_file_dlg(self, dlg_name, form):
         """

@@ -87,6 +87,8 @@ class MultiWorkFiles(sgtk.platform.Application):
         if self.__is_pyside_unstable is not None:
             return self.__is_pyside_unstable
         try:
+            # we could go for the engine name, but we are not guaranteed that it will necessarily
+            # be ours.
             import nuke
         except ImportError:
             self.__is_pyside_unstable = False
