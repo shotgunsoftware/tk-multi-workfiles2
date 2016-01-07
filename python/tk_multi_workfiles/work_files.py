@@ -1,21 +1,21 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import sys
 import gc
 
 import sgtk
-from sgtk.platform.qt import QtCore, QtGui 
-from sgtk import TankError
+from sgtk.platform.qt import QtCore
 
 from .util import report_non_destroyed_qobjects
+
 
 class TimedGc(QtCore.QObject):
     """
@@ -62,11 +62,12 @@ class TimedGc(QtCore.QObject):
         """
         gc.collect()
 
+
 def managed_gc(func):
     """
-    Decorator function to disable cyclic garbage collection whilst the wrapped function is run.  
-    Whilst it is running, gc.collect() is instead run on a timer - this ensure that it always 
-    runs in the main thread to avoid gc issues with PySide/Qt objects being deleted from another, 
+    Decorator function to disable cyclic garbage collection whilst the wrapped function is run.
+    Whilst it is running, gc.collect() is instead run on a timer - this ensure that it always
+    runs in the main thread to avoid gc issues with PySide/Qt objects being deleted from another,
     non-main thread.
     """
     def wrapper(*args, **kwargs):
@@ -78,6 +79,7 @@ def managed_gc(func):
             timed_gc.stop()
             timed_gc.deleteLater()
     return wrapper
+
 
 def dbg_info(func):
     """
@@ -96,7 +98,7 @@ def dbg_info(func):
         bytes_before = 0
         if sys.platform == "Darwin":
             import resource
-            bytes_before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024.0/1024.0
+            bytes_before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0 / 1024.0
 
         # run the function:
         res = func(*args, **kwargs)
@@ -110,13 +112,13 @@ def dbg_info(func):
         gc.collect()
         bytes_after = 0
         if sys.platform == "Darwin":
-            bytes_after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024.0/1024.0
+            bytes_after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0 / 1024.0
         num_objects_after = len(gc.get_objects())
 
         # and report any difference in memory usage:
         bytes_diff = bytes_after - bytes_before
         obj_diff = num_objects_after - num_objects_before
-        msg = ("Memory before: %0.2fMb, current: %0.2fMb, leaked: %0.2fMb (%d new Python objects)" 
+        msg = ("Memory before: %0.2fMb, current: %0.2fMb, leaked: %0.2fMb (%d new Python objects)"
                % (bytes_before, bytes_after, bytes_diff, obj_diff))
         app = sgtk.platform.current_bundle()
         app.log_debug(msg)
@@ -140,13 +142,28 @@ class WorkFiles(object):
         app.sgtk.synchronize_filesystem_structure()
         app.log_debug("Path cache up to date!")
 
+        # If we should use modal dialogs.
+        if app.use_modal_dialog:
+            self._dialog_launcher = app.engine.show_modal
+        else:
+            self._dialog_launcher = app.engine.show_dialog
+
+        # Output debugging information when the dialog is closed.
+        if app.use_debug_dialog:
+            self._dialog_launcher = dbg_info(self._dialog_launcher)
+
+        # Wrap the dialog with managed garbage collection.
+        if app.use_managed_gc:
+            self._dialog_launcher = managed_gc(self._dialog_launcher)
+
     @staticmethod
     def show_file_open_dlg():
         """
         Show the file open dialog
         """
         handler = WorkFiles()
-        handler._show_file_open_dlg()
+        from .file_open_form import FileOpenForm
+        handler._show_file_dlg_modally("File Open", FileOpenForm)
 
     @staticmethod
     def show_file_save_dlg():
@@ -154,31 +171,15 @@ class WorkFiles(object):
         Show the file save dialog
         """
         handler = WorkFiles()
-        handler._show_file_save_dlg()
+        from .file_save_form import FileSaveForm
+        handler._show_file_dlg_modally("File Save", FileSaveForm)
 
-    @dbg_info
-    @managed_gc
-    def _show_file_open_dlg(self):
+    def _show_file_dlg_modally(self, dlg_name, form):
         """
-        Show the file open dialog
+        Show a dialog modally
         """
         app = sgtk.platform.current_bundle()
         try:
-            from .file_open_form import FileOpenForm
-            app.engine.show_modal("File Open", app, FileOpenForm)
+            self._dialog_launcher(dlg_name, app, form)
         except:
-            app.log_exception("Failed to create File Open dialog!")
-
-    @dbg_info
-    @managed_gc
-    def _show_file_save_dlg(self):
-        """
-        Show the file save dialog
-        """
-        app = sgtk.platform.current_bundle()
-        try:
-            from .file_save_form import FileSaveForm
-            app.engine.show_modal("File Save", app, FileSaveForm)
-        except:
-            app.log_exception("Failed to create File Save dialog!")
-
+            app.log_exception("Failed to create %s dialog!" % dlg_name)
