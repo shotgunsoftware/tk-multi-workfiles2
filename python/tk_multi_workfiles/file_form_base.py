@@ -24,6 +24,8 @@ BackgroundTaskManager = task_manager.BackgroundTaskManager
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 
+shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
+
 from .file_model import FileModel
 from .my_tasks.my_tasks_model import MyTasksModel
 from .scene_operation import get_current_path, SAVE_FILE_AS_ACTION
@@ -54,6 +56,8 @@ class FileFormBase(QtGui.QWidget):
         monitor_qobject_lifetime(self._bg_task_manager, "Main task manager")
         self._bg_task_manager.start_processing()
 
+        shotgun_globals.register_bg_task_manager(self._bg_task_manager)
+
         # build the various models:
         self._my_tasks_model = self._build_my_tasks_model()
         self._entity_models = self._build_entity_models()
@@ -79,25 +83,29 @@ class FileFormBase(QtGui.QWidget):
 
         :param event:   Close event
         """
-        # clear up the various data models:
-        if self._file_model:
-            self._file_model.destroy()
-            self._file_model.deleteLater()
-            self._file_model = None
-        if self._my_tasks_model:
-            self._my_tasks_model.destroy()
-            self._my_tasks_model.deleteLater()
-            self._my_tasks_model = None
-        for _, model in self._entity_models:
-            model.destroy()
-            model.deleteLater()
-        self._entity_models = []
+        try:
+            # clear up the various data models:
+            if self._file_model:
+                self._file_model.destroy()
+                self._file_model.deleteLater()
+                self._file_model = None
+            if self._my_tasks_model:
+                self._my_tasks_model.destroy()
+                self._my_tasks_model.deleteLater()
+                self._my_tasks_model = None
+            for _, model in self._entity_models:
+                model.destroy()
+                model.deleteLater()
+            self._entity_models = []
 
-        # and shut down the task manager
-        if self._bg_task_manager:
-            self._bg_task_manager.shut_down()
-            self._bg_task_manager.deleteLater()
-            self._bg_task_manager = None
+            # and shut down the task manager
+            if self._bg_task_manager:
+                self._bg_task_manager.shut_down()
+                self._bg_task_manager.deleteLater()
+                self._bg_task_manager = None
+        finally:
+            # Make sure that we always unregister our manager from the globals.
+            shotgun_globals.unregister_bg_task_manager(self._bg_task_manager)
 
         return QtGui.QWidget.closeEvent(self, event)
 
