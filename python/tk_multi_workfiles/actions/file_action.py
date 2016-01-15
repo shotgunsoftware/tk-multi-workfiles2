@@ -110,6 +110,31 @@ class FileAction(Action):
             raise TankError("Failed to change work area and start a new engine - %s" % e)
         finally:
             QtGui.QApplication.restoreOverrideCursor()
+
+    @staticmethod
+    def change_context(ctx):
+        """
+        Set context to the new context.
+
+        :param ctx: The sgtk.context.Context to change to.
+        """
+        app = sgtk.platform.current_bundle()
+        app.log_info("Changing context...")
+        
+        # restart engine:
+        QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        try:
+            # If there's an engine running, change its context. Otherwise
+            # start the engine up in the new context.
+            if sgtk.platform.current_engine(): 
+                sgtk.platform.change_context(ctx)
+                return
+
+            sgtk.platform.start_engine(current_engine_name, ctx.sgtk, ctx)
+        except Exception, e:
+            raise TankError("Failed to change work area and start a new engine - %s" % e)
+        finally:
+            QtGui.QApplication.restoreOverrideCursor()
     
     def __init__(self, label, file, file_versions, environment):
         """

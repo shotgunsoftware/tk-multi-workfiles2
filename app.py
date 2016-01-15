@@ -98,6 +98,13 @@ class MultiWorkFiles(sgtk.platform.Application):
         return self.__is_pyside_unstable
 
     @property
+    def context_change_allowed(self):
+        """
+        Specifies that context changes are allowed.
+        """
+        return True
+
+    @property
     def use_modal_dialog(self):
         """
         Flag indicating if the dialogs should be modal.
