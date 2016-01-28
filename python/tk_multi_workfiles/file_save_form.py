@@ -302,7 +302,7 @@ class FileSaveForm(FileFormBase):
         if not env or not env.context:
             raise TankError("Please select a work area to save into...")
         elif not env.work_template:
-            raise TankError("Unable to save into this work area.  Please select a different work area!")
+            raise TankError("The working directory has not been defined for this work area.  Please select another work area.")
 
         # build the fields dictionary from the environment:
         fields = {}
