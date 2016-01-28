@@ -85,7 +85,6 @@ class WorkFiles(object):
         else:
             self._dialog_launcher = app.engine.show_dialog
 
-
     @staticmethod
     def show_file_open_dlg():
         """
