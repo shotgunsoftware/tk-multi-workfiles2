@@ -9,4 +9,5 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 from .work_files import WorkFiles
+# Leaving this in to make it easier to test the dialogs through scripting.
 from .file_open_form import FileOpenForm
