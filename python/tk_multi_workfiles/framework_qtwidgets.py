@@ -40,10 +40,6 @@ GroupWidgetBase = views.GroupWidgetBase
 GroupedListViewItemDelegate = views.GroupedListViewItemDelegate
 WidgetDelegate = views.WidgetDelegate
 
-# overlay widget:
-overlay_module = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
-ShotgunModelOverlayWidget = overlay_module.ShotgunModelOverlayWidget
-
 # hierarchical filtering proxy model:
 models = sgtk.platform.import_framework("tk-framework-qtwidgets", "models")
 HierarchicalFilteringProxyModel = models.HierarchicalFilteringProxyModel

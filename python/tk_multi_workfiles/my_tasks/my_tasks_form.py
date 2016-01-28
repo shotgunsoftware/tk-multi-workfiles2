@@ -20,7 +20,7 @@ from sgtk.platform.qt import QtCore, QtGui
 from .my_task_item_delegate import MyTaskItemDelegate
 from ..entity_proxy_model import EntityProxyModel
 from ..ui.my_tasks_form import Ui_MyTasksForm
-from ..framework_qtwidgets import Breadcrumb, ShotgunModelOverlayWidget
+from ..framework_qtwidgets import Breadcrumb
 from ..util import map_to_source, get_source_model, monitor_qobject_lifetime
 
 class MyTasksForm(QtGui.QWidget):
@@ -71,14 +71,8 @@ class MyTasksForm(QtGui.QWidget):
         else:
             self._ui.new_task_btn.hide()
 
-        # create the overlay 'busy' widget - this is displayed initiallt when there is nothing
-        # in the model and it is populating itself from Shotgun
-        self._overlay_widget = ShotgunModelOverlayWidget(None, self._ui.task_tree)
-
         self._item_delegate = None
         if tasks_model:
-            # connect the overlay widget:
-            self._overlay_widget.set_model(tasks_model)
 
             if True:
                 # create a filter proxy model between the source model and the task tree view:
@@ -114,11 +108,6 @@ class MyTasksForm(QtGui.QWidget):
             # clear any references:
             self._current_item_ref = None
 
-            # detach the overlay widget:
-            if self._overlay_widget:
-                self._overlay_widget.set_model(None)
-                self._overlay_widget = None
-
             # clear the selection:
             if self._ui.task_tree.selectionModel():
                 self._ui.task_tree.selectionModel().clear()
@@ -129,7 +118,6 @@ class MyTasksForm(QtGui.QWidget):
                 self._ui.task_tree.setModel(None)
                 if isinstance(view_model, EntityProxyModel):
                     view_model.setSourceModel(None)
-                    view_model.deleteLater()
 
             # detach and clean up the item delegate:
             self._ui.task_tree.setItemDelegate(None)

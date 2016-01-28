@@ -1,11 +1,11 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
@@ -32,6 +32,7 @@ from .work_area import WorkArea
 from .actions.new_task_action import NewTaskAction
 from .user_cache import g_user_cache
 from .util import monitor_qobject_lifetime
+
 
 class FileFormBase(QtGui.QWidget):
     """
@@ -82,21 +83,15 @@ class FileFormBase(QtGui.QWidget):
         # clear up the various data models:
         if self._file_model:
             self._file_model.destroy()
-            self._file_model.deleteLater()
-            self._file_model = None
         if self._my_tasks_model:
             self._my_tasks_model.destroy()
-            self._my_tasks_model.deleteLater()
-            self._my_tasks_model = None
         for _, model in self._entity_models:
             model.destroy()
-            model.deleteLater()
         self._entity_models = []
 
         # and shut down the task manager
         if self._bg_task_manager:
             self._bg_task_manager.shut_down()
-            self._bg_task_manager.deleteLater()
             self._bg_task_manager = None
 
         return QtGui.QWidget.closeEvent(self, event)
@@ -123,13 +118,13 @@ class FileFormBase(QtGui.QWidget):
 
         # create the model:
         model = MyTasksModel(app.context.project,
-                             g_user_cache.current_user, 
-                             extra_display_fields, 
-                             parent = None, 
-                             bg_task_manager = self._bg_task_manager)
+                             g_user_cache.current_user,
+                             extra_display_fields,
+                             parent=self,
+                             bg_task_manager=self._bg_task_manager)
         monitor_qobject_lifetime(model, "My Tasks Model")
         model.async_refresh()
-        return model 
+        return model
 
     def _build_entity_models(self):
         """
@@ -151,12 +146,12 @@ class FileFormBase(QtGui.QWidget):
 
             # resolve any magic tokens in the filter
             # Note, we always filter on the current project as the app needs templates
-            # in the config to be able to find files and there is currently no way to 
+            # in the config to be able to find files and there is currently no way to
             # get these from a config belonging to a different project!
             resolved_filters = []
 
             # we always filter within the current project as it's not currently possible
-            # to manage work files across projects (as we can't access the other project's 
+            # to manage work files across projects (as we can't access the other project's
             # templates and folder schema).
             #
             # Note that this currently doesn't work for non-project entities!
@@ -194,7 +189,7 @@ class FileFormBase(QtGui.QWidget):
             if entity_type == "Task":
                 fields += ["step", "entity", "content", "sg_status_list", "task_assignees"]
 
-            model = ShotgunEntityModel(entity_type, resolved_filters, hierarchy, fields, parent=None, 
+            model = ShotgunEntityModel(entity_type, resolved_filters, hierarchy, fields, parent=self,
                                        bg_task_manager=self._bg_task_manager)
             monitor_qobject_lifetime(model, "Entity Model")
             entity_models.append((caption, model))
@@ -209,7 +204,7 @@ class FileFormBase(QtGui.QWidget):
         :returns:   A FileModel instance that represents all the files found for a set of entities
                     and users.
         """
-        file_model = FileModel(self._bg_task_manager, parent=None)
+        file_model = FileModel(self._bg_task_manager, parent=self)
         monitor_qobject_lifetime(file_model, "File Model")
         return file_model
 
@@ -300,7 +295,7 @@ class FileFormBase(QtGui.QWidget):
         template_fields = base_template.get_fields(path)
         fields = dict(chain(template_fields.iteritems(), fields.iteritems()))
 
-        file_key = FileItem.build_file_key(fields, work_area.work_template, 
+        file_key = FileItem.build_file_key(fields, work_area.work_template,
                                            work_area.version_compare_ignore_fields)
 
         # extract details from the fields:
@@ -319,7 +314,3 @@ class FileFormBase(QtGui.QWidget):
                              publish_details = fields if is_publish else None)
 
         return file_item
-
-
-
-    

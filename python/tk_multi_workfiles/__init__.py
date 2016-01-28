@@ -9,3 +9,4 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 from .work_files import WorkFiles
+from .file_open_form import FileOpenForm

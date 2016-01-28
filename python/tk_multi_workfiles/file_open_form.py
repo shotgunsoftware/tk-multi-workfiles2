@@ -67,7 +67,7 @@ class FileOpenForm(FileFormBase):
         self._ui = Ui_FileOpenForm()
         self._ui.setupUi(self)
 
-        # start by dissabling buttons:
+        # start by disabling buttons:
         self._ui.open_btn.setEnabled(False)
         self._ui.open_options_btn.setEnabled(False)
 
