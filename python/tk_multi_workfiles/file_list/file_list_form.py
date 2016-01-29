@@ -122,7 +122,6 @@ class FileListForm(QtGui.QWidget):
                 self._ui.file_details_view.setModel(None)
                 if isinstance(view_model, FileProxyModel):
                     view_model.setSourceModel(None)
-                    view_model.deleteLater()
                     view_model = None
 
             # detach and clean up the item delegate:

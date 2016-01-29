@@ -595,7 +595,6 @@ class AsyncFileFinder(FileFinder):
         self._searches = {}
         for publish_model in self._available_publish_models:
             publish_model.destroy()
-            publish_model.deleteLater()
         self._available_publish_models = []
 
         # and shut down the task manager
@@ -641,7 +640,7 @@ class AsyncFileFinder(FileFinder):
             publish_model = self._available_publish_models.pop(0)
         else:
             # create a new model:
-            publish_model = SgPublishedFilesModel(search_id, self._bg_task_manager, parent=None)
+            publish_model = SgPublishedFilesModel(search_id, self._bg_task_manager, parent=self)
             publish_model.data_refreshed.connect(self._on_publish_model_refreshed)
             publish_model.data_refresh_fail.connect(self._on_publish_model_refresh_failed)
             monitor_qobject_lifetime(publish_model, "Finder publish model")

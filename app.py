@@ -78,45 +78,6 @@ class MultiWorkFiles(sgtk.platform.Application):
         """
         self._tk_multi_workfiles.WorkFiles.show_file_save_dlg()
 
-    def _is_pyside_unstable(self):
-        """
-        Returns if a given DCC has been shown to be unstable with the workfiles
-        app due to certain versions of Python and PySide. Right now, we're only
-        aware of Nuke 6, so we'll filter for that.
-        """
-        if self.__is_pyside_unstable is not None:
-            return self.__is_pyside_unstable
-        try:
-            # we could go for the engine name, but we are not guaranteed that it will necessarily
-            # be ours.
-            import nuke
-        except ImportError:
-            self.__is_pyside_unstable = False
-        else:
-            self.__is_pyside_unstable = nuke.env.get("NukeVersionMajor") <= 7
-
-        return self.__is_pyside_unstable
-
-    @property
-    def use_modal_dialog(self):
-        """
-        Flag indicating if the dialogs should be modal.
-
-        :returns: True if modal is required, False otherwise.
-        """
-        # Debug dialogs need to be modal.
-        # Unstable PySide version need to be modal
-        return self.use_debug_dialog or self.use_managed_gc
-
-    @property
-    def use_managed_gc(self):
-        """
-        Flag indicating if the dialogs need managed garbage collection.
-
-        :returns: True if managed garbage collection is required, False otherwise.
-        """
-        return self._is_pyside_unstable()
-
     @property
     def use_debug_dialog(self):
         """
