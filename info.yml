@@ -112,11 +112,17 @@ configuration:
           filters:
           - [entity, type_is, Shot]
           hierarchy: [entity.Shot.sg_sequence, entity, step, content]
+        default_value_tk-hiero:
+        - caption: Projects
+          entity_type: Project
+          filters: []
+          hierarchy: [name]
 
     show_my_tasks:
         type: bool
         description: Define if the My Tasks view should be visible or not.
         default_value: True
+        default_value_tk-hiero: False
 
     my_tasks_extra_display_fields:
       type: list
