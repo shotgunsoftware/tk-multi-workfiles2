@@ -87,6 +87,13 @@ configuration:
         default_value: "{self}/custom_actions.py"
         description: Hook which contains all custom action methods.
 
+    create_new_task_hook:
+        type: hook
+        parameters: [name, pipeline_step, entity, assigned_to]
+        default_value: "{self}/create_new_task.py"
+        description: Specify a hook that will create the task and do any input validation that is
+                     required.
+
     # General preferences
     #
     entities:
