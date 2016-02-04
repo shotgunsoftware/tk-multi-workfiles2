@@ -11,7 +11,11 @@
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-from .util import value_to_str
+from .util import WARNING_COLOUR, value_to_str
+
+get_type_display_name = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils", "shotgun_globals"
+).get_type_display_name
 
 
 class NewTaskForm(QtGui.QWidget):
@@ -45,7 +49,10 @@ class NewTaskForm(QtGui.QWidget):
         self._ui.setupUi(self)
 
         # populate entity name
-        entity_name = "%s %s" % (self._entity["type"], self._entity.get("code") or entity.get("name"))
+        entity_name = "%s %s" % (
+            get_type_display_name(self._entity["type"]),
+            self._entity.get("code") or entity.get("name")
+        )
         self._ui.entity.setText(entity_name)
 
         # populate user
@@ -112,16 +119,15 @@ class NewTaskForm(QtGui.QWidget):
     def task_name(self):
         return value_to_str(self._ui.task_name.text())
 
+    def _set_warning(self, msg):
+        self._ui.warning.setText("<p style='color:rgb%s'>%s</p>" % (WARNING_COLOUR, msg))
+
     def _on_create_btn_clicked(self):
         """
         Called when the user is ready to create the task.
         """
         if len(self.task_name) == 0:
-            QtGui.QMessageBox.warning(
-                self,
-                "Failed to create new task!",
-                "Please enter a task name"
-            )
+            self._set_warning("Please enter a task name.")
             return
 
         try:
@@ -136,10 +142,12 @@ class NewTaskForm(QtGui.QWidget):
             self._exit_code = QtGui.QDialog.Accepted
             self.close()
         except sgtk.TankError, e:
-            QtGui.QMessageBox.warning(
-                self,
-                "Failed to create new task!",
+            self._set_warning(
                 "Failed to create a new task '%s' for pipeline step '%s' on entity '%s %s':\n\n%s" % (
-                    self.task_name, self.pipeline_step.get("code"), self.entity["type"], self.entity["name"], e
+                    self.task_name,
+                    self.pipeline_step.get("code"),
+                    get_type_display_name(self.entity["type"]),
+                    self.entity["name"],
+                    e
                 )
             )

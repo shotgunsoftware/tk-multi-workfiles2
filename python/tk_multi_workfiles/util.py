@@ -16,6 +16,9 @@ import threading
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
+WARNING_COLOUR = (226, 146, 0)
+
+
 class Threaded(object):
     """
     Threaded base class that contains a threading.Lock member and an
