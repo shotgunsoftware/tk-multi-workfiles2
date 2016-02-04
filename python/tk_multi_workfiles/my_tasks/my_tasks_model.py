@@ -43,7 +43,7 @@ class MyTasksModel(ShotgunEntityModel):
         fields = ["image", "sg_status_list", "description", "entity", "content", "step", "project"]
         fields.extend(self.extra_display_fields)
 
-        ShotgunEntityModel.__init__(self, "Task", filters, ["id"], fields, parent,
+        ShotgunEntityModel.__init__(self, "Task", filters, ["content"], fields, parent,
                                     download_thumbs=True, 
                                     bg_load_thumbs = True,
                                     bg_task_manager=bg_task_manager)

@@ -24,6 +24,8 @@ BackgroundTaskManager = task_manager.BackgroundTaskManager
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 
+shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
+
 from .file_model import FileModel
 from .my_tasks.my_tasks_model import MyTasksModel
 from .scene_operation import get_current_path, SAVE_FILE_AS_ACTION
@@ -55,6 +57,8 @@ class FileFormBase(QtGui.QWidget):
         monitor_qobject_lifetime(self._bg_task_manager, "Main task manager")
         self._bg_task_manager.start_processing()
 
+        shotgun_globals.register_bg_task_manager(self._bg_task_manager)
+
         # build the various models:
         self._my_tasks_model = self._build_my_tasks_model()
         self._entity_models = self._build_entity_models()
@@ -80,6 +84,7 @@ class FileFormBase(QtGui.QWidget):
 
         :param event:   Close event
         """
+
         # clear up the various data models:
         if self._file_model:
             self._file_model.destroy()
@@ -91,6 +96,7 @@ class FileFormBase(QtGui.QWidget):
 
         # and shut down the task manager
         if self._bg_task_manager:
+            shotgun_globals.unregister_bg_task_manager(self._bg_task_manager)
             self._bg_task_manager.shut_down()
             self._bg_task_manager = None
 
