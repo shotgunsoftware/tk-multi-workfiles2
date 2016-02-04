@@ -11,8 +11,10 @@
 
 import sgtk
 
+HookClass = sgtk.get_hook_baseclass()
 
-class FilterWorkFiles(sgtk.get_hook_baseclass()):
+
+class FilterWorkFiles(HookClass):
     """
     Hook that can be used to filter the list of work files found by the app for the current
     Work area

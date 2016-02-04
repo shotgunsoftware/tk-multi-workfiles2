@@ -10,8 +10,10 @@
 
 import sgtk
 
+HookClass = sgtk.get_hook_baseclass()
 
-class FilterPublishes(sgtk.get_hook_baseclass()):
+
+class FilterPublishes(HookClass):
     """
     Hook that can be used to filter the list of publishes returned from Shotgun for the current
     Work area

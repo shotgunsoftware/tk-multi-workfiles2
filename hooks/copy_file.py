@@ -12,8 +12,10 @@ import os
 import shutil
 import sgtk
 
+HookClass = sgtk.get_hook_baseclass()
 
-class CopyFile(sgtk.get_hook_baseclass()):
+
+class CopyFile(HookClass):
     """
     Hook called when a file needs to be copied
     """

@@ -13,8 +13,10 @@ import maya.cmds as cmds
 import sgtk
 from sgtk.platform.qt import QtGui
 
+HookClass = sgtk.get_hook_baseclass()
 
-class SceneOperation(sgtk.get_hook_baseclass()):
+
+class SceneOperation(HookClass):
     """
     Hook called to perform an operation with the
     current scene

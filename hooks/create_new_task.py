@@ -8,13 +8,44 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+"""
+Task creation hook.
+"""
+
 import sgtk
 
+HookClass = sgtk.get_hook_baseclass()
 
-class CreateNewTaskHook(sgtk.get_hook_baseclass()):
+
+class CreateNewTaskHook(HookClass):
     """
     Hook called to create a task for a given entity and step.
     """
+
+    def create_task_name_validator(self):
+        """
+        Create a QtGui.QValidator instance that will be used by the task name field to interactively
+        inform if the name is valid or not. The caller will take ownership of the validator.
+
+        For example, this simple validator will prevent the user from entering spaces in the field.
+
+        .. code-block:: python
+
+            class _Validator(QtGui.QValidator):
+
+                def validate(self, text, pos):
+                    if " " in text:
+                        return QtGui.QValidator.Intermediate, text.replace(" ", ""), pos - 1
+                    else:
+                        return QtGui.QValidator.Acceptable, text, pos
+
+        .. note:: The calling convention for fixup and validate have been modified to make them more pythonic.
+            http://pyside.readthedocs.org/en/1.2.2/sources/pyside/doc/pysideapi2.html?highlight=string#qstring
+
+        :returns: A QtGui.QValidator derived object.
+        """
+        return None
+
     def create_new_task(self, name, pipeline_step, entity, assigned_to=None):
         """
         Create a new task with the specified information.
@@ -55,3 +86,5 @@ class CreateNewTaskHook(sgtk.get_hook_baseclass()):
             app.shotgun.update("Task", sg_result["id"], {"sg_status_list": "ip"})
         except:
             pass
+
+        return sg_result

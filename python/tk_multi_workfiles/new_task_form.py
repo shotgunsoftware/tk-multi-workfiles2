@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Shotgun Software Inc.
+# Copyright (c) 2016 Shotgun Software Inc.
 #
 # CONFIDENTIAL AND PROPRIETARY
 #
@@ -8,10 +8,14 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+"""
+New Task Form.
+"""
+
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-from .util import WARNING_COLOUR, value_to_str
+from .util import WARNING_COLOR, value_to_str
 
 get_type_display_name = sgtk.platform.import_framework(
     "tk-framework-shotgunutils", "shotgun_globals"
@@ -20,16 +24,25 @@ get_type_display_name = sgtk.platform.import_framework(
 
 class NewTaskForm(QtGui.QWidget):
     """
-    Form for requesting details needed to create
-    a new Shotgun task
+    Form for requesting details needed to create a new Shotgun task.
     """
 
     @property
     def exit_code(self):
+        """
+        Exit code of the dialog.
+
+        :returns: QtGui.QDialog.Accepted or QtGui.QDialog.Rejected
+        """
         return self._exit_code
 
     @property
     def hide_tk_title_bar(self):
+        """
+        Hint to hide the Toolkit title bar.
+
+        :returns: True.
+        """
         return True
 
     def __init__(self, entity, step, user, parent):
@@ -86,6 +99,15 @@ class NewTaskForm(QtGui.QWidget):
         self._ui.task_name.setFocus()
         self._ui.task_name.selectAll()
 
+        validator = self._app.execute_hook_method(
+            "create_new_task_hook",
+            "create_task_name_validator"
+        )
+        if validator:
+            # Take ownership since the widget doesn't.
+            validator.setParent(self)
+            self._ui.task_name.setValidator(validator)
+
         # hook up controls:
         self._ui.create_btn.clicked.connect(self._on_create_btn_clicked)
 
@@ -94,18 +116,9 @@ class NewTaskForm(QtGui.QWidget):
         clr = QtGui.QApplication.palette().text().color()
         self._ui.break_line.setStyleSheet("#break_line{color: rgb(%d,%d,%d);}" % (clr.red() * 0.75, clr.green() * 0.75, clr.blue() * 0.75))
 
-    @property
-    def entity(self):
-        return self._entity
-
-    @property
-    def assigned_to(self):
-        return self._user
-
-    @property
-    def pipeline_step(self):
+    def _get_pipeline_step(self):
         """
-        Return the selected pipeline step:
+        :returns: The selected pipeline step.
         """
         step_id = self._ui.pipeline_step.itemData(self._ui.pipeline_step.currentIndex())
 
@@ -115,18 +128,25 @@ class NewTaskForm(QtGui.QWidget):
 
         return self._pipeline_step_dict[step_id]
 
-    @property
-    def task_name(self):
+    def _get_task_name(self):
+        """
+        :returns: The task name entered by the user.
+        """
         return value_to_str(self._ui.task_name.text())
 
     def _set_warning(self, msg):
-        self._ui.warning.setText("<p style='color:rgb%s'>%s</p>" % (WARNING_COLOUR, msg))
+        """
+        Display a warning inside the dialog.
+
+        :param msg: Message to display.
+        """
+        self._ui.warning.setText("<p style='color:rgb%s'>Failed to create a new task: %s</p>" % (WARNING_COLOR, msg))
 
     def _on_create_btn_clicked(self):
         """
         Called when the user is ready to create the task.
         """
-        if len(self.task_name) == 0:
+        if len(self._get_task_name()) == 0:
             self._set_warning("Please enter a task name.")
             return
 
@@ -134,20 +154,12 @@ class NewTaskForm(QtGui.QWidget):
             self._app.execute_hook_method(
                 "create_new_task_hook",
                 "create_new_task",
-                name=self.task_name,
-                pipeline_step=self.pipeline_step,
-                entity=self.entity,
-                assigned_to=self.assigned_to
+                name=self._get_task_name(),
+                pipeline_step=self._get_pipeline_step(),
+                entity=self._entity,
+                assigned_to=self._user
             )
             self._exit_code = QtGui.QDialog.Accepted
             self.close()
         except sgtk.TankError, e:
-            self._set_warning(
-                "Failed to create a new task '%s' for pipeline step '%s' on entity '%s %s':\n\n%s" % (
-                    self.task_name,
-                    self.pipeline_step.get("code"),
-                    get_type_display_name(self.entity["type"]),
-                    self.entity["name"],
-                    e
-                )
-            )
+            self._set_warning(str(e))
