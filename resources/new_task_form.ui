@@ -151,6 +151,16 @@
        </item>
       </layout>
      </item>
+     <item>
+      <widget class="QLabel" name="warning">
+       <property name="text">
+        <string/>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>

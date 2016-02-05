@@ -56,28 +56,24 @@ configuration:
 
     hook_scene_operation:
         type: hook
-        parameters: [operation, file_path, context, parent_action, file_version, read_only]
         default_value: "{self}/scene_operation_{engine_name}.py"
         description: All the application specific scene operations (open, save etc) that 
                      the app needs to carry out are collected together in this hook.
         
     hook_copy_file:
         type: hook
-        parameters: [source_path, target_path]
         default_value: "{self}/copy_file.py"
         description: Specify a hook that will be used to copy the file 'source_path' 
                      to 'target_path'.
 
     hook_filter_work_files:
         type: hook
-        parameters: [work_files]
         default_value: "{self}/filter_work_files.py"
         description: Specify a hook that, if needed, can filter the raw list of work files found
                      for the current work area 
 
     hook_filter_publishes:
         type: hook
-        parameters: [publishes]
         default_value: "{self}/filter_publishes.py"
         description: Specify a hook that, if needed, can filter the raw list of publishes returned
                      from Shotgun for the current Work area.
@@ -86,6 +82,12 @@ configuration:
         type: hook
         default_value: "{self}/custom_actions.py"
         description: Hook which contains all custom action methods.
+
+    create_new_task_hook:
+        type: hook
+        default_value: "{self}/create_new_task.py"
+        description: Specify a hook that will create the task and do any input validation that is
+                     required.
 
     # General preferences
     #

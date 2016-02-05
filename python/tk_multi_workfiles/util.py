@@ -16,6 +16,7 @@ import threading
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
+
 class Threaded(object):
     """
     Threaded base class that contains a threading.Lock member and an

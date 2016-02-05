@@ -100,6 +100,15 @@ class MultiWorkFiles(sgtk.platform.Application):
         # return a wrapper back which produces debug logging
         return DebugWrapperShotgun(app_shotgun, self.log_debug)
 
+    @property
+    def warning_color(self):
+        """
+        Color used to display errors in the UI.
+
+        :returns: An RGBA tuple.
+        """
+        return sgtk.platform.qt.QtGui.QColor(self.style_constants["SG_ALERT_COLOR"]).toTuple()
+
 
 class DebugWrapperShotgun(object):
 

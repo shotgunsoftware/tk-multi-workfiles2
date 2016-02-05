@@ -35,7 +35,6 @@ class FileSaveForm(FileFormBase):
     """
     UI for saving a work file
     """
-    _WARNING_COLOUR = (226, 146, 0)
 
     @property
     def exit_code(self):
@@ -94,8 +93,8 @@ class FileSaveForm(FileFormBase):
         self._ui.file_name_preview.setText("<p style='color:rgb%s'></p>" % (self._preview_colour, ))
         self._ui.work_area_label.setText("<p style='color:rgb%s'><b>Work Area:</b></p>" % (self._preview_colour, ))
         self._ui.work_area_preview.setText("<p style='color:rgb%s'></p>" % (self._preview_colour, ))
-        self._ui.warning_label.setText("<p style='color:rgb%s'><b>Warning:</b></p>" % (FileSaveForm._WARNING_COLOUR, ))
-        self._ui.warning.setText("<p style='color:rgb%s'></p>" % (FileSaveForm._WARNING_COLOUR, ))
+        self._ui.warning_label.setText("<p style='color:rgb%s'><b>Warning:</b></p>" % (app.warning_color, ))
+        self._ui.warning.setText("<p style='color:rgb%s'></p>" % (app.warning_color, ))
 
         # define which controls are visible before initial show:        
         self._ui.browser.hide()
@@ -286,8 +285,10 @@ class FileSaveForm(FileFormBase):
             return
         self._preview_task = None
 
+        app = sgtk.platform.current_bundle()
+
         self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.warning_page)
-        self._ui.warning.setText("<p style='color:rgb%s'>%s</p>" % (FileSaveForm._WARNING_COLOUR, msg))
+        self._ui.warning.setText("<p style='color:rgb%s'>%s</p>" % (app.warning_color, msg))
 
         self._disable_save(msg)
 
@@ -296,7 +297,6 @@ class FileSaveForm(FileFormBase):
         :returns:   Tuple containing (path, min_version)
         :raises:    Error if something goes wrong!
         """
-        app = sgtk.platform.current_bundle()
 
         # first make  sure the environment is complete:
         if not env or not env.context:
