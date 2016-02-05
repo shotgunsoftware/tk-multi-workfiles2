@@ -297,6 +297,7 @@ class FileSaveForm(FileFormBase):
         :returns:   Tuple containing (path, min_version)
         :raises:    Error if something goes wrong!
         """
+        app = sgtk.platform.current_bundle()
 
         # first make  sure the environment is complete:
         if not env or not env.context:
@@ -306,7 +307,7 @@ class FileSaveForm(FileFormBase):
 
         # build the fields dictionary from the environment:
         fields = {}
-        
+
         name_is_used = "name" in env.work_template.keys
         if name_is_used:
             if not env.work_template.is_optional("name") and not name:
