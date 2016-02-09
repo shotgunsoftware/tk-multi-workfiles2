@@ -59,7 +59,33 @@ class SceneOperation(HookClass):
                                                  state, otherwise False
                                 all others     - None
         """
+        # We need to see which mode of Nuke we're in. If this is Hiero or
+        # Nuke Studio, then we have a separate scene operation routine to
+        # use. We're checking that the "hiero_enabled" attribute exists
+        # to ensure that this works properly with pre-v0.4.x versions of
+        # the tk-nuke engine. If that one attribute exists, then we can be
+        # confident that the "studio_enabled" attribute is also available,
+        # so there's no need to check that.
+        #
+        # If there is ever a situation where Hiero- or Nuke Studio-specific
+        # logic is required that doesn't also apply to the other, then this
+        # conditional could be broken up between hiero_enabled and
+        # studio_enabled cases that call through to Nuke Studio and Hiero
+        # specific methods.
+        engine = self.parent.engine
+        if hasattr(engine, "hiero_enabled") and (engine.hiero_enabled or engine.studio_enabled):
+            return self._scene_operation_hiero_nukestudio(
+                operation,
+                file_path,
+                context,
+                parent_action,
+                file_version,
+                read_only,
+                **kwargs
+            )
 
+        # If we didn't hit the Hiero or Nuke Studio case above, we can
+        # continue with the typical Nuke scene operation logic.
         if file_path:
             file_path = file_path.replace("/", os.path.sep)
 
@@ -119,6 +145,28 @@ class SceneOperation(HookClass):
 
             return True
 
+    def _get_current_hiero_project(self):
+        """
+        Returns the current project based on where in the UI the user clicked
+        """
+        import hiero
+
+        # get the menu selection from hiero engine
+        selection = self.parent.engine.get_menu_selection()
+
+        if len(selection) != 1:
+            raise TankError("Please select a single Project!")
+
+        if not isinstance(selection[0] , hiero.core.Bin):
+            raise TankError("Please select a Hiero Project!")
+
+        project = selection[0].project()
+        if project is None:
+            # apparently bins can be without projects (child bins I think)
+            raise TankError("Please select a Hiero Project!")
+
+        return project
+
     def _reset_write_node_render_paths(self):
         """
         Use the tk-nuke-writenode app interface to find and reset
@@ -140,3 +188,82 @@ class SceneOperation(HookClass):
             write_node_app.reset_node_render_path(write_node)
 
         return len(write_nodes) > 0
+
+    def _scene_operation_hiero_nukestudio(
+        self, operation, file_path, context, parent_action, file_version, read_only, **kwargs
+    ):
+        """
+        Scene operation logic for Hiero and Nuke Studio modes of Nuke.
+
+        :param operation:       String
+                                Scene operation to perform
+
+        :param file_path:       String
+                                File path to use if the operation
+                                requires it (e.g. open)
+
+        :param context:         Context
+                                The context the file operation is being
+                                performed in.
+
+        :param parent_action:   This is the action that this scene operation is
+                                being executed for.  This can be one of:
+                                - open_file
+                                - new_file
+                                - save_file_as
+                                - version_up
+
+        :param file_version:    The version/revision of the file to be opened.  If this is 'None'
+                                then the latest version should be opened.
+
+        :param read_only:       Specifies if the file should be opened read-only or not
+
+        :returns:               Depends on operation:
+                                'current_path' - Return the current scene
+                                                 file path as a String
+                                'reset'        - True if scene was reset to an empty
+                                                 state, otherwise False
+                                all others     - None
+        """
+        import hiero
+
+        if operation == "current_path":
+            # return the current script path
+            project = self._get_current_hiero_project()
+            curr_path = project.path().replace("/", os.path.sep)
+            return curr_path
+
+        elif operation == "open":
+            # Manually fire the kBeforeProjectLoad event in order to work around a bug in Hiero.
+            # The Foundry has logged this bug as:
+            #   Bug 40413 - Python API - kBeforeProjectLoad event type is not triggered
+            #   when calling hiero.core.openProject() (only triggered through UI)
+            # It exists in all versions of Hiero through (at least) v1.9v1b12.
+            #
+            # Once this bug is fixed, a version check will need to be added here in order to
+            # prevent accidentally firing this event twice. The following commented-out code
+            # is just an example, and will need to be updated when the bug is fixed to catch the
+            # correct versions.
+            # if (hiero.core.env['VersionMajor'] < 1 or
+            #     hiero.core.env['VersionMajor'] == 1 and hiero.core.env['VersionMinor'] < 10:
+            hiero.core.events.sendEvent("kBeforeProjectLoad", None)
+
+            # open the specified script
+            hiero.core.openProject(file_path.replace(os.path.sep, "/"))
+
+        elif operation == "save":
+            # save the current script:
+            project = self._get_current_hiero_project()
+            project.save()
+
+        elif operation == "save_as":
+            project = self._get_current_hiero_project()
+            project.saveAs(file_path.replace(os.path.sep, "/"))
+
+        elif operation == "reset":
+            # do nothing and indicate scene was reset to empty
+            return True
+
+        elif operation == "prepare_new":
+            # add a new project to hiero
+            hiero.core.newProject()
