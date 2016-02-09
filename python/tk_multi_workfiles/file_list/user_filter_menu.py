@@ -47,7 +47,7 @@ class UserFilterMenu(QtGui.QMenu):
 
         self._current_user_action = QtGui.QAction("Show My Files", self)
         self._current_user_action.setCheckable(True)
-        toggled_slot = lambda toggled, uid=self._current_user_id: self._on_user_toggled(uid, toggled)
+        toggled_slot = lambda toggled: self._on_user_toggled(self._current_user_id, toggled)
         self._current_user_action.toggled.connect(toggled_slot)
         self.addAction(self._current_user_action)
 

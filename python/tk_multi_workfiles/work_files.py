@@ -17,70 +17,6 @@ from sgtk.platform.qt import QtCore
 from .util import report_non_destroyed_qobjects
 
 
-class TimedGc(QtCore.QObject):
-    """
-    Helper class that disables cyclic garbage collection and runs it periodically
-    on the main thread through use of a QTimer.  This is used to avoid Qt objects being
-    gc'd from non-main threads which was causing instability older PySide/Python
-    versions (Python 2.6 in Nuke 6 being one example).
-    """
-    def __init__(self, parent=None):
-        """
-        Construction
-
-        :param parent:  The parent QObject for this instance
-        """
-        QtCore.QObject.__init__(self, parent)
-        self._timer = QtCore.QTimer(self)
-        self._timer.timeout.connect(self._do_gc_collect)
-        self._gc_enabled = False
-
-    def start(self):
-        """
-        Disable the gc and start the timer
-        """
-        self._gc_enabled = gc.isenabled()
-        if self._gc_enabled:
-            gc.disable()
-            self._timer.start(10000)
-
-    def stop(self):
-        """
-        Stop the timer and re-enable the gc
-        """
-        self._timer.stop()
-        if self._gc_enabled:
-            # re-enable garbage collection:
-            gc.enable()
-        # and do one last collect
-        gc.collect()
-
-    def _do_gc_collect(self):
-        """
-        Slot triggered by the timer's timeout signal to perform
-        a gc collect at the timed interval.
-        """
-        gc.collect()
-
-
-def managed_gc(func):
-    """
-    Decorator function to disable cyclic garbage collection whilst the wrapped function is run.
-    Whilst it is running, gc.collect() is instead run on a timer - this ensure that it always
-    runs in the main thread to avoid gc issues with PySide/Qt objects being deleted from another,
-    non-main thread.
-    """
-    def wrapper(*args, **kwargs):
-        timed_gc = TimedGc()
-        timed_gc.start()
-        try:
-            return func(*args, **kwargs)
-        finally:
-            timed_gc.stop()
-            timed_gc.deleteLater()
-    return wrapper
-
-
 def dbg_info(func):
     """
     Decorator function used to track memory and other useful debug information around the file-open
@@ -142,19 +78,12 @@ class WorkFiles(object):
         app.sgtk.synchronize_filesystem_structure()
         app.log_debug("Path cache up to date!")
 
-        # If we should use modal dialogs.
-        if app.use_modal_dialog:
-            self._dialog_launcher = app.engine.show_modal
+        # If the user wants to debug the dialog, show it modally and wrap it
+        # with memory leak-detection code.
+        if app.use_debug_dialog:
+            self._dialog_launcher = dbg_info(app.engine.show_modal)
         else:
             self._dialog_launcher = app.engine.show_dialog
-
-        # Output debugging information when the dialog is closed.
-        if app.use_debug_dialog:
-            self._dialog_launcher = dbg_info(self._dialog_launcher)
-
-        # Wrap the dialog with managed garbage collection.
-        if app.use_managed_gc:
-            self._dialog_launcher = managed_gc(self._dialog_launcher)
 
     @staticmethod
     def show_file_open_dlg():

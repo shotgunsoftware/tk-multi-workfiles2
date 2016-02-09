@@ -22,7 +22,7 @@ ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 
 from ..ui.entity_tree_form import Ui_EntityTreeForm
 from .entity_tree_proxy_model import EntityTreeProxyModel
-from ..framework_qtwidgets import Breadcrumb, ShotgunModelOverlayWidget
+from ..framework_qtwidgets import Breadcrumb
 from ..util import get_model_data, get_model_str, map_to_source, get_source_model, monitor_qobject_lifetime
 
 class EntityTreeForm(QtGui.QWidget):
@@ -90,12 +90,7 @@ class EntityTreeForm(QtGui.QWidget):
         self._ui.entity_tree.expanded.connect(self._on_item_expanded)
         self._ui.entity_tree.collapsed.connect(self._on_item_collapsed)
 
-        # create the overlay 'busy' widget that will be displayed when the model is reset:
-        self._overlay_widget = ShotgunModelOverlayWidget(None, self._ui.entity_tree)
-
         if entity_model:
-            # connect the overlay widget:
-            self._overlay_widget.set_model(entity_model)
 
             if True:
                 # create a filter proxy model between the source model and the task tree view:
@@ -129,11 +124,6 @@ class EntityTreeForm(QtGui.QWidget):
             self._expanded_items = set()
             self._auto_expanded_root_items = set()
 
-            # detach the overlay widget:
-            if self._overlay_widget:
-                self._overlay_widget.set_model(None)
-                self._overlay_widget = None
-
             # clear the selection:
             if self._ui.entity_tree.selectionModel():
                 self._ui.entity_tree.selectionModel().clear()
@@ -144,7 +134,6 @@ class EntityTreeForm(QtGui.QWidget):
                 self._ui.entity_tree.setModel(None)
                 if isinstance(view_model, EntityTreeProxyModel):
                     view_model.setSourceModel(None)
-                    view_model.deleteLater()
         finally:
             self.blockSignals(signals_blocked)
 

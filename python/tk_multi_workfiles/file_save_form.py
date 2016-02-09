@@ -35,7 +35,6 @@ class FileSaveForm(FileFormBase):
     """
     UI for saving a work file
     """
-    _WARNING_COLOUR = (226, 146, 0)
 
     @property
     def exit_code(self):
@@ -94,8 +93,8 @@ class FileSaveForm(FileFormBase):
         self._ui.file_name_preview.setText("<p style='color:rgb%s'></p>" % (self._preview_colour, ))
         self._ui.work_area_label.setText("<p style='color:rgb%s'><b>Work Area:</b></p>" % (self._preview_colour, ))
         self._ui.work_area_preview.setText("<p style='color:rgb%s'></p>" % (self._preview_colour, ))
-        self._ui.warning_label.setText("<p style='color:rgb%s'><b>Warning:</b></p>" % (FileSaveForm._WARNING_COLOUR, ))
-        self._ui.warning.setText("<p style='color:rgb%s'></p>" % (FileSaveForm._WARNING_COLOUR, ))
+        self._ui.warning_label.setText("<p style='color:rgb%s'><b>Warning:</b></p>" % (app.warning_color, ))
+        self._ui.warning.setText("<p style='color:rgb%s'></p>" % (app.warning_color, ))
 
         # define which controls are visible before initial show:        
         self._ui.browser.hide()
@@ -286,8 +285,10 @@ class FileSaveForm(FileFormBase):
             return
         self._preview_task = None
 
+        app = sgtk.platform.current_bundle()
+
         self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.warning_page)
-        self._ui.warning.setText("<p style='color:rgb%s'>%s</p>" % (FileSaveForm._WARNING_COLOUR, msg))
+        self._ui.warning.setText("<p style='color:rgb%s'>%s</p>" % (app.warning_color, msg))
 
         self._disable_save(msg)
 
@@ -302,11 +303,11 @@ class FileSaveForm(FileFormBase):
         if not env or not env.context:
             raise TankError("Please select a work area to save into...")
         elif not env.work_template:
-            raise TankError("Unable to save into this work area.  Please select a different work area!")
+            raise TankError("The working directory has not been defined for this work area.  Please select another work area.")
 
         # build the fields dictionary from the environment:
         fields = {}
-        
+
         name_is_used = "name" in env.work_template.keys
         if name_is_used:
             if not env.work_template.is_optional("name") and not name:
