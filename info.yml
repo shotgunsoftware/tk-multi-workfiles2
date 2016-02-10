@@ -189,7 +189,7 @@ description: "Using this app you can browse, open and save
               
 # Required minimum versions for this item to run
 requires_shotgun_version:
-requires_core_version: "v0.15.23"
+requires_core_version: "v0.17.0"
 requires_engine_version: 
 
 # the engines that this app can operate in:

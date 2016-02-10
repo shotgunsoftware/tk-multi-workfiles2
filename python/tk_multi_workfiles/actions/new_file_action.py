@@ -81,7 +81,7 @@ class NewFileAction(Action):
 
             if not self._environment.context == self._app.context:
                 # restart the engine with the new context
-                FileAction.restart_engine(self._environment.context)
+                FileAction.change_context(self._environment.context)
 
         except Exception, e:
             error_title = "Failed to complete '%s' action" % self.label
