@@ -89,6 +89,10 @@ class NewFileAction(Action):
             self._app.log_exception(error_title)
             return False
         else:
-            self._app.log_metric("New file")
+            try:
+                self._app.log_metric("New file")
+            except:
+                # ignore all errors. ex: using a core that doesn't support metrics
+                pass
 
         return True

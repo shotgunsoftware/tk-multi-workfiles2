@@ -43,7 +43,11 @@ class SaveAsFileAction(FileAction):
                 self._app.log_exception("Failed to change the work area to %s!" % self.environment.context)
                 return False
             else:
-                self._app.log_metric("Save as to diff workarea")
+                try:
+                    self._app.log_metric("Save as to diff workarea")
+                except:
+                    # ignore all errors. ex: using a core that doesn't support metrics
+                    pass
 
         # and save the current file as the new path:
         try:

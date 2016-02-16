@@ -192,8 +192,6 @@ requires_shotgun_version:
 requires_core_version: "v0.17.0"
 requires_engine_version:
 
-# XXX will require core that supports metrics logging
-
 # the engines that this app can operate in:
 supported_engines: 
 
