@@ -190,7 +190,9 @@ description: "Using this app you can browse, open and save
 # Required minimum versions for this item to run
 requires_shotgun_version:
 requires_core_version: "v0.17.0"
-requires_engine_version: 
+requires_engine_version:
+
+# XXX will require core that supports metrics logging
 
 # the engines that this app can operate in:
 supported_engines: 

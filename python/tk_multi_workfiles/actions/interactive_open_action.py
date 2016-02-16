@@ -236,6 +236,8 @@ class InteractiveOpenAction(OpenFileAction):
                     src_path = work_path
                     work_path = local_path
 
+        self._app.log_metric("Open workfile")
+
         return self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui)
 
     def _open_previous_publish(self, file, env, parent_ui):
@@ -327,6 +329,8 @@ class InteractiveOpenAction(OpenFileAction):
                                        "Unable to open file!" % (src_path, e)))
                 self._app.log_exception("Failed to resolve work file path from publish path: %s" % src_path)
                 return False
+
+        self._app.log_metric("Open published file")
 
         return self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui)
         
