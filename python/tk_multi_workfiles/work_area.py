@@ -18,34 +18,48 @@ from sgtk import TankError
 from .user_cache import g_user_cache
 from .util import Threaded
 
+
 class WorkArea(object):
     """
     Class containing information about the current work area including context, templates
     and other miscelaneous work-area specific settings.
     """
-    
+
     class _SettingsCache(Threaded):
         """
-        Cache of settings per context, engine and app name.
+        Cache of settings per context.
         """
+
         def __init__(self):
+            """
+            Constructor.
+            """
             Threaded.__init__(self)
-            self._cache = {}
+            self._cache = []
 
         @Threaded.exclusive
-        def get(self, app_name, context):
+        def get(self, context):
             """
+            Retrieve the cached settings for a given context.
+
+            :param context: The context for which we desire settings.
+
+            :returns: The settings dictionary or None
             """
-            settings_by_context = self._cache.get(app_name, [])
-            for ctx, settings in settings_by_context:
+            for ctx, settings in self._cache:
                 if ctx == context:
                     return settings
+            return None
 
         @Threaded.exclusive
-        def add(self, app_name, context, settings):
+        def add(self, context, settings):
             """
+            Cache settings for a given context.
+
+            :param context: Context for which these settings need to be cached.
+            :param settings: Settings to cache.
             """
-            self._cache.setdefault(app_name, list()).append((context, copy.deepcopy(settings)))
+            self._cache.append((context, copy.deepcopy(settings)))
     
     _settings_cache = _SettingsCache() 
     
@@ -264,12 +278,17 @@ class WorkArea(object):
     def _get_raw_app_settings_for_context(self, app, context):
         """
         Find settings for the app in the specified context
+
+        :param app: Application instance
+        :param context: Context in which to look for settings.
+
+        :returns: The workfiles 2 application settings for the given context or None.
         """
         if not context:
             return
-        
+
         # first look in the cache:
-        app_settings = WorkArea._settings_cache.get(app.name, context)
+        app_settings = WorkArea._settings_cache.get(context)
 
         if app_settings is None:
             try:
@@ -279,16 +298,19 @@ class WorkArea(object):
                 )
             finally:
                 # Ignore any errors while looking for the settings
-                WorkArea._settings_cache.add(app.name, context, app_settings or {})
+                WorkArea._settings_cache.add(context, app_settings or {})
 
         if len(app_settings) == 1:
             return app_settings[0].get("settings")
 
-        # ok, so have a single engine but multiple apps lets try 
-        # to find an app with the same instance name.
+        # There's more than one instance of that app for the engine instance, so we'll
+        # need to deterministically pick one. We'll pick the one with the same
+        # application instance name as the current app instance.
         for settings in app_settings:
             if settings.get("app_instance") == app.instance_name:
                 return settings.get("settings")
+
+        return None
 
     def _resolve_user_sandboxes(self, template):
         """
