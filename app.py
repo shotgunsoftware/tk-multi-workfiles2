@@ -28,7 +28,7 @@ class MultiWorkFiles(sgtk.platform.Application):
         if self.engine.name == "tk-mari":
             # Mari doesn't have the concept of a current scene so this app shouldn't
             # provide any commands!
-            application_has_scenes = False
+            return
 
         # register commands:
         if application_has_scenes:

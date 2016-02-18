@@ -33,19 +33,19 @@ class WorkArea(object):
             self._cache = {}
 
         @Threaded.exclusive
-        def get(self, engine_name, app_name, context):
+        def get(self, app_name, context):
             """
             """
-            settings_by_context = self._cache.get((engine_name, app_name), [])
+            settings_by_context = self._cache.get(app_name, [])
             for ctx, settings in settings_by_context:
                 if ctx == context:
                     return settings
 
         @Threaded.exclusive
-        def add(self, engine_name, app_name, context, settings):
+        def add(self, app_name, context, settings):
             """
             """
-            self._cache.setdefault((engine_name, app_name), list()).append((context, copy.deepcopy(settings)))
+            self._cache.setdefault(app_name, list()).append((context, copy.deepcopy(settings)))
     
     _settings_cache = _SettingsCache() 
     
@@ -246,9 +246,9 @@ class WorkArea(object):
             # need to look for settings in a different context/environment
             settings = self._get_raw_app_settings_for_context(app, context)
             if not settings:
-                raise TankError("Failed to find Work Files settings for context '%s'.\n\nPlease ensure that"
-                                " the Work Files app is installed for the environment that will be used for"
-                                " this context" % context)
+                raise TankError("Failed to find Work Files settings for context '%s' in engine instance '%s'.\n\n"
+                                "Please ensure that the Work Files app is installed for the environment that will"
+                                " be used for this context." % (context, app.engine.instance_name))
             
             # get templates:
             resolved_settings = {}
@@ -269,49 +269,26 @@ class WorkArea(object):
             return
         
         # first look in the cache:
-        other_settings = WorkArea._settings_cache.get(app.engine.name, app.name, context)
-        if other_settings == None:
+        app_settings = WorkArea._settings_cache.get(app.name, context)
+
+        if app_settings is None:
             try:
                 # find settings for all instances of app in the environment picked for the given context:
-                other_settings = sgtk.platform.find_app_settings(app.engine.name, app.name, app.sgtk, context)
-                if not other_settings:
-                    # for backwards compatibility, look for settings for the 'tk-multi-workfiles' app as well
-                    other_settings = sgtk.platform.find_app_settings(app.engine.name, "tk-multi-workfiles", 
-                                                                     app.sgtk, context)
+                app_settings = sgtk.platform.find_app_settings(
+                    app.engine.name, app.name, app.sgtk, context, app.engine.instance_name
+                )
             finally:
-                # make sure the cache is updated:
-                WorkArea._settings_cache.add(app.engine.name, app.name, context, other_settings or {})
+                # Ignore any errors while looking for the settings
+                WorkArea._settings_cache.add(app.name, context, app_settings or {})
 
-        if len(other_settings) == 1:
-            return other_settings[0].get("settings")
-    
-        settings_by_engine = {}
-        for settings in other_settings:
-            settings_by_engine.setdefault(settings.get("engine_instance"), list()).append(settings)
-        
-        # can't handle more than one engine!  
-        if len(settings_by_engine) != 1:
-            return
-            
+        if len(app_settings) == 1:
+            return app_settings[0].get("settings")
+
         # ok, so have a single engine but multiple apps lets try 
         # to find an app with the same instance name.
-
-        # first, get the instance name of the current app - we
-        # have to look through all engine apps to find this as
-        # the app itself doesn't know
-        app_instance_name = None
-        for instance_name, engine_app in app.engine.apps.iteritems():
-            if engine_app == app:
-                app_instance_name = instance_name
-                break
-        if not app_instance_name:
-            return
-    
-        # now look for settings for this specific instance in the engine settings:
-        for engine_name, engine_settings in settings_by_engine.iteritems():
-            for settings in engine_settings:
-                if settings.get("app_instance") == app_instance_name:
-                    return settings.get("settings")
+        for settings in app_settings:
+            if settings.get("app_instance") == app.instance_name:
+                return settings.get("settings")
 
     def _resolve_user_sandboxes(self, template):
         """
