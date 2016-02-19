@@ -88,5 +88,11 @@ class NewFileAction(Action):
             QtGui.QMessageBox.information(parent_ui, "%s!" % error_title, "%s:\n\n%s!" % (error_title, e))
             self._app.log_exception(error_title)
             return False
+        else:
+            try:
+                self._app.log_metric("New file")
+            except:
+                # ignore all errors. ex: using a core that doesn't support metrics
+                pass
 
         return True

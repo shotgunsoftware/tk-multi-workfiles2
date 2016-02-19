@@ -79,6 +79,13 @@ class MultiWorkFiles(sgtk.platform.Application):
         self._tk_multi_workfiles.WorkFiles.show_file_save_dlg()
 
     @property
+    def context_change_allowed(self):
+        """
+        Specifies that context changes are supported by the app.
+        """
+        return True
+
+    @property
     def use_debug_dialog(self):
         """
         Flag indicating if the dialogs should be invoked in debug mode. In debug
