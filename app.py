@@ -24,16 +24,13 @@ class MultiWorkFiles(sgtk.platform.Application):
         self._tk_multi_workfiles = self.import_module("tk_multi_workfiles")
         self.__is_pyside_unstable = None
 
-        application_has_scenes = True
         if self.engine.name == "tk-mari":
             # Mari doesn't have the concept of a current scene so this app shouldn't
             # provide any commands!
             return
 
-        # register commands:
-        if application_has_scenes:
-            self.engine.register_command("File Open...", self.show_file_open_dlg, {"short_name":"file_open"})
-            self.engine.register_command("File Save...", self.show_file_save_dlg, {"short_name":"file_save"})
+        self.engine.register_command("File Open...", self.show_file_open_dlg, {"short_name":"file_open"})
+        self.engine.register_command("File Save...", self.show_file_save_dlg, {"short_name":"file_save"})
 
         # Process auto startup options - but only on certain supported platforms
         # because of the way QT inits and connects to different host applications
