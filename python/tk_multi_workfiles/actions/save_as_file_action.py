@@ -34,7 +34,7 @@ class SaveAsFileAction(FileAction):
         # switch context:
         if not self.environment.context == self._app.context:
             try:
-                # restart the engine with the new context
+                # Change the current context
                 FileAction.change_context(self.environment.context)
             except Exception, e:
                 QtGui.QMessageBox.critical(parent_ui, "Failed to change the work area", 
