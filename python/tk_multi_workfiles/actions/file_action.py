@@ -84,33 +84,6 @@ class FileAction(Action):
         if create_folders:
             FileAction.create_folders(ctx)
 
-
-    @staticmethod
-    def restart_engine(ctx):
-        """
-        Set context to the new context.  This will
-        clear the current scene and restart the
-        current engine with the specified context
-        """
-        app = sgtk.platform.current_bundle()
-        app.log_info("Restarting the engine...")
-        
-        # restart engine:
-        QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-        try:
-            current_engine_name = app.engine.name
-            
-            # stop current engine:            
-            if sgtk.platform.current_engine(): 
-                sgtk.platform.current_engine().destroy()
-                
-            # start engine with new context:
-            sgtk.platform.start_engine(current_engine_name, ctx.sgtk, ctx)
-        except Exception, e:
-            raise TankError("Failed to change work area and start a new engine - %s" % e)
-        finally:
-            QtGui.QApplication.restoreOverrideCursor()
-
     @staticmethod
     def change_context(ctx):
         """
@@ -124,15 +97,9 @@ class FileAction(Action):
         # restart engine:
         QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
-            # If there's an engine running, change its context. Otherwise
-            # start the engine up in the new context.
-            if sgtk.platform.current_engine(): 
-                sgtk.platform.change_context(ctx)
-                return
-
-            sgtk.platform.start_engine(current_engine_name, ctx.sgtk, ctx)
+            sgtk.platform.change_context(ctx)
         except Exception, e:
-            raise TankError("Failed to change work area and start a new engine - %s" % e)
+            raise TankError("Failed to change work area - %s" % e)
         finally:
             QtGui.QApplication.restoreOverrideCursor()
     

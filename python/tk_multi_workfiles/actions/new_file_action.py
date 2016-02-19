@@ -80,7 +80,7 @@ class NewFileAction(Action):
             prepare_new_scene(self._app, NEW_FILE_ACTION, self._environment.context)
 
             if not self._environment.context == self._app.context:
-                # restart the engine with the new context
+                # Change context
                 FileAction.change_context(self._environment.context)
 
         except Exception, e:
