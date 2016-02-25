@@ -110,7 +110,7 @@ class OpenFileAction(FileAction):
         # switch context:
         if not new_ctx == self._app.context:
             try:
-                # restart the engine with the new context
+                # Change the curent context.
                 FileAction.change_context(new_ctx)
             except Exception, e:
                 QtGui.QMessageBox.critical(parent_ui, "Failed to change the work area", 
