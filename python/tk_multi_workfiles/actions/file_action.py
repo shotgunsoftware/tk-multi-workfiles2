@@ -97,7 +97,11 @@ class FileAction(Action):
         # restart engine:
         QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
-            sgtk.platform.change_context(ctx)
+            current_engine_name = app.engine.instance_name
+            if sgtk.platform.current_engine():
+                sgtk.platform.current_engine().destroy()
+
+            sgtk.platform.start_engine(current_engine_name, ctx.sgtk, ctx)
         except Exception, e:
             raise TankError("Failed to change work area - %s" % e)
         finally:
