@@ -40,7 +40,7 @@ class MyTasksModel(ShotgunEntityModel):
         self.extra_display_fields = extra_display_fields or []
         filters = [["project", "is", project],
                    ["task_assignees", "is", user]]
-        fields = ["image", "sg_status_list", "description", "entity", "content", "step", "project"]
+        fields = ["image", "entity", "content"]
         fields.extend(self.extra_display_fields)
 
         ShotgunEntityModel.__init__(self, "Task", filters, ["content"], fields, parent,
