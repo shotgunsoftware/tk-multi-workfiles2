@@ -191,9 +191,10 @@ class FileFormBase(QtGui.QWidget):
                 continue
 
             # create an entity model for this query:
-            fields = ["image", "description", "project", "name", "code"]
+            fields = []
             if entity_type == "Task":
-                fields += ["step", "entity", "content", "sg_status_list", "task_assignees"]
+                # Add so we can filter tasks assigned to the user only on the client side.
+                fields += ["task_assignees"]
 
             model = ShotgunEntityModel(entity_type, resolved_filters, hierarchy, fields, parent=self,
                                        bg_task_manager=self._bg_task_manager)

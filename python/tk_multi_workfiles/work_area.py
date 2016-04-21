@@ -205,23 +205,23 @@ class WorkArea(object):
         settings_to_find = ["saveas_default_name", "saveas_prefer_version_up", 
                             "version_compare_ignore_fields", "file_extensions"]
         resolved_settings = {}
+        app = sgtk.platform.current_bundle()
         try:
             if self._context:
                 resolved_settings = self._get_settings_for_context(self._context, templates_to_find, settings_to_find)
         except:
-            # (TODO) - propogate problems up - maybe add an is_valid() method?
-            pass
+            app.log_exception("There was an error parsing the settings for context '%s'" % self._context)
         finally:
             # update the templates and settings regardless if an exception was raised.
             #
-            
+
             # update templates:
             self.work_area_template = resolved_settings.get("template_work_area")
             self.work_template = resolved_settings.get("template_work")
             self.publish_area_template = resolved_settings.get("template_publish_area")
             self.publish_template = resolved_settings.get("template_publish")
-            
-            # update other settings:        
+
+            # update other settings:
             self.save_as_default_name = resolved_settings.get("saveas_default_name", "")
             self.save_as_prefer_version_up = resolved_settings.get("saveas_prefer_version_up", False)
             self.version_compare_ignore_fields = resolved_settings.get("version_compare_ignore_fields", [])
