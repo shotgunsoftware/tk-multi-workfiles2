@@ -14,7 +14,6 @@ current work file.  Also give the user the option to select the file to save fro
 the list of current work files.
 """
 
-import itertools
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
@@ -406,15 +405,15 @@ class BrowserForm(QtGui.QWidget):
                     details.is_leaf = is_leaf
                     search_details.append(details)
 
-            # If we can enable user filtering, show or hide tje user filter widget
+            # If we can enable user filtering, show or hide the user filter widget
             # if one of the entities in the selection has sandboxes.
             if self._enable_user_filtering:
-                # Certain elements in the selection can be other things than entities,
-                # like the "Character" property in the tree view which is not an entity.
-                flat_selection = itertools.ifilter(
-                    lambda x: x is not None,
-                    [primary_entity] + [child_detail["entity"] for child_detail in children]
-                )
+                # The elementes in the selection might not always be an entity, e.g.
+                # if the user clicked the "Character" category, so filter None entities.
+                flat_selection = [child_detail["entity"] for child_detail in children if child_detail is not None]
+                if primary_entity:
+                    flat_selection.append(primary_entity)
+
                 # For each form, show the button if its content uses sandboxes.
                 for form in self._file_browser_forms:
                     if form.work_files_visible and self._uses_sandboxes(flat_selection, workfiles=True):
@@ -461,9 +460,6 @@ class BrowserForm(QtGui.QWidget):
         # Turn on or off user sandbox filter button.
         app = sgtk.platform.current_bundle()
         for entity in flat_selection:
-            if not entity:
-                continue
-
             # build a context from the search details:
             context = app.sgtk.context_from_entity_dictionary(entity)
 
