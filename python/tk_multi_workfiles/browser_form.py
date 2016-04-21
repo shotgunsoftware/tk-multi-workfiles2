@@ -520,12 +520,9 @@ class BrowserForm(QtGui.QWidget):
         if isinstance(form, MyTasksForm):
             # retrieve the selected task from the form and emit a work-area changed signal:
             task, breadcrumb_trail = form.get_selection()
-            # self._emit_work_area_changed(task, breadcrumb_trail)
             self._on_selected_task_changed(task, breadcrumb_trail)
 
         elif isinstance(form, EntityTreeForm):
             # retrieve the selection from the form and emit a work-area changed signal:
             selection, breadcrumb_trail = form.get_selection()
-            # selected_entity = selection.get("entity") if selection else None
-            # self._emit_work_area_changed(selected_entity, breadcrumb_trail)
             self._on_selected_entity_changed(selection, breadcrumb_trail)
