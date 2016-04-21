@@ -66,7 +66,6 @@ class FileListForm(QtGui.QWidget):
 
         self._show_work_files = show_work_files
         self._show_publishes = show_publishes
-        self._enable_user_filtering = True
 
         # set up the UI
         self._ui = Ui_FileListForm()
@@ -186,10 +185,7 @@ class FileListForm(QtGui.QWidget):
     def enable_user_filtering(self, enable):
         """
         """
-        self._enable_user_filtering = enable
-        if not self._enable_user_filtering:
-            # make sure user button is hidden:
-            self._ui.user_filter_btn.hide()
+        self._ui.user_filter_btn.setVisible(enable)
 
     def select_file(self, file_item, context):
         """
@@ -337,9 +333,6 @@ class FileListForm(QtGui.QWidget):
 
         :param users:   The new list of available users
         """
-        if self._enable_user_filtering and users and not self._ui.user_filter_btn.isVisible():
-            self._ui.user_filter_btn.show()
-
         # update user filter button
         self._ui.user_filter_btn.available_users = users
 

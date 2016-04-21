@@ -28,6 +28,7 @@ from .framework_qtwidgets import Breadcrumb
 from .file_list.file_proxy_model import FileProxyModel
 from .file_filters import FileFilters
 from .util import monitor_qobject_lifetime
+from .work_area import WorkArea
 
 class BrowserForm(QtGui.QWidget):
     """
@@ -128,12 +129,7 @@ class BrowserForm(QtGui.QWidget):
     def enable_user_filtering(self, enable):
         """
         """
-        if self._enable_user_filtering == enable:
-            return
         self._enable_user_filtering = enable
-        for ti in range(self._ui.file_browser_tabs.count()):
-            widget = self._ui.file_browser_tabs.widget(ti)
-            widget.enable_user_filtering(self._enable_user_filtering)
 
     def set_models(self, my_tasks_model, entity_models, file_model):
         """
@@ -163,37 +159,28 @@ class BrowserForm(QtGui.QWidget):
             self._file_model.set_users(self._file_filters.users)
 
             # add an 'all files' tab:
-            all_files_form = FileListForm(self, "All Files", self._file_filters, show_work_files=True, show_publishes=True)
-            self._ui.file_browser_tabs.addTab(all_files_form, "All")
-            all_files_form.enable_show_all_versions(self._enable_show_all_versions)
-            all_files_form.enable_user_filtering(self._enable_user_filtering)
-            all_files_form.set_model(self._file_model)
-            all_files_form.file_selected.connect(self._on_file_selected)
-            all_files_form.file_double_clicked.connect(self.file_double_clicked)
-            all_files_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
-            self._file_browser_forms.append(all_files_form)
+            self._add_file_list_form("All", "All Files", show_work_files=True, show_publishes=True )
+            self._add_file_list_form("Working", "Work Files", show_work_files=True, show_publishes=False)
+            self._add_file_list_form("Publishes", "Publishes", show_work_files=False, show_publishes=False)
 
-            # create the workfiles only tab:
-            work_files_form = FileListForm(self, "Work Files", self._file_filters, show_work_files=True, show_publishes=False)
-            self._ui.file_browser_tabs.addTab(work_files_form, "Working")
-            work_files_form.enable_show_all_versions(self._enable_show_all_versions)
-            work_files_form.enable_user_filtering(self._enable_user_filtering)
-            work_files_form.set_model(self._file_model)
-            work_files_form.file_selected.connect(self._on_file_selected)
-            work_files_form.file_double_clicked.connect(self.file_double_clicked)
-            work_files_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
-            self._file_browser_forms.append(work_files_form)
+    def _add_file_list_form(self, tab_name, search_label, show_work_files, show_publishes):
+        """
+        Adds a file tab to the browser.
 
-            # create the publishes only tab:
-            publishes_form = FileListForm(self, "Publishes", self._file_filters, show_work_files=False, show_publishes=True)
-            self._ui.file_browser_tabs.addTab(publishes_form, "Publishes")
-            publishes_form.enable_show_all_versions(self._enable_show_all_versions)
-            publishes_form.enable_user_filtering(self._enable_user_filtering)
-            publishes_form.set_model(self._file_model)
-            publishes_form.file_selected.connect(self._on_file_selected)
-            publishes_form.file_double_clicked.connect(self.file_double_clicked)
-            publishes_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
-            self._file_browser_forms.append(publishes_form)
+        :param tab_name: Name of the new tab.
+        :param search_label: The text to display in the search box.
+        :param show_work_files: True is this tab will show workfiles.
+        :param show_publishes: True is this tab will show publishes.
+        """
+        file_form = FileListForm(self, search_label, self._file_filters, show_work_files, show_publishes)
+        self._ui.file_browser_tabs.addTab(file_form, tab_name)
+        file_form.enable_show_all_versions(self._enable_show_all_versions)
+        file_form.enable_user_filtering(False)
+        file_form.set_model(self._file_model)
+        file_form.file_selected.connect(self._on_file_selected)
+        file_form.file_double_clicked.connect(self.file_double_clicked)
+        file_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
+        self._file_browser_forms.append(file_form)
 
     def select_work_area(self, context):
         """
@@ -317,9 +304,9 @@ class BrowserForm(QtGui.QWidget):
             search_label = task.get("content")
             step = task.get("step")
             if step:
-                search_label = "%s - %s" % (step.get("name"), search_label) 
+                search_label = "%s - %s" % (step.get("name"), search_label)
 
-            details = FileModel.SearchDetails(search_label)        
+            details = FileModel.SearchDetails(search_label)
             details.entity = task
             details.is_leaf = True
             search_details.append(details)
@@ -378,6 +365,21 @@ class BrowserForm(QtGui.QWidget):
                     details.is_leaf = is_leaf
                     search_details.append(details)
 
+            if self._enable_user_filtering:
+                # If we can enable user filtering, show and hide user sandbox widget
+                # accordingly.
+                entities = [primary_entity] + [child_detail["entity"] for child_detail in children]
+                for form in self._file_browser_forms:
+                    if form.work_files_visible and self._uses_sandboxes(entities, workfiles=True):
+                        form.enable_user_filtering(True)
+                    elif form.publishes_visible and self._uses_sandboxes(entities, publishes=True):
+                        form.enable_user_filtering(True)
+                    else:
+                        form.enable_user_filtering(False)
+        else:
+            for form in self._file_browser_forms:
+                form.enable_user_filtering(False)
+
         # refresh files:
         if self._file_model:
             p_details = []
@@ -391,8 +393,29 @@ class BrowserForm(QtGui.QWidget):
 
         # emit work-area-changed signal:
         self._emit_work_area_changed(primary_entity or None, breadcrumb_trail)
-        
+
         return primary_entity
+
+    def _uses_sandboxes(self, entities, workfiles=False, publishes=False):
+        # Turn on or off user sandbox filter button.
+        app = sgtk.platform.current_bundle()
+        print entities
+        for entity in entities:
+            if not entity or entity["type"] != "Task":
+                continue
+
+            # build a context from the search details:
+            context = app.sgtk.context_from_entity_dictionary(entity)
+
+            # build the work area for this context:
+            work_area = WorkArea(context)
+
+            if work_area.work_area_contains_user_sandboxes and workfiles:
+                return True
+            elif work_area.publish_area_contains_user_sandboxes and publishes:
+                return True
+
+        return False
 
     def _on_file_selected(self, file, env, selection_mode):
         """
