@@ -1,11 +1,11 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
@@ -14,6 +14,7 @@ current work file.  Also give the user the option to select the file to save fro
 the list of current work files.
 """
 
+import itertools
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
@@ -25,15 +26,16 @@ from .util import value_to_str
 from .ui.browser_form import Ui_BrowserForm
 from .framework_qtwidgets import Breadcrumb
 
-from .file_list.file_proxy_model import FileProxyModel
 from .file_filters import FileFilters
 from .util import monitor_qobject_lifetime
 from .work_area import WorkArea
+
 
 class BrowserForm(QtGui.QWidget):
     """
     UI for saving a work file
     """
+
     class _EntityTabBreadcrumb(Breadcrumb):
         def __init__(self, label, tab_index):
             Breadcrumb.__init__(self, label)
@@ -45,7 +47,7 @@ class BrowserForm(QtGui.QWidget):
     file_selected = QtCore.Signal(object, object)# file, env
     file_double_clicked = QtCore.Signal(object, object)# file, env
     file_context_menu_requested = QtCore.Signal(object, object, QtCore.QPoint)# file, env, pnt
-    
+
     def __init__(self, parent):
         """
         Construction
@@ -120,7 +122,7 @@ class BrowserForm(QtGui.QWidget):
         """
         if self._enable_show_all_versions == enable:
             return
-        
+
         self._enable_show_all_versions = enable
         for ti in range(self._ui.file_browser_tabs.count()):
             widget = self._ui.file_browser_tabs.widget(ti)
@@ -128,6 +130,10 @@ class BrowserForm(QtGui.QWidget):
 
     def enable_user_filtering(self, enable):
         """
+        Allows to show the user filtering button if there are user sandboxes.
+
+        :param enable: If True, the user filtering button will be displayed if user
+            sandboxing is configured for an entity inside the current selection.
         """
         self._enable_user_filtering = enable
 
@@ -175,7 +181,7 @@ class BrowserForm(QtGui.QWidget):
         file_form = FileListForm(self, search_label, self._file_filters, show_work_files, show_publishes)
         self._ui.file_browser_tabs.addTab(file_form, tab_name)
         file_form.enable_show_all_versions(self._enable_show_all_versions)
-        file_form.enable_user_filtering(False)
+        file_form.show_user_filtering_widget(False)
         file_form.set_model(self._file_model)
         file_form.file_selected.connect(self._on_file_selected)
         file_form.file_double_clicked.connect(self.file_double_clicked)
@@ -200,7 +206,7 @@ class BrowserForm(QtGui.QWidget):
             search_label = ctx_entity.get("name")
             if ctx_entity["type"] == "Task" and context.step:
                 search_label = "%s - %s" % (context.step.get("name"), search_label)
-    
+
             details = FileModel.SearchDetails(search_label)
             details.entity = ctx_entity
             details.is_leaf = True
@@ -231,14 +237,24 @@ class BrowserForm(QtGui.QWidget):
 
     def _on_available_sandbox_users_changed(self, users):
         """
+        Called when the list of sandbox users available for a given selection has been updated
+        after parsing each context.
+
+        :param users: Array of user entity dictionary.
         """
-        #print "Available sandbox users: %s" % [u["name"].split()[0] for u in users if u]
+        app = sgtk.platform.current_bundle()
+        app.log_debug("Available sandbox users: %s" % [u["name"].split()[0] for u in users if u])
         self._file_filters.available_users = users
 
     def _on_file_filters_users_changed(self, users):
         """
+        Called when the user changes the list of users selected in the user filter
+        selection widget.
+
+        :param users: Array of user entity dictionary.
         """
-        #print "File filter users: %s" % [u["name"].split()[0] for u in users if u]
+        app = sgtk.platform.current_bundle()
+        app.log_debug("File filter users: %s" % [u["name"].split()[0] for u in users if u])
         if self._file_model:
             self._file_model.set_users(users)
 
@@ -265,7 +281,7 @@ class BrowserForm(QtGui.QWidget):
         # loop through all widgets and update the selection in each one:
         for ti in range(self._ui.task_browser_tabs.count()):
             widget = self._ui.task_browser_tabs.widget(ti)
-            
+
             if skip_current and widget == current_widget:
                 continue
 
@@ -282,7 +298,7 @@ class BrowserForm(QtGui.QWidget):
         """
         local_pnt = self.sender().mapTo(self, pnt)
         self.file_context_menu_requested.emit(file, env, local_pnt)
-    
+
     def _on_my_task_selected(self, task, breadcrumb_trail):
         """
         """
@@ -320,7 +336,7 @@ class BrowserForm(QtGui.QWidget):
 
     def _on_entity_selected(self, selection_details, breadcrumb_trail):
         """
-        Called when something has been selected in an entity tree view.  From 
+        Called when something has been selected in an entity tree view.  From
         this selection, a list of publishes and work files can then be found
         which will be used to populate the main file grid/details view.
         """
@@ -336,9 +352,34 @@ class BrowserForm(QtGui.QWidget):
 
     def _on_selected_entity_changed(self, selection_details, breadcrumb_trail):
         """
+        Called when the selection changes in the My Task tab or one of the entities
+        tab.
+
+        :param selection_details: A dictionary describing the current selection, e.g.
+            {
+                "label": "Car",
+                "entity": {
+                    "type": "Asset"
+                    "id": 1
+                },
+                "children": [
+                    {
+                        "label": "Model",
+                        "entity": {
+                            "type": "Task",
+                            "id": 2
+                        }
+                    },
+                    ...
+                ]
+            }
+        :param breadcrumb_trail: List of _EntityTabBreadcrumb objects representing
+            the breadcrumb at the top of the browser.
+
+        :returns: An entity dictionary of the element that received a mouse click.
         """
         search_details = []
-        
+
         primary_entity = None
         if selection_details:
             label = selection_details["label"]
@@ -346,12 +387,12 @@ class BrowserForm(QtGui.QWidget):
             children = selection_details["children"]
             # TODO - this needs fixing.
             is_leaf = primary_entity and primary_entity["type"] == "Task"
-            
+
             primary_details = FileModel.SearchDetails(label)
             primary_details.entity = primary_entity
             primary_details.is_leaf = is_leaf
             search_details.append(primary_details)
-            
+
             for child_details in children:
                 label = child_details["label"]
                 entity = child_details["entity"]
@@ -365,29 +406,38 @@ class BrowserForm(QtGui.QWidget):
                     details.is_leaf = is_leaf
                     search_details.append(details)
 
+            # If we can enable user filtering, show or hide tje user filter widget
+            # if one of the entities in the selection has sandboxes.
             if self._enable_user_filtering:
-                # If we can enable user filtering, show and hide user sandbox widget
-                # accordingly.
-                entities = [primary_entity] + [child_detail["entity"] for child_detail in children]
+                # Certain elements in the selection can be other things than entities,
+                # like the "Character" property in the tree view which is not an entity.
+                flat_selection = itertools.ifilter(
+                    lambda x: x is not None,
+                    [primary_entity] + [child_detail["entity"] for child_detail in children]
+                )
+                # For each form, show the button if its content uses sandboxes.
                 for form in self._file_browser_forms:
-                    if form.work_files_visible and self._uses_sandboxes(entities, workfiles=True):
-                        form.enable_user_filtering(True)
-                    elif form.publishes_visible and self._uses_sandboxes(entities, publishes=True):
-                        form.enable_user_filtering(True)
+                    if form.work_files_visible and self._uses_sandboxes(flat_selection, workfiles=True):
+                        form.show_user_filtering_widget(True)
+                    elif form.publishes_visible and self._uses_sandboxes(flat_selection, publishes=True):
+                        form.show_user_filtering_widget(True)
                     else:
-                        form.enable_user_filtering(False)
+                        form.show_user_filtering_widget(False)
         else:
+            # Selection is empty, so there surely is no user filtering available.
             for form in self._file_browser_forms:
-                form.enable_user_filtering(False)
+                form.show_user_filtering_widget(False)
 
         # refresh files:
         if self._file_model:
             p_details = []
             for search in search_details:
-                p_details.append({"name":search.name, 
-                       "entity":search.entity, 
-                       "is_leaf":search.is_leaf, 
-                       "child_entities":search.child_entities})
+                p_details.append({
+                    "name":search.name,
+                    "entity":search.entity,
+                    "is_leaf":search.is_leaf,
+                    "child_entities":search.child_entities
+                })
 
             self._file_model.set_entity_searches(search_details)
 
@@ -396,12 +446,22 @@ class BrowserForm(QtGui.QWidget):
 
         return primary_entity
 
-    def _uses_sandboxes(self, entities, workfiles=False, publishes=False):
+    def _uses_sandboxes(self, flat_selection, workfiles=False, publishes=False):
+        """
+        Checks if any items in the selection uses sandboxes.
+
+        :param flat_selection: Array of elements inside the selection.
+        :param workfiles: If True, the method will consider that a sandbox is used
+            if workfiles have user sandboxes.
+        :param publishes: If True, the method will consider that a sandbox is used
+            if publishes have user sandboxes.
+
+        :returns: True if there are user sandboxes for the selection, False otherwise.
+        """
         # Turn on or off user sandbox filter button.
         app = sgtk.platform.current_bundle()
-        print entities
-        for entity in entities:
-            if not entity or entity["type"] != "Task":
+        for entity in flat_selection:
+            if not entity:
                 continue
 
             # build a context from the search details:
@@ -425,7 +485,7 @@ class BrowserForm(QtGui.QWidget):
             return
 
         if selection_mode == FileListForm.USER_SELECTED:
-            # user changed the selection so try to change the selection in all other 
+            # user changed the selection so try to change the selection in all other
             # file tabs to match:
             for wi in range(self._ui.file_browser_tabs.count()):
                 widget = self._ui.file_browser_tabs.widget(wi)
@@ -442,13 +502,13 @@ class BrowserForm(QtGui.QWidget):
         # always emit a file selected signal to allow calling code
         # to react to a visible change in the selection
         self.file_selected.emit(file, env)
-    
+
     def _on_file_tab_changed(self, idx):
         """
         """
         selected_file = None
         env = None
-        
+
         form = self._ui.file_browser_tabs.widget(idx)
         if form and isinstance(form, FileListForm):
             # get the selected file from the form:
@@ -464,16 +524,12 @@ class BrowserForm(QtGui.QWidget):
         if isinstance(form, MyTasksForm):
             # retrieve the selected task from the form and emit a work-area changed signal:
             task, breadcrumb_trail = form.get_selection()
-            #self._emit_work_area_changed(task, breadcrumb_trail)
+            # self._emit_work_area_changed(task, breadcrumb_trail)
             self._on_selected_task_changed(task, breadcrumb_trail)
-            
+
         elif isinstance(form, EntityTreeForm):
             # retrieve the selection from the form and emit a work-area changed signal:
             selection, breadcrumb_trail = form.get_selection()
-            #selected_entity = selection.get("entity") if selection else None
-            #self._emit_work_area_changed(selected_entity, breadcrumb_trail)
+            # selected_entity = selection.get("entity") if selection else None
+            # self._emit_work_area_changed(selected_entity, breadcrumb_trail)
             self._on_selected_entity_changed(selection, breadcrumb_trail)
-
-
-
-

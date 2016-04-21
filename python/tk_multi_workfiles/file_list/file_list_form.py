@@ -182,10 +182,13 @@ class FileListForm(QtGui.QWidget):
             self._ui.all_versions_cb.hide()
             self._on_show_all_versions_toggled(False)
 
-    def enable_user_filtering(self, enable):
+    def show_user_filtering_widget(self, is_visible):
         """
+        Displays or hides the user filtering widget.
+
+        :param is_visible: If True, the user filtering widget will be shown.
         """
-        self._ui.user_filter_btn.setVisible(enable)
+        self._ui.user_filter_btn.setVisible(is_visible)
 
     def select_file(self, file_item, context):
         """
