@@ -104,8 +104,22 @@ class WorkArea(object):
         this is primarily used when resolving user sandboxes which are intrinsically linked to the templates, etc.
         so the whole thing will probably break if this does turn out to be the case!
         """
-        user_work_area = copy.copy(self)
-        user_work_area._context = self._context.create_copy_for_user(user)
+        user_work_area = WorkArea()
+        user_work_area._context = self._context.create_copy_for_user(user) 
+
+        # deep copy all other templates and settings
+        user_work_area.work_area_template = self.work_area_template
+        user_work_area.work_template = self.work_template
+        user_work_area.publish_area_template = self.publish_area_template
+        user_work_area.publish_template = self.publish_template
+        user_work_area.save_as_default_name = self.save_as_default_name
+        user_work_area.save_as_prefer_version_up = self.save_as_prefer_version_up
+        user_work_area.version_compare_ignore_fields = copy.deepcopy(self.version_compare_ignore_fields)
+        user_work_area.valid_file_extensions = copy.deepcopy(self.valid_file_extensions)
+        user_work_area._sandbox_users = copy.deepcopy(self._sandbox_users)
+        user_work_area._work_template_contains_user = self._work_template_contains_user
+        user_work_area._publish_template_contains_user = self._publish_template_contains_user
+
         return user_work_area
 
     # @property

@@ -138,11 +138,10 @@ class FileSaveForm(FileFormBase):
         self._ui.browser.select_work_area(app.context)
         self._ui.browser.select_file(current_file, app.context)
 
-        env = None
         try:
             env = WorkArea(app.context)
         except TankError, e:
-            self._set_warning(str(e))
+            self._disable_save_and_warn(str(e))
         else:
             # initialize the browser with the current file and environment:
             self._on_browser_file_selected(current_file, env)
@@ -167,13 +166,14 @@ class FileSaveForm(FileFormBase):
     # ------------------------------------------------------------------------------------------
     # protected methods
 
-    def _set_warning(self, msg):
+    def _set_warning(self, reason):
         """
         Displays warning in the ui.
+
+        :param reason: Message to display in the UI.
         """
         app = sgtk.platform.current_bundle()
-        self._ui.warning.setText("<p style='color:rgb%s'>%s</p>" % (app.warning_color, msg))
-        self._disable_save(msg)
+        self._ui.warning.setText("<p style='color:rgb%s'>%s</p>" % (app.warning_color, reason))
 
     def _on_name_edited(self, txt):
         """
@@ -291,6 +291,15 @@ class FileSaveForm(FileFormBase):
         self._ui.save_btn.setEnabled(False)
         self._ui.save_btn.setToolTip(reason)
 
+    def _disable_save_and_warn(self, reason):
+        """
+        Disables save button and sets the tooltip.
+
+        :param reason: Tooltip text for the save button.
+        """
+        self._set_warning(reason)
+        self._disable_save(reason)
+
     def _on_preview_generation_failed(self, task_id, group, msg, stack_trace):
         """
         """
@@ -298,10 +307,8 @@ class FileSaveForm(FileFormBase):
             return
         self._preview_task = None
 
-        app = sgtk.platform.current_bundle()
-
         self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.warning_page)
-        self._set_warning(msg)
+        self._disable_save_and_warn(msg)
 
     def _generate_path(self, env, name, version, use_next_version, ext, require_path=False):
         """
@@ -461,7 +468,7 @@ class FileSaveForm(FileFormBase):
             try:
                 env = WorkArea(context)
             except TankError, e:
-                self._set_warning(str(e))
+                self._disable_save_and_warn(str(e))
             else:
                 self._on_work_area_changed(env)
                 self._start_preview_update()
