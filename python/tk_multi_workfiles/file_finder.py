@@ -808,8 +808,12 @@ class AsyncFileFinder(FileFinder):
             return
         self.stop_search(search_id)
 
+        app = sgtk.platform.current_bundle()
+        app.log_error(msg)
+        app.log_error(stack_trace)
+
         # emit signal:
-        self.search_failed.emit(search_id, "%s, %s" % (msg, stack_trace))
+        self.search_failed.emit(search_id, msg)
 
     def _on_background_search_finished(self, search_id):
         """
