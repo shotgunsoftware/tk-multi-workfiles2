@@ -126,6 +126,10 @@ class FileOpenForm(FileFormBase):
             try:
                 env_details = WorkArea(context)
             except sgtk.TankError:
+                # We can ignore the error reporting here. The browser is already
+                # updating it's various file views and they will display the same
+                # error. Which is good, because file open dialog doesn't have a
+                # widget dedicated to error reporting.
                 env_details = None
 
         self._update_new_file_btn(env_details)
