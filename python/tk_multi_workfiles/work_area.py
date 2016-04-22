@@ -301,8 +301,8 @@ class WorkArea(object):
             if not settings:
                 raise TankError(
                     "Failed to find the Shotgun File Manager settings for this work area.\n\n"
-                    "Please ensure that the Work Files app is installed for the environment that will"
-                    " be used for this context."
+                    "Please ensure that the app is installed for the environment that will "
+                    "be used for this work area."
                 )
 
             # get templates:
