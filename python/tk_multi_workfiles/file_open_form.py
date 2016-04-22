@@ -123,7 +123,10 @@ class FileOpenForm(FileFormBase):
             # Keep an eye on it and consider threading if it's noticeably slow!
             app = sgtk.platform.current_bundle()
             context = app.sgtk.context_from_entity_dictionary(entity)
-            env_details = WorkArea(context)
+            try:
+                env_details = WorkArea(context)
+            except sgtk.TankError:
+                env_details = None
 
         self._update_new_file_btn(env_details)
 

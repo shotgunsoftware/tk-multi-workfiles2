@@ -100,7 +100,7 @@ configuration:
                       specifies the shotgun entity type to display. *filters* is a list of standard API Shotgun 
                       filters. *hierarchy* is a list of shotgun fields relative to the entity type, defining the 
                       grouping of the tree."
-        allows_empty: False
+        allows_empty: True
         values:
           type: dict
         default_value:

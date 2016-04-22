@@ -282,7 +282,7 @@ class FileFormBase(QtGui.QWidget):
         :param work_area:   A WorkArea instance representing the work area the file is in
         :returns:           A FileItem representing the specified path in the specified work area
         """
-        if not path or not work_area or not work_area.work_template:
+        if not path or not work_area:
             return None
 
         # figure out if it's a publish or a work file:

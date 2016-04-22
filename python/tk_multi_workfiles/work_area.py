@@ -67,6 +67,10 @@ class WorkArea(object):
     def __init__(self, ctx=None):
         """
         Construction
+
+        :param ctx: Toolkit context to load the work area settings for.
+
+        :raises TankError: Thrown if the settings couldn't be loaded from disk.
         """
         # the context!
         self._context = ctx
@@ -115,6 +119,7 @@ class WorkArea(object):
         """
         self._context = ctx
         self._load_settings()
+
     context = property(_get_context, _set_context)
 
     @property
@@ -219,13 +224,8 @@ class WorkArea(object):
         self.publish_area_template = resolved_settings.get("template_publish_area")
         self.publish_template = resolved_settings.get("template_publish")
 
-        app = sgtk.platform.current_bundle()
-
-        if not self.work_area_template or not self.work_template or not self.publish_area_template or not self.publish_template:
-            raise TankError(
-                "The templates haven't been completely configured for context '%s' in engine instance '%s'.\n\n" %
-                (self._context, app.engine.instance_name)
-            )
+        # Keep track which engine instance the settings come from.
+        self.engine_instance_name = sgtk.platform.current_bundle().engine.instance_name
 
         # update other settings:
         self.save_as_default_name = resolved_settings.get("saveas_default_name", "")
@@ -238,6 +238,17 @@ class WorkArea(object):
         # test for user sandboxes:
         self._work_template_contains_user = self.work_template and bool(self._get_template_user_keys(self.work_template))
         self._publish_template_contains_user = self.publish_template and bool(self._get_template_user_keys(self.publish_template))
+
+    def are_templates_configured(self):
+        """
+        Returns if the templates are all configured for this work area.
+
+        :returns: True if the templates are configured, False otherwise.
+        """
+        if self.work_area_template and self.work_template and self.publish_area_template and self.publish_template:
+            return True
+        else:
+            return False
 
     def _get_settings_for_context(self, context, templates_to_find, settings_to_find=None):
         """
@@ -274,9 +285,11 @@ class WorkArea(object):
             # need to look for settings in a different context/environment
             settings = self._get_raw_app_settings_for_context(app, context)
             if not settings:
-                raise TankError("Failed to find Work Files settings for context '%s' in engine instance '%s'.\n\n"
-                                "Please ensure that the Work Files app is installed for the environment that will"
-                                " be used for this context." % (context, app.engine.instance_name))
+                raise TankError(
+                    "Failed to find the Shotgun File Manager settings for this work area.\n\n"
+                    "Please ensure that the Work Files app is installed for the environment that will"
+                    " be used for this context."
+                )
 
             # get templates:
             resolved_settings = {}
@@ -314,7 +327,6 @@ class WorkArea(object):
                     app.engine.name, app.name, app.sgtk, context, app.engine.instance_name
                 )
             finally:
-                app.log_debug("Error while reading environment, ignore.")
                 # Ignore any errors while looking for the settings
                 WorkArea._settings_cache.add(context, app_settings or {})
 

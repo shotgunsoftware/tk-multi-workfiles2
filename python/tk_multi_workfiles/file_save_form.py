@@ -94,9 +94,9 @@ class FileSaveForm(FileFormBase):
         self._ui.work_area_label.setText("<p style='color:rgb%s'><b>Work Area:</b></p>" % (self._preview_colour, ))
         self._ui.work_area_preview.setText("<p style='color:rgb%s'></p>" % (self._preview_colour, ))
         self._ui.warning_label.setText("<p style='color:rgb%s'><b>Warning:</b></p>" % (app.warning_color, ))
-        self._ui.warning.setText("<p style='color:rgb%s'></p>" % (app.warning_color, ))
+        self._set_warning("")
 
-        # define which controls are visible before initial show:        
+        # define which controls are visible before initial show:
         self._ui.browser.hide()
         self._ui.nav.hide()
         self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.preview_page)
@@ -134,18 +134,23 @@ class FileSaveForm(FileFormBase):
         self._ui.browser.enable_show_all_versions(False)
         self._ui.browser.enable_user_filtering(False)
         self._ui.browser.set_models(self._my_tasks_model, self._entity_models, self._file_model)
-        env = WorkArea(app.context)
         current_file = self._get_current_file()
         self._ui.browser.select_work_area(app.context)
         self._ui.browser.select_file(current_file, app.context)
 
-        # initialize the browser with the current file and environment:
-        self._on_browser_file_selected(current_file, env)
+        env = None
+        try:
+            env = WorkArea(app.context)
+        except TankError, e:
+            self._set_warning(str(e))
+        else:
+            # initialize the browser with the current file and environment:
+            self._on_browser_file_selected(current_file, env)
 
-        # if it's not possible to save into the initial work area then start the UI expanded:
-        if not env or not env.work_template:
-            self._ui.expand_checkbox.setChecked(True)
-            self._on_expand_toggled(True)
+            # if it's not possible to save into the initial work area then start the UI expanded:
+            if not env or not env.work_template:
+                self._ui.expand_checkbox.setChecked(True)
+                self._on_expand_toggled(True)
 
     def closeEvent(self, event):
         """
@@ -161,6 +166,14 @@ class FileSaveForm(FileFormBase):
 
     # ------------------------------------------------------------------------------------------
     # protected methods
+
+    def _set_warning(self, msg):
+        """
+        Displays warning in the ui.
+        """
+        app = sgtk.platform.current_bundle()
+        self._ui.warning.setText("<p style='color:rgb%s'>%s</p>" % (app.warning_color, msg))
+        self._disable_save(msg)
 
     def _on_name_edited(self, txt):
         """
@@ -288,9 +301,7 @@ class FileSaveForm(FileFormBase):
         app = sgtk.platform.current_bundle()
 
         self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.warning_page)
-        self._ui.warning.setText("<p style='color:rgb%s'>%s</p>" % (app.warning_color, msg))
-
-        self._disable_save(msg)
+        self._set_warning(msg)
 
     def _generate_path(self, env, name, version, use_next_version, ext, require_path=False):
         """
@@ -301,9 +312,10 @@ class FileSaveForm(FileFormBase):
 
         # first make  sure the environment is complete:
         if not env or not env.context:
-            raise TankError("Please select a work area to save into...")
-        elif not env.work_template:
-            raise TankError("The working directory has not been defined for this work area.  Please select another work area.")
+            raise TankError("Please select a work area to save into.")
+        if not env.are_templates_configured():
+            raise TankError("The templates have not been defined correctly for this work area. "
+                            "Please select another work area.")
 
         # build the fields dictionary from the environment:
         fields = {}
@@ -445,9 +457,14 @@ class FileSaveForm(FileFormBase):
         if entity:
             app = sgtk.platform.current_bundle()
             context = app.sgtk.context_from_entity_dictionary(entity)
-            env = WorkArea(context)
-        self._on_work_area_changed(env)
-        self._start_preview_update()
+
+            try:
+                env = WorkArea(context)
+            except TankError, e:
+                self._set_warning(str(e))
+            else:
+                self._on_work_area_changed(env)
+                self._start_preview_update()
 
         if not self._navigating:
             destination_label = breadcrumbs[-1].label if breadcrumbs else "..."
