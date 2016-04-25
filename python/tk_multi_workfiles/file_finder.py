@@ -812,7 +812,7 @@ class AsyncFileFinder(FileFinder):
 
         app = sgtk.platform.current_bundle()
         app.log_error(msg)
-        app.log_error(stack_trace)
+        app.log_debug(stack_trace)
 
         # emit signal:
         self.search_failed.emit(search_id, msg)
@@ -876,10 +876,7 @@ class AsyncFileFinder(FileFinder):
             # build the work area for this context: This may throw, but the background task manager framework
             # will catch
             work_area = WorkArea(context)
-
-            if not work_area.are_templates_configured():
-                raise TankError("The templates have not been defined correctly for this work area. "
-                                "Please select another work area.")
+            work_area.assert_templates_configured()
 
         return {"environment": work_area}
 

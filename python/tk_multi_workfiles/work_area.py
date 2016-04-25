@@ -92,6 +92,9 @@ class WorkArea(object):
         self._work_template_contains_user = False
         self._publish_template_contains_user = False
 
+        # Keep track which engine instance the settings come from.
+        self.engine_instance_name = sgtk.platform.current_bundle().engine.instance_name
+
         # load settings:
         self._load_settings()
 
@@ -238,9 +241,6 @@ class WorkArea(object):
         self.publish_area_template = resolved_settings.get("template_publish_area")
         self.publish_template = resolved_settings.get("template_publish")
 
-        # Keep track which engine instance the settings come from.
-        self.engine_instance_name = sgtk.platform.current_bundle().engine.instance_name
-
         # update other settings:
         self.save_as_default_name = resolved_settings.get("saveas_default_name", "")
         self.save_as_prefer_version_up = resolved_settings.get("saveas_prefer_version_up", False)
@@ -253,16 +253,47 @@ class WorkArea(object):
         self._work_template_contains_user = self.work_template and bool(self._get_template_user_keys(self.work_template))
         self._publish_template_contains_user = self.publish_template and bool(self._get_template_user_keys(self.publish_template))
 
-    def are_templates_configured(self):
+    def assert_templates_configured(self):
         """
-        Returns if the templates are all configured for this work area.
+        Asserts that all the templates are configured.
 
-        :returns: True if the templates are configured, False otherwise.
+        :raises TankError: Raised if one or more template is not configured.
         """
-        if self.work_area_template and self.work_template and self.publish_area_template and self.publish_template:
-            return True
+        # First find all the templates that are not defined.
+        missing_templates = []
+        if not self.work_area_template:
+            missing_templates.append("'template_work_area'")
+        if not self.work_template:
+            missing_templates.append("'template_work'")
+        if not self.publish_area_template:
+            missing_templates.append("'template_publish_area'")
+        if not self.publish_template:
+            missing_templates.append("'template_publish'")
+
+        if not missing_templates:
+            return
+
+        # Then take every template except the last one and join them with commas.
+        comma_separated_templates = missing_templates[:-1]
+        comma_separated_string = ", ".join(comma_separated_templates)
+
+        # If the string is not empty, we'll add the last missing template name.
+        if comma_separated_string:
+            missing_templates_string = "%s and %s" % (comma_separated_string, missing_templates[-1])
         else:
-            return False
+            missing_templates_string = missing_templates[0]
+
+        is_plural = len(missing_templates) > 1
+
+        raise TankError(
+            "The template%s %s %s not been defined for %s.\n\n"
+            "Please select another work area." % (
+                "s" if is_plural else "",
+                missing_templates_string,
+                "have" if is_plural else "has",
+                self._get_user_friendly_context()
+            )
+        )
 
     def _get_settings_for_context(self, context, templates_to_find, settings_to_find=None):
         """
@@ -300,9 +331,11 @@ class WorkArea(object):
             settings = self._get_raw_app_settings_for_context(app, context)
             if not settings:
                 raise TankError(
-                    "Failed to find the Shotgun File Manager settings for this work area.\n\n"
+                    "Failed to find the Shotgun File Manager settings for %s.\n\n"
                     "Please ensure that the app is installed for the environment that will "
-                    "be used for this work area."
+                    "be used for this work area." % (
+                        self._get_user_friendly_context()
+                    )
                 )
 
             # get templates:
@@ -315,6 +348,15 @@ class WorkArea(object):
                 resolved_settings[key] = app.get_setting_from(settings, key)
 
         return resolved_settings
+
+    def _get_user_friendly_context(self):
+        """
+        Returns a string describing the current context and engine instance, e.g.::
+            context 'Art, Asset Big Buck Bunny' and engine instance 'tk-maya'
+
+        :returns: The formatted string.
+        """
+        return "context '%s' in engine instance '%s'" % (self._context, self.engine_instance_name)
 
     def _get_raw_app_settings_for_context(self, app, context):
         """

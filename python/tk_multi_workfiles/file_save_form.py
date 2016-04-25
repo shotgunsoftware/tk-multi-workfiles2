@@ -15,6 +15,7 @@ the list of current work files.
 """
 
 import os
+import traceback
 from itertools import chain
 
 import sgtk
@@ -138,18 +139,17 @@ class FileSaveForm(FileFormBase):
         self._ui.browser.select_work_area(app.context)
         self._ui.browser.select_file(current_file, app.context)
 
-        try:
-            env = WorkArea(app.context)
-        except TankError, e:
-            self._disable_save_and_warn(str(e))
-        else:
-            # initialize the browser with the current file and environment:
-            self._on_browser_file_selected(current_file, env)
+        # No need to catch for errors, since the current context of the app has to be properly
+        # configured to be able to launch the app in the first place.
+        env = WorkArea(app.context)
 
-            # if it's not possible to save into the initial work area then start the UI expanded:
-            if not env or not env.work_template:
-                self._ui.expand_checkbox.setChecked(True)
-                self._on_expand_toggled(True)
+        # initialize the browser with the current file and environment:
+        self._on_browser_file_selected(current_file, env)
+
+        # if it's not possible to save into the initial work area then start the UI expanded:
+        if not env or not env.work_template:
+            self._ui.expand_checkbox.setChecked(True)
+            self._on_expand_toggled(True)
 
     def closeEvent(self, event):
         """
@@ -297,7 +297,10 @@ class FileSaveForm(FileFormBase):
 
         :param reason: Tooltip text for the save button.
         """
+        # Switch to the warning page before displaying warning message.
+        self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.warning_page)
         self._set_warning(reason)
+
         self._disable_save(reason)
 
     def _on_preview_generation_failed(self, task_id, group, msg, stack_trace):
@@ -307,7 +310,6 @@ class FileSaveForm(FileFormBase):
             return
         self._preview_task = None
 
-        self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.warning_page)
         self._disable_save_and_warn(msg)
 
     def _generate_path(self, env, name, version, use_next_version, ext, require_path=False):
@@ -320,9 +322,7 @@ class FileSaveForm(FileFormBase):
         # first make  sure the environment is complete:
         if not env or not env.context:
             raise TankError("Please select a work area to save into.")
-        if not env.are_templates_configured():
-            raise TankError("The templates have not been defined correctly for this work area. "
-                            "Please select another work area.")
+        env.assert_templates_configured()
 
         # build the fields dictionary from the environment:
         fields = {}
@@ -453,12 +453,13 @@ class FileSaveForm(FileFormBase):
         """
         """
         self._on_browser_file_selected(file, env)
-        # TODO: this won't actually work until the preview has 
+        # TODO: this won't actually work until the preview has
         # been updated!
         self._on_save()
 
     def _on_browser_work_area_changed(self, entity, breadcrumbs):
         """
+        Invoked when the selection changes in My Tasks or one of the entity views.
         """
         env = None
         if entity:
@@ -468,6 +469,7 @@ class FileSaveForm(FileFormBase):
             try:
                 env = WorkArea(context)
             except TankError, e:
+                app.log_debug(traceback.format_stack())
                 self._disable_save_and_warn(str(e))
             else:
                 self._on_work_area_changed(env)
@@ -754,8 +756,3 @@ class FileSaveForm(FileFormBase):
             # all good - lets close the dialog
             self._exit_code = QtGui.QDialog.Accepted
             self.close()
-
-
-
-
-
