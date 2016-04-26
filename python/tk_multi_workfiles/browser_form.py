@@ -27,7 +27,6 @@ from .framework_qtwidgets import Breadcrumb
 
 from .file_filters import FileFilters
 from .util import monitor_qobject_lifetime
-from .work_area import WorkArea
 
 
 class BrowserForm(QtGui.QWidget):
@@ -54,7 +53,7 @@ class BrowserForm(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
 
         self._enable_show_all_versions = True
-        self._enable_user_filtering = True
+        self._show_user_filtering_widget = True
         self._file_model = None
         self._my_tasks_form = None
         self._entity_tree_forms = []
@@ -101,6 +100,9 @@ class BrowserForm(QtGui.QWidget):
     @property
     def work_files_visible(self):
         """
+        Returns if the work files are visible in the current file tab.
+
+        :returns: True if work files are visible in the current file tab, False otherwise.
         """
         file_form = self._ui.file_browser_tabs.currentWidget()
         if not file_form:
@@ -110,6 +112,9 @@ class BrowserForm(QtGui.QWidget):
     @property
     def publishes_visible(self):
         """
+        Returns if the publishes are visible in the current file tab.
+
+        :returns: True if publishes are visible in the current file tab, False otherwise.
         """
         file_form = self._ui.file_browser_tabs.currentWidget()
         if not file_form:
@@ -118,6 +123,9 @@ class BrowserForm(QtGui.QWidget):
 
     def enable_show_all_versions(self, enable):
         """
+        Shows or hides the "Show All Versions" checkbox on all file tabs.
+
+        :param enable: If True, the checkboxes will be shown.
         """
         if self._enable_show_all_versions == enable:
             return
@@ -127,17 +135,22 @@ class BrowserForm(QtGui.QWidget):
             widget = self._ui.file_browser_tabs.widget(ti)
             widget.enable_show_all_versions(self._enable_show_all_versions)
 
-    def enable_user_filtering(self, enable):
+    def show_user_filtering_widget(self, is_visible):
         """
         Allows to show the user filtering button if there are user sandboxes.
 
-        :param enable: If True, the user filtering button will be displayed if user
-            sandboxing is configured for an entity inside the current selection.
+        :param is_visible: If True, the user filtering button will be displayed
+            if user sandboxing is configured for an entity inside the current selection.
         """
-        self._enable_user_filtering = enable
+        self._show_user_filtering_widget = is_visible
 
     def set_models(self, my_tasks_model, entity_models, file_model):
         """
+        Sets the models used by browser.
+
+        :param my_tasks_model: Instance of the MyTaskModel class
+        :param entity_models: List of ShotgunEntityModel instances.
+        :param file_model: Instance of the file model.
         """
         app = sgtk.platform.current_bundle()
         allow_task_creation = app.get_setting("allow_task_creation")
@@ -161,12 +174,13 @@ class BrowserForm(QtGui.QWidget):
             # attach file model to the file views:
             self._file_model = file_model
             self._file_model.available_sandbox_users_changed.connect(self._on_available_sandbox_users_changed)
+            self._file_model.uses_user_sandboxes.connect(self._on_uses_user_sandboxes)
             self._file_model.set_users(self._file_filters.users)
 
             # add an 'all files' tab:
             self._add_file_list_form("All", "All Files", show_work_files=True, show_publishes=True )
             self._add_file_list_form("Working", "Work Files", show_work_files=True, show_publishes=False)
-            self._add_file_list_form("Publishes", "Publishes", show_work_files=False, show_publishes=False)
+            self._add_file_list_form("Publishes", "Publishes", show_work_files=False, show_publishes=True)
 
     def _add_file_list_form(self, tab_name, search_label, show_work_files, show_publishes):
         """
@@ -180,7 +194,7 @@ class BrowserForm(QtGui.QWidget):
         file_form = FileListForm(self, search_label, self._file_filters, show_work_files, show_publishes)
         self._ui.file_browser_tabs.addTab(file_form, tab_name)
         file_form.enable_show_all_versions(self._enable_show_all_versions)
-        file_form.show_user_filtering_widget(False)
+        file_form.show_user_filtering_widget(self._show_user_filtering_widget)
         file_form.set_model(self._file_model)
         file_form.file_selected.connect(self._on_file_selected)
         file_form.file_double_clicked.connect(self.file_double_clicked)
@@ -189,6 +203,10 @@ class BrowserForm(QtGui.QWidget):
 
     def select_work_area(self, context):
         """
+        Selects the item corresponding to the given context in the different my task view
+        and different entity views.
+
+        :param context: Context of the item to select in the entity views.
         """
         if not context:
             return
@@ -213,6 +231,10 @@ class BrowserForm(QtGui.QWidget):
 
     def select_file(self, file, context):
         """
+        Selects a given file in each file tabs.
+
+        :param file: File to select.
+        :param context: Context for the selected file.
         """
         # try to select the file in all file browser tabs:
         for ti in range(self._ui.file_browser_tabs.count()):
@@ -221,6 +243,9 @@ class BrowserForm(QtGui.QWidget):
 
     def navigate_to(self, breadcrumb_trail):
         """
+        Update the current entity view to navigate to a new area.
+
+        :param breadcrumb_trail: Breadcrumb trail.
         """
         if not breadcrumb_trail or not isinstance(breadcrumb_trail[0], BrowserForm._EntityTabBreadcrumb):
             return
@@ -259,6 +284,11 @@ class BrowserForm(QtGui.QWidget):
 
     def _emit_work_area_changed(self, entity, child_breadcrumb_trail):
         """
+        Called when the selection changes in the entity views. Emits the work_area_changed
+        signal.
+
+        :param entity: Entity selected.
+        :param child_breadbrumb_trail: The list of current breadcrumbs.
         """
         # build breadcrumb trail for the current selection in the UI:
         breadcrumb_trail = []
@@ -274,6 +304,11 @@ class BrowserForm(QtGui.QWidget):
 
     def _update_selected_entity(self, entity_type, entity_id, skip_current=True):
         """
+        Updates the selected entity in all entity views.
+
+        :param entity_type: Type of the entity selected.
+        :param entity_id: Id of the entity selected.
+        :param skip_current: Hint to not update the current view.
         """
         current_widget = self._ui.task_browser_tabs.currentWidget()
 
@@ -294,12 +329,21 @@ class BrowserForm(QtGui.QWidget):
 
     def _on_file_context_menu_requested(self, file, env, pnt):
         """
+        Called when the user right-clicks in a file view.
+
+        :param file: File that was under the right-click.
+        :param env: WorkArea the file lives in.
+        :param pnt: Screen coordinates for the click.
         """
         local_pnt = self.sender().mapTo(self, pnt)
         self.file_context_menu_requested.emit(file, env, local_pnt)
 
     def _on_my_task_selected(self, task, breadcrumb_trail):
         """
+        Called when user picks a new task in the My Tasks tab.
+
+        :param task: Selected task.
+        :param breadcrumb_trail: List of breadcrumbs.
         """
         # ignore if the sender isn't the current tab:
         if self._ui.task_browser_tabs.currentWidget() != self.sender():
@@ -405,27 +449,10 @@ class BrowserForm(QtGui.QWidget):
                     details.is_leaf = is_leaf
                     search_details.append(details)
 
-            # If we can enable user filtering, show or hide the user filter widget
-            # if one of the entities in the selection has sandboxes.
-            if self._enable_user_filtering:
-                # The elementes in the selection might not always be an entity, e.g.
-                # if the user clicked the "Character" category, so filter None entities.
-                flat_selection = [child_detail["entity"] for child_detail in children if child_detail is not None]
-                if primary_entity:
-                    flat_selection.append(primary_entity)
-
-                # For each form, show the button if its content uses sandboxes.
-                for form in self._file_browser_forms:
-                    if form.work_files_visible and self._uses_sandboxes(flat_selection, workfiles=True):
-                        form.show_user_filtering_widget(True)
-                    elif form.publishes_visible and self._uses_sandboxes(flat_selection, publishes=True):
-                        form.show_user_filtering_widget(True)
-                    else:
-                        form.show_user_filtering_widget(False)
-        else:
-            # Selection is empty, so there surely is no user filtering available.
-            for form in self._file_browser_forms:
-                form.show_user_filtering_widget(False)
+        # Clear the user sandbox button. We'll asynchronously show it back if it
+        # is needed as work areas are
+        for form in self._file_browser_forms:
+            form.enable_user_filtering_widget(False)
 
         # refresh files:
         if self._file_model:
@@ -445,33 +472,12 @@ class BrowserForm(QtGui.QWidget):
 
         return primary_entity
 
-    def _uses_sandboxes(self, flat_selection, workfiles=False, publishes=False):
-        """
-        Checks if any items in the selection uses sandboxes.
-
-        :param flat_selection: Array of elements inside the selection.
-        :param workfiles: If True, the method will consider that a sandbox is used
-            if workfiles have user sandboxes.
-        :param publishes: If True, the method will consider that a sandbox is used
-            if publishes have user sandboxes.
-
-        :returns: True if there are user sandboxes for the selection, False otherwise.
-        """
-        # Turn on or off user sandbox filter button.
-        app = sgtk.platform.current_bundle()
-        for entity in flat_selection:
-            # build a context from the search details:
-            context = app.sgtk.context_from_entity_dictionary(entity)
-
-            # build the work area for this context:
-            work_area = WorkArea(context)
-
-            if work_area.work_area_contains_user_sandboxes and workfiles:
-                return True
-            elif work_area.publish_area_contains_user_sandboxes and publishes:
-                return True
-
-        return False
+    def _on_uses_user_sandboxes(self, work_area):
+        for form in self._file_browser_forms:
+            if form.work_files_visible and work_area.work_area_contains_user_sandboxes:
+                form.enable_user_filtering_widget(True)
+            elif form.publishes_visible and work_area.publish_area_contains_user_sandboxes:
+                form.enable_user_filtering_widget(True)
 
     def _on_file_selected(self, file, env, selection_mode):
         """
