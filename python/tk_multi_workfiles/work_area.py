@@ -1,16 +1,17 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
+Environment and context abstraction.
 """
-import threading
+
 import copy
 import sgtk
 from sgtk import TankError
@@ -60,12 +61,16 @@ class WorkArea(object):
             :param settings: Settings to cache.
             """
             self._cache.append((context, copy.deepcopy(settings)))
-    
-    _settings_cache = _SettingsCache() 
-    
+
+    _settings_cache = _SettingsCache()
+
     def __init__(self, ctx=None):
         """
         Construction
+
+        :param ctx: Toolkit context to load the work area settings for.
+
+        :raises TankError: Thrown if the settings couldn't be loaded from disk.
         """
         # the context!
         self._context = ctx
@@ -75,7 +80,7 @@ class WorkArea(object):
         self.work_template = None
         self.publish_area_template = None
         self.publish_template = None
-        
+
         # context-specific settings:
         self.save_as_default_name = ""
         self.save_as_prefer_version_up = False
@@ -87,12 +92,15 @@ class WorkArea(object):
         self._work_template_contains_user = False
         self._publish_template_contains_user = False
 
+        # Keep track which engine instance the settings come from.
+        self.engine_instance_name = sgtk.platform.current_bundle().engine.instance_name
+
         # load settings:
         self._load_settings()
 
     def create_copy_for_user(self, user):
         """
-        Create a copy of this work area for a specific user.  
+        Create a copy of this work area for a specific user.
 
         Note, this assumes that all templates & settings are identical for all users.  If this turns out to be
         an invalid assumption then this code will need to be changed to resolve settings as well.  However,
@@ -117,41 +125,46 @@ class WorkArea(object):
 
         return user_work_area
 
-
-    #@property
+    # @property
     def _get_context(self):
         return self._context
-    #@context.setter
+
+    # @context.setter
     def _set_context(self, ctx):
         """
         Set the context
         """
         self._context = ctx
         self._load_settings()
-    context=property(_get_context, _set_context)
+
+    context = property(_get_context, _set_context)
 
     @property
     def work_area_contains_user_sandboxes(self):
         """
+        :returns: True if the work files are in user sandboxes.
         """
         return self._work_template_contains_user
 
     @property
     def publish_area_contains_user_sandboxes(self):
         """
+        :returns: True if the publishes are in user sandboxes.
         """
         return self._publish_template_contains_user
-    
+
     @property
     def contains_user_sandboxes(self):
         """
+        :returns: True if a sandbox is used.
         """
-        return (self._work_template_contains_user 
-                or self._publish_template_contains_user)
+        return (self._work_template_contains_user or
+                self._publish_template_contains_user)
 
     @property
     def work_area_sandbox_users(self):
         """
+        :returns: List of users inside the work area sandboxes.
         """
         if self._work_template_contains_user:
             return self._resolve_user_sandboxes(self.work_template)
@@ -161,6 +174,7 @@ class WorkArea(object):
     @property
     def publish_area_sandbox_users(self):
         """
+        :returns: List of users inside the publish area sandboxes.
         """
         if self._publish_template_contains_user:
             return self._resolve_user_sandboxes(self.publish_template)
@@ -170,6 +184,7 @@ class WorkArea(object):
     @property
     def sandbox_users(self):
         """
+        :returns: List of users inside the all sandboxes
         """
         sandbox_users = self.work_area_sandbox_users
         user_ids = set([u["id"] for u in sandbox_users])
@@ -182,6 +197,7 @@ class WorkArea(object):
 
     def resolve_user_sandboxes(self):
         """
+        Caches internally the list of user sandboxes.
         """
         self._resolve_user_sandboxes(self.work_template)
         self._resolve_user_sandboxes(self.publish_template)
@@ -190,90 +206,157 @@ class WorkArea(object):
     # Protected methods
 
     def __repr__(self):
-        return ("CTX: %s\n - Work Area: %s\n - Work: %s\n - Publish Area: %s\n - Publish: %s" 
-                % (self._context, 
-                   self.work_area_template, self.work_template, 
+        """
+        Formats a string with information about the work area context's and templates, e.g.::
+            CTX: Anm2, Shot bunny_010_0010
+             - Work Area: <Sgtk TemplatePath shot_work_area_maya: sequences/{Sequence}/{Shot}/{Step}/work/maya>
+             - Work: <Sgtk TemplatePath maya_shot_work: sequences/{Sequence}/{Shot}/{Step}/work/maya/{name}.v{version}.{extension}>
+             - Publish Area: <Sgtk TemplatePath shot_publish_area_maya: sequences/{Sequence}/{Shot}/{Step}/publish/maya>
+             - Publish: <Sgtk TemplatePath maya_shot_publish: sequences/{Sequence}/{Shot}/{Step}/publish/maya/{name}.v{version}.{extension}>
+
+        :returns The formatted string.
+        """
+        return ("CTX: %s\n - Work Area: %s\n - Work: %s\n - Publish Area: %s\n - Publish: %s"
+                % (self._context,
+                   self.work_area_template, self.work_template,
                    self.publish_area_template, self.publish_template)
                 )
 
     def _load_settings(self):
         """
+        Extracts the settings from the environment file.
         """
         # attemps to load all settings for the context:
-        templates_to_find = ["template_work", "template_publish", 
+        templates_to_find = ["template_work", "template_publish",
                              "template_work_area", "template_publish_area"]
-        settings_to_find = ["saveas_default_name", "saveas_prefer_version_up", 
+        settings_to_find = ["saveas_default_name", "saveas_prefer_version_up",
                             "version_compare_ignore_fields", "file_extensions"]
         resolved_settings = {}
-        app = sgtk.platform.current_bundle()
-        try:
-            if self._context:
-                resolved_settings = self._get_settings_for_context(self._context, templates_to_find, settings_to_find)
-        except:
-            app.log_exception("There was an error parsing the settings for context '%s'" % self._context)
-        finally:
-            # update the templates and settings regardless if an exception was raised.
-            #
+        if self._context:
+            resolved_settings = self._get_settings_for_context(self._context, templates_to_find, settings_to_find)
 
-            # update templates:
-            self.work_area_template = resolved_settings.get("template_work_area")
-            self.work_template = resolved_settings.get("template_work")
-            self.publish_area_template = resolved_settings.get("template_publish_area")
-            self.publish_template = resolved_settings.get("template_publish")
+        # update templates:
+        self.work_area_template = resolved_settings.get("template_work_area")
+        self.work_template = resolved_settings.get("template_work")
+        self.publish_area_template = resolved_settings.get("template_publish_area")
+        self.publish_template = resolved_settings.get("template_publish")
 
-            # update other settings:
-            self.save_as_default_name = resolved_settings.get("saveas_default_name", "")
-            self.save_as_prefer_version_up = resolved_settings.get("saveas_prefer_version_up", False)
-            self.version_compare_ignore_fields = resolved_settings.get("version_compare_ignore_fields", [])
-            extensions = resolved_settings.get("file_extensions") or []
-            extensions = [ext if ext.startswith(".") else ".%s" % ext for ext in extensions if ext]
-            self.valid_file_extensions = extensions
+        # update other settings:
+        self.save_as_default_name = resolved_settings.get("saveas_default_name", "")
+        self.save_as_prefer_version_up = resolved_settings.get("saveas_prefer_version_up", False)
+        self.version_compare_ignore_fields = resolved_settings.get("version_compare_ignore_fields", [])
+        extensions = resolved_settings.get("file_extensions") or []
+        extensions = [ext if ext.startswith(".") else ".%s" % ext for ext in extensions if ext]
+        self.valid_file_extensions = extensions
 
-            # test for user sandboxes:
-            self._work_template_contains_user = self.work_template and bool(self._get_template_user_keys(self.work_template))
-            self._publish_template_contains_user = self.publish_template and bool(self._get_template_user_keys(self.publish_template))
+        # test for user sandboxes:
+        self._work_template_contains_user = self.work_template and bool(self._get_template_user_keys(self.work_template))
+        self._publish_template_contains_user = self.publish_template and bool(self._get_template_user_keys(self.publish_template))
+
+    def assert_templates_configured(self):
+        """
+        Asserts that all the templates are configured.
+
+        :raises TankError: Raised if one or more template is not configured.
+        """
+        # First find all the templates that are not defined.
+        missing_templates = []
+        if not self.work_area_template:
+            missing_templates.append("'template_work_area'")
+        if not self.work_template:
+            missing_templates.append("'template_work'")
+        if not self.publish_area_template:
+            missing_templates.append("'template_publish_area'")
+        if not self.publish_template:
+            missing_templates.append("'template_publish'")
+
+        if not missing_templates:
+            return
+
+        # Then take every template except the last one and join them with commas.
+        comma_separated_templates = missing_templates[:-1]
+        comma_separated_string = ", ".join(comma_separated_templates)
+
+        # If the string is not empty, we'll add the last missing template name.
+        if comma_separated_string:
+            missing_templates_string = "%s and %s" % (comma_separated_string, missing_templates[-1])
+        else:
+            missing_templates_string = missing_templates[0]
+
+        is_plural = len(missing_templates) > 1
+
+        raise TankError(
+            "The template%s %s %s not been defined for %s.\n\n"
+            "Please select another work area." % (
+                "s" if is_plural else "",
+                missing_templates_string,
+                "have" if is_plural else "has",
+                self._get_user_friendly_context()
+            )
+        )
 
     def _get_settings_for_context(self, context, templates_to_find, settings_to_find=None):
         """
         Find templates for the given context.
+
+        :param context: Toolkit context.
+        :param templates_to_find: Name of the templates to look for in the settings.
+        :param settings_to_find: List of mandatory settings names.
+
+        :returns: A dictionary of the settings. If the dictionary is empty, not settings was found.
+
+        :raises TankError: If no workfiles
         """
         if not context:
             return {}
-        
+
         app = sgtk.platform.current_bundle()
         settings_to_find = settings_to_find or []
-        
+
         resolved_settings = {}
         if app.context == context:
             # no need to look for settings as we already have them in the
             # current environment!
-    
-            # get templates:        
+
+            # get templates:
             for key in templates_to_find:
                 resolved_settings[key] = app.get_template(key)
-                
+
             # get additional settings:
             for key in settings_to_find:
                 resolved_settings[key] = app.get_setting(key)
-                
-        else:        
+
+        else:
             # need to look for settings in a different context/environment
             settings = self._get_raw_app_settings_for_context(app, context)
             if not settings:
-                raise TankError("Failed to find Work Files settings for context '%s' in engine instance '%s'.\n\n"
-                                "Please ensure that the Work Files app is installed for the environment that will"
-                                " be used for this context." % (context, app.engine.instance_name))
-            
+                raise TankError(
+                    "Failed to find the Shotgun File Manager settings for %s.\n\n"
+                    "Please ensure that the app is installed for the environment that will "
+                    "be used for this work area." % (
+                        self._get_user_friendly_context()
+                    )
+                )
+
             # get templates:
             resolved_settings = {}
             for key in templates_to_find:
                 resolved_settings[key] = app.get_template_from(settings, key)
-                
+
             # get additional settings:
             for key in settings_to_find:
                 resolved_settings[key] = app.get_setting_from(settings, key)
-            
+
         return resolved_settings
+
+    def _get_user_friendly_context(self):
+        """
+        Returns a string describing the current context and engine instance, e.g.::
+            context 'Art, Asset Big Buck Bunny' and engine instance 'tk-maya'
+
+        :returns: The formatted string.
+        """
+        return "context '%s' in engine instance '%s'" % (self._context, self.engine_instance_name)
 
     def _get_raw_app_settings_for_context(self, app, context):
         """
@@ -300,7 +383,6 @@ class WorkArea(object):
                     app.engine.name, app.name, app.sgtk, context, app.engine.instance_name
                 )
             finally:
-                app.log_debug("Error while reading environment, ignore.")
                 # Ignore any errors while looking for the settings
                 WorkArea._settings_cache.add(context, app_settings or {})
 
@@ -332,6 +414,11 @@ class WorkArea(object):
 
     def _resolve_user_sandboxes(self, template):
         """
+        Resolves user sandboxes on disk for a given template. Caches the result.
+
+        :param template: Template for which to cache the users.
+
+        :returns: List of users in the given sandbox.
         """
         if not template or not self._context:
             # don't have enough information to resolve users!
@@ -368,27 +455,27 @@ class WorkArea(object):
         try:
             # Note, we deliberately don't perform validation here as the current user may not have created
             # any files yet and we don't want this to fail just because it can't resolve a field for the
-            # user key. 
+            # user key.
             ctx_fields = self._context.as_template_fields(search_template, validate=False)
-        except TankError, e:
+        except TankError:
             # this probably means that there isn't anything in the path cache for this context
-            # yet which also means no users have created folders therefore there are also no 
+            # yet which also means no users have created folders therefore there are also no
             # user sandboxes!
             return []
 
         # make sure we have enough fields to perform a valid search - we should have all non-optional
         # keys apart from user keys:
         for key_name in search_template.keys.keys():
-            if (key_name not in user_keys 
-                and key_name not in ctx_fields
-                and not search_template.is_optional(key_name)):
+            if (key_name not in user_keys and
+                    key_name not in ctx_fields and
+                    not search_template.is_optional(key_name)):
                 # this is bad - assume we can't perform a search!
                 return []
-            
+
         # ok, so lets search for paths that match the template:
         app = sgtk.platform.current_bundle()
         paths = app.sgtk.paths_from_template(search_template, ctx_fields, user_keys)
-        
+
         # split out users from the list of paths:
         user_ids = set()
         for path in paths:
@@ -406,6 +493,11 @@ class WorkArea(object):
 
     def _get_template_user_keys(self, template):
         """
+        Finds the keys in a template that relate to the HumanUser entity.
+
+        :param template: Template to look for HumanUser related keys.
+
+        :returns: A list of key names.
         """
         # find all 'user' keys in the template:
         user_keys = set()
@@ -415,5 +507,3 @@ class WorkArea(object):
             if key.shotgun_entity_type == "HumanUser":
                 user_keys.add(key.name)
         return user_keys
-
-

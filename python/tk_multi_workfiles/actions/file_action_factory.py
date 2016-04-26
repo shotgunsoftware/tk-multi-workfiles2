@@ -83,6 +83,8 @@ class FileActionFactory(object):
         # and if it's possible to copy this file to the work area:
         self._can_copy_to_work_area = False
         if self._change_work_area and app.context:
+            # no need to try/except this WorkArea object creation, since if we're here it means the
+            # context is fully configured.
             current_env = WorkArea(app.context)
             self._can_copy_to_work_area = current_env.work_template is not None
             # (AD) TODO - it's possible the work template for the current work area has different requirements than

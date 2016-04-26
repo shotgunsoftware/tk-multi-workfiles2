@@ -123,7 +123,14 @@ class FileOpenForm(FileFormBase):
             # Keep an eye on it and consider threading if it's noticeably slow!
             app = sgtk.platform.current_bundle()
             context = app.sgtk.context_from_entity_dictionary(entity)
-            env_details = WorkArea(context)
+            try:
+                env_details = WorkArea(context)
+            except sgtk.TankError:
+                # We can ignore the error reporting here. The browser is already
+                # updating it's various file views and they will display the same
+                # error. Which is good, because file open dialog doesn't have a
+                # widget dedicated to error reporting.
+                env_details = None
 
         self._update_new_file_btn(env_details)
 

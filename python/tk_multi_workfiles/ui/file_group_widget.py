@@ -106,7 +106,7 @@ class Ui_FileGroupWidget(object):
 "font: 11px;\n"
 "color: grey;\n"
 "}")
-        self.msg_label.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.msg_label.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
         self.msg_label.setWordWrap(True)
         self.msg_label.setMargin(2)
         self.msg_label.setObjectName("msg_label")

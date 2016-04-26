@@ -33,6 +33,7 @@ class FileFinder(QtCore.QObject):
     """
     Helper class to find work and publish files for a specified context and set of templates
     """
+
     class _FileNameMap(Threaded):
         """
         """
@@ -674,6 +675,7 @@ class AsyncFileFinder(FileFinder):
     def _begin_search_for_work_files(self, search, work_area):
         """
         """
+
         # 2a. Add tasks to find and filter work files:
         for user in search.users:
             user_id = user["id"] if user else None
@@ -808,8 +810,12 @@ class AsyncFileFinder(FileFinder):
             return
         self.stop_search(search_id)
 
+        app = sgtk.platform.current_bundle()
+        app.log_error(msg)
+        app.log_debug(stack_trace)
+
         # emit signal:
-        self.search_failed.emit(search_id, "%s, %s" % (msg, stack_trace))
+        self.search_failed.emit(search_id, msg)
 
     def _on_background_search_finished(self, search_id):
         """
@@ -867,10 +873,12 @@ class AsyncFileFinder(FileFinder):
             # build a context from the search details:
             context = app.sgtk.context_from_entity_dictionary(entity)
 
-            # build the work area for this context:
+            # build the work area for this context: This may throw, but the background task manager framework
+            # will catch
             work_area = WorkArea(context)
+            work_area.assert_templates_configured()
 
-        return {"environment":work_area}
+        return {"environment": work_area}
 
     def _task_resolve_sandbox_users(self, environment, **kwargs):
         """
