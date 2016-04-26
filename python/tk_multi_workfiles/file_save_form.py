@@ -15,6 +15,7 @@ the list of current work files.
 """
 
 import os
+import traceback
 from itertools import chain
 
 import sgtk
@@ -94,9 +95,9 @@ class FileSaveForm(FileFormBase):
         self._ui.work_area_label.setText("<p style='color:rgb%s'><b>Work Area:</b></p>" % (self._preview_colour, ))
         self._ui.work_area_preview.setText("<p style='color:rgb%s'></p>" % (self._preview_colour, ))
         self._ui.warning_label.setText("<p style='color:rgb%s'><b>Warning:</b></p>" % (app.warning_color, ))
-        self._ui.warning.setText("<p style='color:rgb%s'></p>" % (app.warning_color, ))
+        self._set_warning("")
 
-        # define which controls are visible before initial show:        
+        # define which controls are visible before initial show:
         self._ui.browser.hide()
         self._ui.nav.hide()
         self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.preview_page)
@@ -134,10 +135,13 @@ class FileSaveForm(FileFormBase):
         self._ui.browser.enable_show_all_versions(False)
         self._ui.browser.enable_user_filtering(False)
         self._ui.browser.set_models(self._my_tasks_model, self._entity_models, self._file_model)
-        env = WorkArea(app.context)
         current_file = self._get_current_file()
         self._ui.browser.select_work_area(app.context)
         self._ui.browser.select_file(current_file, app.context)
+
+        # No need to catch for errors, since the current context of the app has to be properly
+        # configured to be able to launch the app in the first place.
+        env = WorkArea(app.context)
 
         # initialize the browser with the current file and environment:
         self._on_browser_file_selected(current_file, env)
@@ -161,6 +165,15 @@ class FileSaveForm(FileFormBase):
 
     # ------------------------------------------------------------------------------------------
     # protected methods
+
+    def _set_warning(self, reason):
+        """
+        Displays warning in the ui.
+
+        :param reason: Message to display in the UI.
+        """
+        app = sgtk.platform.current_bundle()
+        self._ui.warning.setText("<p style='color:rgb%s'>%s</p>" % (app.warning_color, reason))
 
     def _on_name_edited(self, txt):
         """
@@ -278,6 +291,18 @@ class FileSaveForm(FileFormBase):
         self._ui.save_btn.setEnabled(False)
         self._ui.save_btn.setToolTip(reason)
 
+    def _disable_save_and_warn(self, reason):
+        """
+        Disables save button and sets the tooltip.
+
+        :param reason: Tooltip text for the save button.
+        """
+        # Switch to the warning page before displaying warning message.
+        self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.warning_page)
+        self._set_warning(reason)
+
+        self._disable_save(reason)
+
     def _on_preview_generation_failed(self, task_id, group, msg, stack_trace):
         """
         """
@@ -285,12 +310,7 @@ class FileSaveForm(FileFormBase):
             return
         self._preview_task = None
 
-        app = sgtk.platform.current_bundle()
-
-        self._ui.feedback_stacked_widget.setCurrentWidget(self._ui.warning_page)
-        self._ui.warning.setText("<p style='color:rgb%s'>%s</p>" % (app.warning_color, msg))
-
-        self._disable_save(msg)
+        self._disable_save_and_warn(msg)
 
     def _generate_path(self, env, name, version, use_next_version, ext, require_path=False):
         """
@@ -301,9 +321,8 @@ class FileSaveForm(FileFormBase):
 
         # first make  sure the environment is complete:
         if not env or not env.context:
-            raise TankError("Please select a work area to save into...")
-        elif not env.work_template:
-            raise TankError("The working directory has not been defined for this work area.  Please select another work area.")
+            raise TankError("Please select a work area to save into.")
+        env.assert_templates_configured()
 
         # build the fields dictionary from the environment:
         fields = {}
@@ -434,20 +453,27 @@ class FileSaveForm(FileFormBase):
         """
         """
         self._on_browser_file_selected(file, env)
-        # TODO: this won't actually work until the preview has 
+        # TODO: this won't actually work until the preview has
         # been updated!
         self._on_save()
 
     def _on_browser_work_area_changed(self, entity, breadcrumbs):
         """
+        Invoked when the selection changes in My Tasks or one of the entity views.
         """
         env = None
         if entity:
             app = sgtk.platform.current_bundle()
             context = app.sgtk.context_from_entity_dictionary(entity)
-            env = WorkArea(context)
-        self._on_work_area_changed(env)
-        self._start_preview_update()
+
+            try:
+                env = WorkArea(context)
+            except TankError, e:
+                app.log_debug(traceback.format_stack())
+                self._disable_save_and_warn(str(e))
+            else:
+                self._on_work_area_changed(env)
+                self._start_preview_update()
 
         if not self._navigating:
             destination_label = breadcrumbs[-1].label if breadcrumbs else "..."
@@ -730,8 +756,3 @@ class FileSaveForm(FileFormBase):
             # all good - lets close the dialog
             self._exit_code = QtGui.QDialog.Accepted
             self.close()
-
-
-
-
-

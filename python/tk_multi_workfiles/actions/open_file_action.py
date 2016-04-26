@@ -138,6 +138,8 @@ class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
         """
         # get info about the current work area:
         app = sgtk.platform.current_bundle()
+        # no need to try/except this WorkArea object creation, since if we're here it means the
+        # context is fully configured.
         dst_work_area = WorkArea(app.context)
         if not dst_work_area.work_template:
             # should never happen!
