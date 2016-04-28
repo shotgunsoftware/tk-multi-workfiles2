@@ -473,6 +473,11 @@ class BrowserForm(QtGui.QWidget):
         return primary_entity
 
     def _on_uses_user_sandboxes(self, work_area):
+        """
+        Called when the file finder reports a work area that uses sandboxes.
+
+        :param work_area: WorkArea using a sandbox.
+        """
         for form in self._file_browser_forms:
             if form.work_files_visible and work_area.work_area_contains_user_sandboxes:
                 form.enable_user_filtering_widget(True)
