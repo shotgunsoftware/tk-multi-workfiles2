@@ -292,6 +292,8 @@ class FileModel(QtGui.QStandardItemModel):
                 # call the base implementation:
                 FileModel._BaseModelItem.setData(self, value, role) 
 
+    # Signal emitted when sandboxes are used, but before we know which ones
+    uses_user_sandboxes = QtCore.Signal(object) # Work area that uses sandboxes.
     # Signal emitted when the available sandbox users have changed
     available_sandbox_users_changed = QtCore.Signal(list)# list of users
 
@@ -333,6 +335,7 @@ class FileModel(QtGui.QStandardItemModel):
         self._finder.publishes_found.connect(self._on_finder_publishes_found)
         self._finder.search_completed.connect(self._on_finder_search_completed)
         self._finder.search_failed.connect(self._on_finder_search_failed)
+        self._finder.work_area_resolved.connect(self._on_finder_work_area_resolved)
         self._finder.work_area_found.connect(self._on_finder_work_area_found)
 
     def destroy(self):
@@ -360,7 +363,7 @@ class FileModel(QtGui.QStandardItemModel):
             self._finder.publishes_found.disconnect(self._on_finder_publishes_found)
             self._finder.search_completed.disconnect(self._on_finder_search_completed)
             self._finder.search_failed.disconnect(self._on_finder_search_failed)
-            self._finder.work_area_found.disconnect(self._on_finder_work_area_found)
+            self._finder.work_area_resolved.disconnect(self._on_finder_work_area_resolved)
             self._finder.shut_down()
             self._finder = None
 
@@ -953,12 +956,29 @@ class FileModel(QtGui.QStandardItemModel):
 
     def _on_finder_work_area_found(self, search_id, work_area):
         """
-        Slot triggered when the finder has found a work area during the search.  If the work area
-        contains user sandboxes this will emit the available_sandbox_users_changed signal with the
-        list of users.
+        Slot triggered when the finder finds a work area. This will
+        emit the work_area_found signal if the work area uses sandboxing
+        in any shape or form. Note that at that point the available
+        sandboxes haven't been resolved yet, only that they may exist.
 
         :param search_id:    The id of the search that the work area was found for
         :param work_area:    The WorkArea instance that was found
+        """
+        if search_id not in self._in_progress_searches:
+            # ignore result
+            return
+
+        if work_area.work_area_contains_user_sandboxes or work_area.publish_area_contains_user_sandboxes:
+            self.uses_user_sandboxes.emit(work_area)
+
+    def _on_finder_work_area_resolved(self, search_id, work_area):
+        """
+        Slot triggered when the finder resolved users from a work area during the search.  If the work area
+        contains user sandboxes this will emit the available_sandbox_users_changed signal with the
+        list of users.
+
+        :param search_id:    The id of the search that the work area was resolved for
+        :param work_area:    The WorkArea instance that was resolved
         """
         if search_id not in self._in_progress_searches:
             # ignore result

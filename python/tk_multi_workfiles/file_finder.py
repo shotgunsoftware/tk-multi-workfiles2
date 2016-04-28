@@ -557,7 +557,7 @@ class AsyncFileFinder(FileFinder):
             self.name_map = FileFinder._FileNameMap()
 
             self.construct_work_area_task = None
-            self.find_work_area_task = None
+            self.resolve_work_area_task = None
             self.find_work_files_tasks = set()
             self.load_cached_pubs_task = None
             self.find_publishes_tasks = set()
@@ -566,7 +566,8 @@ class AsyncFileFinder(FileFinder):
     _FIND_PUBLISHES_PRIORITY, _FIND_FILES_PRIORITY = (20, 40)
 
     # Signals
-    work_area_found = QtCore.Signal(object, object) # search_id, WorkArea
+    work_area_found = QtCore.Signal(object, object)
+    work_area_resolved = QtCore.Signal(object, object) # search_id, WorkArea
     files_found = QtCore.Signal(object, object, object) # search_id, file list, WorkArea
     publishes_found = QtCore.Signal(object, object, object) # search_id, file list, WorkArea
     search_failed = QtCore.Signal(object, object) # search_id, message
@@ -668,7 +669,7 @@ class AsyncFileFinder(FileFinder):
                                                                          task_kwargs = {"entity":search.entity})
 
         # 1b. Resolve sandbox users for the work area (if there are any)
-        search.find_work_area_task = self._bg_task_manager.add_task(self._task_resolve_sandbox_users,
+        search.resolve_work_area_task = self._bg_task_manager.add_task(self._task_resolve_sandbox_users,
                                                                     group=search.id,
                                                                     upstream_task_ids = [search.construct_work_area_task])
 
@@ -768,6 +769,7 @@ class AsyncFileFinder(FileFinder):
 
         if task_id == search.construct_work_area_task:
             search.construct_work_area_task = None
+            self.work_area_found.emit(search_id, work_area)
             # we have successfully constructed a work area that we can 
             # use for the next stage so begin searching for work files:
             self._begin_search_for_work_files(search, work_area)
@@ -775,10 +777,10 @@ class AsyncFileFinder(FileFinder):
             search.load_cached_pubs_task = self._bg_task_manager.add_pass_through_task(group = search.id,
                                                                     priority=AsyncFileFinder._FIND_PUBLISHES_PRIORITY,
                                                                     task_kwargs = {"environment":work_area})
-        elif task_id == search.find_work_area_task:
-            search.find_work_area_task = None
+        elif task_id == search.resolve_work_area_task:
+            search.resolve_work_area_task = None
             # found a work area so emit it:
-            self.work_area_found.emit(search_id, work_area)
+            self.work_area_resolved.emit(search_id, work_area)
 
         elif task_id == search.load_cached_pubs_task:
             search.load_cached_pubs_task = None

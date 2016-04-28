@@ -66,7 +66,6 @@ class FileListForm(QtGui.QWidget):
 
         self._show_work_files = show_work_files
         self._show_publishes = show_publishes
-        self._enable_user_filtering = True
 
         # set up the UI
         self._ui = Ui_FileListForm()
@@ -82,7 +81,7 @@ class FileListForm(QtGui.QWidget):
         self._ui.user_filter_btn.selected_users = self._file_filters.users
         self._ui.user_filter_btn.users_selected.connect(self._on_user_filter_btn_users_selected)
         # user filter button is hidden until needed
-        self._ui.user_filter_btn.hide()
+        self.enable_user_filtering_widget(False)
 
         self._ui.file_list_view.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
         self._ui.file_list_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -183,13 +182,33 @@ class FileListForm(QtGui.QWidget):
             self._ui.all_versions_cb.hide()
             self._on_show_all_versions_toggled(False)
 
-    def enable_user_filtering(self, enable):
+    def show_user_filtering_widget(self, is_visible):
         """
+        Displays or hides the user filtering widget.
+
+        :param is_visible: If True, the user filtering widget will be shown.
         """
-        self._enable_user_filtering = enable
-        if not self._enable_user_filtering:
-            # make sure user button is hidden:
-            self._ui.user_filter_btn.hide()
+        self._ui.user_filter_btn.setVisible(is_visible)
+
+    def enable_user_filtering_widget(self, is_enabled):
+        """
+        Displays or hides the user filtering widget.
+
+        :param is_visible: If True, the user filtering widget will be shown.
+        """
+        if self._show_publishes and not self._show_work_files:
+            sandbox_type = "publish "
+        elif not self._show_publishes and self._show_work_files:
+            sandbox_type = "work file "
+        else:
+            sandbox_type = ""
+
+        if is_enabled:
+            self._ui.user_filter_btn.setToolTip("Click to see the list of %ssandboxes available for this context." % sandbox_type)
+        else:
+            self._ui.user_filter_btn.setToolTip("There are no %ssandboxes available for this context." % sandbox_type)
+
+        self._ui.user_filter_btn.setEnabled(is_enabled)
 
     def select_file(self, file_item, context):
         """
@@ -337,9 +356,6 @@ class FileListForm(QtGui.QWidget):
 
         :param users:   The new list of available users
         """
-        if self._enable_user_filtering and users and not self._ui.user_filter_btn.isVisible():
-            self._ui.user_filter_btn.show()
-
         # update user filter button
         self._ui.user_filter_btn.available_users = users
 
