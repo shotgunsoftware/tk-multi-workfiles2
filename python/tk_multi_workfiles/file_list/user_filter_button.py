@@ -101,10 +101,26 @@ class UserFilterButton(QtGui.QPushButton):
         QtGui.QPushButton.setEnabled(self, is_enabled)
         self._update()
 
+    def showEvent(self, event):
+        """
+        Ensures the widget look is updated when it is
+        """
+        self._update()
+        return QtGui.QPushButton.showEvent(self, event)
+
+    def changeEvent(self, event):
+        """
+        Ensures the widget look is updated when it is enabled or disabled.
+        """
+        if event.type() == QtCore.QEvent.EnabledChange and self.isEnabled():
+            self._update()
+        return QtGui.QPushButton.changeEvent(self, event)
+
     def _update(self):
         """
         Updates the status of the button.
         """
+        print self.isEnabled(), self.menu().current_user_selected, self.menu().other_users_selected
         # figure out the style to use:
         user_style = self._USER_STYLE_NONE
         if self.menu().isEnabled():

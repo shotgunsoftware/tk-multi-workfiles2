@@ -53,7 +53,7 @@ class BrowserForm(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
 
         self._enable_show_all_versions = True
-        self._show_user_filtering_widget = True
+        self._allow_user_filtering_widget = True
         self._file_model = None
         self._my_tasks_form = None
         self._entity_tree_forms = []
@@ -135,14 +135,14 @@ class BrowserForm(QtGui.QWidget):
             widget = self._ui.file_browser_tabs.widget(ti)
             widget.enable_show_all_versions(self._enable_show_all_versions)
 
-    def show_user_filtering_widget(self, is_visible):
+    def allow_user_filtering_widget(self, is_allowed):
         """
         Allows to show the user filtering button if there are user sandboxes.
 
         :param is_visible: If True, the user filtering button will be displayed
             if user sandboxing is configured for an entity inside the current selection.
         """
-        self._show_user_filtering_widget = is_visible
+        self._allow_user_filtering_widget = is_allowed
 
     def set_models(self, my_tasks_model, entity_models, file_model):
         """
@@ -194,7 +194,9 @@ class BrowserForm(QtGui.QWidget):
         file_form = FileListForm(self, search_label, self._file_filters, show_work_files, show_publishes)
         self._ui.file_browser_tabs.addTab(file_form, tab_name)
         file_form.enable_show_all_versions(self._enable_show_all_versions)
-        file_form.show_user_filtering_widget(self._show_user_filtering_widget)
+        # Do not show the button by default, it will be revealed when the first
+        # sandbox is detected.
+        file_form.show_user_filtering_widget(False)
         file_form.set_model(self._file_model)
         file_form.file_selected.connect(self._on_file_selected)
         file_form.file_double_clicked.connect(self.file_double_clicked)
@@ -479,6 +481,11 @@ class BrowserForm(QtGui.QWidget):
         :param work_area: WorkArea using a sandbox.
         """
         for form in self._file_browser_forms:
+            # A work area reported sandboxes, we have to make sure the button is
+            # visible, but only if this form is allowed to.
+            if self._allow_user_filtering_widget:
+                form.show_user_filtering_widget(True)
+            # Turn the filtering button on if it uses sandboxes.
             if form.work_files_visible and work_area.work_area_contains_user_sandboxes:
                 form.enable_user_filtering_widget(True)
             elif form.publishes_visible and work_area.publish_area_contains_user_sandboxes:
