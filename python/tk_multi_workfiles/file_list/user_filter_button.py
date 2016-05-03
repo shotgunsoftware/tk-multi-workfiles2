@@ -120,7 +120,6 @@ class UserFilterButton(QtGui.QPushButton):
         """
         Updates the status of the button.
         """
-        print self.isEnabled(), self.menu().current_user_selected, self.menu().other_users_selected
         # figure out the style to use:
         user_style = self._USER_STYLE_NONE
         if self.menu().isEnabled():
