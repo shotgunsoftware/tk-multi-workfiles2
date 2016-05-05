@@ -94,7 +94,9 @@ class UserFilterButton(QtGui.QPushButton):
 
     def showEvent(self, event):
         """
-        Ensures the widget look is updated when it is
+        Ensures the widget look is updated when it is enabled or disabled.
+
+        :param event: QtCore.QShowEvent object.
         """
         self._update()
         return QtGui.QPushButton.showEvent(self, event)
@@ -102,6 +104,8 @@ class UserFilterButton(QtGui.QPushButton):
     def changeEvent(self, event):
         """
         Ensures the widget look is updated when it is enabled or disabled.
+
+        :param event: QtCore.QEvent object.
         """
         if event.type() == QtCore.QEvent.EnabledChange:
             self._update()
