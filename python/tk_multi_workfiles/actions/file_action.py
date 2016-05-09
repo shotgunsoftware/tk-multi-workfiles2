@@ -89,10 +89,10 @@ class FileAction(Action):
         """
         Set context to the new context.
 
-        :param ctx: The sgtk.context.Context to change to.
+        :param ctx: The :class:`sgtk.Context` to change to.
         """
         app = sgtk.platform.current_bundle()
-        app.log_info("Changing context...")
+        app.log_info("Changing context from %s to %s" % (app.context, ctx))
         
         # restart engine:
         QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
@@ -103,6 +103,7 @@ class FileAction(Action):
 
             sgtk.platform.start_engine(current_engine_name, ctx.sgtk, ctx)
         except Exception, e:
+            app.log_exception("Engine teardown and startup failed.")
             raise TankError("Failed to change work area - %s" % e)
         finally:
             QtGui.QApplication.restoreOverrideCursor()
