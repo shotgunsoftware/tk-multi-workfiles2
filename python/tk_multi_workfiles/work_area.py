@@ -18,6 +18,7 @@ from sgtk import TankError
 
 from .user_cache import g_user_cache
 from .util import Threaded
+from .errors import UnconfiguredTemplatesError, WorkAreaSettingsNotFoundError
 
 
 class WorkArea(object):
@@ -257,7 +258,7 @@ class WorkArea(object):
         """
         Asserts that all the templates are configured.
 
-        :raises TankError: Raised if one or more template is not configured.
+        :raises UnconfiguredTemplatesError: Raised if one or more template is not configured.
         """
         # First find all the templates that are not defined.
         missing_templates = []
@@ -272,28 +273,8 @@ class WorkArea(object):
 
         if not missing_templates:
             return
-
-        # Then take every template except the last one and join them with commas.
-        comma_separated_templates = missing_templates[:-1]
-        comma_separated_string = ", ".join(comma_separated_templates)
-
-        # If the string is not empty, we'll add the last missing template name.
-        if comma_separated_string:
-            missing_templates_string = "%s and %s" % (comma_separated_string, missing_templates[-1])
         else:
-            missing_templates_string = missing_templates[0]
-
-        is_plural = len(missing_templates) > 1
-
-        raise TankError(
-            "The template%s %s %s not been defined for %s.\n\n"
-            "Please select another work area." % (
-                "s" if is_plural else "",
-                missing_templates_string,
-                "have" if is_plural else "has",
-                self._get_user_friendly_context()
-            )
-        )
+            raise UnconfiguredTemplatesError(missing_templates, self)
 
     def _get_settings_for_context(self, context, templates_to_find, settings_to_find=None):
         """
@@ -330,13 +311,7 @@ class WorkArea(object):
             # need to look for settings in a different context/environment
             settings = self._get_raw_app_settings_for_context(app, context)
             if not settings:
-                raise TankError(
-                    "Failed to find the Shotgun File Manager settings for %s.\n\n"
-                    "Please ensure that the app is installed for the environment that will "
-                    "be used for this work area." % (
-                        self._get_user_friendly_context()
-                    )
-                )
+                raise WorkAreaSettingsNotFoundError(self)
 
             # get templates:
             resolved_settings = {}
@@ -348,15 +323,6 @@ class WorkArea(object):
                 resolved_settings[key] = app.get_setting_from(settings, key)
 
         return resolved_settings
-
-    def _get_user_friendly_context(self):
-        """
-        Returns a string describing the current context and engine instance, e.g.::
-            context 'Art, Asset Big Buck Bunny' and engine instance 'tk-maya'
-
-        :returns: The formatted string.
-        """
-        return "context '%s' in engine instance '%s'" % (self._context, self.engine_instance_name)
 
     def _get_raw_app_settings_for_context(self, app, context):
         """
