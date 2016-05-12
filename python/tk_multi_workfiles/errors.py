@@ -15,42 +15,29 @@ Workfiles 2 related errors.
 from sgtk import TankError
 
 
-class WorkAreaError(TankError):
+class WorkfilesError(TankError):
     """
     Base class for work area related errors.
     """
 
-    @classmethod
-    def _get_user_friendly_context(cls, work_area):
-        """
-        Generates a user friendly error string about the work area's context.
 
-        :returns: Error string.
-        """
-        return "context '%s' in engine instance '%s'" % (
-            work_area.context, work_area.engine_instance_name
-        )
-
-
-class WorkAreaSettingsNotFoundError(WorkAreaError):
+class WorkAreaSettingsNotFoundError(WorkfilesError):
     """
     Raised when no settings for the workfiles 2 app are found in an environment.
     """
 
-    def __init__(self, work_area):
+    def __init__(self):
         """
         Constructor.
-
-        :param work_area: Work area that raised an error.
         """
-        WorkAreaError.__init__(
+        WorkfilesError.__init__(
             self,
             "Add the Shotgun File Manager to your configuration to enable workfile "
-            "management for %s." % (self._get_user_friendly_context(work_area))
+            "management here."
         )
 
 
-class UnusedContextError(WorkAreaError):
+class UnusedContextError(WorkfilesError):
     """
     Raised when a context is unused.
 
@@ -59,37 +46,32 @@ class UnusedContextError(WorkAreaError):
     are generally non leaf nodes in the tree view.
     """
 
-    def __init__(self, work_area):
+    def __init__(self):
         """
         Constructor.
 
         :param work_area: Work area that raised an error.
         """
-        WorkAreaError.__init__(
-            self, "No templates have been defined for %s." %
-            self._get_user_friendly_context(work_area)
-        )
+        WorkfilesError.__init__(self, "No templates have been defined.")
 
 
-class UnconfiguredTemplatesError(WorkAreaError):
+class UnconfiguredTemplatesError(WorkfilesError):
     """
     Raised when one or more templates are not configured.
     """
 
-    def __init__(self, missing_templates, work_area):
+    def __init__(self, missing_templates):
         """
         Constructor.
 
         :param missing_templates: List of templates that are missing.
-        :param work_area: Work area that raised an error.
         """
         if len(missing_templates) == 4:
             self._are_all_templates_empty = True
-            WorkAreaError.__init__(
+            WorkfilesError.__init__(
                 self,
-                "No templates have been defined for %s. Define the templates "
-                "in your configuration to enable workfile management here." %
-                self._get_user_friendly_context(work_area)
+                "No templates have been defined. Define the templates "
+                "in your configuration to enable workfile management here."
             )
         else:
             self._are_all_templates_empty = False
@@ -107,14 +89,13 @@ class UnconfiguredTemplatesError(WorkAreaError):
 
             is_plural = len(missing_templates) > 1
 
-            WorkAreaError.__init__(
+            WorkfilesError.__init__(
                 self,
-                "The template%s %s %s not been defined for %s.\n\n"
+                "The template%s %s %s not been defined.\n\n"
                 "Please update your pipeline configuration." % (
                     "s" if is_plural else "",
                     missing_templates_string,
-                    "have" if is_plural else "has",
-                    self._get_user_friendly_context(work_area)
+                    "have" if is_plural else "has"
                 )
             )
 

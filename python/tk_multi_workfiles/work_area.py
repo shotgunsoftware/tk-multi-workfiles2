@@ -276,7 +276,7 @@ class WorkArea(object):
         if not missing_templates:
             return
         else:
-            raise UnconfiguredTemplatesError(missing_templates, self)
+            raise UnconfiguredTemplatesError(missing_templates)
 
     def _get_settings_for_context(self, context, templates_to_find, settings_to_find=None):
         """
@@ -313,7 +313,7 @@ class WorkArea(object):
             # need to look for settings in a different context/environment
             settings = self._get_raw_app_settings_for_context(app, context)
             if not settings:
-                raise WorkAreaSettingsNotFoundError(self)
+                raise WorkAreaSettingsNotFoundError()
 
             # get templates:
             resolved_settings = {}

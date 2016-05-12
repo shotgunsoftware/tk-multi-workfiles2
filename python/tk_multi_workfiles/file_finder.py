@@ -887,7 +887,7 @@ class AsyncFileFinder(FileFinder):
                 work_area.assert_templates_configured()
             except UnconfiguredTemplatesError as e:
                 if e.are_all_templates_empty() and not is_leaf:
-                    raise UnusedContextError(work_area)
+                    raise UnusedContextError()
                 else:
                     raise
 
