@@ -24,7 +24,7 @@ from .errors import UnconfiguredTemplatesError, WorkAreaSettingsNotFoundError
 class WorkArea(object):
     """
     Class containing information about the current work area including context, templates
-    and other miscelaneous work-area specific settings.
+    and other miscellaneous work-area specific settings.
     """
 
     class _SettingsCache(Threaded):
@@ -257,6 +257,8 @@ class WorkArea(object):
     def assert_templates_configured(self):
         """
         Asserts that all the templates are configured.
+
+        :param is_leaf: Indicates if this work area in a leaf in the tree view.
 
         :raises UnconfiguredTemplatesError: Raised if one or more template is not configured.
         """

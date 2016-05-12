@@ -590,7 +590,7 @@ class FileModel(QtGui.QStandardItemModel):
                 self._search_cache.set_dirty(search.entity, user)
 
             # actually start the search:
-            search_id = self._finder.begin_search(search.entity, self._current_users)
+            search_id = self._finder.begin_search(search.entity, search.is_leaf, self._current_users)
             self._in_progress_searches[search_id] = search
             self._app.log_debug("File Model: Started search %d..." % search_id)
 

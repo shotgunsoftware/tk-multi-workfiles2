@@ -83,6 +83,8 @@ class FileGroupWidget(GroupWidgetBase):
         # update if the spinner should be visible or not:
         if search_status == None:
             search_status = FileModel.SEARCH_COMPLETED
+
+            func
             
         # show the spinner if needed:
         self._ui.spinner.setVisible(search_status == FileModel.SEARCHING)

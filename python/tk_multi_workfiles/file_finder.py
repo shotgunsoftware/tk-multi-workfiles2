@@ -20,6 +20,7 @@ from sgtk import TankError
 
 from .file_item import FileItem
 from .user_cache import g_user_cache
+from .errors import UnconfiguredTemplatesError, UnusedContextError
 
 from .sg_published_files_model import SgPublishedFilesModel
 
@@ -545,7 +546,7 @@ class AsyncFileFinder(FileFinder):
     any files found via signals as they are found.
     """
     class _SearchData(object):
-        def __init__(self, search_id, entity, users, publish_model):
+        def __init__(self, search_id, entity, users, publish_model, is_work_area_leaf):
             """
             """
             self.id = search_id
@@ -553,6 +554,7 @@ class AsyncFileFinder(FileFinder):
             self.users = copy.deepcopy(users)
             self.publish_model = publish_model
             self.publish_model_refreshed = False
+            self.is_work_area_leaf = is_work_area_leaf
 
             self.name_map = FileFinder._FileNameMap()
 
@@ -607,7 +609,7 @@ class AsyncFileFinder(FileFinder):
             self._bg_task_manager.task_group_finished.disconnect(self._on_background_search_finished)
 
 
-    def begin_search(self, entity, users = None):
+    def begin_search(self, entity, is_work_area_leaf, users = None):
         """
         A full search involves several stages:
 
@@ -649,7 +651,7 @@ class AsyncFileFinder(FileFinder):
         publish_model.uid = search_id
 
         # construct the new search data:
-        search = AsyncFileFinder._SearchData(search_id, entity, users, publish_model)
+        search = AsyncFileFinder._SearchData(search_id, entity, users, publish_model, is_work_area_leaf)
         self._searches[search.id] = search
 
         # begin the search stage 1:
@@ -666,7 +668,10 @@ class AsyncFileFinder(FileFinder):
         # all settings, etc. specific to the work area.
         search.construct_work_area_task = self._bg_task_manager.add_task(self._task_construct_work_area,
                                                                          group=search.id, 
-                                                                         task_kwargs = {"entity":search.entity})
+                                                                         task_kwargs = {
+                                                                            "entity": search.entity,
+                                                                            "is_leaf": search.is_work_area_leaf
+                                                                         })
 
         # 1b. Resolve sandbox users for the work area (if there are any)
         search.resolve_work_area_task = self._bg_task_manager.add_task(self._task_resolve_sandbox_users,
@@ -866,7 +871,7 @@ class AsyncFileFinder(FileFinder):
 
     ################################################################################################
     ################################################################################################
-    def _task_construct_work_area(self, entity, **kwargs):
+    def _task_construct_work_area(self, entity, is_leaf, **kwargs):
         """
         """
         app = sgtk.platform.current_bundle()
@@ -878,7 +883,13 @@ class AsyncFileFinder(FileFinder):
             # build the work area for this context: This may throw, but the background task manager framework
             # will catch
             work_area = WorkArea(context)
-            work_area.assert_templates_configured()
+            try:
+                work_area.assert_templates_configured()
+            except UnconfiguredTemplatesError as e:
+                if e.are_all_templates_empty() and not is_leaf:
+                    raise UnusedContextError(work_area)
+                else:
+                    raise
 
         return {"environment": work_area}
 

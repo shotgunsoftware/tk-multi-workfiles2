@@ -44,9 +44,30 @@ class WorkAreaSettingsNotFoundError(WorkAreaError):
         :param work_area: Work area that raised an error.
         """
         WorkAreaError.__init__(
-            "Failed to find the Shotgun File Manager settings for %s.\n\n"
-            "Please ensure that the app is installed for the environment that will "
-            "be used for this work area." % (self._get_user_friendly_context())
+            self,
+            "Add the Shotgun File Manager to your configuration to enable workfile "
+            "management for %s." % (self._get_user_friendly_context(work_area))
+        )
+
+
+class UnusedContextError(WorkAreaError):
+    """
+    Raised when a context is unused.
+
+    An context is considered as unused when it it is a launch point for the file
+    manager and not a context in which we actually load or save files from. Those
+    are generally non leaf nodes in the tree view.
+    """
+
+    def __init__(self, work_area):
+        """
+        Constructor.
+
+        :param work_area: Work area that raised an error.
+        """
+        WorkAreaError.__init__(
+            self, "No templates have been defined for %s." %
+            self._get_user_friendly_context(work_area)
         )
 
 
@@ -63,41 +84,44 @@ class UnconfiguredTemplatesError(WorkAreaError):
         :param work_area: Work area that raised an error.
         """
         if len(missing_templates) == 4:
-            self._is_partially_configured = False
+            self._are_all_templates_empty = True
             WorkAreaError.__init__(
+                self,
                 "No templates have been defined for %s. Define the templates "
                 "in your configuration to enable workfile management here." %
                 self._get_user_friendly_context(work_area)
             )
         else:
-            self._is_partially_configured = True
+            self._are_all_templates_empty = False
             # Then take every template except the last one and join them with commas.
             comma_separated_templates = missing_templates[:-1]
             comma_separated_string = ", ".join(comma_separated_templates)
 
             # If the string is not empty, we'll add the last missing template name.
             if comma_separated_string:
-                missing_templates_string = "%s and %s" % (comma_separated_string, missing_templates[-1])
+                missing_templates_string = "%s and %s" % (
+                    comma_separated_string, missing_templates[-1]
+                )
             else:
                 missing_templates_string = missing_templates[0]
 
             is_plural = len(missing_templates) > 1
 
             WorkAreaError.__init__(
+                self,
                 "The template%s %s %s not been defined for %s.\n\n"
                 "Please update your pipeline configuration." % (
                     "s" if is_plural else "",
                     missing_templates_string,
                     "have" if is_plural else "has",
-                    self._get_user_friendly_context()
+                    self._get_user_friendly_context(work_area)
                 )
             )
 
-    @property
-    def is_partially_configured(self):
+    def are_all_templates_empty(self):
         """
         Indicates if only some templates are missing.
 
-        :returns: True if no templates have been set, False otherwise.
+        :returns: True if all templates are empty, False otherwise.
         """
-        return self._is_partially_configured
+        return self._are_all_templates_empty
