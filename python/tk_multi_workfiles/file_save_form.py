@@ -134,7 +134,7 @@ class FileSaveForm(FileFormBase):
         # initialize the browser:
         self._ui.browser.enable_show_all_versions(False)
         # We don't want to see other user's sandboxes, nor do we want to save in them.
-        self._ui.browser.allow_user_filtering_widget(False)
+        self._ui.browser.show_user_filtering_widget(False)
         self._ui.browser.set_models(self._my_tasks_model, self._entity_models, self._file_model)
         current_file = self._get_current_file()
         self._ui.browser.select_work_area(app.context)

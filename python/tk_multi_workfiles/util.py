@@ -245,7 +245,19 @@ def report_non_destroyed_qobjects(clear_list = True):
         _g_monitored_qobjects = {}
 
 
+def get_template_user_keys(template):
+    """
+    Finds the keys in a template that relate to the HumanUser entity.
 
-    
-    
+    :param template: Template to look for HumanUser related keys.
 
+    :returns: A list of key names.
+    """
+    # find all 'user' keys in the template:
+    user_keys = set()
+    if "HumanUser" in template.keys:
+        user_keys.add("HumanUser")
+    for key in template.keys.values():
+        if key.shotgun_entity_type == "HumanUser":
+            user_keys.add(key.name)
+    return user_keys

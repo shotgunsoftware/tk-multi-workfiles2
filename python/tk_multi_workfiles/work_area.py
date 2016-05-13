@@ -17,7 +17,7 @@ import sgtk
 from sgtk import TankError
 
 from .user_cache import g_user_cache
-from .util import Threaded
+from .util import Threaded, get_template_user_keys
 
 
 class WorkArea(object):
@@ -250,8 +250,8 @@ class WorkArea(object):
         self.valid_file_extensions = extensions
 
         # test for user sandboxes:
-        self._work_template_contains_user = self.work_template and bool(self._get_template_user_keys(self.work_template))
-        self._publish_template_contains_user = self.publish_template and bool(self._get_template_user_keys(self.publish_template))
+        self._work_template_contains_user = self.work_template and bool(get_template_user_keys(self.work_template))
+        self._publish_template_contains_user = self.publish_template and bool(get_template_user_keys(self.publish_template))
 
     def assert_templates_configured(self):
         """
@@ -425,7 +425,7 @@ class WorkArea(object):
             return []
 
         # find all 'user' keys in the template:
-        user_keys = self._get_template_user_keys(template)
+        user_keys = get_template_user_keys(template)
         if not user_keys:
             # this template doesn't contain user keys!
             return []
@@ -491,19 +491,3 @@ class WorkArea(object):
         self._sandbox_users[template.definition] = users
         return users
 
-    def _get_template_user_keys(self, template):
-        """
-        Finds the keys in a template that relate to the HumanUser entity.
-
-        :param template: Template to look for HumanUser related keys.
-
-        :returns: A list of key names.
-        """
-        # find all 'user' keys in the template:
-        user_keys = set()
-        if "HumanUser" in template.keys:
-            user_keys.add("HumanUser")
-        for key in template.keys.values():
-            if key.shotgun_entity_type == "HumanUser":
-                user_keys.add(key.name)
-        return user_keys
