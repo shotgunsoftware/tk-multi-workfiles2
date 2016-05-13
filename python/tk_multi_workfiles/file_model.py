@@ -968,7 +968,7 @@ class FileModel(QtGui.QStandardItemModel):
             # ignore result
             return
 
-        if work_area.work_area_contains_user_sandboxes or work_area.publish_area_contains_user_sandboxes:
+        if work_area.contains_user_sandboxes:
             self.uses_user_sandboxes.emit(work_area)
 
     def _on_finder_work_area_resolved(self, search_id, work_area):

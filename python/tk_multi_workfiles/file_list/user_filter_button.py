@@ -92,14 +92,24 @@ class UserFilterButton(QtGui.QPushButton):
         self.users_selected.emit(users)
         self._update()
 
-    def setEnabled(self, is_enabled):
+    def showEvent(self, event):
         """
-        Enables or disables the widget.
+        Ensures the widget look is updated when it is enabled or disabled.
 
-        :param is_enabled: If True, widget will be enabled.
+        :param event: QtCore.QShowEvent object.
         """
-        QtGui.QPushButton.setEnabled(self, is_enabled)
         self._update()
+        return QtGui.QPushButton.showEvent(self, event)
+
+    def changeEvent(self, event):
+        """
+        Ensures the widget look is updated when it is enabled or disabled.
+
+        :param event: QtCore.QEvent object.
+        """
+        if event.type() == QtCore.QEvent.EnabledChange:
+            self._update()
+        return QtGui.QPushButton.changeEvent(self, event)
 
     def _update(self):
         """

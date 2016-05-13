@@ -25,6 +25,7 @@ from .file_form_base import FileFormBase
 from .ui.file_open_form import Ui_FileOpenForm
 
 from .work_area import WorkArea
+from .util import  get_template_user_keys
 
 
 class FileOpenForm(FileFormBase):
@@ -89,10 +90,27 @@ class FileOpenForm(FileFormBase):
         self._ui.nav.home_clicked.connect(self._on_navigate_home)
 
         # initialize the browser widget:
+        self._ui.browser.show_user_filtering_widget(self._is_using_user_sandboxes())
         self._ui.browser.set_models(self._my_tasks_model, self._entity_models, self._file_model)
         current_file = self._get_current_file()
         self._ui.browser.select_work_area(app.context)
         self._ui.browser.select_file(current_file, app.context)
+
+
+    def _is_using_user_sandboxes(self):
+        """
+        Checks if any template is using user sandboxing in the current configuration.
+
+        :returns: True is user sandboxing is used, False otherwise.
+        """
+        app = sgtk.platform.current_bundle()
+
+        for t in app.sgtk.templates.itervalues():
+            if get_template_user_keys(t):
+                return True
+
+        return False
+
 
     def closeEvent(self, event):
         """
