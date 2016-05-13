@@ -258,8 +258,6 @@ class WorkArea(object):
         """
         Asserts that all the templates are configured.
 
-        :param is_leaf: Indicates if this work area in a leaf in the tree view.
-
         :raises UnconfiguredTemplatesError: Raised if one or more template is not configured.
         """
         # First find all the templates that are not defined.

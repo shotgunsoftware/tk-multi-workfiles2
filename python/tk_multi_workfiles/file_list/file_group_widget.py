@@ -93,7 +93,7 @@ class FileGroupWidget(GroupWidgetBase):
         if search_status == FileModel.SEARCHING and not idx_has_children:
             search_msg = "Searching for files..."
         elif search_status == FileModel.SEARCH_COMPLETED and not idx_has_children:
-            search_msg = "No files found!"
+            search_msg = "No files found."
         elif search_status == FileModel.SEARCH_FAILED:
             search_msg = get_model_str(model_idx, FileModel.SEARCH_MSG_ROLE)
         self._ui.msg_label.setText(search_msg)

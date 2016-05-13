@@ -32,27 +32,8 @@ class WorkAreaSettingsNotFoundError(WorkfilesError):
         """
         WorkfilesError.__init__(
             self,
-            "Add the Shotgun File Manager to your configuration to enable workfile "
-            "management here."
+            "The Shotgun File Manager hasn't been setup."
         )
-
-
-class UnusedContextError(WorkfilesError):
-    """
-    Raised when a context is unused.
-
-    An context is considered as unused when it it is a launch point for the file
-    manager and not a context in which we actually load or save files from. Those
-    are generally non leaf nodes in the tree view.
-    """
-
-    def __init__(self):
-        """
-        Constructor.
-
-        :param work_area: Work area that raised an error.
-        """
-        WorkfilesError.__init__(self, "No templates have been defined.")
 
 
 class UnconfiguredTemplatesError(WorkfilesError):
@@ -67,14 +48,8 @@ class UnconfiguredTemplatesError(WorkfilesError):
         :param missing_templates: List of templates that are missing.
         """
         if len(missing_templates) == 4:
-            self._are_all_templates_empty = True
-            WorkfilesError.__init__(
-                self,
-                "No templates have been defined. Define the templates "
-                "in your configuration to enable workfile management here."
-            )
+            WorkfilesError.__init__(self, "No templates have been defined.")
         else:
-            self._are_all_templates_empty = False
             # Then take every template except the last one and join them with commas.
             comma_separated_templates = missing_templates[:-1]
             comma_separated_string = ", ".join(comma_separated_templates)
@@ -91,18 +66,9 @@ class UnconfiguredTemplatesError(WorkfilesError):
 
             WorkfilesError.__init__(
                 self,
-                "The template%s %s %s not been defined.\n\n"
-                "Please update your pipeline configuration." % (
+                "The template%s %s %s not been defined." % (
                     "s" if is_plural else "",
                     missing_templates_string,
                     "have" if is_plural else "has"
                 )
             )
-
-    def are_all_templates_empty(self):
-        """
-        Indicates if only some templates are missing.
-
-        :returns: True if all templates are empty, False otherwise.
-        """
-        return self._are_all_templates_empty

@@ -1,11 +1,11 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
@@ -20,7 +20,7 @@ from sgtk import TankError
 
 from .file_item import FileItem
 from .user_cache import g_user_cache
-from .errors import UnconfiguredTemplatesError, UnusedContextError
+from .errors import UnconfiguredTemplatesError
 
 from .sg_published_files_model import SgPublishedFilesModel
 
@@ -546,7 +546,7 @@ class AsyncFileFinder(FileFinder):
     any files found via signals as they are found.
     """
     class _SearchData(object):
-        def __init__(self, search_id, entity, users, publish_model, is_work_area_leaf):
+        def __init__(self, search_id, entity, users, publish_model):
             """
             """
             self.id = search_id
@@ -554,7 +554,6 @@ class AsyncFileFinder(FileFinder):
             self.users = copy.deepcopy(users)
             self.publish_model = publish_model
             self.publish_model_refreshed = False
-            self.is_work_area_leaf = is_work_area_leaf
 
             self.name_map = FileFinder._FileNameMap()
 
@@ -609,7 +608,7 @@ class AsyncFileFinder(FileFinder):
             self._bg_task_manager.task_group_finished.disconnect(self._on_background_search_finished)
 
 
-    def begin_search(self, entity, is_work_area_leaf, users = None):
+    def begin_search(self, entity, users = None):
         """
         A full search involves several stages:
 
@@ -651,7 +650,7 @@ class AsyncFileFinder(FileFinder):
         publish_model.uid = search_id
 
         # construct the new search data:
-        search = AsyncFileFinder._SearchData(search_id, entity, users, publish_model, is_work_area_leaf)
+        search = AsyncFileFinder._SearchData(search_id, entity, users, publish_model)
         self._searches[search.id] = search
 
         # begin the search stage 1:
@@ -667,11 +666,8 @@ class AsyncFileFinder(FileFinder):
         # 1a. Construct a work area for the entity.  The work area contains the context as well as
         # all settings, etc. specific to the work area.
         search.construct_work_area_task = self._bg_task_manager.add_task(self._task_construct_work_area,
-                                                                         group=search.id, 
-                                                                         task_kwargs = {
-                                                                            "entity": search.entity,
-                                                                            "is_leaf": search.is_work_area_leaf
-                                                                         })
+                                                                         group=search.id,
+                                                                         task_kwargs = {"entity": search.entity})
 
         # 1b. Resolve sandbox users for the work area (if there are any)
         search.resolve_work_area_task = self._bg_task_manager.add_task(self._task_resolve_sandbox_users,
@@ -871,7 +867,7 @@ class AsyncFileFinder(FileFinder):
 
     ################################################################################################
     ################################################################################################
-    def _task_construct_work_area(self, entity, is_leaf, **kwargs):
+    def _task_construct_work_area(self, entity, **kwargs):
         """
         """
         app = sgtk.platform.current_bundle()
@@ -883,13 +879,7 @@ class AsyncFileFinder(FileFinder):
             # build the work area for this context: This may throw, but the background task manager framework
             # will catch
             work_area = WorkArea(context)
-            try:
-                work_area.assert_templates_configured()
-            except UnconfiguredTemplatesError as e:
-                if e.are_all_templates_empty() and not is_leaf:
-                    raise UnusedContextError()
-                else:
-                    raise
+            work_area.assert_templates_configured()
 
         return {"environment": work_area}
 
