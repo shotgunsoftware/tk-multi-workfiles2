@@ -1,11 +1,11 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
@@ -28,6 +28,7 @@ from .work_area import WorkArea
 from .file_item import FileItem
 from .file_finder import FileFinder
 from .util import value_to_str
+from .errors import MissingTemplatesError
 
 from .actions.save_as_file_action import SaveAsFileAction
 
@@ -323,7 +324,10 @@ class FileSaveForm(FileFormBase):
         # first make  sure the environment is complete:
         if not env or not env.context:
             raise TankError("Please select a work area to save into.")
-        env.assert_templates_configured()
+
+        templates = env.get_missing_templates()
+        if templates:
+            raise MissingTemplatesError(templates)
 
         # build the fields dictionary from the environment:
         fields = {}

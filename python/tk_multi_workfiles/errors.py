@@ -21,24 +21,9 @@ class WorkfilesError(TankError):
     """
 
 
-class WorkAreaSettingsNotFoundError(WorkfilesError):
+class MissingTemplatesError(WorkfilesError):
     """
-    Raised when no settings for the workfiles 2 app are found in an environment.
-    """
-
-    def __init__(self):
-        """
-        Constructor.
-        """
-        WorkfilesError.__init__(
-            self,
-            "The Shotgun File Manager hasn't been setup."
-        )
-
-
-class UnconfiguredTemplatesError(WorkfilesError):
-    """
-    Raised when one or more templates are not configured.
+    Raised when one or more templates are missing.
     """
 
     def __init__(self, missing_templates):
@@ -47,8 +32,15 @@ class UnconfiguredTemplatesError(WorkfilesError):
 
         :param missing_templates: List of templates that are missing.
         """
+        WorkfilesError.__init__(self, self.generate_missing_templates_message(missing_templates))
+
+    @classmethod
+    def generate_missing_templates_message(self, missing_templates):
+        """
+        Generates a warning for when templates are not all configured.
+        """
         if len(missing_templates) == 4:
-            WorkfilesError.__init__(self, "No templates have been defined.")
+            return "No templates have been defined."
         else:
             # Then take every template except the last one and join them with commas.
             comma_separated_templates = missing_templates[:-1]
@@ -64,11 +56,8 @@ class UnconfiguredTemplatesError(WorkfilesError):
 
             is_plural = len(missing_templates) > 1
 
-            WorkfilesError.__init__(
-                self,
-                "The template%s %s %s not been defined." % (
-                    "s" if is_plural else "",
-                    missing_templates_string,
-                    "have" if is_plural else "has"
-                )
+            return "The template%s %s %s not been defined." % (
+                "s" if is_plural else "",
+                missing_templates_string,
+                "have" if is_plural else "has"
             )

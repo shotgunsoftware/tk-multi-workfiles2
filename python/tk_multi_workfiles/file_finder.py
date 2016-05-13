@@ -20,7 +20,6 @@ from sgtk import TankError
 
 from .file_item import FileItem
 from .user_cache import g_user_cache
-from .errors import UnconfiguredTemplatesError
 
 from .sg_published_files_model import SgPublishedFilesModel
 
@@ -879,7 +878,6 @@ class AsyncFileFinder(FileFinder):
             # build the work area for this context: This may throw, but the background task manager framework
             # will catch
             work_area = WorkArea(context)
-            work_area.assert_templates_configured()
 
         return {"environment": work_area}
 
