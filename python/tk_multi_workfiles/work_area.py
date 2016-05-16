@@ -23,8 +23,11 @@ from .util import Threaded, get_template_user_keys
 class WorkArea(object):
     """
     Class containing information about the current work area including context, templates
-    and other miscelaneous work-area specific settings.
+    and other miscellaneous work-area specific settings.
     """
+
+    # Number of template settings for the app.
+    NB_TEMPLATE_SETTINGS = 4
 
     class _SettingsCache(Threaded):
         """
@@ -75,6 +78,9 @@ class WorkArea(object):
         # the context!
         self._context = ctx
 
+        # Assume we haven't found the settings for this context by default.
+        self._settings_loaded = False
+
         # context-specific templates:
         self.work_area_template = None
         self.work_template = None
@@ -108,7 +114,7 @@ class WorkArea(object):
         so the whole thing will probably break if this does turn out to be the case!
         """
         user_work_area = WorkArea()
-        user_work_area._context = self._context.create_copy_for_user(user) 
+        user_work_area._context = self._context.create_copy_for_user(user)
 
         # deep copy all other templates and settings
         user_work_area.work_area_template = self.work_area_template
@@ -122,6 +128,7 @@ class WorkArea(object):
         user_work_area._sandbox_users = copy.deepcopy(self._sandbox_users)
         user_work_area._work_template_contains_user = self._work_template_contains_user
         user_work_area._publish_template_contains_user = self._publish_template_contains_user
+        user_work_area._settings_loaded = self._settings_loaded
 
         return user_work_area
 
@@ -138,6 +145,12 @@ class WorkArea(object):
         self._load_settings()
 
     context = property(_get_context, _set_context)
+
+    def are_settings_loaded(self):
+        """
+        Indicates if settings were loaded for a given work area.
+        """
+        return self._settings_loaded
 
     @property
     def work_area_contains_user_sandboxes(self):
@@ -235,6 +248,11 @@ class WorkArea(object):
         if self._context:
             resolved_settings = self._get_settings_for_context(self._context, templates_to_find, settings_to_find)
 
+        if not resolved_settings:
+            return
+
+        self._settings_loaded = True
+
         # update templates:
         self.work_area_template = resolved_settings.get("template_work_area")
         self.work_template = resolved_settings.get("template_work")
@@ -253,11 +271,11 @@ class WorkArea(object):
         self._work_template_contains_user = self.work_template and bool(get_template_user_keys(self.work_template))
         self._publish_template_contains_user = self.publish_template and bool(get_template_user_keys(self.publish_template))
 
-    def assert_templates_configured(self):
+    def get_missing_templates(self):
         """
         Asserts that all the templates are configured.
 
-        :raises TankError: Raised if one or more template is not configured.
+        :returns: An array of sgtk.Template objects that are not configured.
         """
         # First find all the templates that are not defined.
         missing_templates = []
@@ -270,30 +288,7 @@ class WorkArea(object):
         if not self.publish_template:
             missing_templates.append("'template_publish'")
 
-        if not missing_templates:
-            return
-
-        # Then take every template except the last one and join them with commas.
-        comma_separated_templates = missing_templates[:-1]
-        comma_separated_string = ", ".join(comma_separated_templates)
-
-        # If the string is not empty, we'll add the last missing template name.
-        if comma_separated_string:
-            missing_templates_string = "%s and %s" % (comma_separated_string, missing_templates[-1])
-        else:
-            missing_templates_string = missing_templates[0]
-
-        is_plural = len(missing_templates) > 1
-
-        raise TankError(
-            "The template%s %s %s not been defined for %s.\n\n"
-            "Please select another work area." % (
-                "s" if is_plural else "",
-                missing_templates_string,
-                "have" if is_plural else "has",
-                self._get_user_friendly_context()
-            )
-        )
+        return missing_templates
 
     def _get_settings_for_context(self, context, templates_to_find, settings_to_find=None):
         """
@@ -329,34 +324,16 @@ class WorkArea(object):
         else:
             # need to look for settings in a different context/environment
             settings = self._get_raw_app_settings_for_context(app, context)
-            if not settings:
-                raise TankError(
-                    "Failed to find the Shotgun File Manager settings for %s.\n\n"
-                    "Please ensure that the app is installed for the environment that will "
-                    "be used for this work area." % (
-                        self._get_user_friendly_context()
-                    )
-                )
+            if settings:
+                # get templates:
+                for key in templates_to_find:
+                    resolved_settings[key] = app.get_template_from(settings, key)
 
-            # get templates:
-            resolved_settings = {}
-            for key in templates_to_find:
-                resolved_settings[key] = app.get_template_from(settings, key)
-
-            # get additional settings:
-            for key in settings_to_find:
-                resolved_settings[key] = app.get_setting_from(settings, key)
+                # get additional settings:
+                for key in settings_to_find:
+                    resolved_settings[key] = app.get_setting_from(settings, key)
 
         return resolved_settings
-
-    def _get_user_friendly_context(self):
-        """
-        Returns a string describing the current context and engine instance, e.g.::
-            context 'Art, Asset Big Buck Bunny' and engine instance 'tk-maya'
-
-        :returns: The formatted string.
-        """
-        return "context '%s' in engine instance '%s'" % (self._context, self.engine_instance_name)
 
     def _get_raw_app_settings_for_context(self, app, context):
         """

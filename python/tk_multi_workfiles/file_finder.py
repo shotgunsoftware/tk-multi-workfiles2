@@ -1,11 +1,11 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
@@ -665,8 +665,8 @@ class AsyncFileFinder(FileFinder):
         # 1a. Construct a work area for the entity.  The work area contains the context as well as
         # all settings, etc. specific to the work area.
         search.construct_work_area_task = self._bg_task_manager.add_task(self._task_construct_work_area,
-                                                                         group=search.id, 
-                                                                         task_kwargs = {"entity":search.entity})
+                                                                         group=search.id,
+                                                                         task_kwargs = {"entity": search.entity})
 
         # 1b. Resolve sandbox users for the work area (if there are any)
         search.resolve_work_area_task = self._bg_task_manager.add_task(self._task_resolve_sandbox_users,
@@ -878,7 +878,6 @@ class AsyncFileFinder(FileFinder):
             # build the work area for this context: This may throw, but the background task manager framework
             # will catch
             work_area = WorkArea(context)
-            work_area.assert_templates_configured()
 
         return {"environment": work_area}
 
