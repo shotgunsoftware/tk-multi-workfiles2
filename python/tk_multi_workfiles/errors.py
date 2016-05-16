@@ -12,6 +12,7 @@
 Workfiles 2 related errors.
 """
 
+from .work_area import WorkArea
 from sgtk import TankError
 
 
@@ -39,7 +40,7 @@ class MissingTemplatesError(WorkfilesError):
         """
         Generates a warning for when templates are not all configured.
         """
-        if len(missing_templates) == 4:
+        if len(missing_templates) == WorkArea.NB_TEMPLATE_SETTINGS:
             return "No templates have been defined."
         else:
             # Then take every template except the last one and join them with commas.

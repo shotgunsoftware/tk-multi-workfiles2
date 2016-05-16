@@ -26,6 +26,9 @@ class WorkArea(object):
     and other miscellaneous work-area specific settings.
     """
 
+    # Number of template settings for the app.
+    NB_TEMPLATE_SETTINGS = 4
+
     class _SettingsCache(Threaded):
         """
         Cache of settings per context.
