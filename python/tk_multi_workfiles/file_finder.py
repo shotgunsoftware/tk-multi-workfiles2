@@ -553,6 +553,7 @@ class AsyncFileFinder(FileFinder):
             self.users = copy.deepcopy(users)
             self.publish_model = publish_model
             self.publish_model_refreshed = False
+            self.aborted = False
 
             self.name_map = FileFinder._FileNameMap()
 
@@ -770,6 +771,17 @@ class AsyncFileFinder(FileFinder):
         if task_id == search.construct_work_area_task:
             search.construct_work_area_task = None
             self.work_area_found.emit(search_id, work_area)
+
+            # If one or more template hasn't been configured, derail the whole process
+            # and return nothing found.
+            missing_templates = work_area.get_missing_templates()
+            if missing_templates:
+                # Notify that no files were found so the UI can update
+                self.publishes_found.emit(search_id, [], work_area)
+                self.files_found.emit(search_id, [], work_area)
+                search.aborted = True
+                return
+
             # we have successfully constructed a work area that we can 
             # use for the next stage so begin searching for work files:
             self._begin_search_for_work_files(search, work_area)
@@ -829,7 +841,7 @@ class AsyncFileFinder(FileFinder):
         # because of the way the search is split into stages, this signal may
         # be emitted multiple times for a single search so we need to check
         # that the search has actually finished!
-        if search.users:
+        if search.users and not search.aborted:
             if (search.find_publishes_tasks or search.find_work_files_tasks 
                 or search.load_cached_pubs_task or not search.publish_model_refreshed
                 ):
