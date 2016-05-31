@@ -99,6 +99,10 @@ class EntityTreeForm(QtGui.QWidget):
         self._ui.entity_tree.expanded.connect(self._on_item_expanded)
         self._ui.entity_tree.collapsed.connect(self._on_item_collapsed)
 
+        self._is_resetting_model = False
+        entity_model.modelAboutToBeReset.connect(self._model_about_to_reset)
+        entity_model.modelReset.connect(self._model_reset)
+
         if entity_model:
 
             if True:
@@ -121,6 +125,20 @@ class EntityTreeForm(QtGui.QWidget):
         selection_model = self._ui.entity_tree.selectionModel()
         if selection_model:
             selection_model.selectionChanged.connect(self._on_selection_changed)
+
+    def _model_about_to_reset(self):
+        # Catch the currently selected item and convert it to dictionary form
+        # so we can pick it back after the model is reset.
+        if self._current_item_ref:
+            item = self._current_item_ref()
+            if item:
+                idx = item.index()
+                self._entity_to_select = idx.model().get_entity(item)
+
+        self._is_resetting_model = True
+
+    def _model_reset(self):
+        self._is_resetting_model = False
 
     def shut_down(self):
         """
@@ -257,6 +275,7 @@ class EntityTreeForm(QtGui.QWidget):
         """
         item = None
         indexes = self._ui.entity_tree.selectionModel().selectedIndexes()
+
         if len(indexes) == 1:
             item = self._item_from_index(indexes[0])
         return item
@@ -463,7 +482,12 @@ class EntityTreeForm(QtGui.QWidget):
         :param selected:    QItemSelection containing any newly selected indexes
         :param deselected:  QItemSelection containing any newly deselected indexes
         """
-        # out tree is single-selection so extract the newly selected item from the
+        # As the model is being reset, the selection is getting updated constantly,
+        # so ignore these selection changes.
+        if self._is_resetting_model:
+            return
+
+        # our tree is single-selection so extract the newly selected item from the
         # list of indexes:
         selection_details = {}
         breadcrumbs = []
