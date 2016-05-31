@@ -30,10 +30,14 @@ class MyTasksForm(EntityTreeForm):
         :param model:   The Shotgun Model this widget should connect to
         :param parent:  The parent QWidget for this control
         """
-        EntityTreeForm.__init__(self, tasks_model, "My Tasks", allow_task_creation, tasks_model.extra_display_fields, parent)
+        EntityTreeForm.__init__(
+            self, tasks_model, "My Tasks", allow_task_creation, tasks_model.extra_display_fields, parent
+        )
 
+        # There is no need for the my tasks toggle.
         self._ui.my_tasks_cb.hide()
 
+        # Sets an item delete to show a list of tiles for tasks instead of nodes in a tree.
         self._item_delegate = None
         if tasks_model and True:
             # create the item delegate - make sure we keep a reference to the delegate otherwise
