@@ -104,12 +104,12 @@ class EntityTreeForm(QtGui.QWidget):
         entity_model.modelReset.connect(self._model_reset)
 
         if entity_model:
+            entity_model.data_refreshed.connect(self._on_data_refreshed)
 
             if True:
                 # create a filter proxy model between the source model and the task tree view:
                 filter_model = EntityTreeProxyModel(self, ["content", {"entity": "name"}] + extra_filter_fields)
                 monitor_qobject_lifetime(filter_model, "%s entity filter model" % search_label)
-                filter_model.rowsInserted.connect(self._on_filter_model_rows_inserted)
                 filter_model.setSourceModel(entity_model)
                 self._ui.entity_tree.setModel(filter_model)
 
@@ -511,7 +511,7 @@ class EntityTreeForm(QtGui.QWidget):
         # emit selection_changed signal:
         self.entity_selected.emit(selection_details, breadcrumbs)
 
-    def _on_filter_model_rows_inserted(self, parent_idx, first, last):
+    def _on_data_refreshed(self, modifications_made):
         """
         Slot triggered when new rows are inserted into the filter model.  When this happens
         we just make sure that any new root rows are expanded.
@@ -520,6 +520,9 @@ class EntityTreeForm(QtGui.QWidget):
         :param first:       The first row id inserted
         :param last:        The last row id inserted
         """
+        if not modifications_made:
+            return
+
         # expand any new root rows:
         self._expand_root_rows()
 
