@@ -29,6 +29,7 @@ class MyTaskItemDelegate(WidgetDelegate):
         """
         WidgetDelegate.__init__(self, view)
         self._extra_display_fields = extra_display_fields
+        view.setRootIsDecorated(False)
 
         self._paint_widget = None
         self._widget_sz = None

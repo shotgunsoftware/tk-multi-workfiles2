@@ -160,13 +160,13 @@ class BrowserForm(QtGui.QWidget):
         if my_tasks_model:
             # create my tasks form:
             self._my_tasks_form = MyTasksForm(my_tasks_model, allow_task_creation, parent=self)
-            self._my_tasks_form.task_selected.connect(self._on_my_task_selected)
+            self._my_tasks_form.entity_selected.connect(self._on_entity_selected)
             self._ui.task_browser_tabs.addTab(self._my_tasks_form, "My Tasks")
             self._my_tasks_form.create_new_task.connect(self.create_new_task)
 
         for caption, model in entity_models:
             # create new entity form:
-            entity_form = EntityTreeForm(model, caption, allow_task_creation, parent=self)
+            entity_form = EntityTreeForm(model, caption, allow_task_creation, [], parent=self)
             entity_form.entity_selected.connect(self._on_entity_selected)
             self._ui.task_browser_tabs.addTab(entity_form, caption)
             entity_form.create_new_task.connect(self.create_new_task)
@@ -323,13 +323,7 @@ class BrowserForm(QtGui.QWidget):
             if skip_current and widget == current_widget:
                 continue
 
-            if isinstance(widget, MyTasksForm):
-                if entity_type == "Task":
-                    widget.select_task(entity_id)
-                else:
-                    widget.select_task(None)
-            elif isinstance(widget, EntityTreeForm):
-                widget.select_entity(entity_type, entity_id)
+            widget.select_entity(entity_type, entity_id)
 
     def _on_file_context_menu_requested(self, file, env, pnt):
         """
@@ -341,45 +335,6 @@ class BrowserForm(QtGui.QWidget):
         """
         local_pnt = self.sender().mapTo(self, pnt)
         self.file_context_menu_requested.emit(file, env, local_pnt)
-
-    def _on_my_task_selected(self, task, breadcrumb_trail):
-        """
-        Called when user picks a new task in the My Tasks tab.
-
-        :param task: Selected task.
-        :param breadcrumb_trail: List of breadcrumbs.
-        """
-        # ignore if the sender isn't the current tab:
-        if self._ui.task_browser_tabs.currentWidget() != self.sender():
-            return
-
-        self._on_selected_task_changed(task, breadcrumb_trail)
-        if task:
-            self._update_selected_entity("Task", task["id"])
-        else:
-            self._update_selected_entity(None, None)
-
-    def _on_selected_task_changed(self, task, breadcrumb_trail):
-        """
-        """
-        search_details = []
-        if task:
-            search_label = task.get("content")
-            step = task.get("step")
-            if step:
-                search_label = "%s - %s" % (step.get("name"), search_label)
-
-            details = FileModel.SearchDetails(search_label)
-            details.entity = task
-            details.is_leaf = True
-            search_details.append(details)
-
-        # refresh files:
-        if self._file_model:
-            self._file_model.set_entity_searches(search_details)
-
-        # emit work-area-changed signal:
-        self._emit_work_area_changed(task, breadcrumb_trail)
 
     def _on_entity_selected(self, selection_details, breadcrumb_trail):
         """
@@ -533,12 +488,6 @@ class BrowserForm(QtGui.QWidget):
         """
         """
         form = self._ui.task_browser_tabs.widget(idx)
-        if isinstance(form, MyTasksForm):
-            # retrieve the selected task from the form and emit a work-area changed signal:
-            task, breadcrumb_trail = form.get_selection()
-            self._on_selected_task_changed(task, breadcrumb_trail)
-
-        elif isinstance(form, EntityTreeForm):
-            # retrieve the selection from the form and emit a work-area changed signal:
-            selection, breadcrumb_trail = form.get_selection()
-            self._on_selected_entity_changed(selection, breadcrumb_trail)
+        # retrieve the selection from the form and emit a work-area changed signal:
+        selection, breadcrumb_trail = form.get_selection()
+        self._on_selected_entity_changed(selection, breadcrumb_trail)
