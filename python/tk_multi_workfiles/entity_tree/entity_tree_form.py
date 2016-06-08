@@ -51,7 +51,7 @@ class EntityTreeForm(QtGui.QWidget):
     # Signal emitted when the 'New Task' button is clicked.
     create_new_task = QtCore.Signal(object, object)# entity, step
 
-    def __init__(self, entity_model, search_label, allow_task_creation, extra_filter_fields, parent):
+    def __init__(self, entity_model, search_label, allow_task_creation, extra_fields, parent):
         """
         Construction
 
@@ -59,6 +59,7 @@ class EntityTreeForm(QtGui.QWidget):
         :param search_label:        The hint label to be displayed on the search control
         :param allow_task_creation: Indicates if the form is allowed by the app settings to show the
                                     create task button.
+        :param extra_fields:        Extra fields to use when comparing model entries.
         :param parent:              The parent QWidget for this control
         """
         QtGui.QWidget.__init__(self, parent)
@@ -104,11 +105,13 @@ class EntityTreeForm(QtGui.QWidget):
         entity_model.modelReset.connect(self._model_reset)
 
         if entity_model:
+            # Every time the model is refreshed with data from Shotgun, we'll need to re-expand nodes
+            # that were expanded and reapply the current selection.
             entity_model.data_refreshed.connect(self._on_data_refreshed)
 
             if True:
                 # create a filter proxy model between the source model and the task tree view:
-                filter_model = EntityTreeProxyModel(self, ["content", {"entity": "name"}] + extra_filter_fields)
+                filter_model = EntityTreeProxyModel(self, ["content", {"entity": "name"}] + extra_fields)
                 monitor_qobject_lifetime(filter_model, "%s entity filter model" % search_label)
                 filter_model.setSourceModel(entity_model)
                 self._ui.entity_tree.setModel(filter_model)
