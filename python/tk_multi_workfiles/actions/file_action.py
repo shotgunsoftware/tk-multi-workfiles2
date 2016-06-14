@@ -34,7 +34,7 @@ class FileAction(Action):
             # (AD) - does this work with non-standard hierarchies? e.g. /Task/Entity?
             ctx_entity = ctx.task or ctx.entity or ctx.project
             app.sgtk.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"), 
-                                                       engine=app.engine.name)
+                                                       engine=app.engine.instance_name)
             
         finally:
             QtGui.QApplication.restoreOverrideCursor()
