@@ -33,9 +33,27 @@ class FileAction(Action):
         try:
             # (AD) - does this work with non-standard hierarchies? e.g. /Task/Entity?
             ctx_entity = ctx.task or ctx.entity or ctx.project
-            app.sgtk.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"), 
+
+            # FIXME: The launcher uses the defer_keyword setting, which allows to use keywords other
+            # than the engine instance name, which is the default value in the launch app. Using
+            # engine.instance_name is the best we can do at the moment because the is no way for workfiles
+            # to now what the launcher app would have set when launching directly into that environment.
+            #
+            # Possible solutions:
+            # - Using an app level defer_keyword setting might work, but it it may make sharing
+            # settings through includes more difficult.
+            # - Using an engine level defer_keyword setting might be a better approach,
+            # since an app launcher instance launches a specific engine instance using a given defer_keyword.
+            # In theory you could have multiple app launcher instances all launching the same engine
+            # instance but with different defer_keywords for the same context, but that might be the
+            # most absolute of edge cases.
+            # - Look for the settings of the launcher app in the destination context and extract the
+            # defer_keyword setting and reuse it.
+            #
+            # It may very well be that there's no solution that fits everyone and might warrant
+            # a hook.
+            app.sgtk.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"),
                                                        engine=app.engine.instance_name)
-            
         finally:
             QtGui.QApplication.restoreOverrideCursor()
 
