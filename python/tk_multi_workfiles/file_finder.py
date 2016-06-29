@@ -905,8 +905,8 @@ class AsyncFileFinder(FileFinder):
         Runs in main thread.
         """
         publish_filters = []
-        if work_area.context.entity:
-            publish_filters.append(["entity", "is", work_area.context.entity])
+        # If there is no entity in the context then we are trying to load the publishes from the project.
+        publish_filters.append(["entity", "is", work_area.context.entity or work_area.context.project])
         if work_area.context.task:
             publish_filters.append(["task", "is", work_area.context.task])
         elif work_area.context.step:
