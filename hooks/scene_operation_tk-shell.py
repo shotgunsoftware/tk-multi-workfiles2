@@ -55,22 +55,6 @@ class SceneOperation(HookClass):
                                                  state, otherwise False
                                 all others     - None
         """
-        # We need to see which mode of Nuke we're in. If this is Hiero or
-        # Nuke Studio, then we have a separate scene operation routine to
-        # use. We're checking that the "hiero_enabled" attribute exists
-        # to ensure that this works properly with pre-v0.4.x versions of
-        # the tk-nuke engine. If that one attribute exists, then we can be
-        # confident that the "studio_enabled" attribute is also available,
-        # so there's no need to check that.
-        #
-        # If there is ever a situation where Hiero- or Nuke Studio-specific
-        # logic is required that doesn't also apply to the other, then this
-        # conditional could be broken up between hiero_enabled and
-        # studio_enabled cases that call through to Nuke Studio and Hiero
-        # specific methods.
-        # If we didn't hit the Hiero or Nuke Studio case above, we can
-        # continue with the typical Nuke scene operation logic.
-
         engine = self.parent.engine
 
         engine.log_info("scene_operation.execute.%s" % operation)
