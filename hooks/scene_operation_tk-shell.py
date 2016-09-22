@@ -57,12 +57,12 @@ class SceneOperation(HookClass):
         """
         engine = self.parent.engine
 
-        engine.log_info("scene_operation.execute.%s" % operation)
-        engine.log_info("    file_path: %s" % file_path)
-        engine.log_info("    context: %s" % context)
-        engine.log_info("    parent_action: %s" % parent_action)
-        engine.log_info("    file_version: %s" % file_version)
-        engine.log_info("    read_only: %s" % read_only)
+        engine.log_debug("scene_operation.execute.%s" % operation)
+        engine.log_debug("    file_path: %s" % file_path)
+        engine.log_debug("    context: %s" % context)
+        engine.log_debug("    parent_action: %s" % parent_action)
+        engine.log_debug("    file_version: %s" % file_version)
+        engine.log_debug("    read_only: %s" % read_only)
 
         if operation == "current_path":
             return os.getcwd()
