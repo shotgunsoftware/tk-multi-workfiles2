@@ -141,6 +141,28 @@ class FileFormBase(QtGui.QWidget):
         """
         app = sgtk.platform.current_bundle()
 
+        def resolve_filters(filters):
+            resolved_filters = []
+            for filter in filters:
+                if type(filter) is dict:
+                    resolved_filter = {
+                        "filter_operator": filter["filter_operator"],
+                        "filters": resolve_filters(filter["filters"])}
+                else:
+                    resolved_filter = []
+                    for field in filter:
+                        if field == "{context.entity}":
+                            field = app.context.entity
+                        elif field == "{context.step}":
+                            field = app.context.step
+                        elif field == "{context.task}":
+                            field = app.context.task
+                        elif field == "{context.user}":
+                            field = app.context.user
+                        resolved_filter.append(field)
+                resolved_filters.append(resolved_filter)
+            return resolved_filters
+
         entity_models = []
 
         # set up any defined task trees:
@@ -169,19 +191,7 @@ class FileFormBase(QtGui.QWidget):
                 # filter entities on the current project:
                 resolved_filters.append(["project", "is", app.context.project])
 
-            for filter in filters:
-                resolved_filter = []
-                for field in filter:
-                    if field == "{context.entity}":
-                        field = app.context.entity
-                    elif field == "{context.step}":
-                        field = app.context.step
-                    elif field == "{context.task}":
-                        field = app.context.task
-                    elif field == "{context.user}":
-                        field = app.context.user
-                    resolved_filter.append(field)
-                resolved_filters.append(resolved_filter)
+            resolved_filters.extend(resolve_filters(filters))
 
             # Get the hierarchy to use for the model for this entity:
             hierarchy = ent.get("hierarchy")
