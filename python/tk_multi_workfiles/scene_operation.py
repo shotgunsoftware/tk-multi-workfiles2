@@ -65,7 +65,7 @@ def _do_scene_operation(app, action, context, operation, path=None, version=0, r
     if result_types and not isinstance(result, result_types):
         raise TankError(
             ("Unexpected type returned from 'hook_scene_operation' "
-             "for operation '%s' - expected one of %s but returned '%s'")
+             "for operation '%s' - expected one of (%s) but returned '%s'")
             % (
                 operation,
                 ", ".join([rtype.__name__ for rtype in result_types]),
