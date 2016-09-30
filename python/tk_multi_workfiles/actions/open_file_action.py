@@ -108,6 +108,7 @@ class OpenFileAction(FileAction):
                 return False            
                     
         # switch context:
+        previous_context = self._app.context
         if not new_ctx == self._app.context:
             try:
                 # Change the curent context.
@@ -120,16 +121,39 @@ class OpenFileAction(FileAction):
 
         # open file
         try:
-            open_file(self._app, OPEN_FILE_ACTION, new_ctx, dst_path, version, read_only)
+            is_file_opened = open_file(self._app, OPEN_FILE_ACTION, new_ctx, dst_path, version, read_only)
         except Exception, e:
             QtGui.QMessageBox.critical(parent_ui, "Failed to open file", 
                                        "Failed to open file\n\n%s\n\n%s" % (dst_path, e))
-            self._app.log_exception("Failed to open file %s!" % dst_path)    
+            self._app.log_exception("Failed to open file %s!" % dst_path)
+            self._restore_context(parent_ui, previous_context)
             return False
-        
+        # Test specifically for False. Legacy open hooks return None, which means success.
+        if is_file_opened is False:
+            self._restore_context(parent_ui, previous_context)
+            return False
+
         return True
-    
-    
+
+    def _restore_context(self, parent_ui, ctx):
+        """
+        Restore the original context. A dialog will display the error if the restoration fails.
+
+        :param PySide.QtWidget parent_ui: Parent for the error dialog, if needed.
+        :param sgtk.Context ctx: Context to restore.
+        """
+        self._app.log_debug("Restoring context.")
+        try:
+            FileAction.change_context(ctx)
+        except Exception, e:
+            QtGui.QMessageBox.critical(
+                parent_ui,
+                "Unable to restore the original context", 
+                "Failed to change the work area back to '%s':\n\n%s\n\nUnable to continue!" % (ctx, e)
+            )
+            self._app.log_exception("Failed to change the work area back to %s!" % ctx)
+
+
 class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
     """
     """

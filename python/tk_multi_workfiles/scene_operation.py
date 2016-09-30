@@ -8,27 +8,27 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import sgtk
+import types
 from sgtk import TankError
 from sgtk.platform.qt import QtGui, QtCore
 
 OPEN_FILE_ACTION, SAVE_FILE_AS_ACTION, NEW_FILE_ACTION, VERSION_UP_FILE_ACTION = range(4)
 
-def _do_scene_operation(app, action, context, operation, path=None, version=0, read_only=False, result_type=None):
+def _do_scene_operation(app, action, context, operation, path=None, version=0, read_only=False, result_types=None):
     """
     Do the specified scene operation with the specified args by executing the scene operation hook
     
-    :param app:         The App bundle that is running this code
-    :param action:      The parent action that this scene operation is part of
-    :param context:     The context that this operation is being run for
-    :param operation:   The scene operation to perform
-    :param path:        If the scene operation requires a file path then this is it
-    :param version:     The version of the file that should be opened (for open operation only)
-    :param read_only:   True if the file should be opened read-only (for open operation only)
-    :param result_type: The type of the result expected from the hook execution - this will be used to validate
-                        that the result is the correct type
-    :returns:           Varies depending on the hook operation
+    :param app:          The App bundle that is running this code
+    :param action:       The parent action that this scene operation is part of
+    :param context:      The context that this operation is being run for
+    :param operation:    The scene operation to perform
+    :param path:         If the scene operation requires a file path then this is it
+    :param version:      The version of the file that should be opened (for open operation only)
+    :param read_only:    True if the file should be opened read-only (for open operation only)
+    :param result_types: The acceptable tuple of result types for the hook.
+    :returns:            Varies depending on the hook operation
     """
+
     # determine action string for action:
     action_str = ""
     if action == OPEN_FILE_ACTION:
@@ -60,13 +60,19 @@ def _do_scene_operation(app, action, context, operation, path=None, version=0, r
             raise
     finally:
         QtGui.QApplication.restoreOverrideCursor()
-        
+
     # validate the result if needed:
-    if result_type and (result == None or not isinstance(result, result_type)):
-        raise TankError(("Unexpected type returned from 'hook_scene_operation' "
-                        "for operation '%s' - expected '%s' but returned '%s'") 
-                        % (operation, result_type.__name__, type(result).__name__))
-    
+    if result_types and not isinstance(result, result_types):
+        raise TankError(
+            ("Unexpected type returned from 'hook_scene_operation' "
+             "for operation '%s' - expected one of %s but returned '%s'")
+            % (
+                operation,
+                ", ".join([rtype.__name__ for rtype in result_types]),
+                type(result).__name__
+            )
+        )
+
     return result
     
 def get_current_path(app, action, context):
@@ -74,14 +80,14 @@ def get_current_path(app, action, context):
     Use hook to get the current work/scene file path
     """
     app.log_debug("Retrieving current scene path...")
-    return _do_scene_operation(app, action, context, "current_path", result_type=basestring)
+    return _do_scene_operation(app, action, context, "current_path", result_types=(basestring,))
     
 def reset_current_scene(app, action, context):
     """
     Use hook to clear the current scene
     """
     app.log_debug("Resetting the current scene via hook")
-    return _do_scene_operation(app, action, context, "reset", result_type=bool)
+    return _do_scene_operation(app, action, context, "reset", result_types=(bool,))
     
 def prepare_new_scene(app, action, context):
     """
@@ -108,7 +114,7 @@ def open_file(app, action, context, path, version, read_only):
     """
     # do open:
     app.log_debug("Opening file '%s' via hook" % path)
-    _do_scene_operation(app, action, context, "open", path, version, read_only)    
+    return _do_scene_operation(app, action, context, "open", path, version, read_only, result_types=(bool, types.NoneType))    
     
 
      
