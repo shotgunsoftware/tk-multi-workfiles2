@@ -34,6 +34,7 @@ from .work_area import WorkArea
 from .actions.new_task_action import NewTaskAction
 from .user_cache import g_user_cache
 from .util import monitor_qobject_lifetime
+from .deferable_shotgun_entity_model import DeferableShotgunEntityModel
 
 
 class FileFormBase(QtGui.QWidget):
@@ -41,7 +42,7 @@ class FileFormBase(QtGui.QWidget):
     Implementation of file form base class.  Contains initialisation and functionality
     used by both the File Open & File Save dialogs.
     """
-    def __init__(self, parent):
+    def __init__(self, parent, defer=False):
         """
         Construction
 
@@ -61,7 +62,7 @@ class FileFormBase(QtGui.QWidget):
 
         # build the various models:
         self._my_tasks_model = self._build_my_tasks_model()
-        self._entity_models = self._build_entity_models()
+        self._entity_models = self._build_entity_models(defer)
         self._file_model = self._build_file_model()
 
         # add refresh action with appropriate keyboard shortcut:
@@ -132,7 +133,7 @@ class FileFormBase(QtGui.QWidget):
         model.async_refresh()
         return model
 
-    def _build_entity_models(self):
+    def _build_entity_models(self, defer=False):
         """
         Build all entity models to be used by the file open/save dialogs.
 
@@ -196,8 +197,8 @@ class FileFormBase(QtGui.QWidget):
                 # Add so we can filter tasks assigned to the user only on the client side.
                 fields += ["task_assignees"]
 
-            model = ShotgunEntityModel(entity_type, resolved_filters, hierarchy, fields, parent=self,
-                                       bg_task_manager=self._bg_task_manager)
+            model = DeferableShotgunEntityModel(entity_type, resolved_filters, hierarchy, fields, parent=self,
+                                                bg_task_manager=self._bg_task_manager, defer=defer)
             monitor_qobject_lifetime(model, "Entity Model")
             entity_models.append((caption, model))
             model.async_refresh()
