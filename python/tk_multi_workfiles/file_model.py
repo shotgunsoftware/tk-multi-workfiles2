@@ -1,29 +1,29 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import weakref
 
 import sgtk
 from sgtk.platform.qt import QtGui, QtCore
-from sgtk import TankError
-
-shotgun_data = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_data")
-ShotgunDataRetriever = shotgun_data.ShotgunDataRetriever
 
 from .file_finder import AsyncFileFinder
 from .user_cache import g_user_cache
 from .file_search_cache import FileSearchCache
 
+shotgun_data = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_data")
+ShotgunDataRetriever = shotgun_data.ShotgunDataRetriever
+
+
 class FileModel(QtGui.QStandardItemModel):
     """
-    The FileModel maintains a model of all files (work files and publishes) found for a matrix of 
+    The FileModel maintains a model of all files (work files and publishes) found for a matrix of
     entities and users.  Details of each 'version' of a file are contained in a FileItem instance
     and presented as a single model item.
 
@@ -32,14 +32,15 @@ class FileModel(QtGui.QStandardItemModel):
 
     Additional items are added to a group to represent additional hierarchy in the model.
     """
+
     class SearchDetails(object):
         """
         Representation of details needed to search for a set of files.  A single instance
         of this class represents a single entity to be grouped in the model
         """
+
         def __init__(self, name=None):
             """
-            Construction
             :param name:    The string name to be used for the search.  This is used when constructing
                             the group name in the model.
             """
@@ -75,17 +76,16 @@ class FileModel(QtGui.QStandardItemModel):
         """
         Base model item for storage of the file data in the model.
         """
+
         def __init__(self, typ, text=None):
             """
-            Construction
-
             :param typ:     The type of item this represents (see enumeration of node types above)
             :param text:    String used for the label/display role for this item
             """
             QtGui.QStandardItem.__init__(self, text or "")
             self._type = typ
 
-        def data(self, role=QtCore.Qt.UserRole+1):
+        def data(self, role=QtCore.Qt.UserRole + 1):
             """
             Return the data from the item for the specified role.
 
@@ -98,7 +98,7 @@ class FileModel(QtGui.QStandardItemModel):
                 # just return the default implementation:
                 return QtGui.QStandardItem.data(self, role)
 
-        def setData(self, value, role=QtCore.Qt.UserRole+1):
+        def setData(self, value, role=QtCore.Qt.UserRole + 1):
             """
             Set the data on the item for the specified role
 
@@ -110,16 +110,15 @@ class FileModel(QtGui.QStandardItemModel):
                 pass
             else:
                 # call the base implementation:
-                QtGui.QStandardItem.setData(self, value, role) 
+                QtGui.QStandardItem.setData(self, value, role)
 
     class _FileModelItem(_BaseModelItem):
         """
         Model item that represents a single FileItem in the model
         """
+
         def __init__(self, file_item, work_area):
             """
-            Construction
-
             :param file_item:    The FileItem instance this model item represents
             :param work_area:    The WorkArea this file item belongs to
             """
@@ -141,7 +140,7 @@ class FileModel(QtGui.QStandardItemModel):
             """
             return self._work_area
 
-        def data(self, role=QtCore.Qt.UserRole+1):
+        def data(self, role=QtCore.Qt.UserRole + 1):
             """
             Return the data from the item for the specified role.
 
@@ -158,7 +157,7 @@ class FileModel(QtGui.QStandardItemModel):
                 # just return the default implementation:
                 return FileModel._BaseModelItem.data(self, role)
 
-        def setData(self, value, role=QtCore.Qt.UserRole+1):
+        def setData(self, value, role=QtCore.Qt.UserRole + 1):
             """
             Set the data on the item for the specified role
 
@@ -176,17 +175,16 @@ class FileModel(QtGui.QStandardItemModel):
                 self.emitDataChanged()
             else:
                 # call the base implementation:
-                FileModel._BaseModelItem.setData(self, value, role) 
+                FileModel._BaseModelItem.setData(self, value, role)
 
     class _FolderModelItem(_BaseModelItem):
         """
         Model item that represents a folder in the model.  These are used when a group has entity
         children that need to be represented in the model.
         """
+
         def __init__(self, name, entity):
             """
-            Construction
-
             :param name:    The name to use for the model item display role
             :param entity:  A Shotgun entity dictionary for the entity that this folder item represents
             """
@@ -205,10 +203,9 @@ class FileModel(QtGui.QStandardItemModel):
         Model item that represents a group in the model.  A group is a per-user, per-entity item that contains
         the files found for the group as well as any additional child entities.
         """
+
         def __init__(self, name, key, work_area=None):
             """
-            Construction
-
             :param name:        The name to use for the model items display role
             :param key:         A unique key representing this group
             :param work_area:   A WorkArea instance that this group represents
@@ -227,13 +224,14 @@ class FileModel(QtGui.QStandardItemModel):
             """
             return self._key
 
-        #@property
+        # @property
         def _get_work_area(self):
             """
             :returns:   The WorkArea instance associated with this item
             """
             return self._work_area
-        #@work_area.setter
+
+        # @work_area.setter
         def _set_work_area(self, work_area):
             """
             Set the work area associated with this item
@@ -242,7 +240,8 @@ class FileModel(QtGui.QStandardItemModel):
             """
             self._work_area = work_area
             self.emitDataChanged()
-        work_area=property(_get_work_area, _set_work_area)
+
+        work_area = property(_get_work_area, _set_work_area)
 
         def set_search_status(self, status, msg=None):
             """
@@ -255,7 +254,7 @@ class FileModel(QtGui.QStandardItemModel):
             self._search_msg = msg
             self.emitDataChanged()
 
-        def data(self, role=QtCore.Qt.UserRole+1):
+        def data(self, role=QtCore.Qt.UserRole + 1):
             """
             Return the data from the item for the specified role.
 
@@ -272,7 +271,7 @@ class FileModel(QtGui.QStandardItemModel):
                 # just return the default implementation:
                 return FileModel._BaseModelItem.data(self, role)
 
-        def setData(self, value, role=QtCore.Qt.UserRole+1):
+        def setData(self, value, role=QtCore.Qt.UserRole + 1):
             """
             Set the data on the item for the specified role
 
@@ -290,7 +289,7 @@ class FileModel(QtGui.QStandardItemModel):
                 self.emitDataChanged()
             else:
                 # call the base implementation:
-                FileModel._BaseModelItem.setData(self, value, role) 
+                FileModel._BaseModelItem.setData(self, value, role)
 
     # Signal emitted when sandboxes are used, but before we know which ones
     uses_user_sandboxes = QtCore.Signal(object) # Work area that uses sandboxes.
@@ -299,8 +298,6 @@ class FileModel(QtGui.QStandardItemModel):
 
     def __init__(self, bg_task_manager, parent):
         """
-        Construction
-
         :param bg_task_manager: A BackgroundTaskManager instance that will be used for all background/threaded
                                 work that needs undertaking
         :param parent:          The parent QObject for this instance
@@ -340,7 +337,7 @@ class FileModel(QtGui.QStandardItemModel):
 
     def destroy(self):
         """
-        Called to clean-up and shutdown any internal objects when the model has been finished 
+        Called to clean-up and shutdown any internal objects when the model has been finished
         with.  Failure to call this may result in instability or unexpected behaviour!
         """
         # clear the model:
@@ -375,14 +372,14 @@ class FileModel(QtGui.QStandardItemModel):
 
         :param key:         The unique file key to find file versions for
         :param work_area:   A WorkArea instance to find file versions for
-        :param clean_only:  If true then the cached file versions will only be returned if the cache is 
+        :param clean_only:  If true then the cached file versions will only be returned if the cache is
                             up-to-date.  If false then file versions will be returned even if the model is still
                             searching for files.
         :returns:           A dictionary {version:FileItem} of all file versions found.
         """
         return self._search_cache.find_file_versions(work_area, key, clean_only)
 
-    def items_from_file(self, file_item, ignore_version = False):
+    def items_from_file(self, file_item, ignore_version=False):
         """
         Find the model item(s) for the specified file item.
 
@@ -398,7 +395,7 @@ class FileModel(QtGui.QStandardItemModel):
     # Interface for modifying the entities in the model:
     def set_entity_searches(self, searches):
         """
-        Set the entity searches that the model should populate itself with.  The model will 
+        Set the entity searches that the model should populate itself with.  The model will
         be updated to contain a group item for each search+user combination and will initiate a
         search for all files (work files and publishes) in this group.
 
@@ -419,8 +416,8 @@ class FileModel(QtGui.QStandardItemModel):
     # Interface for modifying the users in the model:
     def set_users(self, users):
         """
-        Set the users the model should populate itself with.  The model will be updated to contain a group 
-        item for each search+user combination and will initiate a search for all files (work files and 
+        Set the users the model should populate itself with.  The model will be updated to contain a group
+        item for each search+user combination and will initiate a search for all files (work files and
         publishes) in this group.
 
         :param users:    A list of Shotgun user dictionaries that should be represented in the model
@@ -436,7 +433,7 @@ class FileModel(QtGui.QStandardItemModel):
                 self._current_users.insert(0, g_user_cache.current_user)
         elif not self._current_users:
             # no users so use 'None' instead which will effectively search for the
-            # current user but handles the legacy case where the current user doesn't 
+            # current user but handles the legacy case where the current user doesn't
             # match the log-in!
             self._current_users = [None]
 
@@ -538,7 +535,7 @@ class FileModel(QtGui.QStandardItemModel):
 
     def _file_items(self, parent_item):
         """
-        Iterate over all child items for the specified parent and yield all _FileModelItems that 
+        Iterate over all child items for the specified parent and yield all _FileModelItems that
         are found
 
         :param parent_item: The parent item to yield _FileModelItems for
@@ -613,9 +610,9 @@ class FileModel(QtGui.QStandardItemModel):
         Update groups in the model.  Remove any that are no longer needed and insert any that are
         needed but are missing.
 
-        This will ensure that _all_ groups are added for the current user but groups for other users 
-        are only added if/when files are found unless they already exist in which case they are left 
-        in the model.  This provides the most consistent experience for any views hooked up to the 
+        This will ensure that _all_ groups are added for the current user but groups for other users
+        are only added if/when files are found unless they already exist in which case they are left
+        in the model.  This provides the most consistent experience for any views hooked up to the
         model.
         """
         # get existing groups:
@@ -723,8 +720,8 @@ class FileModel(QtGui.QStandardItemModel):
                 entities_to_add.append((child_name, child_entity))
 
         # figure out which rows to remove...
-        rows_to_remove = set([row for key, row in current_entity_row_map.iteritems() 
-                                if key not in valid_gen_entity_keys])
+        rows_to_remove = set([row for key, row in current_entity_row_map.iteritems()
+                              if key not in valid_gen_entity_keys])
         # and remove them:
         for row in sorted(rows_to_remove, reverse=True):
             self._safe_remove_row(row, parent_item)
@@ -807,17 +804,19 @@ class FileModel(QtGui.QStandardItemModel):
             # if one is available:
             if file_item.is_published and file_item.thumbnail_path and not file_item.thumbnail:
                 # request the thumbnail using the data retriever:
-                request_id = self._sg_data_retriever.request_thumbnail(file_item.thumbnail_path, 
-                                                                       self._published_file_type, 
+                request_id = self._sg_data_retriever.request_thumbnail(file_item.thumbnail_path,
+                                                                       self._published_file_type,
                                                                        file_item.published_file_id,
                                                                        "image",
-                                                                       load_image = True)
+                                                                       load_image=True)
                 self._pending_thumbnail_requests[request_id] = (group_item.key, file_item.key, file_item.version)
 
         # figure out if any existing items are no longer needed:
         valid_file_versions = set(valid_files.keys())
         file_versions_to_remove = set(existing_file_item_map.keys()) - valid_file_versions
-        rows_to_remove = set([v[1].row() for k, v in existing_file_item_map.iteritems() if k in file_versions_to_remove])
+        rows_to_remove = set(
+            [v[1].row() for k, v in existing_file_item_map.iteritems() if k in file_versions_to_remove]
+        )
 
         # update any files that are no longer in the corresponding set but which aren't going to be removed:
         if have_local:
@@ -892,7 +891,7 @@ class FileModel(QtGui.QStandardItemModel):
                 if item:
                     found_items.append(item)
         return found_items
- 
+
     def _find_file_items(self, file_map, file_key, file_version):
         """
         Find current model items for the specified file key and version in the specified map.  If file key
@@ -922,7 +921,7 @@ class FileModel(QtGui.QStandardItemModel):
         :param group_key:       The group key to find all matching items for
         :param file_key:        The file key to find all matching items for
         :param file_version:    The file version to find all matching items for
-        :returns:               A list of _FileModelItems that were found that match the specified group key, 
+        :returns:               A list of _FileModelItems that were found that match the specified group key,
                                 file key and file version
         """
         found_items = []
@@ -1022,8 +1021,8 @@ class FileModel(QtGui.QStandardItemModel):
         :param file_list:    The list of FileItems that were found
         :param work_area:    The work area that the files were found in
         """
-        self._app.log_debug("File Model: Found %d files for search %s, user '%s'" 
-                            % (len(file_list), search_id, 
+        self._app.log_debug("File Model: Found %d files for search %s, user '%s'"
+                            % (len(file_list), search_id,
                                work_area.context.user["name"] if work_area.context.user else "Unknown"))
         self._process_found_files(search_id, file_list, work_area, have_local=True, have_publishes=False)
 
@@ -1035,8 +1034,8 @@ class FileModel(QtGui.QStandardItemModel):
         :param file_list:    The list of FileItems that were found
         :param work_area:    The work area that the publishes were found in
         """
-        self._app.log_debug("File Model: Found %d publishes for search %s, user '%s'" 
-                            % (len(file_list), search_id, 
+        self._app.log_debug("File Model: Found %d publishes for search %s, user '%s'"
+                            % (len(file_list), search_id,
                                work_area.context.user["name"] if work_area.context.user else "Unknown"))
         self._process_found_files(search_id, file_list, work_area, have_local=False, have_publishes=True)
 
@@ -1086,7 +1085,7 @@ class FileModel(QtGui.QStandardItemModel):
 
     def _on_finder_search_completed(self, search_id):
         """
-        Slot triggered when a finder search has completed.  This gets called once all search 
+        Slot triggered when a finder search has completed.  This gets called once all search
         tasks have been completed successfully.
 
         :param search_id:   The id of the search that has completed
@@ -1199,8 +1198,8 @@ class FileModel(QtGui.QStandardItemModel):
 
     def _update_group_file_items(self, group_item):
         """
-        Update all file model items within the specified group model item.  This updates each file's 
-        tooltip, associated versions and thumbnail and ensures that the correct dataChanged signal is 
+        Update all file model items within the specified group model item.  This updates each file's
+        tooltip, associated versions and thumbnail and ensures that the correct dataChanged signal is
         emitted for them.
 
         :param group_item:  The _GroupModelItem representing the group in the model
@@ -1247,7 +1246,7 @@ class FileModel(QtGui.QStandardItemModel):
         # emit data changed signal for all items in the group:
         row_count = group_item.rowCount()
         tl_idx = self.index(0, 0, group_item.index())
-        br_idx = self.index(row_count-1, 0, group_item.index())
+        br_idx = self.index(row_count - 1, 0, group_item.index())
         self.dataChanged.emit(tl_idx, br_idx)
 
     def _update_version_thumbnails(self, file_key, group_key, work_area):
@@ -1289,28 +1288,28 @@ class FileModel(QtGui.QStandardItemModel):
             return
 
         # make sure the thumbnail is a good size with the correct aspect ratio:
-        MAX_WIDTH = 576#96
-        MAX_HEIGHT = 374#64
-        ASPECT = float(MAX_WIDTH)/MAX_HEIGHT
+        MAX_WIDTH = 576 # 96
+        MAX_HEIGHT = 374 # 64
+        ASPECT = float(MAX_WIDTH) / MAX_HEIGHT
 
         thumb_sz = thumb.size()
-        thumb_aspect = float(thumb_sz.width())/thumb_sz.height()
+        thumb_aspect = float(thumb_sz.width()) / thumb_sz.height()
         max_thumb_sz = QtCore.QSize(MAX_WIDTH, MAX_HEIGHT)
         if thumb_aspect >= ASPECT:
             # scale based on width:
             if thumb_sz.width() > MAX_WIDTH:
-                thumb_sz *= (float(MAX_WIDTH)/thumb_sz.width())
+                thumb_sz *= (float(MAX_WIDTH) / thumb_sz.width())
             else:
-                max_thumb_sz *= (float(thumb_sz.width())/MAX_WIDTH)
+                max_thumb_sz *= (float(thumb_sz.width()) / MAX_WIDTH)
         else:
             # scale based on height:
             if thumb_sz.height() > MAX_HEIGHT:
-                thumb_sz *= (float(MAX_HEIGHT)/thumb_sz.height())
+                thumb_sz *= (float(MAX_HEIGHT) / thumb_sz.height())
             else:
-                max_thumb_sz *= (float(thumb_sz.height())/MAX_HEIGHT)
+                max_thumb_sz *= (float(thumb_sz.height()) / MAX_HEIGHT)
 
         if thumb_sz != thumb.size():
-            thumb = thumb.scaled(thumb_sz.width(), thumb_sz.height(), 
+            thumb = thumb.scaled(thumb_sz.width(), thumb_sz.height(),
                                  QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
 
         # create base pixmap with the correct aspect ratio that the thumbnail will fit in
@@ -1325,7 +1324,7 @@ class FileModel(QtGui.QStandardItemModel):
 
             # paint the thumbnail into this base making sure it's centered:
             diff = max_thumb_sz - thumb.size()
-            offset = diff/2
+            offset = diff / 2
             brush = QtGui.QBrush(thumb)
             painter.setBrush(brush)
             painter.translate(offset.width(), offset.height())
@@ -1334,6 +1333,3 @@ class FileModel(QtGui.QStandardItemModel):
             painter.end()
 
         return thumb_base
-
-
-
