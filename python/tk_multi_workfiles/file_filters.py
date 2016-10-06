@@ -77,6 +77,7 @@ class FileFilters(QtCore.QObject):
         Clear the list of available user sandboxes.
         """
         self._reset_user_lists()
+        self.available_users_changed.emit(self._available_users)
 
     def _reset_user_lists(self):
         self._available_users = [g_user_cache.current_user] if g_user_cache.current_user else []

@@ -298,7 +298,7 @@ class BrowserForm(QtGui.QWidget):
         breadcrumb_trail = []
 
         # Clear the list of available users for the current selection.
-        #self._file_filters.clear_available_users()
+        self._file_filters.clear_available_users()
 
         tab_index = self._ui.task_browser_tabs.currentIndex()
         tab_label = value_to_str(self._ui.task_browser_tabs.tabText(tab_index))
