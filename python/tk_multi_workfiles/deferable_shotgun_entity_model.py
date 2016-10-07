@@ -56,6 +56,7 @@ class DeferableShotgunEntityModel(ShotgunEntityModel):
         if self._model_state == self.UNLOADED:
             self._model_state = self.CAN_LOAD
             self._load_data(self._entity_type, self._filters, self._hierarchy, self._fields)
+            self.async_refresh()
 
     def _load_data(self, entity_type, filters, hierarchy, fields):
         """
