@@ -39,8 +39,7 @@ class FileFilters(QtCore.QObject):
 
         self._show_all_versions = False
         self._filter_reg_exp = QtCore.QRegExp()
-        self._available_users = [g_user_cache.current_user] if g_user_cache.current_user else []
-        self._users = [g_user_cache.current_user] if g_user_cache.current_user else []
+        self._reset_user_lists()
 
     # @property
     def _get_show_all_versions(self):
@@ -66,22 +65,41 @@ class FileFilters(QtCore.QObject):
 
     filter_reg_exp = property(_get_filter_reg_exp, _set_filter_reg_exp)
 
-    # @property
-    def _get_available_users(self):
+    @property
+    def available_users(self):
+        """
+        :returns: List of available user sandboxes.
+        """
         return self._available_users
 
-    # available_users.setter
-    def _set_available_users(self, users):
-        current_user_ids = set([u["id"] for u in self._available_users if u])
-        new_user_ids = set([u["id"] for u in users if u])
-        if new_user_ids != current_user_ids:
-            self._available_users = [u for u in users if u]
-            self.available_users_changed.emit(self._available_users)
+    def clear_available_users(self):
+        """
+        Clear the list of available user sandboxes.
+        """
+        self._reset_user_lists()
+        self.available_users_changed.emit(self._available_users)
 
-            # also, update user ids, removing any that are no longer in
-            # the list of available user ids:
-            self._set_users(self._users)
-    available_users = property(_get_available_users, _set_available_users)
+    def _reset_user_lists(self):
+        self._available_users = [g_user_cache.current_user] if g_user_cache.current_user else []
+        self._users = [g_user_cache.current_user] if g_user_cache.current_user else []
+
+    def add_users(self, users):
+        """
+        Adds to the list of available user sandboxes.
+
+        :param users: List of users dictionaries.
+        """
+        nb_users_before = len(self._available_users)
+
+        # merge the two lists, discarding doubles.
+        new_users_by_id = {user["id"]: user for user in users}
+        available_users_by_id = {user["id"]: user for user in self._available_users}
+        available_users_by_id.update(new_users_by_id)
+        self._available_users = available_users_by_id.values()
+
+        # The updated dictionary has grown, so something new was added!
+        if len(self._available_users) > nb_users_before:
+            self.available_users_changed.emit(self._available_users)
 
     # @property
     def _get_users(self):

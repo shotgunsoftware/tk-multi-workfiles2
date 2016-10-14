@@ -71,7 +71,6 @@ class BrowserForm(QtGui.QWidget):
         monitor_qobject_lifetime(self._file_filters, "Browser file filters")
         self._file_filters.users_changed.connect(self._on_file_filters_users_changed)
 
-
     def shut_down(self):
         """
         Help the gc by cleaning up as much as possible when this widget is finished with
@@ -95,6 +94,7 @@ class BrowserForm(QtGui.QWidget):
             self._file_model = None
 
             # clean up the file filters:
+
             self._file_filters = None
         finally:
             self.blockSignals(signals_blocked)
@@ -175,7 +175,7 @@ class BrowserForm(QtGui.QWidget):
         if file_model:
             # attach file model to the file views:
             self._file_model = file_model
-            self._file_model.available_sandbox_users_changed.connect(self._on_available_sandbox_users_changed)
+            self._file_model.sandbox_users_found.connect(self._on_sandbox_users_found)
             self._file_model.uses_user_sandboxes.connect(self._on_uses_user_sandboxes)
             self._file_model.set_users(self._file_filters.users)
 
@@ -263,16 +263,16 @@ class BrowserForm(QtGui.QWidget):
     # ------------------------------------------------------------------------------------------
     # protected methods
 
-    def _on_available_sandbox_users_changed(self, users):
+    def _on_sandbox_users_found(self, users):
         """
         Called when the list of sandbox users available for a given selection has been updated
-        after parsing each context.
+        in the model after parsing the context's directories.
 
         :param users: Array of user entity dictionary.
         """
         app = sgtk.platform.current_bundle()
-        app.log_debug("Available sandbox users: %s" % [u["name"].split()[0] for u in users if u])
-        self._file_filters.available_users = users
+        app.log_debug("Sandbox users found: %s" % [u["name"].split()[0] for u in users if u])
+        self._file_filters.add_users(users)
 
     def _on_file_filters_users_changed(self, users):
         """
@@ -296,6 +296,9 @@ class BrowserForm(QtGui.QWidget):
         """
         # build breadcrumb trail for the current selection in the UI:
         breadcrumb_trail = []
+
+        # Clear the list of available users for the current selection.
+        self._file_filters.clear_available_users()
 
         tab_index = self._ui.task_browser_tabs.currentIndex()
         tab_label = value_to_str(self._ui.task_browser_tabs.tabText(tab_index))

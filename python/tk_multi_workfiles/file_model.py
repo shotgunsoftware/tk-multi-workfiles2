@@ -85,7 +85,7 @@ class FileModel(QtGui.QStandardItemModel):
             QtGui.QStandardItem.__init__(self, text or "")
             self._type = typ
 
-        def data(self, role=QtCore.Qt.UserRole + 1):
+        def data(self, role):
             """
             Return the data from the item for the specified role.
 
@@ -98,7 +98,7 @@ class FileModel(QtGui.QStandardItemModel):
                 # just return the default implementation:
                 return QtGui.QStandardItem.data(self, role)
 
-        def setData(self, value, role=QtCore.Qt.UserRole + 1):
+        def setData(self, value, role):
             """
             Set the data on the item for the specified role
 
@@ -140,7 +140,7 @@ class FileModel(QtGui.QStandardItemModel):
             """
             return self._work_area
 
-        def data(self, role=QtCore.Qt.UserRole + 1):
+        def data(self, role):
             """
             Return the data from the item for the specified role.
 
@@ -157,7 +157,7 @@ class FileModel(QtGui.QStandardItemModel):
                 # just return the default implementation:
                 return FileModel._BaseModelItem.data(self, role)
 
-        def setData(self, value, role=QtCore.Qt.UserRole + 1):
+        def setData(self, value, role):
             """
             Set the data on the item for the specified role
 
@@ -254,7 +254,7 @@ class FileModel(QtGui.QStandardItemModel):
             self._search_msg = msg
             self.emitDataChanged()
 
-        def data(self, role=QtCore.Qt.UserRole + 1):
+        def data(self, role):
             """
             Return the data from the item for the specified role.
 
@@ -271,7 +271,7 @@ class FileModel(QtGui.QStandardItemModel):
                 # just return the default implementation:
                 return FileModel._BaseModelItem.data(self, role)
 
-        def setData(self, value, role=QtCore.Qt.UserRole + 1):
+        def setData(self, value, role):
             """
             Set the data on the item for the specified role
 
@@ -293,8 +293,8 @@ class FileModel(QtGui.QStandardItemModel):
 
     # Signal emitted when sandboxes are used, but before we know which ones
     uses_user_sandboxes = QtCore.Signal(object) # Work area that uses sandboxes.
-    # Signal emitted when the available sandbox users have changed
-    available_sandbox_users_changed = QtCore.Signal(list)# list of users
+    # Signal emitted when the sandbox_users_found when users were found in the sandbox.
+    sandbox_users_found = QtCore.Signal(list)# list of users
 
     def __init__(self, bg_task_manager, parent):
         """
@@ -316,7 +316,6 @@ class FileModel(QtGui.QStandardItemModel):
         # in this model.
         self._current_searches = []
         self._current_users = [g_user_cache.current_user]
-        self._entity_work_area_map = {}
 
         self._in_progress_searches = {}
         self._search_cache = FileSearchCache()
@@ -973,8 +972,7 @@ class FileModel(QtGui.QStandardItemModel):
     def _on_finder_work_area_resolved(self, search_id, work_area):
         """
         Slot triggered when the finder resolved users from a work area during the search.  If the work area
-        contains user sandboxes this will emit the available_sandbox_users_changed signal with the
-        list of users.
+        contains user sandboxes this will emit the sandbox_users_found signal with the list of users.
 
         :param search_id:    The id of the search that the work area was resolved for
         :param work_area:    The WorkArea instance that was resolved
@@ -983,35 +981,11 @@ class FileModel(QtGui.QStandardItemModel):
             # ignore result
             return
 
-        search = self._in_progress_searches[search_id]
-        entity_key = self._gen_entity_key(search.entity)
+        users = list(work_area.sandbox_users)
 
-        # keep track of work area for this entity:
-        self._entity_work_area_map[entity_key] = work_area
-
-        # consolidate list of sandbox users for all current work areas:
-        have_user_sandboxes = False
-        users_by_id = {}
-        handled_entities = set()
-        for search in self._in_progress_searches.values():
-            entity_key = self._gen_entity_key(search.entity)
-            if entity_key in handled_entities:
-                continue
-            handled_entities.add(entity_key)
-
-            area = self._entity_work_area_map.get(entity_key)
-            if area and area.contains_user_sandboxes:
-                have_user_sandboxes = True
-                for user in area.sandbox_users:
-                    if user:
-                        users_by_id[user["id"]] = user
-
-        # and current user is _always_ available:
-        if g_user_cache.current_user:
-            users_by_id[g_user_cache.current_user["id"]] = g_user_cache.current_user
-
-        if have_user_sandboxes:
-            self.available_sandbox_users_changed.emit(users_by_id.values())
+        # If users were found.
+        if users:
+            self.sandbox_users_found.emit(users)
 
     def _on_finder_files_found(self, search_id, file_list, work_area):
         """
