@@ -86,6 +86,8 @@ class FileFilters(QtCore.QObject):
     def add_users(self, users):
         """
         Adds to the list of available user sandboxes.
+
+        :param users: List of users dictionaries.
         """
         nb_users_before = len(self._available_users)
 
@@ -95,8 +97,8 @@ class FileFilters(QtCore.QObject):
         available_users_by_id.update(new_users_by_id)
         self._available_users = available_users_by_id.values()
 
-        # Something was added to the set.
-        if nb_users_before != len(self._available_users):
+        # The updated dictionary has grown, so something new was added!
+        if len(self._available_users) > nb_users_before:
             self.available_users_changed.emit(self._available_users)
 
     # @property

@@ -85,7 +85,7 @@ class FileModel(QtGui.QStandardItemModel):
             QtGui.QStandardItem.__init__(self, text or "")
             self._type = typ
 
-        def data(self, role=QtCore.Qt.UserRole + 1):
+        def data(self, role):
             """
             Return the data from the item for the specified role.
 
@@ -98,7 +98,7 @@ class FileModel(QtGui.QStandardItemModel):
                 # just return the default implementation:
                 return QtGui.QStandardItem.data(self, role)
 
-        def setData(self, value, role=QtCore.Qt.UserRole + 1):
+        def setData(self, value, role):
             """
             Set the data on the item for the specified role
 
@@ -140,7 +140,7 @@ class FileModel(QtGui.QStandardItemModel):
             """
             return self._work_area
 
-        def data(self, role=QtCore.Qt.UserRole + 1):
+        def data(self, role):
             """
             Return the data from the item for the specified role.
 
@@ -157,7 +157,7 @@ class FileModel(QtGui.QStandardItemModel):
                 # just return the default implementation:
                 return FileModel._BaseModelItem.data(self, role)
 
-        def setData(self, value, role=QtCore.Qt.UserRole + 1):
+        def setData(self, value, role):
             """
             Set the data on the item for the specified role
 
@@ -254,7 +254,7 @@ class FileModel(QtGui.QStandardItemModel):
             self._search_msg = msg
             self.emitDataChanged()
 
-        def data(self, role=QtCore.Qt.UserRole + 1):
+        def data(self, role):
             """
             Return the data from the item for the specified role.
 
@@ -271,7 +271,7 @@ class FileModel(QtGui.QStandardItemModel):
                 # just return the default implementation:
                 return FileModel._BaseModelItem.data(self, role)
 
-        def setData(self, value, role=QtCore.Qt.UserRole + 1):
+        def setData(self, value, role):
             """
             Set the data on the item for the specified role
 
