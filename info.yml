@@ -94,12 +94,12 @@ configuration:
     entities:
         type: list
         description: "This setting defines the different tabs that will show up on the left hand side.
-                      Each tab represents a Shotgun query, grouped by some shotgun fields to form a tree. 
+                      Each tab represents a Shotgun query, grouped by some shotgun fields to form a tree.
                       This setting is a list of dictionaries. Each dictionary in the list defines one tab,
                       and should have the following keys: *caption* specifies the name of the tab, *entity_type*
-                      specifies the shotgun entity type to display. *filters* is a list of standard API Shotgun 
-                      filters. *hierarchy* is a list of shotgun fields relative to the entity type, defining the 
-                      grouping of the tree."
+                      specifies the shotgun entity type to display. *filters* is a list of standard API Shotgun
+                      filters either in the standard or complex format. *hierarchy* is a list of shotgun fields
+                      relative to the entity type, defining the grouping of the tree."
         allows_empty: True
         values:
           type: dict
