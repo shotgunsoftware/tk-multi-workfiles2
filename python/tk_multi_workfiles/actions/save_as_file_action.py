@@ -32,6 +32,7 @@ class SaveAsFileAction(FileAction):
             return False
 
         # switch context:
+        previous_context = self._app.context
         if not self.environment.context == self._app.context:
             try:
                 # Change the current context
@@ -51,10 +52,11 @@ class SaveAsFileAction(FileAction):
 
         # and save the current file as the new path:
         try:
-            save_file(self._app, SAVE_FILE_AS_ACTION,  self.environment.context, self.file.path)
+            save_file(self._app, SAVE_FILE_AS_ACTION, self.environment.context, self.file.path)
         except Exception, e:
             QtGui.QMessageBox.critical(None, "Failed to save file!", "Failed to save file:\n\n%s" % e)
             self._app.log_exception("Failed to save file!")
+            FileAction.restore_context(parent_ui, previous_context)
             return False
 
         return True

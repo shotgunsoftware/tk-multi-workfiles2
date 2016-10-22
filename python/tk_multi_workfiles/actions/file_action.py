@@ -108,10 +108,12 @@ class FileAction(Action):
         Set context to the new context.
 
         :param ctx: The :class:`sgtk.Context` to change to.
+
+        :raises TankError: Raised when the context change fails.
         """
         app = sgtk.platform.current_bundle()
         app.log_info("Changing context from %s to %s" % (app.context, ctx))
-        
+
         # Change context.
         QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
@@ -121,7 +123,29 @@ class FileAction(Action):
             raise TankError("Failed to change work area - %s" % e)
         finally:
             QtGui.QApplication.restoreOverrideCursor()
-    
+
+    @staticmethod
+    def restore_context(parent_ui, ctx):
+        """
+        Utility method to restore the original context when a file operation failed.
+
+        A dialog will display the error if the restoration fails. This method is exception safe.
+
+        :param PySide.QtWidget parent_ui: Parent for the error dialog, if needed.
+        :param sgtk.Context ctx: Context to restore.
+        """
+        app = sgtk.platform.current_bundle()
+        app.log_debug("Restoring context.")
+        try:
+            FileAction.change_context(ctx)
+        except Exception, e:
+            QtGui.QMessageBox.critical(
+                parent_ui,
+                "Unable to restore the original context",
+                "Failed to change the work area back to '%s':\n\n%s\n\nUnable to continue!" % (ctx, e)
+            )
+            app.log_exception("Failed to change the work area back to %s!" % ctx)
+
     def __init__(self, label, file, file_versions, environment):
         """
         """
