@@ -70,5 +70,5 @@ class SceneOperation(HookClass):
             return True
         elif operation == "open":
             return QtGui.QMessageBox.question(
-                None, "", "Are you sure?", QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
+                None, "", "Are you sure you want to open?", QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
             ) == QtGui.QMessageBox.Yes
