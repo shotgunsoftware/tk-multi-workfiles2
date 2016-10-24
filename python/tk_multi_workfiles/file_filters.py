@@ -92,8 +92,8 @@ class FileFilters(QtCore.QObject):
         nb_users_before = len(self._available_users)
 
         # merge the two lists, discarding doubles.
-        new_users_by_id = {user["id"]: user for user in users}
-        available_users_by_id = {user["id"]: user for user in self._available_users}
+        new_users_by_id = dict((user["id"], user)for user in users)
+        available_users_by_id = dict((user["id"], user) for user in self._available_users)
         available_users_by_id.update(new_users_by_id)
         self._available_users = available_users_by_id.values()
 
