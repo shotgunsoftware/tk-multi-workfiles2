@@ -13,17 +13,25 @@
 
 import sgtk
 from ..entity_proxy_model import EntityProxyModel
+from sgtk.platform.qt import QtCore
 
 from ..user_cache import g_user_cache
 
 class EntityTreeProxyModel(EntityProxyModel):
     """
+    Proxy model that handles searching and sorting of the
+    left hand side entity hierarchies.
     """
+
     def __init__(self, parent, compare_sg_fields):
         """
         """
         EntityProxyModel.__init__(self, parent, compare_sg_fields)
         self._only_show_my_tasks = False
+
+        # set proxy to auto sort alphabetically
+        self.setDynamicSortFilter(True)
+        self.sort(0, QtCore.Qt.AscendingOrder)
 
     #@property
     def _get_only_show_my_tasks(self):
