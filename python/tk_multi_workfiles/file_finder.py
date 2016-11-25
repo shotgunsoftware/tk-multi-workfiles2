@@ -389,9 +389,10 @@ class FileFinder(QtCore.QObject):
             sg_publish = item.get("sg_publish")
             if not sg_publish:
                 continue
-            
-            # all publishes should have a local path:
-            path = sg_publish.get("path", {}).get("local_path")
+
+            # The dictionary returned from Shotgun can contain None, which get would return, so
+            # make sure we are not using a false value to get local_path.
+            path = (sg_publish.get("path") or {}).get("local_path")
             if not path:
                 continue
             
