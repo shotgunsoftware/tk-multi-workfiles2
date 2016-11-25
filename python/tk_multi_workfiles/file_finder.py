@@ -389,9 +389,12 @@ class FileFinder(QtCore.QObject):
             sg_publish = item.get("sg_publish")
             if not sg_publish:
                 continue
-            
-            # all publishes should have a local path:
-            path = sg_publish.get("path", {}).get("local_path")
+
+            # A PublishedFile entity can be created with sgtk.util.register_publish, which will
+            # always set a valid path. However, it is possible to create them manually in the web
+            # UI or with the Shotgun API, in which cases local_path might not be set and ["path"]
+            # will contain None.
+            path = (sg_publish["path"] or {}).get("local_path")
             if not path:
                 continue
             
