@@ -31,6 +31,7 @@ class EntityTreeProxyModel(EntityProxyModel):
 
         # set proxy to auto sort alphabetically
         self.setDynamicSortFilter(True)
+        self.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.sort(0, QtCore.Qt.AscendingOrder)
 
     #@property
