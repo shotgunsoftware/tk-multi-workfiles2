@@ -25,6 +25,26 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
         HierarchicalFilteringProxyModel.__init__(self, parent)
         self._compare_fields = compare_sg_fields
 
+    def setFilterFixedString(self, pattern):
+        """
+        Overriden base class method to set the filter fixed string
+        """
+        # ensure model is fully loaded before we attempt any searching
+        self.sourceModel().ensure_data_is_loaded()
+
+        # call base class
+        return super(EntityProxyModel, self).setFilterFixedString(pattern)
+
+    def setFilterRegExp(self, reg_exp):
+        """
+        Overriden base class method to set the filter regular expression
+        """
+        # ensure model is fully loaded before we attempt any searching
+        self.sourceModel().ensure_data_is_loaded()
+
+        # call base class
+        return super(EntityProxyModel, self).setFilterRegExp(reg_exp)
+
     def _is_row_accepted(self, src_row, src_parent_idx, parent_accepted):
         """
         Overriden from base class - determines if the specified row should be accepted or not by

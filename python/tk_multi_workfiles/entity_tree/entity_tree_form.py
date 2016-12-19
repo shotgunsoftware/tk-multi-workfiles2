@@ -315,6 +315,9 @@ class EntityTreeForm(QtGui.QWidget):
         if not idx.isValid():
             return {}
 
+        # first, ensure that all child data has been loaded
+        idx.model().ensure_data_is_loaded(idx)
+
         item = self._item_from_index(idx)
         entity_model = get_source_model(idx.model())
         if not item or not entity_model:
