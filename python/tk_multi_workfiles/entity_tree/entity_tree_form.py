@@ -316,15 +316,7 @@ class EntityTreeForm(QtGui.QWidget):
             return {}
 
         # first, ensure that all child data has been loaded
-        def __fetch_more_r(model_index):
-            """Recursively descend and ensure all data is fetched"""
-            model = model_index.model()
-            if model.canFetchMore(model_index):
-                model.fetchMore(model_index)
-            for child_index in range(model.rowCount(model_index)):
-                child_model_index = model.index(child_index, 0, parent=model_index)
-                __fetch_more_r(child_model_index)
-        __fetch_more_r(idx)
+        idx.model().ensure_data_is_loaded(idx)
 
         item = self._item_from_index(idx)
         entity_model = get_source_model(idx.model())

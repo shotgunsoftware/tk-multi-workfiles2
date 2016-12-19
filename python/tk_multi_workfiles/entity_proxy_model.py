@@ -25,27 +25,12 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
         HierarchicalFilteringProxyModel.__init__(self, parent)
         self._compare_fields = compare_sg_fields
 
-    def __ensure_subtree_loaded(self, model_index):
-        """
-        Recursively descend and ensure all data is
-        fetched for the given model index.
-
-        :param model_index: Model index to process
-        """
-        model = model_index.model()
-        if model.canFetchMore(model_index):
-            model.fetchMore(model_index)
-        for child_index in range(model.rowCount(model_index)):
-            child_model_index = model.index(child_index, 0, parent=model_index)
-            self.__ensure_subtree_loaded(child_model_index)
-
     def setFilterFixedString(self, pattern):
         """
         Overriden base class method to set the filter fixed string
         """
         # ensure model is fully loaded before we attempt any searching
-        root_index = self.sourceModel().invisibleRootItem().index()
-        self.__ensure_subtree_loaded(root_index)
+        self.sourceModel().ensure_data_is_loaded()
 
         # call base class
         return super(EntityProxyModel, self).setFilterFixedString(pattern)
@@ -55,8 +40,7 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
         Overriden base class method to set the filter regular expression
         """
         # ensure model is fully loaded before we attempt any searching
-        root_index = self.sourceModel().invisibleRootItem().index()
-        self.__ensure_subtree_loaded(root_index)
+        self.sourceModel().ensure_data_is_loaded()
 
         # call base class
         return super(EntityProxyModel, self).setFilterRegExp(reg_exp)
