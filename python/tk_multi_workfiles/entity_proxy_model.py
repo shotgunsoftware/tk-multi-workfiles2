@@ -45,6 +45,17 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
         # call base class
         return super(EntityProxyModel, self).setFilterRegExp(reg_exp)
 
+    def ensure_data_is_loaded(self, index=None):
+        """
+        Recursively processes the model and ensures that all data
+        has been loaded into the shotgun model contained by the proxy model.
+
+        :param index: Model index for which to recursively load data.
+                      If set to None, the entire tree will be loaded.
+        :type index: :class:`~PySide.QtCore.QModelIndex`
+        """
+        return self.sourceModel().ensure_data_is_loaded(index)
+
     def _is_row_accepted(self, src_row, src_parent_idx, parent_accepted):
         """
         Overriden from base class - determines if the specified row should be accepted or not by
