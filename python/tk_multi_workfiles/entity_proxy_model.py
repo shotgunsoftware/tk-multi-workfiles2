@@ -54,7 +54,10 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
                       If set to None, the entire tree will be loaded.
         :type index: :class:`~PySide.QtCore.QModelIndex`
         """
-        return self.sourceModel().ensure_data_is_loaded(index)
+        # convert proxy indices to internal model indices
+        source_index = self.mapToSource(index) if index else None
+
+        return self.sourceModel().ensure_data_is_loaded(source_index)
 
     def _is_row_accepted(self, src_row, src_parent_idx, parent_accepted):
         """
