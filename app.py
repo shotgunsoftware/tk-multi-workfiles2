@@ -12,6 +12,9 @@
 Multi Work Files 2.
 Provides File Open/Save functionality for Work Files
 """
+
+import os
+
 import sgtk
 
 
@@ -29,8 +32,45 @@ class MultiWorkFiles(sgtk.platform.Application):
             # provide any commands!
             return
 
-        self.engine.register_command("File Open...", self.show_file_open_dlg, {"short_name":"file_open"})
-        self.engine.register_command("File Save...", self.show_file_save_dlg, {"short_name":"file_save"})
+        # register the file open command
+        self.engine.register_command(
+            "File Open...",
+            self.show_file_open_dlg,
+            {
+                "short_name": "file_open",
+
+                # dark themed icon for engines that recognize this format
+                "icons": {
+                    "dark": {
+                        "png": os.path.join(
+                            os.path.dirname(__file__),
+                            "resources",
+                            "file_open_menu_icon.png"
+                        )
+                    }
+                }
+            }
+        )
+
+        # register the file save command
+        self.engine.register_command(
+            "File Save...",
+            self.show_file_save_dlg,
+            {
+                "short_name": "file_save",
+
+                # dark themed icon for engines that recognize this format
+                "icons": {
+                    "dark": {
+                        "png": os.path.join(
+                            os.path.dirname(__file__),
+                            "resources",
+                            "file_save_menu_icon.png"
+                        )
+                    }
+                }
+            }
+        )
 
         # Process auto startup options - but only on certain supported platforms
         # because of the way QT inits and connects to different host applications
