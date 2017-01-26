@@ -143,7 +143,7 @@ class SceneOperation(HookClass):
         desc_30 = adobe.ActionDescriptor()
         id_max_compatibility = adobe.stringIDToTypeID("maximizeCompatibility")
         id_pht_8 = adobe.charIDToTypeID("Pht8")
-        desc_29.putObject(is_as, id_pht_8, desc_30)
+        desc_29.putObject(id_as, id_pht_8, desc_30)
         id_in = adobe.charIDToTypeID("In  ")
         desc_29.putPath(id_in, adobe.File(file_path))
         adobe.executeAction(id_save, desc_29, adobe.DialogModes.NO)
