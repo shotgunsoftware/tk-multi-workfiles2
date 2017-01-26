@@ -70,7 +70,8 @@ class SceneOperation(HookClass):
 
         elif operation == "open":
             # open the specified script
-            adobe.app.load(adobe.File(file_path))
+            with self.parent.engine.context_changes_disabled():
+                adobe.app.load(adobe.File(file_path))
 
         elif operation == "save":
             # save the current script:
@@ -95,7 +96,9 @@ class SceneOperation(HookClass):
         Returns the currently open document in Photoshop.
         Raises an exeption if no document is active.
         """
-        doc = self.parent.engine.adobe.app.activeDocument
-        if doc is None:
-            raise TankError("There is no currently active document!")
+        try:
+            doc = self.parent.engine.adobe.app.activeDocument
+        except RuntimeError:
+            raise TankError("There is no active document!")
+
         return doc
