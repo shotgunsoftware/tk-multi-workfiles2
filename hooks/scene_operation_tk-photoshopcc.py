@@ -8,6 +8,8 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+import os
+
 import sgtk
 from sgtk import TankError
 
@@ -80,7 +82,12 @@ class SceneOperation(HookClass):
 
         elif operation == "save_as":
             doc = self._get_active_document()
-            doc.saveAs(adobe.File(file_path))
+            (root, ext) = os.path.splitext(file_path)
+
+            if ext.lower() == ".psb":
+                self._save_as_psb(file_path)
+            else:
+                doc.saveAs(adobe.File(file_path))
 
         elif operation == "reset":
             # do nothing and indicate scene was reset to empty
@@ -102,3 +109,41 @@ class SceneOperation(HookClass):
             raise TankError("There is no active document!")
 
         return doc
+
+    def _save_as_psb(self, file_path):
+        """
+        Saves a PSB file.
+
+        :param str file_path: The PSB file path to save to.
+        """
+        # script listener generates this sequence of statements.
+        # var idsave = charIDToTypeID( "save" );
+        #     var desc29 = new ActionDescriptor();
+        #     var idAs = charIDToTypeID( "As  " );
+        #         var desc30 = new ActionDescriptor();
+        #         var idmaximizeCompatibility = stringIDToTypeID( "maximizeCompatibility" );
+        #         desc30.putBoolean( idmaximizeCompatibility, true );
+        #     var idPhteight = charIDToTypeID( "Pht8" );
+        #     desc29.putObject( idAs, idPhteight, desc30 );
+        #     var idIn = charIDToTypeID( "In  " );
+        #     desc29.putPath( idIn, new File( "/Users/boismej/Downloads/Untitled-1 copy.psd" ) );
+        # ... // Omitting parameters that don't concern us. We'll use the defaults for these.
+        # executeAction( idsave, desc29, DialogModes.NO );
+        #
+        # Note: There are instances where PSBs are saved using Pht3 instead. Haven't been able to
+        # isolate why. Pht3 stands for photoshop35Format according to documentation, but PSBs were
+        # introduced in CS1 (aka 8.0). It might be that this value is ignored by Photoshop when the
+        # extension is PSB? However, it's not clear why saving an empty canvas sometimes saves with
+        # pht8 and sometimes pht3.
+        adobe = self.parent.engine.adobe
+
+        desc_29 = adobe.ActionDescriptor()
+        id_save = adobe.charIDToTypeID("save")
+        id_as = adobe.charIDToTypeID("As  ")
+        desc_30 = adobe.ActionDescriptor()
+        id_max_compatibility = adobe.stringIDToTypeID("maximizeCompatibility")
+        id_pht_8 = adobe.charIDToTypeID("Pht8")
+        desc_29.putObject(is_as, id_pht_8, desc_30)
+        id_in = adobe.charIDToTypeID("In  ")
+        desc_29.putPath(id_in, adobe.File(file_path))
+        adobe.executeAction(id_save, desc_29, adobe.DialogModes.NO)
