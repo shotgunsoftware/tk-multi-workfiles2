@@ -8,7 +8,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import photoshop
+import os
 
 import sgtk
 from sgtk import TankError
@@ -56,6 +56,7 @@ class SceneOperation(HookClass):
                                                  state, otherwise False
                                 all others     - None
         """
+        adobe = self.parent.engine.adobe
 
         if operation == "current_path":
             # return the current script path
@@ -65,14 +66,14 @@ class SceneOperation(HookClass):
                 # new file?
                 path = ""
             else:
-                path = doc.fullName.nativePath
+                path = doc.fullName.fsName
 
             return path
 
         elif operation == "open":
             # open the specified script
-            f = photoshop.RemoteObject('flash.filesystem::File', file_path)
-            photoshop.app.load(f)
+            with self.parent.engine.context_changes_disabled():
+                adobe.app.load(adobe.File(file_path))
 
         elif operation == "save":
             # save the current script:
@@ -81,7 +82,7 @@ class SceneOperation(HookClass):
 
         elif operation == "save_as":
             doc = self._get_active_document()
-            photoshop.save_as(doc, file_path)
+            adobe.save_as(doc, file_path)
 
         elif operation == "reset":
             # do nothing and indicate scene was reset to empty
@@ -90,14 +91,17 @@ class SceneOperation(HookClass):
         elif operation == "prepare_new":
             # file->new. Not sure how to pop up the actual file->new UI,
             # this command will create a document with default properties
-            photoshop.app.documents.add()
+            adobe.app.documents.add()
 
     def _get_active_document(self):
         """
         Returns the currently open document in Photoshop.
         Raises an exeption if no document is active.
         """
-        doc = photoshop.app.activeDocument
-        if doc is None:
-            raise TankError("There is no currently active document!")
+        try:
+            doc = self.parent.engine.adobe.app.activeDocument
+        except RuntimeError:
+            raise TankError("There is no active document!")
+
         return doc
+
