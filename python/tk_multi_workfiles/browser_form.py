@@ -179,10 +179,19 @@ class BrowserForm(QtGui.QWidget):
             self._file_model.uses_user_sandboxes.connect(self._on_uses_user_sandboxes)
             self._file_model.set_users(self._file_filters.users)
 
-            # add an 'all files' tab:
-            self._add_file_list_form("All", "All Files", show_work_files=True, show_publishes=True )
+            # add an 'all files' tab if Publishes will be shown:
+            show_published_files = app.get_setting("show_published_files")
+            if show_published_files:
+                self._add_file_list_form("All", "All Files", show_work_files=True, show_publishes=True )
+
             self._add_file_list_form("Working", "Work Files", show_work_files=True, show_publishes=False)
-            self._add_file_list_form("Publishes", "Publishes", show_work_files=False, show_publishes=True)
+
+            # if publishes aren't going to be shown then skip adding it and hide
+            # the tabbar.
+            if show_published_files:
+                self._add_file_list_form("Publishes", "Publishes", show_work_files=False, show_publishes=True)
+            else:
+                self._ui.file_browser_tabs.tabBar().hide()
 
     def _add_file_list_form(self, tab_name, search_label, show_work_files, show_publishes):
         """

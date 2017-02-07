@@ -278,15 +278,19 @@ class WorkArea(object):
         :returns: An array of sgtk.Template objects that are not configured.
         """
         # First find all the templates that are not defined.
+        app = sgtk.platform.current_bundle()
         missing_templates = []
         if not self.work_area_template:
             missing_templates.append("'template_work_area'")
         if not self.work_template:
             missing_templates.append("'template_work'")
-        if not self.publish_area_template:
-            missing_templates.append("'template_publish_area'")
-        if not self.publish_template:
-            missing_templates.append("'template_publish'")
+
+        # Only check for these templates if show_published_files is True.
+        if app.get_setting("show_published_files"):
+            if not self.publish_area_template:
+                missing_templates.append("'template_publish_area'")
+            if not self.publish_template:
+                missing_templates.append("'template_publish'")
 
         return missing_templates
 
@@ -460,7 +464,7 @@ class WorkArea(object):
             # from the path and then inspect the user from this
             path_ctx = app.sgtk.context_from_path(path)
             user = path_ctx.user
-            if user: 
+            if user:
                 user_ids.add(user["id"])
 
         # look these up in the user cache:
