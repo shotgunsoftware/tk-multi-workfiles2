@@ -256,9 +256,15 @@ class SceneOperation(HookClass):
             project = self._get_current_hiero_project()
             project.save()
 
+            # ensure the save menus are displayed correctly
+            _update_save_menu_items(project)
+
         elif operation == "save_as":
             project = self._get_current_hiero_project()
             project.saveAs(file_path.replace(os.path.sep, "/"))
+
+            # ensure the save menus are displayed correctly
+            _update_save_menu_items(project)
 
         elif operation == "reset":
             # do nothing and indicate scene was reset to empty
@@ -267,3 +273,26 @@ class SceneOperation(HookClass):
         elif operation == "prepare_new":
             # add a new project to hiero
             hiero.core.newProject()
+
+
+def _update_save_menu_items(project):
+    """
+    There's a bug in Hiero when using `project.save()` or `project.saveAs`
+    whereby the file menu text is not updated. This is a workaround for that
+    to find the menu QActions and update them manually to match what Hiero
+    should display.
+    """
+
+    import hiero
+
+    project_path = project.path()
+
+    # get the basename of the path without the extension
+    file_base = os.path.splitext(os.path.basename(project_path))[0]
+
+    save_action = hiero.ui.findMenuAction('foundry.project.save')
+    save_action.setText("Save Project (%s)" % (file_base,))
+
+    save_as_action = hiero.ui.findMenuAction('foundry.project.saveas')
+    save_as_action.setText("Save Project As (%s)..." % (file_base,))
+
