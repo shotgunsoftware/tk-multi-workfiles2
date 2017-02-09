@@ -256,9 +256,6 @@ class SceneOperation(HookClass):
             project = self._get_current_hiero_project()
             project.save()
 
-            # ensure the save menus are displayed correctly
-            _update_save_menu_items(project)
-
         elif operation == "save_as":
             project = self._get_current_hiero_project()
             project.saveAs(file_path.replace(os.path.sep, "/"))
@@ -277,10 +274,9 @@ class SceneOperation(HookClass):
 
 def _update_save_menu_items(project):
     """
-    There's a bug in Hiero when using `project.save()` or `project.saveAs`
-    whereby the file menu text is not updated. This is a workaround for that
-    to find the menu QActions and update them manually to match what Hiero
-    should display.
+    There's a bug in Hiero when using `project.saveAs()` whereby the file menu
+    text is not updated. This is a workaround for that to find the menu
+    QActions and update them manually to match what Hiero should display.
     """
 
     import hiero
