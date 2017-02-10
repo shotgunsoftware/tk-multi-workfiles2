@@ -48,7 +48,7 @@ class FileSaveForm(FileFormBase):
         """
         app = sgtk.platform.current_bundle()
 
-        FileFormBase.__init__(self, parent)
+        FileFormBase.__init__(self, parent, defer=True)
 
         self._expanded_size = QtCore.QSize(930, 700)
         self._collapsed_size = None
@@ -630,6 +630,9 @@ class FileSaveForm(FileFormBase):
             if self._collapsed_size == None:
                 # keep track of the collapsed size the first time it's resized:
                 self._collapsed_size = self.window().size()
+
+            for _, model in self._entity_models:
+                model.ensure_data_loaded()
 
             # show the browser and nav buttons:
             self._ui.browser.show()
