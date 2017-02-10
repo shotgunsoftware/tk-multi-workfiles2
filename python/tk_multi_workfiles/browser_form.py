@@ -71,6 +71,7 @@ class BrowserForm(QtGui.QWidget):
         monitor_qobject_lifetime(self._file_filters, "Browser file filters")
         self._file_filters.users_changed.connect(self._on_file_filters_users_changed)
 
+
     def shut_down(self):
         """
         Help the gc by cleaning up as much as possible when this widget is finished with
