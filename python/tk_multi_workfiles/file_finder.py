@@ -930,7 +930,9 @@ class AsyncFileFinder(FileFinder):
             # convert created_at unix time stamp to shotgun std time stamp for all publishes
             for sg_publish in sg_publishes:
                 created_at = sg_publish.get("created_at")
-                if created_at:
+                if created_at and isinstance(created_at, datetime):
+                    sg_publish["created_at"] = created_at
+                elif created_at:
                     created_at = datetime.fromtimestamp(created_at, sg_timezone.LocalTimezone())
                     sg_publish["created_at"] = created_at
 
