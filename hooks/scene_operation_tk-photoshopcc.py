@@ -72,8 +72,7 @@ class SceneOperation(HookClass):
 
         elif operation == "open":
             # open the specified script
-            with self.parent.engine.context_changes_disabled():
-                adobe.app.load(adobe.File(file_path))
+            adobe.app.load(adobe.File(file_path))
 
         elif operation == "save":
             # save the current script:
