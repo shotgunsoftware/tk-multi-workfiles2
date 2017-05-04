@@ -121,11 +121,13 @@ class FileFormBase(QtGui.QWidget):
 
         # get any extra display fields we'll need to retrieve:
         extra_display_fields = app.get_setting("my_tasks_extra_display_fields")
+        my_tasks_filter_statuses = app.get_setting("my_tasks_filter_statuses",["fin"])
 
         # create the model:
         model = MyTasksModel(app.context.project,
                              g_user_cache.current_user,
                              extra_display_fields,
+                             my_tasks_filter_statuses,
                              parent=self,
                              bg_task_manager=self._bg_task_manager)
         monitor_qobject_lifetime(model, "My Tasks Model")

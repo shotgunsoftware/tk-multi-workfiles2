@@ -78,6 +78,10 @@ class EntityTreeForm(QtGui.QWidget):
         self._expanded_items = set()
         self._auto_expanded_root_items = set()
 
+        # load the setting that states whether the first level of the tree should be auto expanded
+        app = sgtk.platform.current_bundle()
+        self._auto_expand_tree = app.get_setting("auto_expand_tree", True)
+
         # set up the UI
         self._ui = Ui_EntityTreeForm()
         self._ui.setupUi(self)
@@ -117,7 +121,7 @@ class EntityTreeForm(QtGui.QWidget):
                 self._ui.entity_tree.setModel(filter_model)
 
                 # connect up the filter controls:
-                self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
+                self._ui.search_ctrl.search_changed.connect(self._on_search_changed)
                 self._ui.my_tasks_cb.toggled.connect(self._on_my_tasks_only_toggled)
             else:
                 self._ui.entity_tree.setModel(entity_model)
@@ -542,6 +546,10 @@ class EntityTreeForm(QtGui.QWidget):
         """
         view_model = self._ui.entity_tree.model()
         if not view_model:
+            return
+
+        # check if we should automatically expand the root level of the tree
+        if not self._auto_expand_tree:
             return
 
         # disable widget paint updates whilst we update the expanded state of the tree:
