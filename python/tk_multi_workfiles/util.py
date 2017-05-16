@@ -264,6 +264,16 @@ def get_template_user_keys(template):
 
 
 def resolve_filters(filters):
+    """
+    
+    When passed a list of filters, it will resolve strings found in the filters using the context
+    example: '{context.user}' could get resolved to {'type': 'HumanUser', 'id': 86, 'name': 'Philip Scadding'} 
+    
+    :param filters: a list of filters as found in the info.yml config
+    should be in the format: [[task_assignees, is, '{context.user}'],[sg_status_list, not_in, [fin,omt]]]
+    
+    :return: A List of filters for use with the shotgun api
+    """
     app = sgtk.platform.current_bundle()
 
     resolved_filters = []
