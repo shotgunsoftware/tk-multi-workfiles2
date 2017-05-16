@@ -140,15 +140,14 @@ configuration:
       default_value: []
 
     my_tasks_filters:
-      type: dict
+      type: list
       description: List of filters to apply to the tasks in the My Tasks tab.
       values:
-        type: list
+        type: shotgun_filter
       allows_empty: True
       default_value:
-        filters:
-          - [task_assignees, is, '{context.user}']
-          - [sg_status_list, not_in, [fin,omt]]
+        - [task_assignees, is, '{context.user}']
+        - [sg_status_list, not_in, [fin,omt]]
 
     file_extensions:
         type: list

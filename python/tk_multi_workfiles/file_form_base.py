@@ -121,9 +121,8 @@ class FileFormBase(QtGui.QWidget):
 
         # get any extra display fields we'll need to retrieve:
         extra_display_fields = app.get_setting("my_tasks_extra_display_fields")
-        # get the my task filters from the config. It is dictionary containing a single
-        # 'filters' key that contains a list. This due to the core not validating a list of lists
-        my_tasks_filters = app.get_setting("my_tasks_filters",{}).get('filters',[])
+        # get the my task filters from the config.
+        my_tasks_filters = app.get_setting("my_tasks_filters")
 
         # create the model:
         model = MyTasksModel(app.context.project,
