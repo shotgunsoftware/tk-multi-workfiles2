@@ -80,13 +80,14 @@ class EntityTreeForm(QtGui.QWidget):
 
         # load the setting that states whether the first level of the tree should be auto expanded
         app = sgtk.platform.current_bundle()
-        self._auto_expand_tree = app.get_setting("auto_expand_tree", True)
+        self._auto_expand_tree = app.get_setting("auto_expand_tree")
 
         # set up the UI
         self._ui = Ui_EntityTreeForm()
         self._ui.setupUi(self)
 
         self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
+        self._ui.search_ctrl.setToolTip("Press enter to complete the search")
 
         # enable/hide the my-tasks-only button if we are showing tasks:
         have_tasks = (entity_model and entity_model.get_entity_type() == "Task")

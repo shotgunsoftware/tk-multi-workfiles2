@@ -15,6 +15,8 @@ Implementation of the 'My Tasks' data model
 import sgtk
 from sgtk.platform.qt import QtGui
 
+from ..util import resolve_filters
+
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 
@@ -24,7 +26,7 @@ class MyTasksModel(ShotgunEntityModel):
     from the Shotgun entity model so that we have access to the entity icons it provides.  These are used 
     later by the MyTaskItemDelegate when rending a widget for a task in the My Tasks view.
     """
-    def __init__(self, project, user, extra_display_fields, my_tasks_filter_statuses, parent, bg_task_manager=None):
+    def __init__(self, project, user, extra_display_fields, my_tasks_filters, parent, bg_task_manager=None):
         """
         Construction
 
@@ -38,9 +40,10 @@ class MyTasksModel(ShotgunEntityModel):
                                         background threaded work.
         """
         self.extra_display_fields = extra_display_fields or []
-        filters = [["project", "is", project],
-                   ["task_assignees", "is", user],
-                   ["sg_status_list", "not_in", my_tasks_filter_statuses]]
+
+        filters = [["project", "is", project]]
+        filters.extend(resolve_filters(my_tasks_filters))
+
         fields = ["image", "entity", "content"]
         fields.extend(self.extra_display_fields)
 

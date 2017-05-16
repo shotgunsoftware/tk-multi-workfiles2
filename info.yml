@@ -139,13 +139,16 @@ configuration:
       allows_empty: True
       default_value: []
 
-    my_tasks_filter_statuses:
-      type: list
-      description: List of additional fields to display with the task in the My Tasks list.
+    my_tasks_filters:
+      type: dict
+      description: List of filters to apply to the tasks in the My Tasks tab.
       values:
-        type: str
+        type: list
       allows_empty: True
-      default_value: [fin,omt]
+      default_value:
+        filters:
+          - [task_assignees, is, '{context.user}']
+          - [sg_status_list, not_in, [fin,omt]]
 
     file_extensions:
         type: list
