@@ -129,7 +129,7 @@ configuration:
     auto_expand_tree:
         type: bool
         description: Automatically expands the root level of the treeviews.
-        default_value: True
+        default_value: False
 
     my_tasks_extra_display_fields:
       type: list
