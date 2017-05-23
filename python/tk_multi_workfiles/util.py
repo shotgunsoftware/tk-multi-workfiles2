@@ -261,3 +261,38 @@ def get_template_user_keys(template):
         if key.shotgun_entity_type == "HumanUser":
             user_keys.add(key.name)
     return user_keys
+
+
+def resolve_filters(filters):
+    """
+    
+    When passed a list of filters, it will resolve strings found in the filters using the context
+    example: '{context.user}' could get resolved to {'type': 'HumanUser', 'id': 86, 'name': 'Philip Scadding'} 
+    
+    :param filters: a list of filters as found in the info.yml config
+    should be in the format: [[task_assignees, is, '{context.user}'],[sg_status_list, not_in, [fin,omt]]]
+    
+    :return: A List of filters for use with the shotgun api
+    """
+    app = sgtk.platform.current_bundle()
+
+    resolved_filters = []
+    for filter in filters:
+        if type(filter) is dict:
+            resolved_filter = {
+                "filter_operator": filter["filter_operator"],
+                "filters": resolve_filters(filter["filters"])}
+        else:
+            resolved_filter = []
+            for field in filter:
+                if field == "{context.entity}":
+                    field = app.context.entity
+                elif field == "{context.step}":
+                    field = app.context.step
+                elif field == "{context.task}":
+                    field = app.context.task
+                elif field == "{context.user}":
+                    field = app.context.user
+                resolved_filter.append(field)
+        resolved_filters.append(resolved_filter)
+    return resolved_filters

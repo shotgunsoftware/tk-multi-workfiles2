@@ -33,7 +33,7 @@ from .file_item import FileItem
 from .work_area import WorkArea
 from .actions.new_task_action import NewTaskAction
 from .user_cache import g_user_cache
-from .util import monitor_qobject_lifetime
+from .util import monitor_qobject_lifetime, resolve_filters
 
 
 class FileFormBase(QtGui.QWidget):
@@ -121,11 +121,14 @@ class FileFormBase(QtGui.QWidget):
 
         # get any extra display fields we'll need to retrieve:
         extra_display_fields = app.get_setting("my_tasks_extra_display_fields")
+        # get the my task filters from the config.
+        my_tasks_filters = app.get_setting("my_tasks_filters")
 
         # create the model:
         model = MyTasksModel(app.context.project,
                              g_user_cache.current_user,
                              extra_display_fields,
+                             my_tasks_filters,
                              parent=self,
                              bg_task_manager=self._bg_task_manager)
         monitor_qobject_lifetime(model, "My Tasks Model")
@@ -140,28 +143,6 @@ class FileFormBase(QtGui.QWidget):
                     in the app configuration
         """
         app = sgtk.platform.current_bundle()
-
-        def resolve_filters(filters):
-            resolved_filters = []
-            for filter in filters:
-                if type(filter) is dict:
-                    resolved_filter = {
-                        "filter_operator": filter["filter_operator"],
-                        "filters": resolve_filters(filter["filters"])}
-                else:
-                    resolved_filter = []
-                    for field in filter:
-                        if field == "{context.entity}":
-                            field = app.context.entity
-                        elif field == "{context.step}":
-                            field = app.context.step
-                        elif field == "{context.task}":
-                            field = app.context.task
-                        elif field == "{context.user}":
-                            field = app.context.user
-                        resolved_filter.append(field)
-                resolved_filters.append(resolved_filter)
-            return resolved_filters
 
         entity_models = []
 
