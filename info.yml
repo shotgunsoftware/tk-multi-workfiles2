@@ -147,7 +147,6 @@ configuration:
       allows_empty: True
       default_value:
         - [task_assignees, is, '{context.user}']
-        - [sg_status_list, not_in, [fin,omt]]
 
     file_extensions:
         type: list
