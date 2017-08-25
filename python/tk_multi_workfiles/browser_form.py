@@ -216,7 +216,7 @@ class BrowserForm(QtGui.QWidget):
             return
 
         # update the selected entity in the various task/entity trees:
-        ctx_entity = context.task or context.step or context.entity
+        ctx_entity = context.task or context.entity or context.project
         if not ctx_entity:
             return
 
