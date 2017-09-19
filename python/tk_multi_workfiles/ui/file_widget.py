@@ -60,13 +60,16 @@ class Ui_FileWidget(object):
         self.verticalLayout.setObjectName("verticalLayout")
         spacerItem = QtGui.QSpacerItem(20, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem)
-        self.label = QtGui.QLabel(self.background)
+        self.label = ElidedLabel(self.background)
         self.label.setObjectName("label")
         self.verticalLayout.addWidget(self.label)
+        self.subtitle = QtGui.QLabel(self.background)
+        self.subtitle.setObjectName("subtitle")
+        self.verticalLayout.addWidget(self.subtitle)
         spacerItem1 = QtGui.QSpacerItem(20, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem1)
         self.verticalLayout.setStretch(0, 1)
-        self.verticalLayout.setStretch(2, 1)
+        self.verticalLayout.setStretch(3, 1)
         self.horizontalLayout_2.addLayout(self.verticalLayout)
         self.horizontalLayout_2.setStretch(1, 1)
         self.horizontalLayout.addWidget(self.background)
@@ -77,5 +80,7 @@ class Ui_FileWidget(object):
     def retranslateUi(self, FileWidget):
         FileWidget.setWindowTitle(QtGui.QApplication.translate("FileWidget", "Form", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("FileWidget", "<b>Title</b>", None, QtGui.QApplication.UnicodeUTF8))
+        self.subtitle.setText(QtGui.QApplication.translate("FileWidget", "Subtitle", None, QtGui.QApplication.UnicodeUTF8))
 
+from ..framework_qtwidgets import ElidedLabel
 from . import resources_rc
