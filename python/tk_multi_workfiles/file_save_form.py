@@ -587,7 +587,7 @@ class FileSaveForm(FileFormBase):
                 name_is_optional = name_is_used and self._current_env.work_template.is_optional("name")
                 if not name and not name_is_optional:
                     # lets populate name with a default value:
-                    name = self._current_env.save_as_default_name.format(**env.context.as_template_fields(self._current_env.work_template))
+                    name = self._current_env.save_as_default_name.format(**env.context.as_template_fields(self._current_env.work_template)) or "scene"
                 self._ui.name_edit.setText(name)
 
             self._ui.name_label.setVisible(name_is_used)
