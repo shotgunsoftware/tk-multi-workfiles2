@@ -183,7 +183,7 @@ configuration:
 requires_shotgun_fields:
 
 # More verbose description of this item 
-display_name: "Shotgun Workfiles"
+display_name: "Shotgun Workfiles (NEW)"
 description: "Using this app you can browse, open and save your Work Files and Publishes."
               
 # Required minimum versions for this item to run
