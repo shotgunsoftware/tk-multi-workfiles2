@@ -34,7 +34,7 @@ class MultiWorkFiles(sgtk.platform.Application):
 
         # register the file open command
         self.engine.register_command(
-            "File Open...",
+            "File Open... (NEW)",
             self.show_file_open_dlg,
             {
                 "short_name": "file_open",
@@ -54,7 +54,7 @@ class MultiWorkFiles(sgtk.platform.Application):
 
         # register the file save command
         self.engine.register_command(
-            "File Save...",
+            "File Save... (NEW)",
             self.show_file_save_dlg,
             {
                 "short_name": "file_save",
