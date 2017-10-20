@@ -126,6 +126,11 @@ configuration:
         default_value: True
         default_value_tk-hiero: False
 
+    auto_expand_tree:
+        type: bool
+        description: Automatically expands the root level of the treeviews.
+        default_value: False
+
     my_tasks_extra_display_fields:
       type: list
       description: List of additional fields to display with the task in the My Tasks list.
@@ -133,6 +138,15 @@ configuration:
         type: str
       allows_empty: True
       default_value: []
+
+    my_tasks_filters:
+      type: list
+      description: List of filters to apply to the tasks in the My Tasks tab.
+      values:
+        type: shotgun_filter
+      allows_empty: True
+      default_value:
+        - [task_assignees, is, '{context.user}']
 
     file_extensions:
         type: list

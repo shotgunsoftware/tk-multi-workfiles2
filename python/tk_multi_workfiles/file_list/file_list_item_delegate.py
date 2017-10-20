@@ -57,20 +57,24 @@ class FileListItemDelegate(GroupedListViewItemDelegate):
 
         # get the data for the model index:
         label = ""
+        subtitle = ""
         icon = None
+        show_subtitle = False
         item_type = get_model_data(model_index, FileModel.NODE_TYPE_ROLE)
         if item_type == FileModel.FILE_NODE_TYPE:
 
             is_publish = False
             is_editable = True
+            show_subtitle = True
             file_item = get_model_data(model_index, FileModel.FILE_ITEM_ROLE)
             if file_item:
-                # build label:
-                label = "<b>%s, v%03d</b>" % (file_item.name, file_item.version)
+                # build labels:
+                label = "<b>%s<b>" % file_item.name
+                subtitle += "v%03d" % file_item.version
                 if file_item.is_published:
-                    label += "<br>%s" % file_item.format_published_by_details()
+                    subtitle += "<br>%s" % file_item.format_published_by_details()
                 elif file_item.is_local:
-                    label += "<br>%s" % file_item.format_modified_by_details()
+                    subtitle += "<br>%s" % file_item.format_modified_by_details()
 
                 # retrieve the icon:
                 icon = file_item.thumbnail
@@ -90,6 +94,8 @@ class FileListItemDelegate(GroupedListViewItemDelegate):
 
         # update the widget:
         widget.title = label
+        widget.subtitle = subtitle
+        widget.set_show_subtitle(show_subtitle)
         widget.set_thumbnail(icon)
         widget.selected = (style_options.state & QtGui.QStyle.State_Selected) == QtGui.QStyle.State_Selected
 
