@@ -43,16 +43,15 @@ class SaveAsFileAction(FileAction):
                     % (self.environment.context, e))
                 self._app.log_exception("Failed to change the work area to %s!" % self.environment.context)
                 return False
-            else:
-                try:
-                    self._app.log_metric("Save as to diff workarea")
-                except:
-                    # ignore all errors. ex: using a core that doesn't support metrics
-                    pass
 
         # and save the current file as the new path:
         try:
             save_file(self._app, SAVE_FILE_AS_ACTION, self.environment.context, self.file.path)
+            try:
+                self._app.log_metric("Saved Workfile")
+            except:
+                # ignore all errors. ex: using a core that doesn't support metrics
+                pass
         except Exception, e:
             QtGui.QMessageBox.critical(None, "Failed to save file!", "Failed to save file:\n\n%s" % e)
             self._app.log_exception("Failed to save file!")

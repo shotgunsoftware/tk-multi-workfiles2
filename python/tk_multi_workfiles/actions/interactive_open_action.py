@@ -236,13 +236,17 @@ class InteractiveOpenAction(OpenFileAction):
                     src_path = work_path
                     work_path = local_path
 
-        try:
-            self._app.log_metric("Open workfile")
-        except:
-            # ignore all errors. ex: using a core that doesn't support metrics
-            pass
+        if self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui):
+            try:
+                self._app.log_metric("Opened Workfile")
+            except:
+                # ignore all errors. ex: using a core that doesn't support metrics
+                pass
 
-        return self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui)
+            finally:
+                return True
+
+        return False
 
     def _open_previous_publish(self, file, env, parent_ui):
         """
@@ -334,14 +338,17 @@ class InteractiveOpenAction(OpenFileAction):
                 self._app.log_exception("Failed to resolve work file path from publish path: %s" % src_path)
                 return False
 
-        try:
-            self._app.log_metric("Open published file")
-        except:
-            # ignore all errors. ex: using a core that doesn't support metrics
-            pass
+        if self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui)
+            try:
+                self._app.log_metric("Loaded Published File")
+            except:
+                # ignore all errors. ex: using a core that doesn't support metrics
+                pass
 
-        return self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui)
-        
+            return True
+
+        return False
+
         
         
         
