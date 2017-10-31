@@ -135,6 +135,15 @@ class OpenFileAction(FileAction):
             FileAction.restore_context(parent_ui, previous_context)
             return False
 
+        try:
+            self._app.log_info("NICOLAS: about to log_metric('Open Workfile --- from _do_copy_and_open')")
+            self._app.log_metric("Open Workfile")
+        except Exception as e:
+            # ignore all errors. ex: using a core that doesn't support metrics
+            self._app.log_info(
+                "NICOLAS: exception log_metric('Loaded Published File') ---- from _do_copy_and_open --- %s" % (
+                str(e)))
+
         return True
 
 
