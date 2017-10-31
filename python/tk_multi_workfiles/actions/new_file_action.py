@@ -90,6 +90,7 @@ class NewFileAction(Action):
             return False
         else:
             try:
+                self._app.log_debug("NICOLAS: About to log 'New Workfile' metric")
                 self._app.log_metric("New Workfile")
             except:
                 # ignore all errors. ex: using a core that doesn't support metrics

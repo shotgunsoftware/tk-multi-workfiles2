@@ -238,13 +238,13 @@ class InteractiveOpenAction(OpenFileAction):
 
         if self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui):
             try:
+                self._app.log_info("NICOLAS: before log_metric('Opened Workfile') --- from _open_workfile ----")
                 self._app.log_metric("Opened Workfile")
-            except:
+            except Exception as e:
                 # ignore all errors. ex: using a core that doesn't support metrics
-                pass
+                self._app.log_info("NICOLAS: exception log_metric('Opened Workfile') --- from _open_workfile ---- %s" % (str(e)))
 
-            finally:
-                return True
+            return True
 
         return False
 
@@ -261,13 +261,25 @@ class InteractiveOpenAction(OpenFileAction):
                                             QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
         if answer != QtGui.QMessageBox.Yes:
             return False        
-        
-        return self._do_copy_and_open(src_path = None, 
-                                      dst_path = file.publish_path, 
-                                      version = file.version, 
-                                      read_only = True, 
-                                      new_ctx = env.context, 
-                                      parent_ui = parent_ui)
+
+        self._app.log_info("NICOLAS: before _do_copy_and_open")
+        if self._do_copy_and_open(
+            src_path=None,
+            dst_path=file.publish_path,
+            version=file.version,
+            read_only=True,
+            new_ctx=env.context,
+            parent_ui=parent_ui):
+                try:
+                    self._app.log_info("NICOLAS: about to log_metric('Loaded Published File') --- from _open_previous_publish")
+                    self._app.log_metric("Loaded Published File")
+                except Exception as e:
+                    # ignore all errors. ex: using a core that doesn't support metrics
+                    self._app.log_info("NICOLAS: exception log_metric('Loaded Published File') --- from _open_previous_publish ---- %s" % (str(e)))
+
+                return True
+
+        return False
         
     def _open_publish_read_only(self, file, env, parent_ui):
         """
@@ -275,12 +287,26 @@ class InteractiveOpenAction(OpenFileAction):
         area - this just opens it directly without any file copying 
         or validation
         """
-        return self._do_copy_and_open(src_path = None, 
-                                      dst_path = file.publish_path, 
-                                      version = file.version,
-                                      read_only = True, 
-                                      new_ctx = env.context, 
-                                      parent_ui = parent_ui)
+        self._app.log_info("NICOLAS: before _do_copy_and_open --- _open_publish_read_only")
+        if self._do_copy_and_open(
+            src_path = None,
+            dst_path = file.publish_path,
+            version = file.version,
+            read_only = True,
+            new_ctx = env.context,
+            parent_ui = parent_ui):
+                try:
+                    self._app.log_info("NICOLAS: about to log_metric('Loaded Published File --- from _open_publish_read_only')")
+                    self._app.log_metric("Loaded Published File")
+                except Exception as e:
+                    # ignore all errors. ex: using a core that doesn't support metrics
+                    self._app.log_info("NICOLAS: exception log_metric('Loaded Published File') ---- from _open_publish_read_only --- %s" % (str(e)))
+
+                return True
+
+        return False
+
+
         
     def _open_publish_as_workfile(self, file, env, new_version, parent_ui):
         """
@@ -338,12 +364,14 @@ class InteractiveOpenAction(OpenFileAction):
                 self._app.log_exception("Failed to resolve work file path from publish path: %s" % src_path)
                 return False
 
-        if self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui)
+        self._app.log_info("NICOLAS: before _do_copy_and_open --- from _open_publish_as_workfile")
+        if self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui):
             try:
+                self._app.log_info("NICOLAS: about to log_metric('Loaded Published File') --- from _open_publish_as_workfile")
                 self._app.log_metric("Loaded Published File")
-            except:
+            except Exception as e:
                 # ignore all errors. ex: using a core that doesn't support metrics
-                pass
+                self._app.log_info("NICOLAS: exception log_metric('Loaded Published File') --- from _open_publish_as_workfile ---- %s" % (str(e)))
 
             return True
 

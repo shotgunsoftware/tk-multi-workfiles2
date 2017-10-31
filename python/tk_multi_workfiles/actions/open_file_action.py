@@ -48,6 +48,8 @@ class OpenFileAction(FileAction):
         :param new_ctx:     The context that the work file should be opened in
         :returns:           True of the source file is copied and successfully opened
         """
+
+        self._app.log_info("NICOLAS: _do_copy_and_open ...")
         if not dst_path or not new_ctx:
             # can't do anything!
             return False
