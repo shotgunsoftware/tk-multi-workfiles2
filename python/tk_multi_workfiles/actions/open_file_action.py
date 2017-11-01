@@ -137,7 +137,7 @@ class OpenFileAction(FileAction):
 
         try:
             self._app.log_info("NICOLAS: about to log_metric('Open Workfile --- from _do_copy_and_open')")
-            self._app.log_metric("Open Workfile")
+            self._app.log_metric("Opened Workfile")
         except Exception as e:
             # ignore all errors. ex: using a core that doesn't support metrics
             self._app.log_info(
