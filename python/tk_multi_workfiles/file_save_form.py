@@ -532,9 +532,6 @@ class FileSaveForm(FileFormBase):
         except:
             pass
 
-        app = sgtk.platform.current_bundle()
-        app.log_info("NICOLAS: fields=%s" % (str(fields)))
-
         if name_is_used:
             # update name edit:
             name = fields.get("name", "")
@@ -599,9 +596,7 @@ class FileSaveForm(FileFormBase):
             # update the visibility and available/default values of the extension menu:
             ext_is_used = "extension" in self._current_env.work_template.keys
             if ext_is_used:
-                app = sgtk.platform.current_bundle()
                 ext_key = self._current_env.work_template.keys["extension"]
-                app.log_info("NICOLAS: ext_key=%s" % (str(ext_key)))
                 #ext_choices = ext_key.choices
                 #ext_labels = ext_key.choice_labels
                 
@@ -616,7 +611,6 @@ class FileSaveForm(FileFormBase):
                 if current_ext in ext_choices.keys():
                     ext = current_ext
 
-                app.log_info("NICOLAS: ext_choices=%s" % (str(ext_choices)))
                 self._populate_extension_menu(ext_choices)#, ext_labels)
                 self._update_extension_menu(ext)
 

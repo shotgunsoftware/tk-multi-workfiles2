@@ -251,30 +251,27 @@ class InteractiveOpenAction(OpenFileAction):
                                             QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
         if answer != QtGui.QMessageBox.Yes:
             return False        
-
-        self._do_copy_and_open(
-            src_path=None,
-            dst_path=file.publish_path,
-            version=file.version,
-            read_only=True,
-            new_ctx=env.context,
-            parent_ui=parent_ui)
-
+        
+        return self._do_copy_and_open(src_path = None, 
+                                      dst_path = file.publish_path, 
+                                      version = file.version, 
+                                      read_only = True, 
+                                      new_ctx = env.context, 
+                                      parent_ui = parent_ui)
+        
     def _open_publish_read_only(self, file, env, parent_ui):
         """
         Open a previous version of a publish file from the publish 
         area - this just opens it directly without any file copying 
         or validation
         """
-        self._app.log_info("NICOLAS: before _do_copy_and_open --- _open_publish_read_only")
-        return self._do_copy_and_open(
-            src_path = None,
-            dst_path = file.publish_path,
-            version = file.version,
-            read_only = True,
-            new_ctx = env.context,
-            parent_ui = parent_ui)
-
+        return self._do_copy_and_open(src_path = None, 
+                                      dst_path = file.publish_path, 
+                                      version = file.version,
+                                      read_only = True, 
+                                      new_ctx = env.context, 
+                                      parent_ui = parent_ui)
+        
     def _open_publish_as_workfile(self, file, env, new_version, parent_ui):
         """
         Open the published file - this will construct a new work path from the 

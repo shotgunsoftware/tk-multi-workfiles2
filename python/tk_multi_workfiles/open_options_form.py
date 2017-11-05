@@ -17,8 +17,6 @@ from sgtk.platform.qt import QtCore, QtGui
 
 shotgun_data = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_data")
 
-import pdb
-
 class OpenOptionsForm(QtGui.QWidget):
     """
     UI for changing the version of the current work file
@@ -51,8 +49,6 @@ class OpenOptionsForm(QtGui.QWidget):
         self._app = app
         self._work_file = work_file
         self._publish_file = publish_file
-        app.log_info("NICOLAS: publish_file=%s" % str(publish_file))
-        pdb.set_trace()
         self._exit_code = QtGui.QDialog.Rejected
         self._mode = mode
         self._next_version = next_version

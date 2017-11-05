@@ -48,9 +48,7 @@ class SaveAsFileAction(FileAction):
         try:
             save_file(self._app, SAVE_FILE_AS_ACTION, self.environment.context, self.file.path)
             try:
-                self._app.log_exception("NICOLAS: before file save metric")
                 self._app.log_metric("Saved Workfile")
-                self._app.log_exception("NICOLAS: After file save metric")
             except:
                 # ignore all errors. ex: using a core that doesn't support metrics
                 pass

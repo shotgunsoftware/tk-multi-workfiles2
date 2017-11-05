@@ -48,8 +48,6 @@ class OpenFileAction(FileAction):
         :param new_ctx:     The context that the work file should be opened in
         :returns:           True of the source file is copied and successfully opened
         """
-
-        self._app.log_info("NICOLAS: _do_copy_and_open ...")
         if not dst_path or not new_ctx:
             # can't do anything!
             return False
@@ -136,13 +134,10 @@ class OpenFileAction(FileAction):
             return False
 
         try:
-            self._app.log_info("NICOLAS: about to log_metric('Open Workfile --- from _do_copy_and_open')")
             self._app.log_metric("Opened Workfile")
-        except Exception as e:
+        except:
             # ignore all errors. ex: using a core that doesn't support metrics
-            self._app.log_info(
-                "NICOLAS: exception log_metric('Loaded Published File') ---- from _do_copy_and_open --- %s" % (
-                str(e)))
+            pass
 
         return True
 
