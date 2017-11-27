@@ -44,7 +44,7 @@ class InteractiveOpenAction(OpenFileAction):
         publish_versions = [v for v, f in self.file_versions.iteritems() if f.is_published]
         max_local_version = max(local_versions) if local_versions else None
         max_publish_version = max(publish_versions) if publish_versions else None
-        max_version = max(max_local_version, max_publish_version)
+        max_version = max(0,max_local_version, max_publish_version)
 
         if (self._publishes_visible and self.file.is_published
             and (not self._workfiles_visible or not self.file.is_local)):
