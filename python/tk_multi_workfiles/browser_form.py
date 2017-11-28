@@ -220,7 +220,15 @@ class BrowserForm(QtGui.QWidget):
         if not ctx_entity:
             return
 
-        self._update_selected_entity(ctx_entity["type"], ctx_entity["id"], skip_current=False)
+        # get a list of widgets that have the entity in the various task/entity trees:
+        widgets = self._get_entity_widgets(ctx_entity["type"], ctx_entity["id"], skip_current=False)
+        if not widgets:
+            # stop if nothing matches the context
+            return
+
+        # update the selected entity in the various task/entity trees:
+        for widget in widgets:
+            widget.select_entity(ctx_entity["type"], ctx_entity["id"])
 
         if self._file_model:
             # now start a new file search based off the entity:
@@ -308,6 +316,31 @@ class BrowserForm(QtGui.QWidget):
         breadcrumb_trail.extend(child_breadcrumb_trail)
 
         self.work_area_changed.emit(entity, breadcrumb_trail)
+
+    def _get_entity_widgets(self, entity_type, entity_id, skip_current=True):
+        """
+        Returns a dictionary of entity items in all entity views for the specified entity.
+
+        :param entity_type: Type of the entity selected.
+        :param entity_id: Id of the entity selected.
+        :param skip_current: Hint to not return a widget for the current view.
+
+        :returns: A dictionary of matching items keyed by their model keyed by their widget.
+        """
+        current_widget = self._ui.task_browser_tabs.currentWidget()
+
+        # loop through all widgets and see if there is a widget for the entity:
+        widgets = []
+        for ti in range(self._ui.task_browser_tabs.count()):
+            widget = self._ui.task_browser_tabs.widget(ti)
+
+            if skip_current and widget == current_widget:
+                continue
+
+            if widget.get_entity_items(entity_type, entity_id):
+                widgets.append(widget)
+
+        return widgets
 
     def _update_selected_entity(self, entity_type, entity_id, skip_current=True):
         """

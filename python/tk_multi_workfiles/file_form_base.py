@@ -151,7 +151,7 @@ class FileFormBase(QtGui.QWidget):
         for ent in entities:
             caption = ent.get("caption", None)
             entity_type = ent.get("entity_type")
-            filters = ent.get("filters")
+            filters = ent.get("filters", [])
 
             # resolve any magic tokens in the filter
             # Note, we always filter on the current project as the app needs templates
@@ -185,7 +185,7 @@ class FileFormBase(QtGui.QWidget):
             fields = []
             if entity_type == "Task":
                 # Add so we can filter tasks assigned to the user only on the client side.
-                fields += ["task_assignees"]
+                fields += ["step", "task_assignees"]
 
             model = ShotgunEntityModel(entity_type, resolved_filters, hierarchy, fields, parent=self,
                                        bg_task_manager=self._bg_task_manager)
