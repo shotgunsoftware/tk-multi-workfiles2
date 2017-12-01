@@ -55,7 +55,7 @@ class NewTaskAction(Action):
             return False
 
         try:
-            from sgtk.util.metrics import EventMetric as EventMetric
+            from sgtk.util.metrics import EventMetric
 
             pipeline_step=new_task_form._get_pipeline_step()
             task_name = pipeline_step.get("code","unknown") # Why not new_task_form._get_task_name() ?
@@ -70,10 +70,12 @@ class NewTaskAction(Action):
             }
 
             # Log usage statistics about the Shotgun Desktop executable and the desktop startup.
-            EventMetric.log(EventMetric.GROUP_TASKS,
+            EventMetric.log(
+                            EventMetric.GROUP_TASKS,
                             "Created Task",
                             properties=properties,
-                            bundle=app)
+                            bundle=app
+            )
         except ImportError as e:
             # ignore all errors. ex: using a core that doesn't support metrics
             pass
