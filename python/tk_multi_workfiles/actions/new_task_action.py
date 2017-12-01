@@ -57,22 +57,23 @@ class NewTaskAction(Action):
         try:
             from sgtk.util.metrics import EventMetric as EventMetric
 
-            group = EventMetric.GROUP_TASKS
             pipeline_step=new_task_form._get_pipeline_step()
             task_name = pipeline_step.get("code","unknown") # Why not new_task_form._get_task_name() ?
             entity_type = pipeline_step.get("type", "Unknown")
             method = "Form" # since this was created from the Qt widget
             fields_used = []
-            properties = sgtk.platform.current_engine()._get_metrics_properties()
-            properties.update({
+            properties = {
                 "Linked Entity Type": entity_type,
                 "Method": method,
                 "Task Name": task_name,
                 "Fields Used": fields_used
-            })
+            }
 
             # Log usage statistics about the Shotgun Desktop executable and the desktop startup.
-            EventMetric.log(group, "Created Task", properties=properties)
+            EventMetric.log(EventMetric.GROUP_TASKS,
+                            "Created Task",
+                            properties=properties,
+                            bundle=app)
         except ImportError as e:
             # ignore all errors. ex: using a core that doesn't support metrics
             pass
