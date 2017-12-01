@@ -63,7 +63,7 @@ class WorkArea(object):
             :param context: Context for which these settings need to be cached.
             :param settings: Settings to cache.
             """
-            self._cache.append((context, copy.deepcopy(settings)))
+            self._cache.append((context, settings))
 
     _settings_cache = _SettingsCache()
 
