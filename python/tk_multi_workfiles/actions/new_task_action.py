@@ -51,4 +51,29 @@ class NewTaskAction(Action):
         res, new_task_form = app.engine.show_modal("Create New Task", app, NewTaskForm, self._entity, self._step,
                                                    g_user_cache.current_user, parent_ui)
 
-        return res == QtGui.QDialog.Accepted
+        if res != QtGui.QDialog.Accepted:
+            return False
+
+        try:
+            from sgtk.util.metrics import EventMetric
+
+            pipeline_step = new_task_form._get_pipeline_step()
+            properties = {
+                "Linked Entity Type": pipeline_step.get("type", "Unknown"),
+                "Method": "Form", # since this was created from the Qt widget,
+                "Task Name": pipeline_step.get("code","unknown"),
+            }
+
+            # Log usage statistics about the Shotgun Desktop executable and the desktop startup.
+            EventMetric.log(
+                EventMetric.GROUP_TASKS,
+                "Created Task",
+                properties=properties,
+                bundle=app
+            )
+
+        except ImportError as e:
+            # ignore all errors. ex: using a core that doesn't support metrics
+            pass
+
+        return True
