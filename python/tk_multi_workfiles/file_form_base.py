@@ -13,6 +13,8 @@ Base class for the file-open & file-save forms.  Contains common code for settin
 models etc. and common signals/operations (e.g creating a task)
 """
 import sys
+import re
+
 from itertools import chain
 
 import sgtk
@@ -33,8 +35,9 @@ from .file_item import FileItem
 from .work_area import WorkArea
 from .actions.new_task_action import NewTaskAction
 from .user_cache import g_user_cache
-from .util import monitor_qobject_lifetime, resolve_filters
+from .util import monitor_qobject_lifetime, resolve_filters, get_sg_entity_name_field
 
+logger = sgtk.platform.get_logger(__name__)
 
 class FileFormBase(QtGui.QWidget):
     """
@@ -151,7 +154,53 @@ class FileFormBase(QtGui.QWidget):
         for ent in entities:
             caption = ent.get("caption", None)
             entity_type = ent.get("entity_type")
-            filters = ent.get("filters")
+            filters = ent.get("filters", [])
+            hierarchy = ent.get("hierarchy", [])
+
+            linked_entity_type = None
+            if entity_type == "Task":
+                # If dealing with Tasks, we don't want to retrieve all of them and
+                # end up with a huge data set. So we retrieve the entities they could
+                # be linked to, and retrieve Tasks for these entities only when we
+                # need them.
+                # Retrieve the linked entity type from the filters
+                for filter in filters:
+                    if filter[0] == "entity" and filter[1] == "type_is":
+                        linked_entity_type = filter[2]
+                        break
+                if linked_entity_type:
+                    # If we found the linked entity type, we need to change the
+                    # request which will be send to the ShotgunModel
+                    unlinked_filters = []
+                    search_pattern = re.compile("^entity\.%s\.(.+)" % linked_entity_type)
+                    for filter in filters:
+                        m = re.match(search_pattern, filter[0])
+                        if m:
+                            unlinked_filters.append([m.group(1), filter[1], filter[2]])
+                    # tweak the hierarchy
+                    unlinked_hierarchy = []
+                    for part in hierarchy:
+                        m = re.match(search_pattern, part)
+                        if m:
+                            unlinked_hierarchy.append(m.group(1))
+                        elif part == "entity":
+                            # Replace with the Entity name
+                            unlinked_hierarchy.append(
+                                get_sg_entity_name_field(linked_entity_type)
+                            )
+                    logger.info("Replacing %s with %s" % (filters, unlinked_filters))
+                    filters = unlinked_filters
+                    logger.info("Replacing %s with %s" % (hierarchy, unlinked_hierarchy))
+                    hierarchy = unlinked_hierarchy
+                    entity_type = linked_entity_type
+
+            # Check the hierarchy to use for the model for this entity:
+            if not hierarchy:
+                app.log_error(
+                    "No hierarchy found for entity type '%s' - at least one level of "
+                    "hierarchy must be specified in the app configuration.  Skipping!" % entity_type
+                )
+                continue
 
             # resolve any magic tokens in the filter
             # Note, we always filter on the current project as the app needs templates
@@ -174,21 +223,21 @@ class FileFormBase(QtGui.QWidget):
 
             resolved_filters.extend(resolve_filters(filters))
 
-            # Get the hierarchy to use for the model for this entity:
-            hierarchy = ent.get("hierarchy")
-            if not hierarchy:
-                app.log_error("No hierarchy found for entity type '%s' - at least one level of "
-                              "hierarchy must be specified in the app configuration.  Skipping!" % entity_type)
-                continue
 
-            # create an entity model for this query:
+            # Create an entity model for this query:
             fields = []
             if entity_type == "Task":
                 # Add so we can filter tasks assigned to the user only on the client side.
                 fields += ["task_assignees"]
 
-            model = ShotgunEntityModel(entity_type, resolved_filters, hierarchy, fields, parent=self,
-                                       bg_task_manager=self._bg_task_manager)
+            model = ShotgunEntityModel(
+                entity_type,
+                resolved_filters,
+                hierarchy,
+                fields,
+                parent=self,
+                bg_task_manager=self._bg_task_manager
+            )
             monitor_qobject_lifetime(model, "Entity Model")
             entity_models.append((caption, model))
             model.async_refresh()

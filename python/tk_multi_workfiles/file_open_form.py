@@ -12,7 +12,6 @@
 Qt widget that presents the user with a list of work files and publishes
 so that they can choose one to open
 """
-
 import sgtk
 from sgtk.platform.qt import QtGui
 
@@ -27,6 +26,7 @@ from .ui.file_open_form import Ui_FileOpenForm
 from .work_area import WorkArea
 from .util import  get_template_user_keys
 
+logger = sgtk.platform.get_logger(__name__)
 
 class FileOpenForm(FileFormBase):
     """
@@ -92,6 +92,7 @@ class FileOpenForm(FileFormBase):
         # initialize the browser widget:
         self._ui.browser.show_user_filtering_widget(self._is_using_user_sandboxes())
         self._ui.browser.set_models(self._my_tasks_model, self._entity_models, self._file_model)
+        self._ui.browser.entity_selected.connect(self._on_entity_selected)
         current_file = self._get_current_file()
         self._ui.browser.select_work_area(app.context)
         self._ui.browser.select_file(current_file, app.context)
@@ -123,6 +124,14 @@ class FileOpenForm(FileFormBase):
 
         # be sure to call the base clase implementation
         return FileFormBase.closeEvent(self, event)
+
+    def _on_entity_selected(self, entity):
+        logger.info("%s selected..." % entity)
+        for caption, sg_model in self._entity_models:
+            if sg_model.get_entity_type() == entity["type"]:
+                index = sg_model.index_from_entity(entity["type"], entity["id"])
+                if index:
+                    logger.info("%s in model %s" % (entity, caption))
 
     def _on_browser_file_selected(self, file, env):
         """
