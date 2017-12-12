@@ -331,15 +331,29 @@ class WorkArea(object):
             app_settings = self._get_raw_app_settings_for_context(app, context)
             if app_settings:
 
-                settings = app_settings["settings"]
+                new_env = app_settings["env_instance"]
+                new_eng = app_settings["engine_instance"]
+                new_app = app_settings["app_instance"]
+                new_settings = app_settings["settings"]
+                new_descriptor = new_env.get_app_descriptor(new_eng, new_app)
 
+                # Create a new app instance from the new env / context
+                new_app_obj = sgtk.platform.application.get_application(
+                        app.engine, 
+                        new_descriptor.get_path(), 
+                        new_descriptor, 
+                        new_settings, 
+                        new_app, 
+                        new_env,
+                        context)
+                
                 # get templates:
                 for key in templates_to_find:
-                    resolved_settings[key] = app.get_template_from(settings, key)
+                    resolved_settings[key] = new_app_obj.get_template(key)
 
                 # get additional settings:
                 for key in settings_to_find:
-                    resolved_settings[key] = app.get_setting_from(settings, key)
+                    resolved_settings[key] = new_app_obj.get_setting(key)
 
         # Cache any found settings
         WorkArea._settings_cache.add(context, resolved_settings)
