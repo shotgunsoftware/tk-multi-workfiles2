@@ -45,7 +45,6 @@ class BrowserForm(QtGui.QWidget):
     file_selected = QtCore.Signal(object, object)# file, env
     file_double_clicked = QtCore.Signal(object, object)# file, env
     file_context_menu_requested = QtCore.Signal(object, object, QtCore.QPoint)# file, env, pnt
-    entity_selected = QtCore.Signal(dict)
 
     def __init__(self, parent):
         """
@@ -221,7 +220,11 @@ class BrowserForm(QtGui.QWidget):
         if not ctx_entity:
             return
 
-        self._update_selected_entity(ctx_entity["type"], ctx_entity["id"], skip_current=False)
+        self._update_selected_entity(
+            ctx_entity["type"],
+            ctx_entity["id"],
+            skip_current=False
+        )
 
         if self._file_model:
             # now start a new file search based off the entity:
@@ -393,9 +396,6 @@ class BrowserForm(QtGui.QWidget):
             children = selection_details["children"]
             # TODO - this needs fixing.
             is_leaf = primary_entity and primary_entity["type"] == "Task"
-
-            if primary_entity:
-                self.entity_selected.emit(primary_entity)
 
             primary_details = FileModel.SearchDetails(label)
             primary_details.entity = primary_entity

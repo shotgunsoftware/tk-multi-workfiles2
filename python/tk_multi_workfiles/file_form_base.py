@@ -171,6 +171,9 @@ class FileFormBase(QtGui.QWidget):
                 if linked_entity_type:
                     # If we found the linked entity type, we need to change the
                     # request which will be send to the ShotgunModel
+                    # TODO: find a way to apply the filter that we might have at
+                    # the task level (e.g. sg_status_list is "ip") to the retrieved
+                    # files.
                     unlinked_filters = []
                     search_pattern = re.compile("^entity\.%s\.(.+)" % linked_entity_type)
                     for filter in filters:

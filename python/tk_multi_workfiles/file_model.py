@@ -1028,9 +1028,69 @@ class FileModel(QtGui.QStandardItemModel):
             # ignore result
             return
         search = self._in_progress_searches[search_id]
-        search_user = work_area.context.user
 
-        # find the group item for this search:
+        sub_searches = {}
+        regular_search_files = []
+        if not search.child_entities:
+            # If we don't have child entities in the search we might have collected
+            # files at the entity level with wildcards for tasks or steps.
+            # We want them to appear in groups based on the Task/Step.
+            # Grouping (and lot of other things) is based on search, so we have
+            # to add additional searches for them
+
+            # them and use them as child entities for grouping.
+            # Please note that we're assuming those were retrieved from a TK
+            # context which put the Entity name under the "name" key in the
+            # dictionaries (and not in "code" or "content" etc...)
+            for file_item in file_list:
+                if file_item.task:
+                    search_key = self._gen_entity_key(file_item.task)
+                    if search_key not in sub_searches:
+                        sub_search = FileModel.SearchDetails(file_item.task["name"])
+                        sub_search.entity = file_item.task
+                        sub_search.is_leaf = True
+                        sub_searches[search_key] = {
+                            "search": sub_search,
+                            "files": []
+                        }
+                        self._current_searches.append(sub_search)
+                    sub_searches[search_key]["files"].append(file_item)
+                elif file_item.step:
+                    search_key = self._gen_entity_key(file_item.step)
+                    if search_key not in sub_searches:
+                        sub_search = FileModel.SearchDetails(file_item.step["name"])
+                        sub_search.entity = file_item.step
+                        sub_search.is_leaf = True
+                        sub_searches[search_key] = {
+                            "search": sub_search,
+                            "files": []
+                        }
+                        self._current_searches.append(sub_search)
+                    sub_searches[search_key]["files"].append(file_item)
+                else:
+                    regular_search_files.append(file_item)
+        else:
+            regular_search_files = file_list
+
+        self._process_group_search(
+            regular_search_files,
+            search,
+            work_area,
+            have_local,
+            have_publishes
+        )
+        for _, sub_search in sub_searches.iteritems():
+            self._process_group_search(
+                sub_search["files"],
+                sub_search["search"],
+                work_area,
+                have_local,
+                have_publishes
+            )
+
+    def _process_group_search(self, file_list, search, work_area, have_local, have_publishes):
+        # Find the group item for this search:
+        search_user = work_area.context.user
         group_key = (self._gen_entity_key(search.entity), self._gen_entity_key(search_user))
         found_group = False
         for group_item in self._group_items():
