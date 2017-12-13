@@ -47,7 +47,7 @@ class FileModel(QtGui.QStandardItemModel):
             self.name = name
             self.entity = None
             self.child_entities = []
-            self.is_leaf = False
+            self.is_leaf = False # TODO: this does not seem to be used anywhere?
 
         def __repr__(self):
             """
@@ -1048,7 +1048,6 @@ class FileModel(QtGui.QStandardItemModel):
                     if search_key not in sub_searches:
                         sub_search = FileModel.SearchDetails(file_item.task["name"])
                         sub_search.entity = file_item.task
-                        sub_search.is_leaf = True
                         sub_searches[search_key] = {
                             "search": sub_search,
                             "files": []
@@ -1060,7 +1059,6 @@ class FileModel(QtGui.QStandardItemModel):
                     if search_key not in sub_searches:
                         sub_search = FileModel.SearchDetails(file_item.step["name"])
                         sub_search.entity = file_item.step
-                        sub_search.is_leaf = True
                         sub_searches[search_key] = {
                             "search": sub_search,
                             "files": []

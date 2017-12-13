@@ -394,26 +394,26 @@ class BrowserForm(QtGui.QWidget):
             label = selection_details["label"]
             primary_entity = selection_details["entity"]
             children = selection_details["children"]
-            # TODO - this needs fixing.
-            is_leaf = primary_entity and primary_entity["type"] == "Task"
-
-            primary_details = FileModel.SearchDetails(label)
-            primary_details.entity = primary_entity
-            primary_details.is_leaf = is_leaf
-            search_details.append(primary_details)
+            primary_search = FileModel.SearchDetails(label)
+            primary_search.entity = primary_entity
+            search_details.append(primary_search)
 
             for child_details in children:
                 label = child_details["label"]
                 entity = child_details["entity"]
-                # TODO - and here!
-                is_leaf = entity and entity["type"] == "Task"
-                if not is_leaf:
-                    primary_details.child_entities.append({"name":label, "entity":entity})
+                # If dealing with a Task, add a search for it.
+                # Otherwise add the entity as a child to the primary search
+                # which will be displayed as folders in the UI.
+                # TODO: assess why we're doing that and if we should keep doing
+                # it.
+                if entity["type"] != "Task":
+                    primary_search.child_entities.append(
+                        {"name":label, "entity":entity}
+                    )
                 else:
-                    details = FileModel.SearchDetails(label)
-                    details.entity = entity
-                    details.is_leaf = is_leaf
-                    search_details.append(details)
+                    child_search = FileModel.SearchDetails(label)
+                    child_search.entity = entity
+                    search_details.append(child_search)
 
         # Clear the user sandbox button. We'll asynchronously show it back if it
         # is needed as work areas are
@@ -422,6 +422,8 @@ class BrowserForm(QtGui.QWidget):
 
         # refresh files:
         if self._file_model:
+            # TODO: Why we need to have this? Is it to keep a local copy of
+            # details to avoid garbage collection?
             p_details = []
             for search in search_details:
                 p_details.append({
