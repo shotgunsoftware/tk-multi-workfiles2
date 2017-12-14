@@ -20,6 +20,7 @@ from ..ui.entity_tree_form import Ui_EntityTreeForm
 from .entity_tree_proxy_model import EntityTreeProxyModel
 from ..framework_qtwidgets import Breadcrumb
 from ..util import get_model_str, map_to_source, get_source_model, monitor_qobject_lifetime
+from ..util import get_sg_entity_name_field
 
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
@@ -51,7 +52,7 @@ class EntityTreeForm(QtGui.QWidget):
     # Signal emitted when the 'New Task' button is clicked.
     create_new_task = QtCore.Signal(object, object)# entity, step
 
-    def __init__(self, entity_model, search_label, allow_task_creation, extra_fields, parent):
+    def __init__(self, entity_model, search_label, allow_task_creation, represent_tasks, extra_fields, parent):
         """
         Construction
 
@@ -90,12 +91,11 @@ class EntityTreeForm(QtGui.QWidget):
         self._ui.search_ctrl.setToolTip("Press enter to complete the search")
 
         # enable/hide the my-tasks-only button if we are showing tasks:
-        have_tasks = (entity_model and entity_model.get_entity_type() == "Task")
-        if not have_tasks:
+        if not represent_tasks:
             self._ui.my_tasks_cb.hide()
 
         # enable/hide the new task button if we have tasks and task creation is allowed:
-        if have_tasks and allow_task_creation:
+        if represent_tasks and allow_task_creation:
             # enable and connect the new task button
             self._ui.new_task_btn.clicked.connect(self._on_new_task)
             self._ui.new_task_btn.setEnabled(False)
@@ -115,7 +115,10 @@ class EntityTreeForm(QtGui.QWidget):
             entity_model.data_refreshed.connect(self._on_data_refreshed)
 
             if True:
-                # create a filter proxy model between the source model and the task tree view:
+                # Create a filter proxy model between the source model and the task tree view:
+                # For Tasks we allow matching by the Task name and the name of the
+                # Entity it is linked. For the other Entities, we only match with
+                # the model item name.
                 filter_model = EntityTreeProxyModel(self, ["content", {"entity": "name"}] + extra_fields)
                 monitor_qobject_lifetime(filter_model, "%s entity filter model" % search_label)
                 filter_model.setSourceModel(entity_model)
@@ -705,7 +708,13 @@ class EntityTreeForm(QtGui.QWidget):
         while src_index.isValid():
             entity = entity_model.get_entity(entity_model.itemFromIndex(src_index))
             if entity:
-                name_token = "content" if entity["type"] == "Task" else "name"
+                name_token = get_sg_entity_name_field(entity["type"])
+                # In some cases the name is not stored in under regular entity field
+                # name, but under the "name" key, e.g. if the Entity was retrieved
+                # from a TK context or using a nested SG query. So check if the
+                # expected key is present, use "name" if not.
+                if name_token not in entity:
+                    name_token = "name"
                 label = "<b>%s</b> %s" % (entity["type"], entity.get(name_token))
                 breadcrumbs.append(EntityTreeForm._EntityBreadcrumb(label, entity))
             else:

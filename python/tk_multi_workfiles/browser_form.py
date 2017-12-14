@@ -21,7 +21,7 @@ from .entity_tree.entity_tree_form import EntityTreeForm
 from .my_tasks.my_tasks_form import MyTasksForm
 from .file_list.file_list_form import FileListForm
 from .file_model import FileModel
-from .util import value_to_str
+from .util import value_to_str, get_sg_entity_name_field
 from .ui.browser_form import Ui_BrowserForm
 from .framework_qtwidgets import Breadcrumb
 
@@ -170,7 +170,16 @@ class BrowserForm(QtGui.QWidget):
 
         for caption, model in entity_models:
             # create new entity form:
-            entity_form = EntityTreeForm(model, caption, allow_task_creation, [], parent=self)
+            entity_type = model.get_entity_type()
+            represent_tasks = entity_type == "Task" or entity_type in self._deferred_queries
+            entity_form = EntityTreeForm(
+                model,
+                caption,
+                allow_task_creation,
+                represent_tasks,
+                [],
+                parent=self
+            )
             entity_form.entity_selected.connect(self._on_entity_selected)
             self._ui.task_browser_tabs.addTab(entity_form, caption)
             entity_form.create_new_task.connect(self.create_new_task)
@@ -397,11 +406,14 @@ class BrowserForm(QtGui.QWidget):
         if selection_details:
             label = selection_details["label"]
             primary_entity = selection_details["entity"]
-            children = selection_details["children"]
+            children = selection_details["children"] or []
             primary_search = FileModel.SearchDetails(label)
             primary_search.entity = primary_entity
             search_details.append(primary_search)
 
+            # If the selected entity does not have children, check if a deferred
+            # query was registered for this Entity type to defer collecting
+            # linked entities (typically Tasks) to the very last moment.
             if not children and primary_entity["type"] in self._deferred_queries:
                 deferred_query = self._deferred_queries[primary_entity["type"]]
                 sg_query = deferred_query["query"]
@@ -409,15 +421,25 @@ class BrowserForm(QtGui.QWidget):
                 filters.append(["entity", "is", primary_entity])
                 logger.debug("Deferred query %s" % deferred_query)
 
-                results = sgtk.platform.current_bundle().shotgun.find(
+                for result in  sgtk.platform.current_bundle().shotgun.find(
                     sg_query["entity_type"],
                     filters=filters,
                     fields=sg_query["fields"]
-                )
-                logger.debug("Deferred gave %s" % results)
-                children = [
-                    {"label": deferred_query["label"], "entity": x} for x in results
-                ]
+                ):
+                    # Special case for step field, this comes from a SG nested
+                    # query so the name is available with the "name" key, even
+                    # if it is stored in SG under another field name.
+                    if result.get("step"):
+                        child_label = "%s - %s" % (
+                            result["step"]["name"],
+                            result.get(get_sg_entity_name_field(result["type"]))
+                        )
+                    else:
+                        child_label = result.get(get_sg_entity_name_field(result["type"]))
+                    children.append({
+                        "label": child_label,
+                        "entity": result
+                    })
             for child_details in children:
                 label = child_details["label"]
                 entity = child_details["entity"]

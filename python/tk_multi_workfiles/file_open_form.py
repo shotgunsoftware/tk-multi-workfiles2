@@ -26,6 +26,8 @@ from .ui.file_open_form import Ui_FileOpenForm
 from .work_area import WorkArea
 from .util import  get_template_user_keys
 
+logger = sgtk.platform.get_logger(__name__)
+
 
 class FileOpenForm(FileFormBase):
     """
@@ -42,7 +44,8 @@ class FileOpenForm(FileFormBase):
         """
         app = sgtk.platform.current_bundle()
 
-        FileFormBase.__init__(self, parent, use_deferred_queries=True)
+        use_deferred_queries = app.get_setting("deferred_queries", False)
+        FileFormBase.__init__(self, parent, use_deferred_queries=use_deferred_queries)
 
         self._exit_code = QtGui.QDialog.Rejected
 
@@ -159,6 +162,7 @@ class FileOpenForm(FileFormBase):
         if not self._navigating:
             destination_label = breadcrumbs[-1].label if breadcrumbs else "..."
             self._ui.nav.add_destination(destination_label, breadcrumbs)
+        logger.info("Breadcrumb %s" % [x.label for x in breadcrumbs])
         self._ui.breadcrumbs.set(breadcrumbs)
 
     def _on_browser_file_double_clicked(self, file, env):
