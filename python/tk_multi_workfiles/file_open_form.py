@@ -26,7 +26,6 @@ from .ui.file_open_form import Ui_FileOpenForm
 from .work_area import WorkArea
 from .util import  get_template_user_keys
 
-logger = sgtk.platform.get_logger(__name__)
 
 class FileOpenForm(FileFormBase):
     """
@@ -128,14 +127,6 @@ class FileOpenForm(FileFormBase):
 
         # be sure to call the base clase implementation
         return FileFormBase.closeEvent(self, event)
-
-    def _on_entity_selected(self, entity):
-        logger.info("%s selected..." % entity)
-        for caption, sg_model in self._entity_models:
-            if sg_model.get_entity_type() == entity["type"]:
-                index = sg_model.index_from_entity(entity["type"], entity["id"])
-                if index:
-                    logger.info("%s in model %s" % (entity, caption))
 
     def _on_browser_file_selected(self, file, env):
         """

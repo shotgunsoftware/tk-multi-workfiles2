@@ -31,6 +31,11 @@ class NewFileAction(Action):
         Do some validation to see if it's possible to
         start a new file with the selected context.
         """
+        can_do_new = (env.context is not None
+                      and (env.context.entity or env.context.project)
+                      and env.work_area_template is not None)
+        return can_do_new
+
         if not env.context:
             return False
         if not env.context.entity or not env.context.project:

@@ -20,6 +20,7 @@ class FileItem(object):
     a single 'version' but will contain details about both the work/local file and the publish
     for that file if available.
     """
+
     @staticmethod
     def build_file_key(fields, template, ignore_fields = None):
         """

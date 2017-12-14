@@ -160,7 +160,7 @@ class BrowserForm(QtGui.QWidget):
         app = sgtk.platform.current_bundle()
         allow_task_creation = app.get_setting("allow_task_creation")
         self._deferred_queries = deferred_queries or {}
-        logger.info("Deferred queries %s" % self._deferred_queries)
+        logger.debug("Deferred queries %s" % self._deferred_queries)
         if my_tasks_model:
             # create my tasks form:
             self._my_tasks_form = MyTasksForm(my_tasks_model, allow_task_creation, parent=self)
@@ -407,14 +407,14 @@ class BrowserForm(QtGui.QWidget):
                 sg_query = deferred_query["query"]
                 filters = sg_query["filters"][:]
                 filters.append(["entity", "is", primary_entity])
-                logger.info("Deferred query %s" % deferred_query)
+                logger.debug("Deferred query %s" % deferred_query)
 
                 results = sgtk.platform.current_bundle().shotgun.find(
                     sg_query["entity_type"],
                     filters=filters,
                     fields=sg_query["fields"]
                 )
-                logger.info("Deferred gave %s" % results)
+                logger.debug("Deferred gave %s" % results)
                 children = [
                     {"label": deferred_query["label"], "entity": x} for x in results
                 ]

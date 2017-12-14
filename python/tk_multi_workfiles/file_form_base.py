@@ -201,9 +201,9 @@ class FileFormBase(QtGui.QWidget):
                             "fields": hierarchy,
                         }
                     }
-                    logger.info("Replacing %s with %s" % (filters, unlinked_filters))
+                    logger.debug("Replacing %s with %s" % (filters, unlinked_filters))
                     filters = unlinked_filters
-                    logger.info("Replacing %s with %s" % (hierarchy, unlinked_hierarchy))
+                    logger.debug("Replacing %s with %s" % (hierarchy, unlinked_hierarchy))
                     hierarchy = unlinked_hierarchy
                     entity_type = linked_entity_type
 
