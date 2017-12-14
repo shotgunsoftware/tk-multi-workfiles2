@@ -424,7 +424,11 @@ class BrowserForm(QtGui.QWidget):
                 for result in  sgtk.platform.current_bundle().shotgun.find(
                     sg_query["entity_type"],
                     filters=filters,
-                    fields=sg_query["fields"]
+                    fields=sg_query["fields"],
+                    order=[{
+                        "field_name": get_sg_entity_name_field(sg_query["entity_type"]),
+                        "direction": "asc"
+                    }]
                 ):
                     # Special case for step field, this comes from a SG nested
                     # query so the name is available with the "name" key, even
