@@ -31,10 +31,26 @@ class NewFileAction(Action):
         Do some validation to see if it's possible to
         start a new file with the selected context.
         """
-        can_do_new = (env.context is not None
-                      and (env.context.entity or env.context.project)
-                      and env.work_area_template is not None)
-        return can_do_new
+        if not env.context:
+            return False
+        if not env.context.entity or not env.context.project:
+            return False
+        if not env.work_area_template:
+            return False
+        if not env.work_template:
+            return False
+        try:
+            # Check we have a context allowing to resolve all keys for the
+            # template
+            fields = env.context.as_template_fields(env.work_template, validate=True)
+            missing_keys = env.work_template.missing_keys(fields)
+            for missing_key in missing_keys:
+                if not env.work_template.is_optional(missing_key):
+                    return False
+        except Exception, e:
+            logger.info("Not allowing new file on %s" % e, exc_info=True)
+            return False
+        return True
 
     def __init__(self, environment):
         """

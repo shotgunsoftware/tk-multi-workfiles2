@@ -43,7 +43,7 @@ class FileOpenForm(FileFormBase):
         """
         app = sgtk.platform.current_bundle()
 
-        FileFormBase.__init__(self, parent)
+        FileFormBase.__init__(self, parent, use_deferred_queries=True)
 
         self._exit_code = QtGui.QDialog.Rejected
 
@@ -91,7 +91,12 @@ class FileOpenForm(FileFormBase):
 
         # initialize the browser widget:
         self._ui.browser.show_user_filtering_widget(self._is_using_user_sandboxes())
-        self._ui.browser.set_models(self._my_tasks_model, self._entity_models, self._file_model)
+        self._ui.browser.set_models(
+            self._my_tasks_model,
+            self._entity_models,
+            self._file_model,
+            self._deferred_queries
+        )
         current_file = self._get_current_file()
         self._ui.browser.select_work_area(app.context)
         self._ui.browser.select_file(current_file, app.context)

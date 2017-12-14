@@ -44,7 +44,7 @@ class FileFormBase(QtGui.QWidget):
     Implementation of file form base class.  Contains initialisation and functionality
     used by both the File Open & File Save dialogs.
     """
-    def __init__(self, parent):
+    def __init__(self, parent, use_deferred_queries=False):
         """
         Construction
 
@@ -53,6 +53,7 @@ class FileFormBase(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
 
         self._current_file = None
+        self._deferred_queries = {}
 
         # create a single instance of the task manager that manages all
         # asynchrounous work/tasks.
@@ -64,7 +65,7 @@ class FileFormBase(QtGui.QWidget):
 
         # build the various models:
         self._my_tasks_model = self._build_my_tasks_model()
-        self._entity_models = self._build_entity_models()
+        self._entity_models, self._deferred_queries = self._build_entity_models(use_deferred_queries)
         self._file_model = self._build_file_model()
 
         # add refresh action with appropriate keyboard shortcut:
@@ -138,7 +139,7 @@ class FileFormBase(QtGui.QWidget):
         model.async_refresh()
         return model
 
-    def _build_entity_models(self):
+    def _build_entity_models(self, use_deferred_queries=False):
         """
         Build all entity models to be used by the file open/save dialogs.
 
@@ -148,6 +149,7 @@ class FileFormBase(QtGui.QWidget):
         app = sgtk.platform.current_bundle()
 
         entity_models = []
+        deferred_queries = {}
 
         # set up any defined task trees:
         entities = app.get_setting("entities", [])
@@ -158,7 +160,7 @@ class FileFormBase(QtGui.QWidget):
             hierarchy = ent.get("hierarchy", [])
 
             linked_entity_type = None
-            if entity_type == "Task":
+            if use_deferred_queries and entity_type == "Task":
                 # If dealing with Tasks, we don't want to retrieve all of them and
                 # end up with a huge data set. So we retrieve the entities they could
                 # be linked to, and retrieve Tasks for these entities only when we
@@ -191,6 +193,14 @@ class FileFormBase(QtGui.QWidget):
                             unlinked_hierarchy.append(
                                 get_sg_entity_name_field(linked_entity_type)
                             )
+                    deferred_queries[linked_entity_type] = {
+                        "label": caption,
+                        "query": {
+                            "entity_type": "Task",
+                            "filters": filters,
+                            "fields": hierarchy,
+                        }
+                    }
                     logger.info("Replacing %s with %s" % (filters, unlinked_filters))
                     filters = unlinked_filters
                     logger.info("Replacing %s with %s" % (hierarchy, unlinked_hierarchy))
@@ -245,7 +255,7 @@ class FileFormBase(QtGui.QWidget):
             entity_models.append((caption, model))
             model.async_refresh()
 
-        return entity_models
+        return entity_models, deferred_queries
 
     def _build_file_model(self):
         """

@@ -411,7 +411,9 @@ class FileFinder(QtCore.QObject):
         """
         fields = ["id", "description", "version_number", "image", "created_at", "created_by", "name", "path", "task"]
         published_file_type = sgtk.util.get_published_file_entity_type(self._app.sgtk)
-        sg_publishes = self._app.shotgun.find(published_file_type, publish_filters, fields)
+        sg_publishes = self._app.shotgun.find(
+            published_file_type, publish_filters, fields
+        )
         return sg_publishes
 
     def _filter_publishes(self, sg_publishes, publish_template, valid_file_extensions):
@@ -496,13 +498,13 @@ class FileFinder(QtCore.QObject):
             # when the context object does not have any corresponding objects on 
             # disk / in the path cache. In this case, we cannot continue with any
             # file system resolution, so just exit early insted.
-            logger.info("Invalid template for context: %s" % e, exc_info=True)
+            logger.debug("Invalid template for context: %s" % e, exc_info=True)
             return []
 
         # Build list of fields to ignore when looking for files, any missing key
         # is treated as a wildcard, which allows, for example to retrieve all files
         # for any pipeline step for a given Entity.
-        skip_fields = list(version_compare_ignore_fields or []) + missing_keys
+        skip_fields = list(version_compare_ignore_fields or [])
 
         # Skip any keys from work_fields that are _only_ optional in the template.  This is to
         # ensure we find as wide a range of files as possible considering all optional keys.
@@ -971,7 +973,6 @@ class AsyncFileFinder(FileFinder):
             # build the work area for this context: This may throw, but the background task manager framework
             # will catch
             work_area = WorkArea(context)
-
         return {"environment": work_area}
 
     def _task_resolve_sandbox_users(self, environment, **kwargs):

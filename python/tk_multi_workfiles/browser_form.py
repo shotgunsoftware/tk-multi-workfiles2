@@ -28,6 +28,8 @@ from .framework_qtwidgets import Breadcrumb
 from .file_filters import FileFilters
 from .util import monitor_qobject_lifetime, get_template_user_keys
 
+logger = sgtk.platform.get_logger(__name__)
+
 
 class BrowserForm(QtGui.QWidget):
     """
@@ -59,6 +61,7 @@ class BrowserForm(QtGui.QWidget):
         self._my_tasks_form = None
         self._entity_tree_forms = []
         self._file_browser_forms = []
+        self._deferred_queries = {}
 
         # set up the UI
         self._ui = Ui_BrowserForm()
@@ -146,7 +149,7 @@ class BrowserForm(QtGui.QWidget):
         """
         self._show_user_filtering_widget = is_visible
 
-    def set_models(self, my_tasks_model, entity_models, file_model):
+    def set_models(self, my_tasks_model, entity_models, file_model, deferred_queries=None):
         """
         Sets the models used by browser.
 
@@ -156,7 +159,8 @@ class BrowserForm(QtGui.QWidget):
         """
         app = sgtk.platform.current_bundle()
         allow_task_creation = app.get_setting("allow_task_creation")
-
+        self._deferred_queries = deferred_queries or {}
+        logger.info("Deferred queries %s" % self._deferred_queries)
         if my_tasks_model:
             # create my tasks form:
             self._my_tasks_form = MyTasksForm(my_tasks_model, allow_task_creation, parent=self)
@@ -398,6 +402,22 @@ class BrowserForm(QtGui.QWidget):
             primary_search.entity = primary_entity
             search_details.append(primary_search)
 
+            if not children and primary_entity["type"] in self._deferred_queries:
+                deferred_query = self._deferred_queries[primary_entity["type"]]
+                sg_query = deferred_query["query"]
+                filters = sg_query["filters"][:]
+                filters.append(["entity", "is", primary_entity])
+                logger.info("Deferred query %s" % deferred_query)
+
+                results = sgtk.platform.current_bundle().shotgun.find(
+                    sg_query["entity_type"],
+                    filters=filters,
+                    fields=sg_query["fields"]
+                )
+                logger.info("Deferred gave %s" % results)
+                children = [
+                    {"label": deferred_query["label"], "entity": x} for x in results
+                ]
             for child_details in children:
                 label = child_details["label"]
                 entity = child_details["entity"]

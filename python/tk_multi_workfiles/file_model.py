@@ -1031,7 +1031,7 @@ class FileModel(QtGui.QStandardItemModel):
 
         sub_searches = {}
         regular_search_files = []
-        if not search.child_entities:
+        if False and not search.child_entities:
             # If we don't have child entities in the search we might have collected
             # files at the entity level with wildcards for tasks or steps.
             # We want them to appear in groups based on the Task/Step.
