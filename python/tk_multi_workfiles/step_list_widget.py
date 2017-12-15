@@ -83,6 +83,7 @@ class StepListWidget(QtCore.QObject):
                     color = [int(x) for x in step["color"].split(",")] + [200]
                     pixmap.fill(QtGui.QColor(*color))
                     widget.setIcon(pixmap)
+                    widget.toggled.connect(self._on_step_check_changed)
                     item = QtGui.QListWidgetItem("", self._list_widget)
                     item.setData(QtCore.Qt.UserRole, step)
                     self._list_widget.setItemWidget(item, widget)
@@ -95,7 +96,21 @@ class StepListWidget(QtCore.QObject):
                     self._list_widget.setRowHidden(item_row, True)
                 else:
                     self._list_widget.setRowHidden(item_row, False)
-                    if self._list_widget.itemWidget(item).isChecked():
-                        selection.append(item_step)
+                if self._list_widget.itemWidget(item).isChecked():
+                    selection.append(item_step)
             self.step_filter_changed.emit(selection)
             self._list_widget.parent().setVisible(True)
+
+    def _on_step_check_changed(self, value):
+        """
+        Retrieve the whole selection and emit it when one of the Step item is
+        toggled on/off.
+        """
+        selection = []
+        for item_row in range(0, self._list_widget.count()):
+            item = self._list_widget.item(item_row)
+            item_step = item.data(QtCore.Qt.UserRole)
+            if self._list_widget.itemWidget(item).isChecked():
+                selection.append(item_step)
+        self.step_filter_changed.emit(selection)
+
