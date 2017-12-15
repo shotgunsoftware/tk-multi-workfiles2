@@ -84,6 +84,7 @@ class BrowserForm(QtGui.QWidget):
         self.entity_type_focus_changed.connect(
             self._step_list_widget.set_widgets_for_entity_type
         )
+        self._step_list_widget.step_filter_changed.connect(self._on_step_filter_changed)
 
     def shut_down(self):
         """
@@ -581,3 +582,7 @@ class BrowserForm(QtGui.QWidget):
         selection, breadcrumb_trail = form.get_selection()
         self._on_selected_entity_changed(selection, breadcrumb_trail)
         self.entity_type_focus_changed.emit(self._form_entity_types[idx])
+
+    def _on_step_filter_changed(self, step_list):
+        logger.info("Step list %s" % step_list)
+

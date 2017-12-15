@@ -84,14 +84,14 @@ class StepListWidget(QtCore.QObject):
                     pixmap.fill(QtGui.QColor(*color))
                     widget.setIcon(pixmap)
                     item = QtGui.QListWidgetItem("", self._list_widget)
-                    item.setData(QtCore.Qt.UserRole, (entity_type, step))
+                    item.setData(QtCore.Qt.UserRole, step)
                     self._list_widget.setItemWidget(item, widget)
                     self._step_widgets[entity_type].append(widget)
             selection = []
             for item_row in range(0, self._list_widget.count()):
                 item = self._list_widget.item(item_row)
-                item_entity_type, item_step = item.data(QtCore.Qt.UserRole)
-                if entity_type != item_entity_type:
+                item_step = item.data(QtCore.Qt.UserRole)
+                if entity_type != item_step["entity_type"]:
                     self._list_widget.setRowHidden(item_row, True)
                 else:
                     self._list_widget.setRowHidden(item_row, False)
