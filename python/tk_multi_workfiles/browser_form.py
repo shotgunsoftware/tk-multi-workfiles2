@@ -27,6 +27,7 @@ from .framework_qtwidgets import Breadcrumb
 
 from .file_filters import FileFilters
 from .util import monitor_qobject_lifetime, get_template_user_keys
+from .step_list_widget import StepListWidget
 
 logger = sgtk.platform.get_logger(__name__)
 
@@ -47,6 +48,7 @@ class BrowserForm(QtGui.QWidget):
     file_selected = QtCore.Signal(object, object)# file, env
     file_double_clicked = QtCore.Signal(object, object)# file, env
     file_context_menu_requested = QtCore.Signal(object, object, QtCore.QPoint)# file, env, pnt
+    entity_type_focus_changed = QtCore.Signal(object) # entity type
 
     def __init__(self, parent):
         """
@@ -62,6 +64,8 @@ class BrowserForm(QtGui.QWidget):
         self._entity_tree_forms = []
         self._file_browser_forms = []
         self._deferred_queries = {}
+        # Keep trace of the entity types being displayed by the left tabs
+        self._form_entity_types = []
 
         # set up the UI
         self._ui = Ui_BrowserForm()
@@ -73,6 +77,13 @@ class BrowserForm(QtGui.QWidget):
         self._file_filters = FileFilters(parent=None)
         monitor_qobject_lifetime(self._file_filters, "Browser file filters")
         self._file_filters.users_changed.connect(self._on_file_filters_users_changed)
+
+        # Build the step filter UI
+        self._step_list_widget = StepListWidget(self._ui.step_filter_list_widget)
+        # Notify it when we change the entity type being displayed
+        self.entity_type_focus_changed.connect(
+            self._step_list_widget.set_widgets_for_entity_type
+        )
 
     def shut_down(self):
         """
@@ -151,7 +162,7 @@ class BrowserForm(QtGui.QWidget):
 
     def set_models(self, my_tasks_model, entity_models, file_model, deferred_queries=None):
         """
-        Sets the models used by browser.
+        Sets the models used by browser and create the widgets to display them.
 
         :param my_tasks_model: Instance of the MyTaskModel class
         :param entity_models: List of ShotgunEntityModel instances.
@@ -161,8 +172,10 @@ class BrowserForm(QtGui.QWidget):
         allow_task_creation = app.get_setting("allow_task_creation")
         self._deferred_queries = deferred_queries or {}
         logger.debug("Deferred queries %s" % self._deferred_queries)
+        self._form_entity_types = []
         if my_tasks_model:
             # create my tasks form:
+            self._form_entity_types.append("Task")
             self._my_tasks_form = MyTasksForm(my_tasks_model, allow_task_creation, parent=self)
             self._my_tasks_form.entity_selected.connect(self._on_entity_selected)
             self._ui.task_browser_tabs.addTab(self._my_tasks_form, "My Tasks")
@@ -171,7 +184,28 @@ class BrowserForm(QtGui.QWidget):
         for caption, model in entity_models:
             # create new entity form:
             entity_type = model.get_entity_type()
-            represent_tasks = entity_type == "Task" or entity_type in self._deferred_queries
+            represent_tasks = False
+            if entity_type == "Task":
+                represent_tasks = True
+                # Retrieve the linked entity type from the model query. Keep "Task"
+                # if we can't figure it out.
+                filters = model.get_filters(None)
+                for filter in filters:
+                    if filter[0] == "entity":
+                        # We just handle very simple case. We could handle "type_is_not"
+                        # and retrieve the complementary list of entity types.
+                        if filter[1] == "type_is":
+                            entity_type = filter[2]
+                        # We found the filter we were looking for.
+                        break
+            elif entity_type in self._deferred_queries:
+                represent_tasks = bool(
+                    self._deferred_queries[entity_type]["query"]["entity_type"] == "Task"
+                )
+            if represent_tasks:
+                self._form_entity_types.append(entity_type)
+            else:
+                self._form_entity_types.append(None)
             entity_form = EntityTreeForm(
                 model,
                 caption,
@@ -546,3 +580,4 @@ class BrowserForm(QtGui.QWidget):
         # retrieve the selection from the form and emit a work-area changed signal:
         selection, breadcrumb_trail = form.get_selection()
         self._on_selected_entity_changed(selection, breadcrumb_trail)
+        self.entity_type_focus_changed.emit(self._form_entity_types[idx])

@@ -21,3 +21,9 @@ QWidget {
 #step_filter_label {
     font-size: 9px;
 }
+
+#step_filter_list_widget QCheckBox {
+    icon-size: 10px 10px;
+    padding-left: 10px;
+}
+
