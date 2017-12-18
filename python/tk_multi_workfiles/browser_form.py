@@ -49,6 +49,7 @@ class BrowserForm(QtGui.QWidget):
     file_double_clicked = QtCore.Signal(object, object)# file, env
     file_context_menu_requested = QtCore.Signal(object, object, QtCore.QPoint)# file, env, pnt
     entity_type_focus_changed = QtCore.Signal(object) # entity type
+    step_filter_changed = QtCore.Signal(list) # SG filter
 
     def __init__(self, parent):
         """
@@ -176,7 +177,7 @@ class BrowserForm(QtGui.QWidget):
         self._form_entity_types = []
         if my_tasks_model:
             # create my tasks form:
-            self._form_entity_types.append("Task")
+            self._form_entity_types.append((None, None)) #
             self._my_tasks_form = MyTasksForm(my_tasks_model, allow_task_creation, parent=self)
             self._my_tasks_form.entity_selected.connect(self._on_entity_selected)
             self._ui.task_browser_tabs.addTab(self._my_tasks_form, "My Tasks")
@@ -186,27 +187,28 @@ class BrowserForm(QtGui.QWidget):
             # create new entity form:
             entity_type = model.get_entity_type()
             represent_tasks = False
+            filters = model.get_filters(None)
             if entity_type == "Task":
                 represent_tasks = True
-                # Retrieve the linked entity type from the model query. Keep "Task"
-                # if we can't figure it out.
-                filters = model.get_filters(None)
-                for filter in filters:
-                    if filter[0] == "entity":
-                        # We just handle very simple case. We could handle "type_is_not"
-                        # and retrieve the complementary list of entity types.
-                        if filter[1] == "type_is":
-                            entity_type = filter[2]
-                        # We found the filter we were looking for.
-                        break
+#                # Retrieve the linked entity type from the model query. Keep "Task"
+#                # if we can't figure it out.
+#                filters = model.get_filters(None)
+#                for filter in filters:
+#                    if filter[0] == "entity":
+#                        # We just handle very simple case. We could handle "type_is_not"
+#                        # and retrieve the complementary list of entity types.
+#                        if filter[1] == "type_is":
+#                            entity_type = filter[2]
+#                        # We found the filter we were looking for.
+#                        break
             elif entity_type in self._deferred_queries:
                 represent_tasks = bool(
                     self._deferred_queries[entity_type]["query"]["entity_type"] == "Task"
                 )
             if represent_tasks:
-                self._form_entity_types.append(entity_type)
+                self._form_entity_types.append((entity_type, filters))
             else:
-                self._form_entity_types.append(None)
+                self._form_entity_types.append((None, filters))
             entity_form = EntityTreeForm(
                 model,
                 caption,
@@ -581,8 +583,9 @@ class BrowserForm(QtGui.QWidget):
         # retrieve the selection from the form and emit a work-area changed signal:
         selection, breadcrumb_trail = form.get_selection()
         self._on_selected_entity_changed(selection, breadcrumb_trail)
-        self.entity_type_focus_changed.emit(self._form_entity_types[idx])
+        self.entity_type_focus_changed.emit(self._form_entity_types[idx][0])
 
     def _on_step_filter_changed(self, step_list):
-        logger.info("Step list %s" % step_list)
-
+        step_filter = ["step.Step.id", "in", [x["id"] for x in step_list]]
+        logger.info("Step filter %s" % step_filter)
+        self.step_filter_changed.emit(step_filter)

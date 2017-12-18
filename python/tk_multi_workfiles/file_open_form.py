@@ -82,12 +82,12 @@ class FileOpenForm(FileFormBase):
         self._ui.open_btn.clicked.connect(self._on_open)
         self._ui.new_file_btn.clicked.connect(self._on_new_file)
 
+        self._ui.browser.file_context_menu_requested.connect(self._on_browser_context_menu_requested)
         self._ui.browser.create_new_task.connect(self._on_create_new_task)
         self._ui.browser.file_selected.connect(self._on_browser_file_selected)
         self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)
-        self._ui.browser.file_context_menu_requested.connect(self._on_browser_context_menu_requested)
         self._ui.browser.work_area_changed.connect(self._on_browser_work_area_changed)
-
+        self._ui.browser.step_filter_changed.connect(self._apply_step_filters)
         self._ui.nav.navigate.connect(self._on_navigate)
         self._ui.nav.home_clicked.connect(self._on_navigate_home)
 

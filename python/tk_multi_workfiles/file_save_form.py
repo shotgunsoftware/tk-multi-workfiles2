@@ -124,6 +124,7 @@ class FileSaveForm(FileFormBase):
         self._ui.version_spinner.valueChanged.connect(self._on_version_value_changed)
         self._ui.file_type_menu.currentIndexChanged.connect(self._on_extension_current_index_changed)
         self._ui.use_next_available_cb.toggled.connect(self._on_use_next_available_version_toggled)
+
         self._ui.browser.create_new_task.connect(self._on_create_new_task)
         self._ui.browser.file_selected.connect(self._on_browser_file_selected)
         self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)

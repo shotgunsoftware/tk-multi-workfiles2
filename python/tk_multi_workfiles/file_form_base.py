@@ -39,6 +39,89 @@ from .util import monitor_qobject_lifetime, resolve_filters, get_sg_entity_name_
 
 logger = sgtk.platform.get_logger(__name__)
 
+
+class ShotgunUpdatableEntityModel(ShotgunEntityModel):
+    def __init__(self, entity_type, filters, hierarchy, fields, *args, **kwargs):
+        self._entity_type = entity_type
+        self._original_filters = filters
+        self._hierarchy = hierarchy
+        self._fields = fields
+        super(ShotgunUpdatableEntityModel, self).__init__(
+            entity_type,
+            filters,
+            hierarchy,
+            fields,
+            *args,
+            **kwargs
+        )
+
+    def update_filters(self, extra_filters):
+        filters = self._original_filters[:] # Copy the list to not update the reference
+        filters.append(extra_filters)
+        logger.info("Refreshing data with %s -> %s" % (extra_filters, filters))
+        self._load_data(
+            self._entity_type,
+            filters,
+            self._hierarchy,
+            self._fields
+        )
+        self.async_refresh()
+
+    def item_from_entity(self, entity_type, entity_id):
+        """
+        """
+        logger.info("Looking for %s %s..." % (entity_type, entity_id))
+        self.ensure_data_is_loaded()
+        # If dealing with the primary entity type this model represent, just
+        # call the base implementation.
+        if entity_type == self.get_entity_type():
+            return super(ShotgunUpdatableEntityModel, self).item_from_entity(
+                entity_type, entity_id
+            )
+        # If not dealing with the primary entity type, we need to traverse the
+        # model to find the entity
+        # If the model is empty, just bail out
+        if not self.rowCount():
+            return None
+        parent_list = [self.invisibleRootItem()]
+        while parent_list:
+            parent = parent_list.pop()
+            logger.info("Checking items under %s" % parent)
+            for row_i in range(parent.rowCount()):
+                item = parent.child(row_i)
+                if self.canFetchMore(item.index()):
+                    self.fetchMore(item.index())
+                entity = self.get_entity(item)
+                logger.info("Got %s from %s" % (entity, item))
+                if entity and entity["type"] == entity_type and entity["id"] == entity_id:
+                    return item
+                if item.hasChildren():
+                    logger.info("Adding %s to parent list" % item)
+                    parent_list.append(item)
+
+    def item_from_field_value(self, item_field_value):
+        logger.info("Looking for %s" % item_field_value)
+        self.ensure_data_is_loaded()
+        if not self.rowCount():
+            return None
+        parent_list = [self.invisibleRootItem()]
+        while parent_list:
+            parent = parent_list.pop()
+            logger.info("Checking items under %s" % parent)
+            for row_i in range(parent.rowCount()):
+                item = parent.child(row_i)
+                if self.canFetchMore(item.index()):
+                    self.fetchMore(item.index())
+                value = item.data(self.SG_ASSOCIATED_FIELD_ROLE)
+                logger.info("Got %s from %s" % (value, item))
+                if value == item_field_value:
+                    return item
+                if item.hasChildren():
+                    logger.info("Adding %s to parent list" % item)
+                    parent_list.append(item)
+
+
+
 class FileFormBase(QtGui.QWidget):
     """
     Implementation of file form base class.  Contains initialisation and functionality
@@ -243,7 +326,7 @@ class FileFormBase(QtGui.QWidget):
                 # Add so we can filter tasks assigned to the user only on the client side.
                 fields += ["task_assignees"]
 
-            model = ShotgunEntityModel(
+            model = ShotgunUpdatableEntityModel(
                 entity_type,
                 resolved_filters,
                 hierarchy,
@@ -374,3 +457,8 @@ class FileFormBase(QtGui.QWidget):
                              publish_details = fields if is_publish else None)
 
         return file_item
+
+    def _apply_step_filters(self, step_filters):
+        logger.info("Step filter %s" % step_filters)
+        for _, model in self._entity_models:
+            model.update_filters(step_filters)
