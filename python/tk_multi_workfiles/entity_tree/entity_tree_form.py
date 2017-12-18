@@ -80,9 +80,6 @@ class EntityTreeForm(QtGui.QWidget):
         # as well
         self._expanded_items = set()
         self._auto_expanded_root_items = set()
-        # Loose reference to expanded entities used when the model is reset to
-        # re-expand the tree from the SG entities.
-        self._expanded_item_values = []
 
         # load the setting that states whether the first level of the tree should be auto expanded
         app = sgtk.platform.current_bundle()
@@ -150,17 +147,6 @@ class EntityTreeForm(QtGui.QWidget):
             if item:
                 idx = item.index()
                 self._entity_to_select = idx.model().get_entity(item)
-        # Capture how the tree is expanded
-        self._expanded_item_values = []
-        for weak_expanded in self._expanded_items:
-            if weak_expanded:
-                expanded = weak_expanded()
-                if expanded and expanded.model() and expanded.index().isValid():
-                    self._expanded_item_values.append(
-                        expanded.data(expanded.model().SG_ASSOCIATED_FIELD_ROLE)
-                    )
-        self._expanded_items = set()
-        logger.info("Reset, grabbing %s" % self._expanded_item_values)
 
         self._is_resetting_model = True
 
@@ -547,27 +533,14 @@ class EntityTreeForm(QtGui.QWidget):
 
         :param bool modifications_made: Whether or not changes were made.
         """
-        # If we collected entities on model reset, let's build the valid expanded
-        # items from them.
-        if self._expanded_item_values:
-            entity_model = get_source_model(self._ui.entity_tree.model())
-            for item_value in self._expanded_item_values:
-                item = entity_model.item_from_field_value(item_value)
-                logger.info("Found %s for %s" % (item, item_value))
-                if item:
-                    self._expanded_items.add(weakref.ref(item))
         if not modifications_made:
             return
 
         # expand any new root rows:
         self._expand_root_rows()
-        logger.info("Re-expanding tree with %s" % self._expanded_items)
-        self._fix_expanded_rows()
-        logger.info("Valid expanded tree is now %s" % self._expanded_items)
         # try to select the current entity from the new items in the model:
         prev_selected_item = self._reset_selection()
         self._update_selection(prev_selected_item)
-
 
     def _expand_root_rows(self):
         """
