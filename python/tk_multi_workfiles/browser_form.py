@@ -93,6 +93,8 @@ class BrowserForm(QtGui.QWidget):
         """
         signals_blocked = self.blockSignals(True)
         try:
+            logger.info("Saving step filters...")
+            self._step_list_widget.save_step_filters()
             # clean up my tasks form:
             if self._my_tasks_form:
                 self._my_tasks_form.shut_down()
@@ -324,8 +326,7 @@ class BrowserForm(QtGui.QWidget):
 
         :param users: Array of user entity dictionary.
         """
-        app = sgtk.platform.current_bundle()
-        app.log_debug("Sandbox users found: %s" % [u["name"].split()[0] for u in users if u])
+        logger.debug("Sandbox users found: %s" % [u["name"].split()[0] for u in users if u])
         self._file_filters.add_users(users)
 
     def _on_file_filters_users_changed(self, users):
@@ -335,8 +336,7 @@ class BrowserForm(QtGui.QWidget):
 
         :param users: Array of user entity dictionary.
         """
-        app = sgtk.platform.current_bundle()
-        app.log_debug("File filter users: %s" % [u["name"].split()[0] for u in users if u])
+        logger.debug("File filter users: %s" % [u["name"].split()[0] for u in users if u])
         if self._file_model:
             self._file_model.set_users(users)
 

@@ -13,8 +13,22 @@ from collections import defaultdict
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
+settings_fw = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
+
 logger = sgtk.platform.get_logger(__name__)
 
+_STEP_FILTERS_USER_SETTING = "step_filters"
+
+def load_step_filters():
+    manager = settings_fw.UserSettings(sgtk.platform.current_bundle())
+    step_filters = manager.retrieve(_STEP_FILTERS_USER_SETTING, [])
+    logger.info("Saved step filters %s" % step_filters)
+    return step_filters
+
+def get_saved_step_filter():
+    step_list = load_step_filters()
+    step_filter = ["step.Step.id", "in", [x["id"] for x in step_list]]
+    return step_filter
 
 class StepListWidget(QtCore.QObject):
     """
@@ -37,6 +51,7 @@ class StepListWidget(QtCore.QObject):
         self._list_widget = list_widget
         self._cache_step_list()
         self._step_widgets = defaultdict(list)
+        self._saved_filter_step_ids = [x["id"] for x in load_step_filters()]
 
     @classmethod
     def _cache_step_list(cls):
@@ -77,7 +92,6 @@ class StepListWidget(QtCore.QObject):
             self._list_widget.parent().setVisible(True)
         elif entity_type is None or entity_type not in self._step_list:
             self._list_widget.parent().setVisible(False)
-            #self.step_filter_changed.emit([])
         else:
             self._ensure_widgets_for_entity_type(entity_type)
             selection = []
@@ -93,11 +107,16 @@ class StepListWidget(QtCore.QObject):
             #self.step_filter_changed.emit(selection)
             self._list_widget.parent().setVisible(True)
 
-    def _retrieve_selection(self, value):
-        """
-        Retrieve the whole selection and emit it.
+    def save_step_filters(self):
+        manager = settings_fw.UserSettings(sgtk.platform.current_bundle())
+        current_selection = self._retrieve_selection()
+        manager.store(_STEP_FILTERS_USER_SETTING, current_selection)
 
-        Typically triggered when one of the Step item is toggled on/off.
+    def _retrieve_selection(self):
+        """
+        Retrieve the current Step filter selection.
+
+        :returns: A potentially empty list of Shotgun Step entity dictionaries.
         """
         selection = []
         for item_row in range(0, self._list_widget.count()):
@@ -105,7 +124,17 @@ class StepListWidget(QtCore.QObject):
             item_step = item.data(QtCore.Qt.UserRole)
             if self._list_widget.itemWidget(item).isChecked():
                 selection.append(item_step)
-        self.step_filter_changed.emit(selection)
+        return selection
+
+    def _retrieve_and_emit_selection(self, value=None):
+        """
+        Retrieve the whole selection and emit it.
+
+        Typically triggered when one of the Step item is toggled on/off.
+        :param value: Ignored, the value which triggered the call if used as a
+                      signal target slot.
+        """
+        self.step_filter_changed.emit(self._retrieve_selection())
 
     def _ensure_widgets_for_entity_type(self, entity_type):
         widgets = self._step_widgets[entity_type]
@@ -120,7 +149,12 @@ class StepListWidget(QtCore.QObject):
             color = [int(x) for x in step["color"].split(",")] + [200]
             pixmap.fill(QtGui.QColor(*color))
             widget.setIcon(pixmap)
-            widget.toggled.connect(self._retrieve_selection)
+            # Turn it on if it was in the step saved filters
+            # We do this before the toggled signal is connected to not emit
+            # un-wanted signals.
+            if step["id"] in self._saved_filter_step_ids:
+                widget.setChecked(True)
+            widget.toggled.connect(self._retrieve_and_emit_selection)
             item = QtGui.QListWidgetItem("", self._list_widget)
             item.setData(QtCore.Qt.UserRole, step)
             self._list_widget.setItemWidget(item, widget)

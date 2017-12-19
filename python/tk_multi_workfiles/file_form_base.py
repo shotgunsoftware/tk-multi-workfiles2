@@ -36,6 +36,7 @@ from .work_area import WorkArea
 from .actions.new_task_action import NewTaskAction
 from .user_cache import g_user_cache
 from .util import monitor_qobject_lifetime, resolve_filters, get_sg_entity_name_field
+from .step_list_widget import get_saved_step_filter
 
 logger = sgtk.platform.get_logger(__name__)
 
@@ -265,6 +266,9 @@ class FileFormBase(QtGui.QWidget):
         entity_models = []
         deferred_queries = {}
 
+        # Retrieve the step filter which was saved to apply it to Tasks
+        step_filter = get_saved_step_filter()
+
         # set up any defined task trees:
         entities = app.get_setting("entities", [])
         for ent in entities:
@@ -323,7 +327,7 @@ class FileFormBase(QtGui.QWidget):
 
             # Check the hierarchy to use for the model for this entity:
             if not hierarchy:
-                app.log_error(
+                logger.error(
                     "No hierarchy found for entity type '%s' - at least one level of "
                     "hierarchy must be specified in the app configuration.  Skipping!" % entity_type
                 )
@@ -350,7 +354,6 @@ class FileFormBase(QtGui.QWidget):
 
             resolved_filters.extend(resolve_filters(filters))
 
-
             # Create an entity model for this query:
             fields = []
             if entity_type == "Task":
@@ -367,7 +370,12 @@ class FileFormBase(QtGui.QWidget):
             )
             monitor_qobject_lifetime(model, "Entity Model")
             entity_models.append((caption, model))
-            model.async_refresh()
+            if entity_type == "Task":
+                # Apply the step filter as a second step so the original filter
+                # is preserved, allowing us to amend it later.
+                model.update_filters(step_filter)
+            else:
+                model.async_refresh()
 
         return entity_models, deferred_queries
 
@@ -401,9 +409,9 @@ class FileFormBase(QtGui.QWidget):
         :param checked:    True if the refresh action is checked - ignored
         """
         app = sgtk.platform.current_bundle()
-        app.log_debug("Synchronizing remote path cache...")
+        logger.debug("Synchronizing remote path cache...")
         app.sgtk.synchronize_filesystem_structure()
-        app.log_debug("Path cache up to date!")
+        logger.debug("Path cache up to date!")
         self._refresh_all_async()
 
     def _refresh_all_async(self):
