@@ -181,12 +181,21 @@ class EntityTreeForm(QtGui.QWidget):
         self._is_resetting_model = True
 
     def _model_reset(self):
+        """
+        Called when the model was reset.
+        """
+        # Please note that this is called on shutdown, and in that case the
+        # model is None.
         self._is_resetting_model = False
-        # Reset the search filter: brute force solution to not have to deal with
-        # current selection.
-        self._ui.search_ctrl._set_search_text("")
         if isinstance(self._ui.entity_tree.model(), QtGui.QAbstractProxyModel):
+            # Reset the search filter: brute force solution to not have to deal with
+            # current selection.
+            self._ui.search_ctrl._set_search_text("")
             self._ui.entity_tree.model().setFilterRegExp("")
+            # Toggle off the show "My Tasks" checkbox, trying to get it to behave
+            # seems complicated.
+            self._ui.my_tasks_cb.setChecked(False)
+            self._ui.entity_tree.model().only_show_my_tasks = False
 
     def shut_down(self):
         """
