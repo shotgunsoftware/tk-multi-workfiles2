@@ -21,12 +21,18 @@ _STEP_FILTERS_USER_SETTING = "step_filters"
 
 def load_step_filters():
     manager = settings_fw.UserSettings(sgtk.platform.current_bundle())
-    step_filters = manager.retrieve(_STEP_FILTERS_USER_SETTING, [])
+    step_filters = manager.retrieve(_STEP_FILTERS_USER_SETTING)
     logger.info("Saved step filters %s" % step_filters)
     return step_filters
 
 def get_saved_step_filter():
     step_list = load_step_filters()
+    if step_list is None:
+        return []
+    if not step_list:
+        # Ask for a non-existing step
+        return ["step.Step.id", "is", -1]
+    # General case
     step_filter = ["step.Step.id", "in", [x["id"] for x in step_list]]
     return step_filter
 
@@ -51,7 +57,15 @@ class StepListWidget(QtCore.QObject):
         self._list_widget = list_widget
         self._cache_step_list()
         self._step_widgets = defaultdict(list)
-        self._saved_filter_step_ids = [x["id"] for x in load_step_filters()]
+        saved_filters = load_step_filters()
+        if saved_filters is None:
+            # Settings were never saved before. Select all exsiting steps by
+            # default.
+            self._saved_filter_step_ids = []
+            for entity_type, step_list in self._step_list.iteritems():
+                self._saved_filter_step_ids.extend([x["id"] for x in step_list])
+        else:
+            self._saved_filter_step_ids = [x["id"] for x in load_step_filters()]
 
     @classmethod
     def _cache_step_list(cls):
@@ -108,6 +122,7 @@ class StepListWidget(QtCore.QObject):
             self._list_widget.parent().setVisible(True)
 
     def save_step_filters(self):
+        return
         manager = settings_fw.UserSettings(sgtk.platform.current_bundle())
         current_selection = self._retrieve_selection()
         manager.store(_STEP_FILTERS_USER_SETTING, current_selection)

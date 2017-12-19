@@ -145,6 +145,9 @@ class EntityTreeForm(QtGui.QWidget):
             selection_model.selectionChanged.connect(self._on_selection_changed)
 
     def _model_about_to_reset(self):
+        """
+        Slot called when the underlying model is about to be reset.
+        """
         # Catch the currently selected item and convert it to dictionary form
         # so we can pick it back after the model is reset.
         if self._current_item_ref:

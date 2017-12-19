@@ -27,7 +27,7 @@ from .framework_qtwidgets import Breadcrumb
 
 from .file_filters import FileFilters
 from .util import monitor_qobject_lifetime, get_template_user_keys
-from .step_list_widget import StepListWidget
+from .step_list_filter import StepListWidget
 
 logger = sgtk.platform.get_logger(__name__)
 
@@ -586,6 +586,9 @@ class BrowserForm(QtGui.QWidget):
         self.entity_type_focus_changed.emit(self._form_entity_types[idx][0])
 
     def _on_step_filter_changed(self, step_list):
-        step_filter = ["step.Step.id", "in", [x["id"] for x in step_list]]
+        if step_list:
+            step_filter = ["step.Step.id", "in", [x["id"] for x in step_list]]
+        else:
+            step_filter = []
         logger.info("Step filter %s" % step_filter)
         self.step_filter_changed.emit(step_filter)

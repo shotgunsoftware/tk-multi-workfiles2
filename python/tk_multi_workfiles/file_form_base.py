@@ -36,7 +36,7 @@ from .work_area import WorkArea
 from .actions.new_task_action import NewTaskAction
 from .user_cache import g_user_cache
 from .util import monitor_qobject_lifetime, resolve_filters, get_sg_entity_name_field
-from .step_list_widget import get_saved_step_filter
+from .step_list_filter import get_saved_step_filter
 
 logger = sgtk.platform.get_logger(__name__)
 
@@ -69,7 +69,8 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                               to the initial filters.
         """
         filters = self._original_filters[:] # Copy the list to not update the reference
-        filters.append(extra_filters)
+        if extra_filters:
+            filters.append(extra_filters)
         logger.info("Refreshing data with %s -> %s" % (extra_filters, filters))
         self._load_data(
             self._entity_type,
@@ -370,9 +371,10 @@ class FileFormBase(QtGui.QWidget):
             )
             monitor_qobject_lifetime(model, "Entity Model")
             entity_models.append((caption, model))
-            if entity_type == "Task":
+            if entity_type == "Task" and step_filter:
                 # Apply the step filter as a second step so the original filter
-                # is preserved, allowing us to amend it later.
+                # is preserved, allowing us to amend it later. An refresh is
+                # triggered by update_filters.
                 model.update_filters(step_filter)
             else:
                 model.async_refresh()
