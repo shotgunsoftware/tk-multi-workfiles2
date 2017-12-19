@@ -13,7 +13,6 @@ Implementation of the entity tree widget consisting of a tree view that displays
 contents of a Shotgun Data Model, a text search and a filter control.
 """
 import weakref
-import copy
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
@@ -81,6 +80,9 @@ class EntityTreeForm(QtGui.QWidget):
         # as well
         self._expanded_items = set()
         self._auto_expanded_root_items = set()
+        # Loose reference to expanded entities used when the model is reset to
+        # re-expand the tree from the SG entities.
+        self._expanded_item_values = []
 
         # load the setting that states whether the first level of the tree should be auto expanded
         app = sgtk.platform.current_bundle()
@@ -180,6 +182,11 @@ class EntityTreeForm(QtGui.QWidget):
 
     def _model_reset(self):
         self._is_resetting_model = False
+        # Reset the search filter: brute force solution to not have to deal with
+        # current selection.
+        self._ui.search_ctrl._set_search_text("")
+        if isinstance(self._ui.entity_tree.model(), QtGui.QAbstractProxyModel):
+            self._ui.entity_tree.model().setFilterRegExp("")
 
     def shut_down(self):
         """
@@ -577,6 +584,9 @@ class EntityTreeForm(QtGui.QWidget):
 
         # expand any new root rows:
         self._expand_root_rows()
+        logger.info("Re-expanding tree with %s" % self._expanded_items)
+        self._fix_expanded_rows()
+        logger.info("Valid expanded tree is now %s" % self._expanded_items)
         # try to select the current entity from the new items in the model:
         prev_selected_item = self._reset_selection()
         self._update_selection(prev_selected_item)

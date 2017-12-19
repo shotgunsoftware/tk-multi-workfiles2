@@ -190,7 +190,6 @@ class BrowserForm(QtGui.QWidget):
             filters = model.get_filters(None)
             if entity_type == "Task":
                 represent_tasks = True
-                entity_type = None
 #                # Retrieve the linked entity type from the model query. Keep "Task"
 #                # if we can't figure it out.
 #                filters = model.get_filters(None)

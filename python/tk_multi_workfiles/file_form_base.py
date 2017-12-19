@@ -357,7 +357,7 @@ class FileFormBase(QtGui.QWidget):
                 # Add so we can filter tasks assigned to the user only on the client side.
                 fields += ["task_assignees"]
 
-            model = ShotgunEntityModel(
+            model = ShotgunUpdatableEntityModel(
                 entity_type,
                 resolved_filters,
                 hierarchy,
@@ -491,6 +491,5 @@ class FileFormBase(QtGui.QWidget):
 
     def _apply_step_filters(self, step_filters):
         logger.info("Step filter %s" % step_filters)
-#        for _, model in self._entity_models:
-#            model.update_filters(step_filters)
-
+        for _, model in self._entity_models:
+            model.update_filters(step_filters)
