@@ -41,6 +41,9 @@ logger = sgtk.platform.get_logger(__name__)
 
 
 class ShotgunUpdatableEntityModel(ShotgunEntityModel):
+    """
+    A Shotgun Entity model with updatable filters.
+    """
     def __init__(self, entity_type, filters, hierarchy, fields, *args, **kwargs):
         self._entity_type = entity_type
         self._original_filters = filters
@@ -56,6 +59,14 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         )
 
     def update_filters(self, extra_filters):
+        """
+        Update the filters used by this model.
+
+        A full refresh is triggered by the update.
+
+        :param extra_filters: A list of additional Shotgun filters which are added
+                              to the initial filters.
+        """
         filters = self._original_filters[:] # Copy the list to not update the reference
         filters.append(extra_filters)
         logger.info("Refreshing data with %s -> %s" % (extra_filters, filters))
@@ -71,7 +82,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         """
         """
         logger.info("Looking for %s %s..." % (entity_type, entity_id))
-        self.ensure_data_is_loaded()
+        #self.ensure_data_is_loaded()
         # If dealing with the primary entity type this model represent, just
         # call the base implementation.
         if entity_type == self.get_entity_type():
@@ -101,7 +112,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
 
     def item_from_field_value(self, item_field_value):
         logger.info("Looking for %s" % item_field_value)
-        self.ensure_data_is_loaded()
+        #self.ensure_data_is_loaded()
         if not self.rowCount():
             return None
         parent_list = [self.invisibleRootItem()]
@@ -120,6 +131,26 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                     logger.info("Adding %s to parent list" % item)
                     parent_list.append(item)
 
+    def item_from_field_value_path(self, field_value_list):
+        if not self.rowCount():
+            return None
+        parent = self.invisibleRootItem()
+        for field_value in field_value_list:
+            logger.info("Looking for %s under %s" % (field_value, parent))
+            for row_i in range(parent.rowCount()):
+                item = parent.child(row_i)
+                if self.canFetchMore(item.index()):
+                    self.fetchMore(item.index())
+                value = item.data(self.SG_ASSOCIATED_FIELD_ROLE)
+                logger.info("Got %s from %s" % (value, item))
+                if value == field_value:
+                    parent = item
+                    break
+            else:
+                logger.warning("Couldn't retrieve %s under %s" % (
+                    field_value, parent,
+                ))
+        return parent
 
 
 class FileFormBase(QtGui.QWidget):
