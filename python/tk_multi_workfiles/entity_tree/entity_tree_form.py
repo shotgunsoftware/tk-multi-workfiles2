@@ -13,6 +13,7 @@ Implementation of the entity tree widget consisting of a tree view that displays
 contents of a Shotgun Data Model, a text search and a filter control.
 """
 import weakref
+import copy
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
@@ -111,8 +112,6 @@ class EntityTreeForm(QtGui.QWidget):
         self._ui.entity_tree.collapsed.connect(self._on_item_collapsed)
 
         self._is_resetting_model = False
-        entity_model.modelAboutToBeReset.connect(self._model_about_to_reset)
-        entity_model.modelReset.connect(self._model_reset)
 
         if entity_model:
             # Every time the model is refreshed with data from Shotgun, we'll need to re-expand nodes
@@ -132,7 +131,11 @@ class EntityTreeForm(QtGui.QWidget):
                 # connect up the filter controls:
                 self._ui.search_ctrl.search_changed.connect(self._on_search_changed)
                 self._ui.my_tasks_cb.toggled.connect(self._on_my_tasks_only_toggled)
+                filter_model.modelAboutToBeReset.connect(self._model_about_to_reset)
+                filter_model.modelReset.connect(self._model_reset)
             else:
+                entity_model.modelAboutToBeReset.connect(self._model_about_to_reset)
+                entity_model.modelReset.connect(self._model_reset)
                 self._ui.entity_tree.setModel(entity_model)
 
         self._expand_root_rows()
@@ -152,16 +155,30 @@ class EntityTreeForm(QtGui.QWidget):
                 self._entity_to_select = idx.model().get_entity(item)
         # Capture how the tree is expanded
         self._expanded_item_values = []
+        view_model = self._ui.entity_tree.model()
+        entity_model = get_source_model(self._ui.entity_tree.model())
         for weak_expanded in self._expanded_items:
             if weak_expanded:
                 expanded = weak_expanded()
-                if expanded and expanded.model() and expanded.index().isValid():
+                if expanded:
+                    # We need to collect values for the full path, as the same
+                    # value can appear multiple times in the tree, e.g. Steps
+                    # appear once per Task linked to them.
+                    logger.info("Dealing with %s" % expanded)
+                    current_item = expanded
+                    values = []
+                    while current_item:
+                        values.append(
+                            current_item.data(entity_model.SG_ASSOCIATED_FIELD_ROLE)
+                        )
+                        current_item = current_item.parent()
                     self._expanded_item_values.append(
-                        expanded.data(expanded.model().SG_ASSOCIATED_FIELD_ROLE)
+                        # Reverse the path so top nodes are first
+                        values[::-1],
                     )
-        self._expanded_items = set()
         logger.info("Reset, grabbing %s" % self._expanded_item_values)
-
+        # Clear internal list which will be invalidated anyway.
+        self._expanded_items = set()
         self._is_resetting_model = True
 
     def _model_reset(self):
@@ -552,9 +569,11 @@ class EntityTreeForm(QtGui.QWidget):
         if self._expanded_item_values:
             entity_model = get_source_model(self._ui.entity_tree.model())
             for item_value in self._expanded_item_values:
-                item = entity_model.item_from_field_value(item_value)
+                item = entity_model.item_from_field_value_path(item_value)
                 logger.info("Found %s for %s" % (item, item_value))
                 if item:
+                    # Items in the expanded items list are always items with
+                    # indexes in the source (entity) model, not the in the proxy.
                     self._expanded_items.add(weakref.ref(item))
         if not modifications_made:
             return
@@ -637,8 +656,14 @@ class EntityTreeForm(QtGui.QWidget):
                     if not filtered_idx.isValid():
                         continue
                 # and if the item isn't expanded then expand it:
+                logger.info("Checking %s" % item_ref())
                 if not self._ui.entity_tree.isExpanded(filtered_idx):
                     self._ui.entity_tree.expand(filtered_idx)
+                    logger.info(
+                        "Epxanded %s: %d" % (
+                            item_ref(), self._ui.entity_tree.isExpanded(filtered_idx)
+                        )
+                    )
             # update expanded item list with valid item refs:
             self._expanded_items = valid_expanded_items
         finally:
