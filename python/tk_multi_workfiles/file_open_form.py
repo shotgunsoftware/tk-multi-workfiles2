@@ -44,8 +44,7 @@ class FileOpenForm(FileFormBase):
         """
         app = sgtk.platform.current_bundle()
 
-        use_deferred_queries = app.get_setting("deferred_queries", False)
-        FileFormBase.__init__(self, parent, use_deferred_queries=use_deferred_queries)
+        FileFormBase.__init__(self, parent)
 
         self._exit_code = QtGui.QDialog.Rejected
 
@@ -97,7 +96,6 @@ class FileOpenForm(FileFormBase):
             self._my_tasks_model,
             self._entity_models,
             self._file_model,
-            self._deferred_queries
         )
         current_file = self._get_current_file()
         self._ui.browser.select_work_area(app.context)

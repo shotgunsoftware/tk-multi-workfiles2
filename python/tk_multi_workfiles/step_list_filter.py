@@ -41,7 +41,9 @@ def get_saved_step_filter():
 
     :returns: A Shotgun filter which can be directly added to a Shotgun query.
     """
-    step_list = load_step_filters()
+    return get_filter_from_filter_list(load_step_filters())
+
+def get_filter_from_filter_list(step_list):
     if step_list is None:
         # No Steps saved yet, allow all Steps.
         return []

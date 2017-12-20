@@ -45,11 +45,12 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
     """
     A Shotgun Entity model with updatable filters.
     """
-    def __init__(self, entity_type, filters, hierarchy, fields, *args, **kwargs):
+    def __init__(self, entity_type, filters, hierarchy, fields, deferred_query, *args, **kwargs):
         self._entity_type = entity_type
         self._original_filters = filters
         self._hierarchy = hierarchy
         self._fields = fields
+        self._deferred_query = deferred_query
         super(ShotgunUpdatableEntityModel, self).__init__(
             entity_type,
             filters,
@@ -68,16 +69,17 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         :param extra_filters: A list of additional Shotgun filters which are added
                               to the initial filters.
         """
-        filters = self._original_filters[:] # Copy the list to not update the reference
-        if extra_filters:
-            filters.append(extra_filters)
-        logger.info("Refreshing data with %s -> %s" % (extra_filters, filters))
-        self._load_data(
-            self._entity_type,
-            filters,
-            self._hierarchy,
-            self._fields
-        )
+        if not self._deferred_query:
+            filters = self._original_filters[:] # Copy the list to not update the reference
+            if extra_filters:
+                filters.append(extra_filters)
+            logger.info("Refreshing data with %s -> %s" % (extra_filters, filters))
+            self._load_data(
+                self._entity_type,
+                filters,
+                self._hierarchy,
+                self._fields
+            )
         self.async_refresh()
 
     def item_from_entity(self, entity_type, entity_id):
@@ -225,7 +227,7 @@ class FileFormBase(QtGui.QWidget):
 
         # build the various models:
         self._my_tasks_model = self._build_my_tasks_model()
-        self._entity_models, self._deferred_queries = self._build_entity_models(use_deferred_queries)
+        self._entity_models = self._build_entity_models()
         self._file_model = self._build_file_model()
 
         # add refresh action with appropriate keyboard shortcut:
@@ -299,7 +301,7 @@ class FileFormBase(QtGui.QWidget):
         model.async_refresh()
         return model
 
-    def _build_entity_models(self, use_deferred_queries=False):
+    def _build_entity_models(self):
         """
         Build all entity models to be used by the file open/save dialogs.
 
@@ -321,55 +323,21 @@ class FileFormBase(QtGui.QWidget):
             entity_type = ent.get("entity_type")
             filters = ent.get("filters", [])
             hierarchy = ent.get("hierarchy", [])
-
-            linked_entity_type = None
-            if use_deferred_queries and entity_type == "Task":
-                # If dealing with Tasks, we don't want to retrieve all of them and
-                # end up with a huge data set. So we retrieve the entities they could
-                # be linked to, and retrieve Tasks for these entities only when we
-                # need them.
-                # Retrieve the linked entity type from the filters
-                for filter in filters:
-                    if filter[0] == "entity" and filter[1] == "type_is":
-                        linked_entity_type = filter[2]
-                        break
-                if linked_entity_type:
-                    # If we found the linked entity type, we need to change the
-                    # request which will be send to the ShotgunModel
-                    # TODO: find a way to apply the filter that we might have at
-                    # the task level (e.g. sg_status_list is "ip") to the retrieved
-                    # files.
-                    unlinked_filters = []
-                    search_pattern = re.compile("^entity\.%s\.(.+)" % linked_entity_type)
-                    for filter in filters:
-                        m = re.match(search_pattern, filter[0])
-                        if m:
-                            unlinked_filters.append([m.group(1), filter[1], filter[2]])
-                    # tweak the hierarchy
-                    unlinked_hierarchy = []
-                    for part in hierarchy:
-                        m = re.match(search_pattern, part)
-                        if m:
-                            unlinked_hierarchy.append(m.group(1))
-                        elif part == "entity":
-                            # Replace with the Entity name
-                            unlinked_hierarchy.append(
-                                get_sg_entity_name_field(linked_entity_type)
-                            )
-                    deferred_queries[linked_entity_type] = {
-                        "label": caption,
-                        "query": {
-                            "entity_type": "Task",
-                            "filters": filters,
-                            "fields": hierarchy,
-                        }
+            sub_hierarchy = ent.get("sub_hierarchy", [])
+            deferred_query = None
+            if sub_hierarchy:
+                sub_entity_type = sub_hierarchy.get("entity_type", "Task")
+                sub_filters = sub_hierarchy.get("filters") or []
+                sub_fields = sub_hierarchy.get("fields", [])
+                deferred_query = {
+                    "label": caption,
+                    "query": {
+                        "entity_type": sub_entity_type,
+                        "filters": sub_filters,
+                        "fields": sub_fields,
                     }
-                    logger.debug("Replacing %s with %s" % (filters, unlinked_filters))
-                    filters = unlinked_filters
-                    logger.debug("Replacing %s with %s" % (hierarchy, unlinked_hierarchy))
-                    hierarchy = unlinked_hierarchy
-                    entity_type = linked_entity_type
-
+                }
+                logger.info("Added deferred query %s for %s" % (deferred_query, entity_type))
             # Check the hierarchy to use for the model for this entity:
             if not hierarchy:
                 logger.error(
@@ -410,6 +378,7 @@ class FileFormBase(QtGui.QWidget):
                 resolved_filters,
                 hierarchy,
                 fields,
+                deferred_query=deferred_query,
                 parent=self,
                 bg_task_manager=self._bg_task_manager
             )
@@ -423,7 +392,7 @@ class FileFormBase(QtGui.QWidget):
             else:
                 model.async_refresh()
 
-        return entity_models, deferred_queries
+        return entity_models
 
     def _build_file_model(self):
         """

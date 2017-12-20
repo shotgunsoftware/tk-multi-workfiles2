@@ -27,7 +27,7 @@ from .framework_qtwidgets import Breadcrumb
 
 from .file_filters import FileFilters
 from .util import monitor_qobject_lifetime, get_template_user_keys
-from .step_list_filter import StepListWidget
+from .step_list_filter import StepListWidget, get_filter_from_filter_list, get_saved_step_filter
 
 logger = sgtk.platform.get_logger(__name__)
 
@@ -64,10 +64,10 @@ class BrowserForm(QtGui.QWidget):
         self._my_tasks_form = None
         self._entity_tree_forms = []
         self._file_browser_forms = []
-        self._deferred_queries = {}
         # Keep trace of the entity types being displayed by the left tabs
         self._form_entity_types = []
-
+        self._deferred_queries = {}
+        self._step_filtering = None
         # set up the UI
         self._ui = Ui_BrowserForm()
         self._ui.setupUi(self)
@@ -86,6 +86,7 @@ class BrowserForm(QtGui.QWidget):
             self._step_list_widget.set_widgets_for_entity_type
         )
         self._step_list_widget.step_filter_changed.connect(self._on_step_filter_changed)
+        self._step_filtering = get_saved_step_filter()
 
     def shut_down(self):
         """
@@ -164,7 +165,7 @@ class BrowserForm(QtGui.QWidget):
         """
         self._show_user_filtering_widget = is_visible
 
-    def set_models(self, my_tasks_model, entity_models, file_model, deferred_queries=None):
+    def set_models(self, my_tasks_model, entity_models, file_model):
         """
         Sets the models used by browser and create the widgets to display them.
 
@@ -174,9 +175,9 @@ class BrowserForm(QtGui.QWidget):
         """
         app = sgtk.platform.current_bundle()
         allow_task_creation = app.get_setting("allow_task_creation")
-        self._deferred_queries = deferred_queries or {}
-        logger.debug("Deferred queries %s" % self._deferred_queries)
         self._form_entity_types = []
+        self._deferred_queries = {}
+
         if my_tasks_model:
             # create my tasks form:
             self._form_entity_types.append((None, None)) #
@@ -192,20 +193,10 @@ class BrowserForm(QtGui.QWidget):
             filters = model.get_filters(None)
             if entity_type == "Task":
                 represent_tasks = True
-#                # Retrieve the linked entity type from the model query. Keep "Task"
-#                # if we can't figure it out.
-#                filters = model.get_filters(None)
-#                for filter in filters:
-#                    if filter[0] == "entity":
-#                        # We just handle very simple case. We could handle "type_is_not"
-#                        # and retrieve the complementary list of entity types.
-#                        if filter[1] == "type_is":
-#                            entity_type = filter[2]
-#                        # We found the filter we were looking for.
-#                        break
-            elif entity_type in self._deferred_queries:
+            elif model._deferred_query:
+                self._deferred_queries[entity_type] = model._deferred_query
                 represent_tasks = bool(
-                    self._deferred_queries[entity_type]["query"]["entity_type"] == "Task"
+                    model._deferred_query["query"]["entity_type"] == "Task"
                 )
             if represent_tasks:
                 self._form_entity_types.append((entity_type, filters))
@@ -456,6 +447,8 @@ class BrowserForm(QtGui.QWidget):
                 sg_query = deferred_query["query"]
                 filters = sg_query["filters"][:]
                 filters.append(["entity", "is", primary_entity])
+                if self._step_filtering:
+                    filters.append(self._step_filtering)
                 logger.debug("Deferred query %s" % deferred_query)
 
                 for result in  sgtk.platform.current_bundle().shotgun.find(
@@ -586,9 +579,11 @@ class BrowserForm(QtGui.QWidget):
         self.entity_type_focus_changed.emit(self._form_entity_types[idx][0])
 
     def _on_step_filter_changed(self, step_list):
-        if step_list:
-            step_filter = ["step.Step.id", "in", [x["id"] for x in step_list]]
-        else:
-            step_filter = []
-        logger.info("Step filter %s" % step_filter)
-        self.step_filter_changed.emit(step_filter)
+        self._step_filtering = get_filter_from_filter_list(step_list)
+        self.step_filter_changed.emit(self._step_filtering)
+        if self._deferred_queries:
+            # If we have deferred queries, force a refresh by re-selecting the
+            # current tab.
+            tab_index = self._ui.task_browser_tabs.currentIndex()
+            self._on_task_tab_changed(tab_index)
+
