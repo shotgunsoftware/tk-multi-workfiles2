@@ -17,31 +17,48 @@ settings_fw = sgtk.platform.import_framework("tk-framework-shotgunutils", "setti
 
 logger = sgtk.platform.get_logger(__name__)
 
+# Settings name to save the Step filter list
 _STEP_FILTERS_USER_SETTING = "step_filters"
 
+
 def load_step_filters():
+    """
+    Load saved step filters.
+
+    If the step filters were not saved yet, None is returned.
+
+    :returns: None or a list of Shotgun Step dictionaries.
+    """
     manager = settings_fw.UserSettings(sgtk.platform.current_bundle())
     step_filters = manager.retrieve(_STEP_FILTERS_USER_SETTING)
     logger.info("Saved step filters %s" % step_filters)
     return step_filters
 
+
 def get_saved_step_filter():
+    """
+    Build a Shotgun query filter from saved Step filters.
+
+    :returns: A Shotgun filter which can be directly added to a Shotgun query.
+    """
     step_list = load_step_filters()
     if step_list is None:
+        # No Steps saved yet, allow all Steps.
         return []
     if not step_list:
-        # Ask for a non-existing step
+        # All steps off, ask for a non-existing step
         return ["step.Step.id", "is", -1]
-    # General case
+    # General case, build the filter from the Step list.
     step_filter = ["step.Step.id", "in", [x["id"] for x in step_list]]
     return step_filter
 
+
 class StepListWidget(QtCore.QObject):
     """
-    A list of Shotgun Pipeline steps per entity type.
+    A list widget of Shotgun Pipeline steps per entity type.
     """
     _step_list = None
-    step_filter_changed = QtCore.Signal(list) # List of SG step dictionaries
+    step_filter_changed = QtCore.Signal(object) # List of SG step dictionaries
 
     def __init__(self, list_widget):
         """
@@ -91,8 +108,6 @@ class StepListWidget(QtCore.QObject):
         Refresh the Step widgets being displayed for the given Entity type.
 
         If the Entity type is not supported or is None, the whole Step UI is hidden.
-        The current selection for the given Entity type is emitted, an empty list
-        is emitted for un-supported Entity types.
 
         :param str entity_type: A Shotgun Entity type or None.
         """
@@ -105,8 +120,10 @@ class StepListWidget(QtCore.QObject):
                 self._list_widget.setRowHidden(item_row, False)
             self._list_widget.parent().setVisible(True)
         elif entity_type is None or entity_type not in self._step_list:
+            # Hide all steps by hiding the parent widget.
             self._list_widget.parent().setVisible(False)
         else:
+            # Only show Steps for the given Entity type.
             self._ensure_widgets_for_entity_type(entity_type)
             selection = []
             for item_row in range(0, self._list_widget.count()):
@@ -118,11 +135,12 @@ class StepListWidget(QtCore.QObject):
                     self._list_widget.setRowHidden(item_row, False)
                 if self._list_widget.itemWidget(item).isChecked():
                     selection.append(item_step)
-            #self.step_filter_changed.emit(selection)
             self._list_widget.parent().setVisible(True)
 
     def save_step_filters(self):
-        return
+        """
+        Save the current Step filters in user settings.
+        """
         manager = settings_fw.UserSettings(sgtk.platform.current_bundle())
         current_selection = self._retrieve_selection()
         manager.store(_STEP_FILTERS_USER_SETTING, current_selection)
@@ -146,12 +164,18 @@ class StepListWidget(QtCore.QObject):
         Retrieve the whole selection and emit it.
 
         Typically triggered when one of the Step item is toggled on/off.
+
         :param value: Ignored, the value which triggered the call if used as a
                       signal target slot.
         """
         self.step_filter_changed.emit(self._retrieve_selection())
 
     def _ensure_widgets_for_entity_type(self, entity_type):
+        """
+        Ensure widgets for Steps for the given Entity type are build.
+
+        :param str entity_type: A Shotgun Entity type.
+        """
         widgets = self._step_widgets[entity_type]
         if widgets:
             return widgets
