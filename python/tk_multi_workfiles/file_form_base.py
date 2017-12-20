@@ -82,6 +82,18 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
 
     def item_from_entity(self, entity_type, entity_id):
         """
+        Retrieve the item representing the given entity in the model.
+
+        Leaves are only considered if the given Entity type matches the Entity
+        type this model represents. Otherwise, the full model hierarchy is traversed
+        to retrieve the given Entity.
+
+        .. note::
+            The same entity can appear multiple times in the hierarchy, the first
+            match is returned.
+
+        :param str entity_type: A Shotgun Entity type.
+        :param int entity_id: The Shotgun id of the Entity to look for.
         """
         logger.info("Looking for %s %s..." % (entity_type, entity_id))
         #self.ensure_data_is_loaded()
@@ -111,6 +123,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                 if item.hasChildren():
                     logger.info("Adding %s to parent list" % item)
                     parent_list.append(item)
+        return None
 
     def item_from_field_value(self, item_field_value):
         logger.info("Looking for %s" % item_field_value)
@@ -134,6 +147,19 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                     parent_list.append(item)
 
     def item_from_field_value_path(self, field_value_list):
+        """
+        Retrieve an item from a list of field values identifying its path.
+
+        This allows to retrieve an item in an updated model from a list of
+        collected field values representing its path.
+
+        Full or partial matches are performed: if the item represented by the
+        given value list is not present in the model anymore, the last item
+        matched from the value list is returned.
+
+        :param field_value_list: A list of field values for the path from the
+                                 root to the item.
+        """
         if not self.rowCount():
             return None
         parent = self.invisibleRootItem()
@@ -153,6 +179,24 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                     field_value, parent,
                 ))
         return parent
+
+    def get_item_field_value_path(self, item):
+        """
+        Return a list of field values identifying the absolute path to the given item.
+
+        This can be collected and used later to retrieve the path to the item in an
+        updated model.
+
+        :returns: A list of field values for the path from the root to the item.
+        """
+        current_item = item
+        values = []
+        while current_item:
+            values.append(
+                current_item.data(self.SG_ASSOCIATED_FIELD_ROLE)
+            )
+            current_item = current_item.parent()
+        return values[::-1]
 
 
 class FileFormBase(QtGui.QWidget):

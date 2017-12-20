@@ -163,20 +163,12 @@ class EntityTreeForm(QtGui.QWidget):
             if weak_expanded:
                 expanded = weak_expanded()
                 if expanded:
-                    # We need to collect values for the full path, as the same
-                    # value can appear multiple times in the tree, e.g. Steps
-                    # appear once per Task linked to them.
                     logger.info("Dealing with %s" % expanded)
-                    current_item = expanded
-                    values = []
-                    while current_item:
-                        values.append(
-                            current_item.data(entity_model.SG_ASSOCIATED_FIELD_ROLE)
-                        )
-                        current_item = current_item.parent()
                     self._expanded_item_values.append(
-                        # Reverse the path so top nodes are first
-                        values[::-1],
+                        # We need to collect values for the full path, as the same
+                        # value can appear multiple times in the tree, e.g. Steps
+                        # appear once per Task linked to them.
+                        entity_model.get_item_field_value_path(expanded),
                     )
         logger.info("Reset, grabbing %s" % self._expanded_item_values)
         # Clear internal list which will be invalidated anyway.
