@@ -80,9 +80,10 @@ class EntityTreeForm(QtGui.QWidget):
         # as well
         self._expanded_items = set()
         self._auto_expanded_root_items = set()
-        # Loose reference to expanded entities used when the model is reset to
-        # re-expand the tree from the SG entities.
+        # Loose reference to expanded/selected entities used when the model is
+        # reset to re-expand the tree from the SG entities.
         self._expanded_item_values = []
+        self._selected_item_value = []
 
         # load the setting that states whether the first level of the tree should be auto expanded
         app = sgtk.platform.current_bundle()
@@ -148,17 +149,18 @@ class EntityTreeForm(QtGui.QWidget):
         """
         Slot called when the underlying model is about to be reset.
         """
-        # Catch the currently selected item and convert it to dictionary form
-        # so we can pick it back after the model is reset.
+        entity_model = get_source_model(self._ui.entity_tree.model())
+        self._selected_item_value = []
+        # _entity_to_select is used to define a pre-selection before the model is
+        # fully build. Reset it if the model is reset, and capture a path to the
+        # selected item which will allow us to retrieve it in the updated model.
+        self._entity_to_select = None
         if self._current_item_ref:
             item = self._current_item_ref()
             if item:
-                idx = item.index()
-                self._entity_to_select = idx.model().get_entity(item)
+                self._selected_item_value = entity_model.get_item_field_value_path(item)
         # Capture how the tree is expanded
         self._expanded_item_values = []
-        view_model = self._ui.entity_tree.model()
-        entity_model = get_source_model(self._ui.entity_tree.model())
         for weak_expanded in self._expanded_items:
             if weak_expanded:
                 expanded = weak_expanded()
@@ -572,10 +574,16 @@ class EntityTreeForm(QtGui.QWidget):
 
         :param bool modifications_made: Whether or not changes were made.
         """
+        entity_model = get_source_model(self._ui.entity_tree.model())
+        # If something was selected on model reset, restore the selection, if
+        # possible.
+        if self._selected_item_value:
+            item = entity_model.item_from_field_value_path(self._selected_item_value)
+            if item:
+                self._current_item_ref = weakref.ref(item)
         # If we collected entities on model reset, let's build the valid expanded
         # items from them.
         if self._expanded_item_values:
-            entity_model = get_source_model(self._ui.entity_tree.model())
             for item_value in self._expanded_item_values:
                 item = entity_model.item_from_field_value_path(item_value)
                 logger.info("Found %s for %s" % (item, item_value))
