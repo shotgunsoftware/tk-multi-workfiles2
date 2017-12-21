@@ -318,6 +318,13 @@ class EntityTreeForm(QtGui.QWidget):
             idx_to_select = tree_model.mapFromSource(current_item.index())
         self._ui.entity_tree.selectionModel().setCurrentIndex(idx_to_select, QtGui.QItemSelectionModel.SelectCurrent)
 
+    @property
+    def entity_model(self):
+        """
+        :returns: The :class:`ShotgunEntityModel` this widget is attached to.
+        """
+        return get_source_model(self._ui.entity_tree.model())
+
     # ------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------
 

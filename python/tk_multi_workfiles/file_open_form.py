@@ -82,6 +82,7 @@ class FileOpenForm(FileFormBase):
         self._ui.new_file_btn.clicked.connect(self._on_new_file)
 
         self._ui.browser.file_context_menu_requested.connect(self._on_browser_context_menu_requested)
+
         self._ui.browser.create_new_task.connect(self._on_create_new_task)
         self._ui.browser.file_selected.connect(self._on_browser_file_selected)
         self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)

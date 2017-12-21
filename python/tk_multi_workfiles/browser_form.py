@@ -397,17 +397,22 @@ class BrowserForm(QtGui.QWidget):
         if self._ui.task_browser_tabs.currentWidget() != self.sender():
             return
 
-        selected_entity = self._on_selected_entity_changed(selection_details, breadcrumb_trail)
+        selected_entity = self._on_selected_entity_changed(
+            self.sender(),
+            selection_details,
+            breadcrumb_trail
+        )
         if selected_entity:
             self._update_selected_entity(selected_entity["type"], selected_entity["id"])
         else:
             self._update_selected_entity(None, None)
 
-    def _on_selected_entity_changed(self, selection_details, breadcrumb_trail):
+    def _on_selected_entity_changed(self, sender, selection_details, breadcrumb_trail):
         """
         Called when the selection changes in the My Task tab or one of the entities
         tab.
 
+        :param sender: The view which issued the selection change.
         :param selection_details: A dictionary describing the current selection, e.g.
             {
                 "label": "Car",
@@ -448,8 +453,8 @@ class BrowserForm(QtGui.QWidget):
             # Please note that we don't know which model/view issued the selection
             # so there is a potential problem here if different views were registered
             # for the same Entity type.
-            if not children and primary_entity["type"] in self._deferred_queries:
-                deferred_query = self._deferred_queries[primary_entity["type"]]
+            if not children and sender.entity_model and sender.entity_model._deferred_query:
+                deferred_query = sender.entity_model._deferred_query
                 sg_query = deferred_query["query"]
                 filters = sg_query["filters"][:]
                 filters.append(["entity", "is", primary_entity])
@@ -587,7 +592,7 @@ class BrowserForm(QtGui.QWidget):
         form = self._ui.task_browser_tabs.widget(idx)
         # retrieve the selection from the form and emit a work-area changed signal:
         selection, breadcrumb_trail = form.get_selection()
-        self._on_selected_entity_changed(selection, breadcrumb_trail)
+        self._on_selected_entity_changed(form, selection, breadcrumb_trail)
         self.entity_type_focus_changed.emit(self._form_entity_types[idx][0])
 
     def _on_step_filter_changed(self, step_list):

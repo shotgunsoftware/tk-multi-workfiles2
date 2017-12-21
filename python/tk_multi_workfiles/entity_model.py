@@ -12,6 +12,9 @@ import sgtk
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 
+logger = sgtk.platform.get_logger(__name__)
+
+
 class ShotgunUpdatableEntityModel(ShotgunEntityModel):
     """
     A Shotgun Entity model with updatable filters and deferred queries.
