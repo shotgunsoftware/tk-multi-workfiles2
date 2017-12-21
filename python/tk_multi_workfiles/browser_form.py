@@ -34,7 +34,10 @@ logger = sgtk.platform.get_logger(__name__)
 
 class BrowserForm(QtGui.QWidget):
     """
-    UI for saving a work file
+    Main UI piece holding the various views and the interactions between them.
+
+    'My Tasks', Entities/Tasks and file views are build by calling set_models from
+    the provided list of models.
     """
 
     class _EntityTabBreadcrumb(Breadcrumb):
@@ -169,8 +172,8 @@ class BrowserForm(QtGui.QWidget):
         """
         Sets the models used by browser and create the widgets to display them.
 
-        :param my_tasks_model: Instance of the MyTaskModel class
-        :param entity_models: List of ShotgunEntityModel instances.
+        :param my_tasks_model: Instance of the :class:`MyTaskModel`.
+        :param entity_models: List of :class:`ShotgunEntityModel` instances.
         :param file_model: Instance of the file model.
         """
         app = sgtk.platform.current_bundle()
@@ -442,6 +445,9 @@ class BrowserForm(QtGui.QWidget):
             # If the selected entity does not have children, check if a deferred
             # query was registered for this Entity type to defer collecting
             # linked entities (typically Tasks) to the very last moment.
+            # Please note that we don't know which model/view issued the selection
+            # so there is a potential problem here if different views were registered
+            # for the same Entity type.
             if not children and primary_entity["type"] in self._deferred_queries:
                 deferred_query = self._deferred_queries[primary_entity["type"]]
                 sg_query = deferred_query["query"]
@@ -557,6 +563,9 @@ class BrowserForm(QtGui.QWidget):
 
     def _on_file_tab_changed(self, idx):
         """
+        Called when the active File tab changed.
+
+        :param int idx: Active tab index.
         """
         selected_file = None
         env = None
@@ -571,6 +580,9 @@ class BrowserForm(QtGui.QWidget):
 
     def _on_task_tab_changed(self, idx):
         """
+        Called when the active Entity/Task tab changed.
+
+        :param int idx: Active tab index.
         """
         form = self._ui.task_browser_tabs.widget(idx)
         # retrieve the selection from the form and emit a work-area changed signal:
@@ -579,6 +591,14 @@ class BrowserForm(QtGui.QWidget):
         self.entity_type_focus_changed.emit(self._form_entity_types[idx][0])
 
     def _on_step_filter_changed(self, step_list):
+        """
+        Called when Step filters are changed.
+
+        Emit step_filter_changed with a filter build from the list and refresh the
+        file browser.
+
+        :param step_list: A list of Shotgun Step dictionaries.
+        """
         self._step_filtering = get_filter_from_filter_list(step_list)
         self.step_filter_changed.emit(self._step_filtering)
         if self._deferred_queries:

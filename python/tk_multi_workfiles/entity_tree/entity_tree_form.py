@@ -230,7 +230,7 @@ class EntityTreeForm(QtGui.QWidget):
         """
         # track the selected entity - this allows the entity to be selected when
         # it appears in the model even if the model hasn't been fully populated yet:
-        self._entity_to_select = {"type":entity_type, "id":entity_id}
+        self._entity_to_select = {"type": entity_type, "id": entity_id}
 
         # reset the current selection without emitting a signal:
         prev_selected_item = self._reset_selection()
@@ -478,9 +478,10 @@ class EntityTreeForm(QtGui.QWidget):
             # try to get the item to select:
             item = None
             if self._entity_to_select:
-                # we know about an entity we should try to select:
-                if entity_model.get_entity_type() == self._entity_to_select["type"]:
-                    item = entity_model.item_from_entity(self._entity_to_select["type"], self._entity_to_select["id"])
+                item = entity_model.item_from_entity(
+                    self._entity_to_select["type"],
+                    self._entity_to_select["id"]
+                )
             elif self._current_item_ref:
                 # no item to select but we do know about a current item:
                 item = self._current_item_ref()
