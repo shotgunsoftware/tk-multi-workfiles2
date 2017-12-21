@@ -44,7 +44,7 @@ class FileFormBase(QtGui.QWidget):
     Implementation of file form base class.  Contains initialisation and functionality
     used by both the File Open & File Save dialogs.
     """
-    def __init__(self, parent, use_deferred_queries=False):
+    def __init__(self, parent):
         """
         Construction
 
@@ -148,7 +148,6 @@ class FileFormBase(QtGui.QWidget):
         app = sgtk.platform.current_bundle()
 
         entity_models = []
-        deferred_queries = {}
 
         # Retrieve the step filter which was saved to apply it to Tasks
         step_filter = get_saved_step_filter()

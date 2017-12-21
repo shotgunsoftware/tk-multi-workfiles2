@@ -69,7 +69,6 @@ class BrowserForm(QtGui.QWidget):
         self._file_browser_forms = []
         # Keep trace of the entity types being displayed by the left tabs
         self._form_entity_types = []
-        self._deferred_queries = {}
         self._step_filtering = None
         # set up the UI
         self._ui = Ui_BrowserForm()
@@ -179,7 +178,6 @@ class BrowserForm(QtGui.QWidget):
         app = sgtk.platform.current_bundle()
         allow_task_creation = app.get_setting("allow_task_creation")
         self._form_entity_types = []
-        self._deferred_queries = {}
 
         if my_tasks_model:
             # create my tasks form:
@@ -194,14 +192,7 @@ class BrowserForm(QtGui.QWidget):
             entity_type = model.get_entity_type()
             represent_tasks = False
             filters = model.get_filters(None)
-            if entity_type == "Task":
-                represent_tasks = True
-            elif model._deferred_query:
-                self._deferred_queries[entity_type] = model._deferred_query
-                represent_tasks = bool(
-                    model._deferred_query["query"]["entity_type"] == "Task"
-                )
-            if represent_tasks:
+            if model.represents_tasks:
                 self._form_entity_types.append((entity_type, filters))
             else:
                 self._form_entity_types.append((None, filters))
@@ -209,7 +200,7 @@ class BrowserForm(QtGui.QWidget):
                 model,
                 caption,
                 allow_task_creation,
-                represent_tasks,
+                model.represents_tasks,
                 [],
                 parent=self
             )
@@ -606,7 +597,7 @@ class BrowserForm(QtGui.QWidget):
         """
         self._step_filtering = get_filter_from_filter_list(step_list)
         self.step_filter_changed.emit(self._step_filtering)
-        if self._deferred_queries:
+        if self._ui.task_browser_tabs.currentWidget().entity_model.deferred_query:
             # If we have deferred queries, force a refresh by re-selecting the
             # current tab.
             tab_index = self._ui.task_browser_tabs.currentIndex()
