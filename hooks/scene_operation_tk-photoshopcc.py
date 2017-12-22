@@ -60,15 +60,7 @@ class SceneOperation(HookClass):
 
         if operation == "current_path":
             # return the current script path
-            doc = self._get_active_document()
-
-            if doc.fullName is None:
-                # new file?
-                path = ""
-            else:
-                path = doc.fullName.fsName
-
-            return path
+            return adobe.get_active_document_path() or ""
 
         elif operation == "open":
             # open the specified script
@@ -97,9 +89,9 @@ class SceneOperation(HookClass):
         Returns the currently open document in Photoshop.
         Raises an exeption if no document is active.
         """
-        try:
-            doc = self.parent.engine.adobe.app.activeDocument
-        except RuntimeError:
+        doc = self.parent.engine.adobe.get_active_document()
+
+        if not doc:
             raise TankError("There is no active document!")
 
         return doc
