@@ -25,6 +25,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         self._hierarchy = hierarchy
         self._fields = fields
         self._deferred_query = deferred_query
+        self._entity_types = set()
         super(ShotgunUpdatableEntityModel, self).__init__(
             entity_type,
             filters,
@@ -75,6 +76,25 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             )
         self.async_refresh()
 
+    def _finalize_item(self, item):
+        """
+        Called every time an item was added in the model.
+        """
+        super(ShotgunUpdatableEntityModel, self)._finalize_item(item)
+        # We need to keep track of which entities are in the model, so we can bail
+        # out cheaply on entity searches, and not traverse the full model to look
+        # for an entity which can't be there.
+        entity = self.get_entity(item)
+        if entity:
+            self._entity_types.add(entity["type"])
+
+    def clear(self):
+        """
+        Clear the data we hold.
+        """
+        super(ShotgunUpdatableEntityModel, self).clear()
+        self._entity_types = set()
+
     def item_from_entity(self, entity_type, entity_id):
         """
         Retrieve the item representing the given entity in the model.
@@ -98,6 +118,9 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             return super(ShotgunUpdatableEntityModel, self).item_from_entity(
                 entity_type, entity_id
             )
+        if entity_type not in self._entity_types:
+            return None
+
         # If not dealing with the primary entity type, we need to traverse the
         # model to find the entity
         # If the model is empty, just bail out
@@ -113,33 +136,16 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                     self.fetchMore(item.index())
                 entity = self.get_entity(item)
                 logger.info("Got %s from %s" % (entity, item))
-                if entity and entity["type"] == entity_type and entity["id"] == entity_id:
+                # If dealing with an item holding the entity type we're looking
+                # for, we don't add it to the list of items to explore. We return
+                # it if the id is the one we're looking for.
+                if not entity or entity["type"] != entity_type:
+                    if item.hasChildren():
+                        logger.info("Adding %s to parent list" % item)
+                        parent_list.append(item)
+                elif entity["id"] == entity_id:
                     return item
-                if item.hasChildren():
-                    logger.info("Adding %s to parent list" % item)
-                    parent_list.append(item)
         return None
-
-    def item_from_field_value(self, item_field_value):
-        logger.info("Looking for %s" % item_field_value)
-        #self.ensure_data_is_loaded()
-        if not self.rowCount():
-            return None
-        parent_list = [self.invisibleRootItem()]
-        while parent_list:
-            parent = parent_list.pop()
-            logger.info("Checking items under %s" % parent)
-            for row_i in range(parent.rowCount()):
-                item = parent.child(row_i)
-                if self.canFetchMore(item.index()):
-                    self.fetchMore(item.index())
-                value = item.data(self.SG_ASSOCIATED_FIELD_ROLE)
-                logger.info("Got %s from %s" % (value, item))
-                if value == item_field_value:
-                    return item
-                if item.hasChildren():
-                    logger.info("Adding %s to parent list" % item)
-                    parent_list.append(item)
 
     def item_from_field_value_path(self, field_value_list):
         """
