@@ -105,6 +105,28 @@ class StepListWidget(QtCore.QObject):
             for sg_step in sg_steps:
                 cls._step_list[sg_step["entity_type"]].append(sg_step)
 
+    def select_all_steps(self, value=True):
+        """
+        Turn on or off all steps for filtering.
+
+        Only active step widgets are affected, the updated selection is retrieved
+        and emitted.
+
+        :param bool value: Whether to turn on or off the steps.
+        """
+        for item_row in range(0, self._list_widget.count()):
+            # Only toggle widgets currently active
+            if not self._list_widget.isRowHidden(item_row):
+                item = self._list_widget.item(item_row)
+                self._list_widget.itemWidget(item).setChecked(value)
+        self._retrieve_and_emit_selection()
+
+    def unselect_all_steps(self):
+        """
+        Turn off all steps for filtering.
+        """
+        self.select_all_steps(False)
+
     def set_widgets_for_entity_type(self, entity_type):
         """
         Refresh the Step widgets being displayed for the given Entity type.

@@ -82,6 +82,12 @@ class BrowserForm(QtGui.QWidget):
 
         # Build the step filter UI
         self._step_list_widget = StepListWidget(self._ui.step_filter_list_widget)
+        self._ui.select_all_step_button.pressed.connect(
+            self._step_list_widget.select_all_steps
+        )
+        self._ui.select_none_step_button.pressed.connect(
+            self._step_list_widget.unselect_all_steps
+        )
         # Notify it when we change the entity type being displayed
         self.entity_type_focus_changed.connect(
             self._step_list_widget.set_widgets_for_entity_type
@@ -180,7 +186,7 @@ class BrowserForm(QtGui.QWidget):
         if my_tasks_model:
             # create my tasks form:
             # No Step filtering for My Tasks.
-            self._form_step_entity_types.append(None) #
+            self._form_step_entity_types.append(None)
             self._my_tasks_form = MyTasksForm(my_tasks_model, allow_task_creation, parent=self)
             self._my_tasks_form.entity_selected.connect(self._on_entity_selected)
             self._ui.task_browser_tabs.addTab(self._my_tasks_form, "My Tasks")
@@ -192,11 +198,13 @@ class BrowserForm(QtGui.QWidget):
             represent_tasks = False
             filters = model.get_filters(None)
             if model.represents_tasks:
-                # Step filtering on the Entity type Tasks are linked to or Tasks.
+                # Step filtering on the Entity type the Tasks are linked to or
+                # on Tasks.
                 self._form_step_entity_types.append(entity_type)
             else:
                 # No Step filtering if not dealing with Tasks.
                 self._form_step_entity_types.append(None)
+
             entity_form = EntityTreeForm(
                 model,
                 caption,

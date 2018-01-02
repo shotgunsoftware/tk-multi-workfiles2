@@ -26,4 +26,9 @@ QWidget {
     icon-size: 10px 10px;
     padding-left: 10px;
 }
+#step_filters_frame QPushButton {
+    font-size: 9px;
+    margin: 5px;
+    background-color: transparent;
+}
 
