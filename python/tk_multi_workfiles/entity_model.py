@@ -12,6 +12,8 @@ import sgtk
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 
+from .util import get_sg_entity_name_field
+
 logger = sgtk.platform.get_logger(__name__)
 
 
@@ -20,11 +22,26 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
     A Shotgun Entity model with updatable filters and deferred queries.
     """
     def __init__(self, entity_type, filters, hierarchy, fields, deferred_query, *args, **kwargs):
+        """
+        :param entity_type: The type of the entities that should be loaded into this model.
+        :param filters: A list of filters to be applied to entities in the model - these
+                        will be passed to the Shotgun API find() call when populating the
+                        model
+        :param hierarchy: List of Shotgun fields that will be used to define the structure
+                          of the items in the model.
+        :param fields: List of Shotgun fields to populate the items in the model with.
+                       These will be passed to the Shotgun API find() call when populating
+                       the model.
+        :param deferred_query: A dictionary with the `entity_type`, `filter` and
+                               `fields` allowing to run a Shotgun sub-query for
+                               a given entity in this model.
+        """
         self._entity_type = entity_type
         self._original_filters = filters
         self._hierarchy = hierarchy
         self._fields = fields
         self._deferred_query = deferred_query
+        self._extra_filters = None
         self._entity_types = set()
         super(ShotgunUpdatableEntityModel, self).__init__(
             entity_type,
@@ -50,7 +67,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         """
         if self.get_entity_type() == "Task":
             return True
-        if self._deferred_query and self._deferred_query["query"]["entity_type"] == "Task":
+        if self._deferred_query and self._deferred_query["entity_type"] == "Task":
             return True
         return False
 
@@ -63,6 +80,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         :param extra_filters: A list of additional Shotgun filters which are added
                               to the initial filters.
         """
+        self._extra_filters = extra_filters
         if not self._deferred_query:
             filters = self._original_filters[:] # Copy the list to not update the reference
             if extra_filters:
@@ -75,6 +93,25 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                 self._fields
             )
         self.async_refresh()
+
+    def run_deferred_query_for_entity(self, sg_entity):
+        deferred_query = self._deferred_query
+        if not deferred_query:
+            return []
+        filters = deferred_query["filters"][:]
+        filters.append(["entity", "is", sg_entity])
+        if self._extra_filters:
+            filters.append(self._extra_filters)
+        logger.info("Deferred query %s" % deferred_query)
+        return sgtk.platform.current_bundle().shotgun.find(
+            deferred_query["entity_type"],
+            filters=filters,
+            fields=deferred_query["fields"],
+            order=[{
+                "field_name": get_sg_entity_name_field(deferred_query["entity_type"]),
+                "direction": "asc"
+            }]
+        )
 
     def _finalize_item(self, item):
         """
@@ -111,18 +148,25 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         :param int entity_id: The Shotgun id of the Entity to look for.
         """
         logger.info("Looking for %s %s..." % (entity_type, entity_id))
-        #self.ensure_data_is_loaded()
         # If dealing with the primary entity type this model represent, just
         # call the base implementation.
         if entity_type == self.get_entity_type():
+            logger.info("Falling back on base impl. %s" % self.get_entity_type())
             return super(ShotgunUpdatableEntityModel, self).item_from_entity(
                 entity_type, entity_id
             )
+        # If not dealing with the primary entity type, we need to traverse the
+        # model to find the entity.
+        # Bail out quickly if we know that the entity type we are looking for is
+        # not in this model.
+        # Please note that there are some edge cases where the retrieved SG data
+        # is not fully loaded in the model (only the top nodes were added). So in
+        # some cases we might miss matches because some piece of UI didn't call
+        # ensure_data_is_loaded. Doing it here would slow down things too much:
+        # even if all the data is loaded, fully traversing to check if more data
+        # can be fetched the model can be slow for huge datasets.
         if entity_type not in self._entity_types:
             return None
-
-        # If not dealing with the primary entity type, we need to traverse the
-        # model to find the entity
         # If the model is empty, just bail out
         if not self.rowCount():
             return None

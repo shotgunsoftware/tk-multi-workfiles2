@@ -67,9 +67,8 @@ class BrowserForm(QtGui.QWidget):
         self._my_tasks_form = None
         self._entity_tree_forms = []
         self._file_browser_forms = []
-        # Keep trace of the entity types being displayed by the left tabs
-        self._form_entity_types = []
-        self._step_filtering = None
+        # Keep trace of the Entity types for Step filtering for each tab.
+        self._form_step_entity_types = []
         # set up the UI
         self._ui = Ui_BrowserForm()
         self._ui.setupUi(self)
@@ -88,7 +87,6 @@ class BrowserForm(QtGui.QWidget):
             self._step_list_widget.set_widgets_for_entity_type
         )
         self._step_list_widget.step_filter_changed.connect(self._on_step_filter_changed)
-        self._step_filtering = get_saved_step_filter()
 
     def shut_down(self):
         """
@@ -177,11 +175,12 @@ class BrowserForm(QtGui.QWidget):
         """
         app = sgtk.platform.current_bundle()
         allow_task_creation = app.get_setting("allow_task_creation")
-        self._form_entity_types = []
+        self._form_step_entity_types = []
 
         if my_tasks_model:
             # create my tasks form:
-            self._form_entity_types.append((None, None)) #
+            # No Step filtering for My Tasks.
+            self._form_step_entity_types.append(None) #
             self._my_tasks_form = MyTasksForm(my_tasks_model, allow_task_creation, parent=self)
             self._my_tasks_form.entity_selected.connect(self._on_entity_selected)
             self._ui.task_browser_tabs.addTab(self._my_tasks_form, "My Tasks")
@@ -193,9 +192,11 @@ class BrowserForm(QtGui.QWidget):
             represent_tasks = False
             filters = model.get_filters(None)
             if model.represents_tasks:
-                self._form_entity_types.append((entity_type, filters))
+                # Step filtering on the Entity type Tasks are linked to or Tasks.
+                self._form_step_entity_types.append(entity_type)
             else:
-                self._form_entity_types.append((None, filters))
+                # No Step filtering if not dealing with Tasks.
+                self._form_step_entity_types.append(None)
             entity_form = EntityTreeForm(
                 model,
                 caption,
@@ -444,24 +445,9 @@ class BrowserForm(QtGui.QWidget):
             # Please note that we don't know which model/view issued the selection
             # so there is a potential problem here if different views were registered
             # for the same Entity type.
-            if not children and sender.entity_model and sender.entity_model._deferred_query:
-                deferred_query = sender.entity_model._deferred_query
-                sg_query = deferred_query["query"]
-                filters = sg_query["filters"][:]
-                filters.append(["entity", "is", primary_entity])
-                if self._step_filtering:
-                    filters.append(self._step_filtering)
-                logger.debug("Deferred query %s" % deferred_query)
-
-                for result in  sgtk.platform.current_bundle().shotgun.find(
-                    sg_query["entity_type"],
-                    filters=filters,
-                    fields=sg_query["fields"],
-                    order=[{
-                        "field_name": get_sg_entity_name_field(sg_query["entity_type"]),
-                        "direction": "asc"
-                    }]
-                ):
+            if not children and sender.entity_model and sender.entity_model.deferred_query:
+                for result in  sender.entity_model.run_deferred_query_for_entity(
+                    primary_entity):
                     # Special case for step field, this comes from a SG nested
                     # query so the name is available with the "name" key, even
                     # if it is stored in SG under another field name.
@@ -584,7 +570,7 @@ class BrowserForm(QtGui.QWidget):
         # retrieve the selection from the form and emit a work-area changed signal:
         selection, breadcrumb_trail = form.get_selection()
         self._on_selected_entity_changed(form, selection, breadcrumb_trail)
-        self.entity_type_focus_changed.emit(self._form_entity_types[idx][0])
+        self.entity_type_focus_changed.emit(self._form_step_entity_types[idx])
 
     def _on_step_filter_changed(self, step_list):
         """
@@ -595,8 +581,7 @@ class BrowserForm(QtGui.QWidget):
 
         :param step_list: A list of Shotgun Step dictionaries.
         """
-        self._step_filtering = get_filter_from_filter_list(step_list)
-        self.step_filter_changed.emit(self._step_filtering)
+        self.step_filter_changed.emit(get_filter_from_filter_list(step_list))
         if self._ui.task_browser_tabs.currentWidget().entity_model.deferred_query:
             # If we have deferred queries, force a refresh by re-selecting the
             # current tab.

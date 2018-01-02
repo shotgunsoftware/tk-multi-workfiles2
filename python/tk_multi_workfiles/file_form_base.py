@@ -166,12 +166,9 @@ class FileFormBase(QtGui.QWidget):
                 sub_filters = sub_hierarchy.get("filters") or []
                 sub_fields = sub_hierarchy.get("fields", [])
                 deferred_query = {
-                    "label": caption,
-                    "query": {
-                        "entity_type": sub_entity_type,
-                        "filters": sub_filters,
-                        "fields": sub_fields,
-                    }
+                    "entity_type": sub_entity_type,
+                    "filters": sub_filters,
+                    "fields": sub_fields,
                 }
                 logger.info("Added deferred query %s for %s" % (deferred_query, entity_type))
             # Check the hierarchy to use for the model for this entity:
@@ -220,9 +217,9 @@ class FileFormBase(QtGui.QWidget):
             )
             monitor_qobject_lifetime(model, "Entity Model")
             entity_models.append((caption, model))
-            if entity_type == "Task" and step_filter:
+            if step_filter:
                 # Apply the step filter as a second step so the original filter
-                # is preserved, allowing us to amend it later. An refresh is
+                # is preserved, allowing us to amend it later. A refresh is
                 # triggered by update_filters.
                 model.update_filters(step_filter)
             else:
