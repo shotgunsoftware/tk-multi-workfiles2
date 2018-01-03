@@ -53,6 +53,7 @@ class BrowserForm(QtGui.QWidget):
     file_context_menu_requested = QtCore.Signal(object, object, QtCore.QPoint)# file, env, pnt
     entity_type_focus_changed = QtCore.Signal(object) # entity type
     step_filter_changed = QtCore.Signal(list) # SG filter
+    create_new_file = QtCore.Signal(object) # WorkArea
 
     def __init__(self, parent):
         """
@@ -249,6 +250,7 @@ class BrowserForm(QtGui.QWidget):
         file_form.file_selected.connect(self._on_file_selected)
         file_form.file_double_clicked.connect(self.file_double_clicked)
         file_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
+        file_form.create_new_file.connect(self.create_new_file)
         self._file_browser_forms.append(file_form)
 
     def select_work_area(self, context):

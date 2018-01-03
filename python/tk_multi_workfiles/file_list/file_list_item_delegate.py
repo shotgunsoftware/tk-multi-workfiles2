@@ -22,14 +22,22 @@ from ..framework_qtwidgets import GroupedListViewItemDelegate
 
 class FileListItemDelegate(GroupedListViewItemDelegate):
 
-    def __init__(self, view):
+    def __init__(self, action_handler, view):
+        """
+        :param action_handler: A :class:`QObject` instance with signals or slots
+                               to handle the actions triggered by this delegate.
+        :param view: The view this delegate is for.
+        """
         GroupedListViewItemDelegate.__init__(self, view)
         
+        self._action_handler = action_handler
         self._item_widget = None
         self._folder_icon = QtGui.QPixmap(":/tk-multi-workfiles2/folder_512x400.png")
 
     def create_group_widget(self, parent):
-        return FileGroupWidget(parent)
+        group_widget = FileGroupWidget(parent)
+        group_widget.create_new_file.connect(self._action_handler.create_new_file)
+        return group_widget
 
     def _get_painter_widget(self, model_index, parent):
         """

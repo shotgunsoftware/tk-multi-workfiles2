@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>326</width>
-    <height>49</height>
+    <height>57</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -32,11 +32,20 @@
    <property name="sizeConstraint">
     <enum>QLayout::SetMinimumSize</enum>
    </property>
-   <property name="margin">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
     <number>0</number>
    </property>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,1,0">
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,1,0,0">
      <property name="rightMargin">
       <number>6</number>
      </property>
@@ -49,31 +58,7 @@
         </size>
        </property>
        <property name="styleSheet">
-        <string notr="true">#expand_check_box::indicator {
-width: 12;
-height: 12;
-}
-
-#expand_check_box {
-font: 14px;
-}
-
-#expand_check_box::indicator::unchecked {
-	image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);
-
-}
-
-#expand_check_box::indicator::unchecked::hover {
-	image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);
-}
-
-#expand_check_box::indicator::checked {
-    image: url(:/tk-multi-workfiles2/tree_arrow_expanded.png);
-}
-
-/*#grid_radio_btn::indicator::checked::hover {
-    image: url(:/tk-multi-workfiles2/grid_view_checked_hover.png);
-}*/</string>
+        <string notr="true"/>
        </property>
        <property name="text">
         <string/>
@@ -89,9 +74,7 @@ font: 14px;
      <item>
       <widget class="QLabel" name="title_label">
        <property name="styleSheet">
-        <string notr="true">#title_label {
-font-size: 14px;
-}</string>
+        <string notr="true"/>
        </property>
        <property name="text">
         <string>Title</string>
@@ -107,10 +90,7 @@ font-size: 14px;
      <item>
       <widget class="QLabel" name="user_label">
        <property name="styleSheet">
-        <string notr="true">#user_label {
-font-size: 10px;
-color: rgb(0, 178, 236);
-}</string>
+        <string notr="true"/>
        </property>
        <property name="text">
         <string>(User)</string>
@@ -135,6 +115,28 @@ color: rgb(0, 178, 236);
         </size>
        </property>
       </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="new_file_button">
+       <property name="maximumSize">
+        <size>
+         <width>20</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>+</string>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>20</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="flat">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QLabel" name="spinner">
@@ -190,10 +192,7 @@ color: rgb(0, 178, 236);
         </sizepolicy>
        </property>
        <property name="styleSheet">
-        <string notr="true">#msg_label {
-font: 11px;
-color: grey;
-}</string>
+        <string notr="true"/>
        </property>
        <property name="text">
         <string>Searching for files...</string>

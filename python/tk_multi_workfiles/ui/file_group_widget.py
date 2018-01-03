@@ -11,7 +11,7 @@ from sgtk.platform.qt import QtCore, QtGui
 class Ui_FileGroupWidget(object):
     def setupUi(self, FileGroupWidget):
         FileGroupWidget.setObjectName("FileGroupWidget")
-        FileGroupWidget.resize(326, 49)
+        FileGroupWidget.resize(326, 57)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -29,54 +29,31 @@ class Ui_FileGroupWidget(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.expand_check_box = QtGui.QCheckBox(FileGroupWidget)
         self.expand_check_box.setMinimumSize(QtCore.QSize(0, 20))
-        self.expand_check_box.setStyleSheet("#expand_check_box::indicator {\n"
-"width: 12;\n"
-"height: 12;\n"
-"}\n"
-"\n"
-"#expand_check_box {\n"
-"font: 14px;\n"
-"}\n"
-"\n"
-"#expand_check_box::indicator::unchecked {\n"
-"    image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);\n"
-"\n"
-"}\n"
-"\n"
-"#expand_check_box::indicator::unchecked::hover {\n"
-"    image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);\n"
-"}\n"
-"\n"
-"#expand_check_box::indicator::checked {\n"
-"    image: url(:/tk-multi-workfiles2/tree_arrow_expanded.png);\n"
-"}\n"
-"\n"
-"/*#grid_radio_btn::indicator::checked::hover {\n"
-"    image: url(:/tk-multi-workfiles2/grid_view_checked_hover.png);\n"
-"}*/")
+        self.expand_check_box.setStyleSheet("")
         self.expand_check_box.setText("")
         self.expand_check_box.setIconSize(QtCore.QSize(16, 16))
         self.expand_check_box.setObjectName("expand_check_box")
         self.horizontalLayout.addWidget(self.expand_check_box)
         self.title_label = QtGui.QLabel(FileGroupWidget)
-        self.title_label.setStyleSheet("#title_label {\n"
-"font-size: 14px;\n"
-"}")
+        self.title_label.setStyleSheet("")
         self.title_label.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
         self.title_label.setMargin(0)
         self.title_label.setObjectName("title_label")
         self.horizontalLayout.addWidget(self.title_label)
         self.user_label = QtGui.QLabel(FileGroupWidget)
-        self.user_label.setStyleSheet("#user_label {\n"
-"font-size: 10px;\n"
-"color: rgb(0, 178, 236);\n"
-"}")
+        self.user_label.setStyleSheet("")
         self.user_label.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
         self.user_label.setIndent(3)
         self.user_label.setObjectName("user_label")
         self.horizontalLayout.addWidget(self.user_label)
         spacerItem = QtGui.QSpacerItem(0, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
+        self.new_file_button = QtGui.QPushButton(FileGroupWidget)
+        self.new_file_button.setMaximumSize(QtCore.QSize(20, 20))
+        self.new_file_button.setIconSize(QtCore.QSize(20, 20))
+        self.new_file_button.setFlat(True)
+        self.new_file_button.setObjectName("new_file_button")
+        self.horizontalLayout.addWidget(self.new_file_button)
         self.spinner = QtGui.QLabel(FileGroupWidget)
         self.spinner.setMinimumSize(QtCore.QSize(20, 20))
         self.spinner.setMaximumSize(QtCore.QSize(20, 20))
@@ -102,10 +79,7 @@ class Ui_FileGroupWidget(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.msg_label.sizePolicy().hasHeightForWidth())
         self.msg_label.setSizePolicy(sizePolicy)
-        self.msg_label.setStyleSheet("#msg_label {\n"
-"font: 11px;\n"
-"color: grey;\n"
-"}")
+        self.msg_label.setStyleSheet("")
         self.msg_label.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
         self.msg_label.setWordWrap(True)
         self.msg_label.setMargin(2)
@@ -121,6 +95,7 @@ class Ui_FileGroupWidget(object):
         FileGroupWidget.setWindowTitle(QtGui.QApplication.translate("FileGroupWidget", "Form", None, QtGui.QApplication.UnicodeUTF8))
         self.title_label.setText(QtGui.QApplication.translate("FileGroupWidget", "Title", None, QtGui.QApplication.UnicodeUTF8))
         self.user_label.setText(QtGui.QApplication.translate("FileGroupWidget", "(User)", None, QtGui.QApplication.UnicodeUTF8))
+        self.new_file_button.setText(QtGui.QApplication.translate("FileGroupWidget", "+", None, QtGui.QApplication.UnicodeUTF8))
         self.msg_label.setText(QtGui.QApplication.translate("FileGroupWidget", "Searching for files...", None, QtGui.QApplication.UnicodeUTF8))
 
 from . import resources_rc

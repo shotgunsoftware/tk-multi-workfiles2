@@ -32,3 +32,48 @@ QWidget {
     background-color: transparent;
 }
 
+/* Styling for FileGroupWidget in the file list */
+
+FileGroupWidget #msg_label {
+    font: 11px;
+    color: grey;
+}
+
+FileGroupWidget #user_label {
+    font-size: 10px;
+    color: rgb(0, 178, 236);
+}
+FileGroupWidget #title_label {
+    font-size: 14px;
+}
+FileGroupWidget #expand_check_box::indicator {
+    width: 12;
+    height: 12;
+}
+FileGroupWidget #expand_check_box {
+    font: 14px;
+}
+FileGroupWidget #expand_check_box::indicator:unchecked {
+    image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);
+}
+FileGroupWidget #expand_check_box::indicator:unchecked:hover {
+    image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);
+}
+FileGroupWidget #expand_check_box::indicator:checked {
+    image: url(:/tk-multi-workfiles2/tree_arrow_expanded.png);
+}
+/*
+This was commented in the inline styling, adding it here commented as well to keep
+trace of it.
+FileGroupWidget #grid_radio_btn::indicator::checked:hover {
+   image: url(:/tk-multi-workfiles2/grid_view_checked_hover.png);
+}
+*/
+FileGroupWidget #new_file_button {
+    font-size: 20px;
+}
+FileGroupWidget #new_file_button:hover {
+    font-weight: bold;
+    color: white; /* needed to see the bold effect */
+}
+

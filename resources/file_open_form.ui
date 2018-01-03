@@ -57,13 +57,6 @@ background-color: rgb(255, 128, 0);
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QPushButton" name="new_file_btn">
-       <property name="text">
-        <string>+ New File</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
