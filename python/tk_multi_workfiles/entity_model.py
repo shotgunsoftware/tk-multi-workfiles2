@@ -51,6 +51,22 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             *args,
             **kwargs
         )
+        self.data_refreshed.connect(self._on_data_refreshed)
+
+    def _on_data_refreshed(self, modified):
+        """
+        Called when new data is available.
+
+        Ensure all data in the tree except for the leaves is loaded. By default,
+        only top nodes are automatically added in the model from the retrieved
+        Shotgun data, because loading the full set of data can be slow. However,
+        we need the intermediate nodes in the tree to always be loaded in the
+        model. The assumption here is that by not loading the leaves automatically
+        we will not cause any performance hit.
+
+        :param bool modified: Whether or not some data was changed.
+        """
+        self.ensure_intermediate_data_is_loaded()
 
     @property
     def deferred_query(self):
@@ -92,9 +108,17 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                 self._hierarchy,
                 self._fields
             )
-        self.async_refresh()
+            self.async_refresh()
 
     def run_deferred_query_for_entity(self, sg_entity):
+        """
+        Run the deferred Shotgun query for the given entity.
+
+        It is assumed that an "entity" field is available on the target entities
+        to link them to the given Shotgun Entity.
+
+        :returns: A list of Shotgun results, as returned by a Shotgun `find` call.
+        """
         deferred_query = self._deferred_query
         if not deferred_query:
             return []
@@ -102,7 +126,6 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         filters.append(["entity", "is", sg_entity])
         if self._extra_filters:
             filters.append(self._extra_filters)
-        logger.info("Deferred query %s" % deferred_query)
         return sgtk.platform.current_bundle().shotgun.find(
             deferred_query["entity_type"],
             filters=filters,
@@ -124,6 +147,34 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         entity = self.get_entity(item)
         if entity:
             self._entity_types.add(entity["type"])
+
+    def ensure_intermediate_data_is_loaded(self):
+        """
+        Ensure all data is loaded in the model, except for the leaves of the tree.
+
+        This allows to load most of the data in the model without a performance
+        hit, assuming the hit mostly comes from the leaves.
+        """
+        max_depth = len(self._hierarchy)
+        # Maintain a list of items to traverse with their depth.
+        # 0 is the depth for the top items in the model, excluding the invisible
+        # root.
+        # If we have the following hierarchy for Tasks, we fetch data for only the
+        # two first entries (we don't fetch data for the two last entries).
+        # [entity.Shot.sg_sequence, entity, step, content]
+        if max_depth < 2:
+            return
+        max_depth -= 2
+        item_list = [(self.invisibleRootItem(), -1)]
+        while item_list:
+            item, depth = item_list.pop()
+            if self.canFetchMore(item.index()):
+                self.fetchMore(item.index())
+            depth += 1
+            if depth < max_depth:
+                for row_i in range(item.rowCount()):
+                    child_item = item.child(row_i)
+                    item_list.append((child_item, depth))
 
     def clear(self):
         """
@@ -159,12 +210,8 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         # model to find the entity.
         # Bail out quickly if we know that the entity type we are looking for is
         # not in this model.
-        # Please note that there are some edge cases where the retrieved SG data
-        # is not fully loaded in the model (only the top nodes were added). So in
-        # some cases we might miss matches because some piece of UI didn't call
-        # ensure_data_is_loaded. Doing it here would slow down things too much:
-        # even if all the data is loaded, fully traversing to check if more data
-        # can be fetched the model can be slow for huge datasets.
+        # Please note that this implies that we need to load all intermediate nodes
+        # in the tree to get an accurate list of all the entity types it contains.
         if entity_type not in self._entity_types:
             return None
         # If the model is empty, just bail out
