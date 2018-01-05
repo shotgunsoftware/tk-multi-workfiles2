@@ -9,8 +9,11 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import sgtk
+from sgtk.platform.qt import QtGui
+
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
+ShotgunDataHandlerCache = shotgun_model.data_handler_cache.ShotgunDataHandlerCache
 
 from .util import get_sg_entity_name_field
 
@@ -51,6 +54,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             *args,
             **kwargs
         )
+        self._deferred_cache = ShotgunDataHandlerCache()
         self.data_refreshed.connect(self._on_data_refreshed)
 
     def _on_data_refreshed(self, modified):
@@ -109,6 +113,68 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                 self._fields
             )
             self.async_refresh()
+        else:
+            # Allow all leaves in the model to potentially fetch more data
+            entity_type = self.get_entity_type()
+            for entity_id in self.entity_ids:
+                item = super(ShotgunUpdatableEntityModel, self).item_from_entity(
+                    entity_type, entity_id
+                )
+                if item:
+                    item.setData(False, self._SG_ITEM_FETCHED_MORE)
+
+            # Refresh our deferred cache
+            # Get the full list of uids
+            uids = [uid for uid in self._deferred_cache.uids]
+            # Retrieve parents for these uids
+            affected_parents = set()
+            for uid in uids:
+                item = self._get_item_by_unique_id(uid)
+                if item and item.parent():
+                    affected_parents.add(item.parent())
+            # Loop over all affected parents (which were expanded) and refresh
+            # them
+            name_field = get_sg_entity_name_field(self._deferred_query["entity_type"])
+            new_uids = []
+            for parent in affected_parents:
+                parent.setData(True, self._SG_ITEM_FETCHED_MORE)
+                sg_data = parent.get_sg_data()
+                if not sg_data:
+                    continue
+                sub_entities = self.run_deferred_query_for_entity(sg_data)
+                for sub_entity in sub_entities:
+                    # Keep a list of all uids
+                    new_uids.append(sub_entity["id"])
+                    # Create new entries if needed
+                    if sub_entity["id"] in uids:
+                        continue
+                    self._deferred_cache.add_item(
+                        parent_uid=None,
+                        sg_data=sub_entity,
+                        field_name=name_field,
+                        is_leaf=True,
+                        uid=sub_entity["id"],
+                    )
+                    sub_item = self._create_item(
+                        parent=parent,
+                        data_item=self._deferred_cache.get_entry_by_uid(sub_entity["id"]),
+                    )
+                    sub_item.setData(True, self._SG_ITEM_FETCHED_MORE)
+
+            # Discard items which shouldn't be there anymore
+            for uid in uids:
+                if uid in new_uids:
+                    continue
+                data_item = self._deferred_cache.take_item(uid)
+                item = self._get_item_by_unique_id(uid)
+                if not item:
+                    logger.warning("Unable to find item with uid %s" % uid)
+                else:
+                    logger.info("Discarding %s" % item)
+                    # Reset the parent canFetchMore
+                    parent = item.parent()
+                    if parent:
+                        parent.removeRow(item.row())
 
     def run_deferred_query_for_entity(self, sg_entity):
         """
@@ -126,12 +192,13 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         filters.append(["entity", "is", sg_entity])
         if self._extra_filters:
             filters.append(self._extra_filters)
+        name_field = get_sg_entity_name_field(deferred_query["entity_type"])
         return sgtk.platform.current_bundle().shotgun.find(
             deferred_query["entity_type"],
             filters=filters,
-            fields=deferred_query["fields"],
+            fields=deferred_query["fields"] + [name_field],
             order=[{
-                "field_name": get_sg_entity_name_field(deferred_query["entity_type"]),
+                "field_name": name_field,
                 "direction": "asc"
             }]
         )
@@ -183,6 +250,56 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         super(ShotgunUpdatableEntityModel, self).clear()
         self._entity_types = set()
 
+    def hasChildren(self, index):
+        """
+        """
+        if not self._deferred_query or not index.isValid() or not self.itemFromIndex(index).get_sg_data():
+            return super(ShotgunUpdatableEntityModel, self).hasChildren(index)
+
+        item = self.itemFromIndex(index)
+        if self.rowCount():
+            return True
+        if not item.data(self._SG_ITEM_FETCHED_MORE):
+            # Not sure yet if we do have children or not...
+            return True
+        return False
+
+    def canFetchMore(self, index):
+        if not self._deferred_query or not index.isValid() or not self.itemFromIndex(index).get_sg_data():
+            return super(ShotgunUpdatableEntityModel, self).canFetchMore(index)
+
+        item = self.itemFromIndex(index)
+        if item.data(self._SG_ITEM_FETCHED_MORE):
+            # More data has already been queried for this item
+            return False
+        return True
+
+    def fetchMore(self, index):
+        if not index.isValid() or not self._deferred_query:
+            return super(ShotgunUpdatableEntityModel, self).fetchMore(index)
+        item = self.itemFromIndex(index)
+        # Set the flag to prevent subsequent attempts to fetch more
+        item.setData(True, self._SG_ITEM_FETCHED_MORE)
+        sg_data = item.get_sg_data()
+        if not sg_data:
+            return super(ShotgunUpdatableEntityModel, self).fetchMore(index)
+        sub_entities = self.run_deferred_query_for_entity(sg_data)
+        name_field = get_sg_entity_name_field(self._deferred_query["entity_type"])
+        logger.info("Retrieved %s for %s" % (sg_data, sub_entities))
+        for sub_entity in sub_entities:
+            self._deferred_cache.add_item(
+                parent_uid=None,
+                sg_data=sub_entity,
+                field_name=name_field,
+                is_leaf=True,
+                uid=sub_entity["id"],
+            )
+            sub_item = self._create_item(
+                parent=item,
+                data_item=self._deferred_cache.get_entry_by_uid(sub_entity["id"]),
+            )
+            sub_item.setData(True, self._SG_ITEM_FETCHED_MORE)
+
     def item_from_entity(self, entity_type, entity_id):
         """
         Retrieve the item representing the given entity in the model.
@@ -198,14 +315,20 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         :param str entity_type: A Shotgun Entity type.
         :param int entity_id: The Shotgun id of the Entity to look for.
         """
-        logger.info("Looking for %s %s..." % (entity_type, entity_id))
-        # If dealing with the primary entity type this model represent, just
-        # call the base implementation.
+        logger.info("[item_from_entity] Looking for %s %s..." % (entity_type, entity_id))
+        # If dealing with the primary entity type this model represents, just
+        # call the base implementation which only considers leaves.
         if entity_type == self.get_entity_type():
             logger.info("Falling back on base impl. %s" % self.get_entity_type())
             return super(ShotgunUpdatableEntityModel, self).item_from_entity(
                 entity_type, entity_id
             )
+        logger.info("Doing custom lookup %s" % self.get_entity_type())
+        # If we have deferred queries, check the deferred cache
+        if self._deferred_query and self._deferred_query["entity_type"] == entity_type:
+            logger.info("Deferred query lookup...")
+            return self._get_item_by_unique_id(entity_id)
+
         # If not dealing with the primary entity type, we need to traverse the
         # model to find the entity.
         # Bail out quickly if we know that the entity type we are looking for is

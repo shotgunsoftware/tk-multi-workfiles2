@@ -455,23 +455,23 @@ class BrowserForm(QtGui.QWidget):
             # Please note that we don't know which model/view issued the selection
             # so there is a potential problem here if different views were registered
             # for the same Entity type.
-            if not children and sender.entity_model and sender.entity_model.deferred_query:
-                for result in  sender.entity_model.run_deferred_query_for_entity(
-                    primary_entity):
-                    # Special case for step field, this comes from a SG nested
-                    # query so the name is available with the "name" key, even
-                    # if it is stored in SG under another field name.
-                    if result.get("step"):
-                        child_label = "%s - %s" % (
-                            result["step"]["name"],
-                            result.get(get_sg_entity_name_field(result["type"]))
-                        )
-                    else:
-                        child_label = result.get(get_sg_entity_name_field(result["type"]))
-                    children.append({
-                        "label": child_label,
-                        "entity": result
-                    })
+#            if not children and sender.entity_model and sender.entity_model.deferred_query:
+#                for result in  sender.entity_model.run_deferred_query_for_entity(
+#                    primary_entity):
+#                    # Special case for step field, this comes from a SG nested
+#                    # query so the name is available with the "name" key, even
+#                    # if it is stored in SG under another field name.
+#                    if result.get("step"):
+#                        child_label = "%s - %s" % (
+#                            result["step"]["name"],
+#                            result.get(get_sg_entity_name_field(result["type"]))
+#                        )
+#                    else:
+#                        child_label = result.get(get_sg_entity_name_field(result["type"]))
+#                    children.append({
+#                        "label": child_label,
+#                        "entity": result
+#                    })
             for child_details in children:
                 label = child_details["label"]
                 entity = child_details["entity"]
