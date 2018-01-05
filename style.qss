@@ -32,7 +32,7 @@ QWidget {
     background-color: transparent;
 }
 
-/* Styling for FileGroupWidget in the file list */
+/* Styling for FileGroupWidget in the files view */
 
 FileGroupWidget #msg_label {
     font: 11px;
@@ -77,3 +77,24 @@ FileGroupWidget #new_file_button:hover {
     color: white; /* needed to see the bold effect */
 }
 
+/* Styling for the FileWidget delegate in the files view */
+
+FileWidget #background {
+    border-style: solid;
+    border-width: 2px;
+    border-radius: 2px;
+}
+
+FileWidget #background[selected=false] {
+    background-color: rgb(0,0,0,0);
+    border-color: rgb(0,0,0,0);
+}
+
+FileWidget #background[selected=true] {
+/*
+    background-color: rgb(135, 166, 185, 50);
+    border-color: rgb(135, 166, 185);
+*/
+    background-color: rgb(0, 178, 236, 30);
+    border-color: rgb(0, 178, 236);
+}
