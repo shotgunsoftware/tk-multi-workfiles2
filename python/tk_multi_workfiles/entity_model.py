@@ -39,6 +39,8 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                                `fields` allowing to run a Shotgun sub-query for
                                a given entity in this model.
         """
+        # Please note that some of these members already exist as private members
+        # in the base implementation without any accessor.
         self._entity_type = entity_type
         self._original_filters = filters
         self._hierarchy = hierarchy
@@ -55,22 +57,6 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             **kwargs
         )
         self._deferred_cache = ShotgunDataHandlerCache()
-#        self.data_refreshed.connect(self._on_data_refreshed)
-
-#    def _on_data_refreshed(self, modified):
-#        """
-#        Called when new data is available.
-#
-#        Ensure all data in the tree except for the leaves is loaded. By default,
-#        only top nodes are automatically added in the model from the retrieved
-#        Shotgun data, because loading the full set of data can be slow. However,
-#        we need the intermediate nodes in the tree to always be loaded in the
-#        model. The assumption here is that by not loading the leaves automatically
-#        we will not cause any performance hit.
-#
-#        :param bool modified: Whether or not some data was changed.
-#        """
-#        self.ensure_intermediate_data_is_loaded()
 
     @property
     def deferred_query(self):
@@ -95,7 +81,9 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         """
         Update the filters used by this model.
 
-        A full refresh is triggered by the update.
+        A full refresh is triggered by the update if not using deferred queries.
+        Otherwise, the filter is applied to all expanded items in the model which
+        are direct parent of deferred results.
 
         :param extra_filters: A list of additional Shotgun filters which are added
                               to the initial filters.
@@ -105,7 +93,6 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             filters = self._original_filters[:] # Copy the list to not update the reference
             if extra_filters:
                 filters.append(extra_filters)
-            logger.info("Refreshing data with %s -> %s" % (extra_filters, filters))
             self._load_data(
                 self._entity_type,
                 filters,
@@ -133,7 +120,9 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                 if item and item.parent():
                     affected_parents.add(item.parent())
             # Loop over all affected parents (which were expanded) and refresh
-            # them
+            # them. We are assuming that the number of expanded parents will not
+            # be high and that it is fine the run Shotgun queries synchronously for
+            # each of them.
             name_field = get_sg_entity_name_field(self._deferred_query["entity_type"])
             new_uids = []
             for parent in affected_parents:
@@ -146,10 +135,14 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                     # Keep a list of all uids
                     uid = self._deferred_entity_uid(sub_entity)
                     new_uids.append(uid)
-                    # Create new entries if needed
+                    # Create new entries if needed.
                     if uid in uids:
                         continue
                     self._add_deferred_item(parent, uid, name_field, sub_entity)
+                if not sub_entities and self._dummy_not_found_item_uid(parent) not in uids:
+                    uid = self._add_dummy_not_found_item(parent)
+                    new_uids.append(uid)
+
             # Discard items which shouldn't be there anymore
             for uid in uids:
                 if uid in new_uids:
@@ -159,13 +152,20 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                 if not item:
                     logger.warning("Unable to find item with uid %s" % uid)
                 else:
-                    logger.info("Discarding %s" % item)
-                    # Reset the parent canFetchMore
                     parent = item.parent()
                     if parent:
                         parent.removeRow(item.row())
 
     def _add_deferred_item(self, parent_item, uid, name_field, sg_data):
+        """
+        Add a child item under the given parent for the given Shotgun record
+        loaded from a deferred query.
+
+        :param parent_item: A :class:`ShotgunStandardItem` instance.
+        :param str uid: A unique id for the new item.
+        :param name_field: A field name from which the Entity name can be retrieved.
+        :param sg_data: A Shotgun Entity dictionary.
+        """
         self._deferred_cache.add_item(
             parent_uid=None,
             sg_data=sg_data,
@@ -182,6 +182,53 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             # We don't have the step in the item hierarchy, we use the icon to
             # highlight the Step the Task is linked to.
             sub_item.setIcon(self._get_default_thumbnail(sg_data["step"]))
+
+    @classmethod
+    def _dummy_not_found_item_uid(cls, parent_item):
+        """
+        Return a unique id which can be used for a dummy "Not Found" item under
+        the given parent item.
+
+        :param parent_item: A :class:`ShotgunStandardItem` instance.
+        :returns: A string.
+        """
+        return "_dummy_item_uid_%s" % parent_item.data(cls._SG_ITEM_UNIQUE_ID)
+
+    def _add_dummy_not_found_item(self, parent_item):
+        """
+        Create a dummy child item under the given item.
+
+        These items are used in tree views to show that a deferred query didn't
+        return any Shotgun record.
+
+        :param parent_item: A :class:`ShotgunStandardItem` instance.
+        :returns: A string, the unique id for the item.
+        """
+        uid = self._dummy_not_found_item_uid(parent_item)
+        self._deferred_cache.add_item(
+            parent_uid=None,
+            # We need to use something which looks like a SG Entity dictionary.
+            # By having a "text" key and using it for the field name, the tree
+            # view will display its contents.
+            sg_data={
+                "text": "No %ss" % self._deferred_query["entity_type"],
+                "type": ""
+            },
+            field_name="text",
+            is_leaf=True,
+            uid=uid,
+        )
+        sub_item = self._create_item(
+            parent=parent_item,
+            data_item=self._deferred_cache.get_entry_by_uid(uid),
+        )
+        sub_item.setData(True, self._SG_ITEM_FETCHED_MORE)
+        # This item can't be used.
+        sub_item.setSelectable(False)
+        sub_item.setEnabled(False)
+        # We don't want an icon to appear in the view.
+        sub_item.setIcon(QtGui.QIcon())
+        return uid
 
     def _run_deferred_query_for_entity(self, sg_entity):
         """
@@ -231,34 +278,6 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         if entity:
             self._entity_types.add(entity["type"])
 
-    def ensure_intermediate_data_is_loaded(self):
-        """
-        Ensure all data is loaded in the model, except for the leaves of the tree.
-
-        This allows to load most of the data in the model without a performance
-        hit, assuming the hit mostly comes from the leaves.
-        """
-        max_depth = len(self._hierarchy)
-        # Maintain a list of items to traverse with their depth.
-        # 0 is the depth for the top items in the model, excluding the invisible
-        # root.
-        # If we have the following hierarchy for Tasks, we fetch data for only the
-        # two first entries (we don't fetch data for the two last entries).
-        # [entity.Shot.sg_sequence, entity, step, content]
-        if max_depth < 2:
-            return
-        max_depth -= 2
-        item_list = [(self.invisibleRootItem(), -1)]
-        while item_list:
-            item, depth = item_list.pop()
-            if self.canFetchMore(item.index()):
-                self.fetchMore(item.index())
-            depth += 1
-            if depth < max_depth:
-                for row_i in range(item.rowCount()):
-                    child_item = item.child(row_i)
-                    item_list.append((child_item, depth))
-
     def ensure_data_is_loaded(self, index=None):
         """
         Ensure all data is loaded in the model, except for deferred queries.
@@ -294,6 +313,8 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         """
         super(ShotgunUpdatableEntityModel, self).clear()
         self._entity_types = set()
+        # Get a fresh and empty deferred cache.
+        self._deferred_cache = ShotgunDataHandlerCache()
 
     def hasChildren(self, index):
         """
@@ -340,6 +361,8 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         for sub_entity in sub_entities:
             uid = self._deferred_entity_uid(sub_entity)
             self._add_deferred_item(item, uid, name_field, sub_entity)
+        if not sub_entities:
+            self._add_dummy_not_found_item(item)
 
     def item_from_entity(self, entity_type, entity_id):
         """
