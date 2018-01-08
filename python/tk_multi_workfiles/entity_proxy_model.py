@@ -15,6 +15,7 @@ from .framework_qtwidgets import HierarchicalFilteringProxyModel
 
 from .util import get_model_str
 
+
 class EntityProxyModel(HierarchicalFilteringProxyModel):
     """
     """
@@ -71,7 +72,7 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
         """
         # if the parent is accepted then this node is accepted by default:
         if parent_accepted:
-            return True 
+            return True
 
         reg_exp = self.filterRegExp()
         if not reg_exp or reg_exp.isEmpty():

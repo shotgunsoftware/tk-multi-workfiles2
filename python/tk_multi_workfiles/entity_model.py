@@ -55,22 +55,22 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             **kwargs
         )
         self._deferred_cache = ShotgunDataHandlerCache()
-        self.data_refreshed.connect(self._on_data_refreshed)
+#        self.data_refreshed.connect(self._on_data_refreshed)
 
-    def _on_data_refreshed(self, modified):
-        """
-        Called when new data is available.
-
-        Ensure all data in the tree except for the leaves is loaded. By default,
-        only top nodes are automatically added in the model from the retrieved
-        Shotgun data, because loading the full set of data can be slow. However,
-        we need the intermediate nodes in the tree to always be loaded in the
-        model. The assumption here is that by not loading the leaves automatically
-        we will not cause any performance hit.
-
-        :param bool modified: Whether or not some data was changed.
-        """
-        self.ensure_intermediate_data_is_loaded()
+#    def _on_data_refreshed(self, modified):
+#        """
+#        Called when new data is available.
+#
+#        Ensure all data in the tree except for the leaves is loaded. By default,
+#        only top nodes are automatically added in the model from the retrieved
+#        Shotgun data, because loading the full set of data can be slow. However,
+#        we need the intermediate nodes in the tree to always be loaded in the
+#        model. The assumption here is that by not loading the leaves automatically
+#        we will not cause any performance hit.
+#
+#        :param bool modified: Whether or not some data was changed.
+#        """
+#        self.ensure_intermediate_data_is_loaded()
 
     @property
     def deferred_query(self):
@@ -141,26 +141,15 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                 sg_data = parent.get_sg_data()
                 if not sg_data:
                     continue
-                sub_entities = self.run_deferred_query_for_entity(sg_data)
+                sub_entities = self._run_deferred_query_for_entity(sg_data)
                 for sub_entity in sub_entities:
                     # Keep a list of all uids
-                    new_uids.append(sub_entity["id"])
+                    uid = self._deferred_entity_uid(sub_entity)
+                    new_uids.append(uid)
                     # Create new entries if needed
-                    if sub_entity["id"] in uids:
+                    if uid in uids:
                         continue
-                    self._deferred_cache.add_item(
-                        parent_uid=None,
-                        sg_data=sub_entity,
-                        field_name=name_field,
-                        is_leaf=True,
-                        uid=sub_entity["id"],
-                    )
-                    sub_item = self._create_item(
-                        parent=parent,
-                        data_item=self._deferred_cache.get_entry_by_uid(sub_entity["id"]),
-                    )
-                    sub_item.setData(True, self._SG_ITEM_FETCHED_MORE)
-
+                    self._add_deferred_item(parent, uid, name_field, sub_entity)
             # Discard items which shouldn't be there anymore
             for uid in uids:
                 if uid in new_uids:
@@ -176,7 +165,25 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                     if parent:
                         parent.removeRow(item.row())
 
-    def run_deferred_query_for_entity(self, sg_entity):
+    def _add_deferred_item(self, parent_item, uid, name_field, sg_data):
+        self._deferred_cache.add_item(
+            parent_uid=None,
+            sg_data=sg_data,
+            field_name=name_field,
+            is_leaf=True,
+            uid=uid,
+        )
+        sub_item = self._create_item(
+            parent=parent_item,
+            data_item=self._deferred_cache.get_entry_by_uid(uid),
+        )
+        sub_item.setData(True, self._SG_ITEM_FETCHED_MORE)
+        if sg_data["type"] == "Task" and "step" in sg_data:
+            # We don't have the step in the item hierarchy, we use the icon to
+            # highlight the Step the Task is linked to.
+            sub_item.setIcon(self._get_default_thumbnail(sg_data["step"]))
+
+    def _run_deferred_query_for_entity(self, sg_entity):
         """
         Run the deferred Shotgun query for the given entity.
 
@@ -202,6 +209,15 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                 "direction": "asc"
             }]
         )
+
+    @staticmethod
+    def _deferred_entity_uid(sg_entity):
+        """
+        Returns a unique id for the given Entity retrieved in a deferred query.
+        """
+        # ShotgunModel uses the entity id for leaves, we use the Entity type and
+        # its id to avoid clashes in the various internal caches.
+        return "%s_%d" % (sg_entity["type"], sg_entity["id"])
 
     def _finalize_item(self, item):
         """
@@ -243,6 +259,35 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                     child_item = item.child(row_i)
                     item_list.append((child_item, depth))
 
+    def ensure_data_is_loaded(self, index=None):
+        """
+        Ensure all data is loaded in the model, except for deferred queries.
+        """
+        if not self._deferred_query:
+            # Just call the base implementation
+            return super(ShotgunUpdatableEntityModel, self).ensure_data_is_loaded(index)
+        item_list = []
+        if index is None:
+            # Load everything
+            # The top item is not a QStandardItem and we rely on
+            # ShotgunStandardItem methods so grab children straightaway.
+            for row_i in range(self.invisibleRootItem().rowCount()):
+                item_list.append(self.invisibleRootItem().child(row_i))
+        else:
+            item_list = [self.itemFromIndex(index)]
+
+        while item_list:
+            item = item_list.pop()
+            if item.get_sg_data():
+                # Leaves in the static SG model, stop here otherwise we will trigger
+                # deferred queries
+                continue
+            if self.canFetchMore(item.index()):
+                self.fetchMore(item.index())
+            for row_i in range(item.rowCount()):
+                child_item = item.child(row_i)
+                item_list.append(child_item)
+
     def clear(self):
         """
         Clear the data we hold.
@@ -255,16 +300,17 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         """
         if not self._deferred_query or not index.isValid() or not self.itemFromIndex(index).get_sg_data():
             return super(ShotgunUpdatableEntityModel, self).hasChildren(index)
-
-        item = self.itemFromIndex(index)
-        if self.rowCount():
-            return True
-        if not item.data(self._SG_ITEM_FETCHED_MORE):
-            # Not sure yet if we do have children or not...
-            return True
-        return False
+        # Trying to being accurate here does not make any difference for Qt, so let's
+        # just always return True.
+        return True
 
     def canFetchMore(self, index):
+        """
+        Return True if more children can be fetched under the given index.
+
+        :param index: A :class:`QtCore.QModelIndex` instance.
+        :returns: A boolean, whether or not more children can be fetched.
+        """
         if not self._deferred_query or not index.isValid() or not self.itemFromIndex(index).get_sg_data():
             return super(ShotgunUpdatableEntityModel, self).canFetchMore(index)
 
@@ -275,6 +321,11 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         return True
 
     def fetchMore(self, index):
+        """
+        Fetch more children under the given index.
+
+        :param index: A :class:`QtCore.QModelIndex` instance.
+        """
         if not index.isValid() or not self._deferred_query:
             return super(ShotgunUpdatableEntityModel, self).fetchMore(index)
         item = self.itemFromIndex(index)
@@ -283,22 +334,12 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         sg_data = item.get_sg_data()
         if not sg_data:
             return super(ShotgunUpdatableEntityModel, self).fetchMore(index)
-        sub_entities = self.run_deferred_query_for_entity(sg_data)
+        sub_entities = self._run_deferred_query_for_entity(sg_data)
         name_field = get_sg_entity_name_field(self._deferred_query["entity_type"])
         logger.info("Retrieved %s for %s" % (sg_data, sub_entities))
         for sub_entity in sub_entities:
-            self._deferred_cache.add_item(
-                parent_uid=None,
-                sg_data=sub_entity,
-                field_name=name_field,
-                is_leaf=True,
-                uid=sub_entity["id"],
-            )
-            sub_item = self._create_item(
-                parent=item,
-                data_item=self._deferred_cache.get_entry_by_uid(sub_entity["id"]),
-            )
-            sub_item.setData(True, self._SG_ITEM_FETCHED_MORE)
+            uid = self._deferred_entity_uid(sub_entity)
+            self._add_deferred_item(item, uid, name_field, sub_entity)
 
     def item_from_entity(self, entity_type, entity_id):
         """

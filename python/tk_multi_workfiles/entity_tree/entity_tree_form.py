@@ -22,9 +22,6 @@ from ..framework_qtwidgets import Breadcrumb
 from ..util import get_model_str, map_to_source, get_source_model, monitor_qobject_lifetime
 from ..util import get_sg_entity_name_field
 
-shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
-ShotgunEntityModel = shotgun_model.ShotgunEntityModel
-
 logger = sgtk.platform.get_logger(__name__)
 
 
@@ -121,9 +118,16 @@ class EntityTreeForm(QtGui.QWidget):
             if True:
                 # Create a filter proxy model between the source model and the task tree view:
                 # For Tasks we allow matching by the Task name and the name of the
-                # Entity it is linked. For the other Entities, we only match with
-                # the model item name.
-                filter_model = EntityTreeProxyModel(self, ["content", {"entity": "name"}] + extra_fields)
+                # Entity it is linked to. For the other Entities, we match with
+                # the model item name and the Shotgun Entity field name, although
+                # in most (if not all) cases the item name will match without the
+                # need to check the Entity field.
+                filter_model = EntityTreeProxyModel(
+                    self, [
+                        get_sg_entity_name_field(entity_model.get_entity_type()),
+                        {"entity": "name"}
+                    ] + extra_fields
+                )
                 monitor_qobject_lifetime(filter_model, "%s entity filter model" % search_label)
                 filter_model.setSourceModel(entity_model)
                 self._ui.entity_tree.setModel(filter_model)
