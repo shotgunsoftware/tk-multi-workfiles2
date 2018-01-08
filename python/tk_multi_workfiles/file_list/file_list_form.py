@@ -43,9 +43,6 @@ class FileListForm(QtGui.QWidget):
     # Signal emitted whenever a context menu is required for a file
     file_context_menu_requested = QtCore.Signal(object, object, QtCore.QPoint)# file, env, pos
 
-    # Signal emitted when the user clicks on a "New file" button
-    create_new_file = QtCore.Signal(object) # WorkArea
-
     def __init__(self, parent, search_label, file_filters, show_work_files=True, show_publishes=False):
         """
         Construction
@@ -97,7 +94,7 @@ class FileListForm(QtGui.QWidget):
         self._ui.file_list_view.viewport().installEventFilter(self)
 
         # Note, we have to keep a handle to the item delegate to help GC
-        self._item_delegate = FileListItemDelegate(self, self._ui.file_list_view)
+        self._item_delegate = FileListItemDelegate(self._ui.file_list_view)
         self._ui.file_list_view.setItemDelegate(self._item_delegate)
 
     def shut_down(self):

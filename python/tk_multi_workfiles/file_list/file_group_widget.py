@@ -25,8 +25,6 @@ from ..actions.new_file_action import NewFileAction
 class FileGroupWidget(GroupWidgetBase):
     """
     """
-    # Signal emitted when the user clicks on a "New file" button
-    create_new_file = QtCore.Signal(object) # WorkArea
 
     def __init__(self, parent):
         """
@@ -61,28 +59,25 @@ class FileGroupWidget(GroupWidgetBase):
 
         self._ui.spinner = spinner_widget
 
-        self._ui.new_file_button.pressed.connect(self._on_new_file)
-
         self._show_msg = False
-        self._work_area = None
 
     def set_item(self, model_idx):
         """
         """
         group_name = get_model_str(model_idx)
-        self._work_area = get_model_data(model_idx, FileModel.WORK_AREA_ROLE)
+        work_area = get_model_data(model_idx, FileModel.WORK_AREA_ROLE)
         search_status = get_model_data(model_idx, FileModel.SEARCH_STATUS_ROLE)
 
         # update group and user names:
         self._ui.title_label.setText(group_name)
-        display_user = (self._work_area and self._work_area.contains_user_sandboxes)
+        display_user = (work_area and work_area.contains_user_sandboxes)
         if display_user:
             user_name = "Unknown's"
-            if self._work_area.context and self._work_area.context.user:
-                if g_user_cache.current_user and g_user_cache.current_user["id"] == self._work_area.context.user["id"]:
+            if work_area.context and work_area.context.user:
+                if g_user_cache.current_user and g_user_cache.current_user["id"] == work_area.context.user["id"]:
                     user_name = "My"
                 else: 
-                    user_name = "%s's" % self._work_area.context.user.get("name", "Unknown")
+                    user_name = "%s's" % work_area.context.user.get("name", "Unknown")
             self._ui.user_label.setText("(%s Files)" % user_name)
             self._ui.user_label.show()
         else:
@@ -95,22 +90,14 @@ class FileGroupWidget(GroupWidgetBase):
         # Show the spinner if needed:
         self._ui.spinner.setVisible(search_status == FileModel.SEARCHING)
 
-        # Show/Hide the "New File" button
-        show_new_file = bool(
-            search_status != FileModel.SEARCHING and
-            self._work_area and
-            NewFileAction.can_do_new_file(self._work_area)
-        )
-        self._ui.new_file_button.setVisible(show_new_file)
-
         # update the status message:
         idx_has_children = model_idx.model().hasChildren(model_idx)
         search_msg = ""
         if search_status == FileModel.SEARCHING and not idx_has_children:
             search_msg = "Searching for files..."
-        elif self._work_area and search_status == FileModel.SEARCH_COMPLETED and not idx_has_children:
-            templates = self._work_area.get_missing_templates()
-            if not self._work_area.are_settings_loaded():
+        elif work_area and search_status == FileModel.SEARCH_COMPLETED and not idx_has_children:
+            templates = work_area.get_missing_templates()
+            if not work_area.are_settings_loaded():
                 search_msg = "Shotgun Workfiles hasn't been setup."
             elif templates:
                 search_msg = MissingTemplatesError.generate_missing_templates_message(templates)
@@ -143,10 +130,3 @@ class FileGroupWidget(GroupWidgetBase):
         self._ui.msg_label.setVisible(show_msg)
         
         self.toggle_expanded.emit(state != QtCore.Qt.Unchecked)
-
-    def _on_new_file(self):
-        """
-        Called when the user clicks on the new file button.
-        """
-        if self._work_area:
-            self.create_new_file.emit(self._work_area)

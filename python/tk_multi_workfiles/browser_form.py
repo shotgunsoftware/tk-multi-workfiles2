@@ -53,7 +53,6 @@ class BrowserForm(QtGui.QWidget):
     file_context_menu_requested = QtCore.Signal(object, object, QtCore.QPoint)# file, env, pnt
     entity_type_focus_changed = QtCore.Signal(object) # entity type
     step_filter_changed = QtCore.Signal(list) # SG filter
-    create_new_file = QtCore.Signal(object) # WorkArea
 
     def __init__(self, parent):
         """
@@ -250,7 +249,6 @@ class BrowserForm(QtGui.QWidget):
         file_form.file_selected.connect(self._on_file_selected)
         file_form.file_double_clicked.connect(self.file_double_clicked)
         file_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
-        file_form.create_new_file.connect(self.create_new_file)
         self._file_browser_forms.append(file_form)
 
     def select_work_area(self, context):
@@ -400,7 +398,6 @@ class BrowserForm(QtGui.QWidget):
             return
 
         selected_entity = self._on_selected_entity_changed(
-            self.sender(),
             selection_details,
             breadcrumb_trail
         )
@@ -409,12 +406,11 @@ class BrowserForm(QtGui.QWidget):
         else:
             self._update_selected_entity(None, None)
 
-    def _on_selected_entity_changed(self, sender, selection_details, breadcrumb_trail):
+    def _on_selected_entity_changed(self, selection_details, breadcrumb_trail):
         """
         Called when the selection changes in the My Task tab or one of the entities
         tab.
 
-        :param sender: The view which issued the selection change.
         :param selection_details: A dictionary describing the current selection, e.g.
             {
                 "label": "Car",
@@ -449,29 +445,6 @@ class BrowserForm(QtGui.QWidget):
             primary_search.entity = primary_entity
             search_details.append(primary_search)
 
-            # If the selected entity does not have children, check if a deferred
-            # query was registered for this Entity type to defer collecting
-            # linked entities (typically Tasks) to the very last moment.
-            # Please note that we don't know which model/view issued the selection
-            # so there is a potential problem here if different views were registered
-            # for the same Entity type.
-#            if not children and sender.entity_model and sender.entity_model.deferred_query:
-#                for result in  sender.entity_model.run_deferred_query_for_entity(
-#                    primary_entity):
-#                    # Special case for step field, this comes from a SG nested
-#                    # query so the name is available with the "name" key, even
-#                    # if it is stored in SG under another field name.
-#                    if result.get("step"):
-#                        child_label = "%s - %s" % (
-#                            result["step"]["name"],
-#                            result.get(get_sg_entity_name_field(result["type"]))
-#                        )
-#                    else:
-#                        child_label = result.get(get_sg_entity_name_field(result["type"]))
-#                    children.append({
-#                        "label": child_label,
-#                        "entity": result
-#                    })
             for child_details in children:
                 label = child_details["label"]
                 entity = child_details["entity"]
@@ -579,7 +552,7 @@ class BrowserForm(QtGui.QWidget):
         form = self._ui.task_browser_tabs.widget(idx)
         # retrieve the selection from the form and emit a work-area changed signal:
         selection, breadcrumb_trail = form.get_selection()
-        self._on_selected_entity_changed(form, selection, breadcrumb_trail)
+        self._on_selected_entity_changed(selection, breadcrumb_trail)
         self.entity_type_focus_changed.emit(self._form_step_entity_types[idx])
 
     def _on_step_filter_changed(self, step_list):

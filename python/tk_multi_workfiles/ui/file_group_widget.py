@@ -48,12 +48,6 @@ class Ui_FileGroupWidget(object):
         self.horizontalLayout.addWidget(self.user_label)
         spacerItem = QtGui.QSpacerItem(0, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
-        self.new_file_button = QtGui.QPushButton(FileGroupWidget)
-        self.new_file_button.setMaximumSize(QtCore.QSize(20, 20))
-        self.new_file_button.setIconSize(QtCore.QSize(20, 20))
-        self.new_file_button.setFlat(True)
-        self.new_file_button.setObjectName("new_file_button")
-        self.horizontalLayout.addWidget(self.new_file_button)
         self.spinner = QtGui.QLabel(FileGroupWidget)
         self.spinner.setMinimumSize(QtCore.QSize(20, 20))
         self.spinner.setMaximumSize(QtCore.QSize(20, 20))
@@ -95,7 +89,6 @@ class Ui_FileGroupWidget(object):
         FileGroupWidget.setWindowTitle(QtGui.QApplication.translate("FileGroupWidget", "Form", None, QtGui.QApplication.UnicodeUTF8))
         self.title_label.setText(QtGui.QApplication.translate("FileGroupWidget", "Title", None, QtGui.QApplication.UnicodeUTF8))
         self.user_label.setText(QtGui.QApplication.translate("FileGroupWidget", "(User)", None, QtGui.QApplication.UnicodeUTF8))
-        self.new_file_button.setText(QtGui.QApplication.translate("FileGroupWidget", "+", None, QtGui.QApplication.UnicodeUTF8))
         self.msg_label.setText(QtGui.QApplication.translate("FileGroupWidget", "Searching for files...", None, QtGui.QApplication.UnicodeUTF8))
 
 from . import resources_rc

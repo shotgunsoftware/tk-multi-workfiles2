@@ -12,6 +12,7 @@
 Qt widget that presents the user with a list of work files and publishes
 so that they can choose one to open
 """
+
 import sgtk
 from sgtk.platform.qt import QtGui
 
@@ -79,6 +80,7 @@ class FileOpenForm(FileFormBase):
         # hook up signals on controls:
         self._ui.cancel_btn.clicked.connect(self._on_cancel)
         self._ui.open_btn.clicked.connect(self._on_open)
+        self._ui.new_file_btn.clicked.connect(self._on_new_file)
 
         self._ui.browser.file_context_menu_requested.connect(self._on_browser_context_menu_requested)
 
@@ -87,7 +89,6 @@ class FileOpenForm(FileFormBase):
         self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)
         self._ui.browser.work_area_changed.connect(self._on_browser_work_area_changed)
         self._ui.browser.step_filter_changed.connect(self._apply_step_filters)
-        self._ui.browser.create_new_file.connect(self._on_new_file)
 
         self._ui.nav.navigate.connect(self._on_navigate)
         self._ui.nav.home_clicked.connect(self._on_navigate_home)
@@ -135,11 +136,30 @@ class FileOpenForm(FileFormBase):
         """
         """
         self._on_selected_file_changed(file, env)
+        self._update_new_file_btn(env)
 
     def _on_browser_work_area_changed(self, entity, breadcrumbs):
         """
         Slot triggered whenever the work area is changed in the browser.
         """
+        env_details = None
+        if entity:
+            # (AD) - we need to build a context and construct the environment details
+            # instance for it but this may be slow enough that we should cache it!
+            # Keep an eye on it and consider threading if it's noticeably slow!
+            app = sgtk.platform.current_bundle()
+            context = app.sgtk.context_from_entity_dictionary(entity)
+            try:
+                env_details = WorkArea(context)
+            except sgtk.TankError:
+                # We can ignore the error reporting here. The browser is already
+                # updating it's various file views and they will display the same
+                # error. Which is good, because file open dialog doesn't have a
+                # widget dedicated to error reporting.
+                env_details = None
+
+        self._update_new_file_btn(env_details)
+
         if not self._navigating:
             destination_label = breadcrumbs[-1].label if breadcrumbs else "..."
             self._ui.nav.add_destination(destination_label, breadcrumbs)
@@ -149,6 +169,7 @@ class FileOpenForm(FileFormBase):
         """
         """
         self._on_selected_file_changed(file, env)
+        self._update_new_file_btn(env)
         self._on_open()
 
     def _on_navigate(self, breadcrumb_trail):
@@ -206,6 +227,15 @@ class FileOpenForm(FileFormBase):
         else:
             # just disable the button:
             self._ui.open_options_btn.setEnabled(False)
+
+    def _update_new_file_btn(self, env):
+        """
+        """
+        if env and NewFileAction.can_do_new_file(env):
+            self._new_file_env = env
+        else:
+            self._new_file_env = None
+        self._ui.new_file_btn.setEnabled(self._new_file_env is not None)
 
     def _on_browser_context_menu_requested(self, file, env, pnt):
         """
@@ -291,13 +321,13 @@ class FileOpenForm(FileFormBase):
         self._exit_code = QtGui.QDialog.Rejected
         self.close()
 
-    def _on_new_file(self, work_area=None):
+    def _on_new_file(self):
         """
         """
-        if not work_area or not NewFileAction.can_do_new_file(work_area):
+        if not self._new_file_env or not NewFileAction.can_do_new_file(self._new_file_env):
             return
 
-        new_file_action = NewFileAction(work_area)
+        new_file_action = NewFileAction(self._new_file_env)
 
         # perform the action - this may result in the UI being closed so don't do
         # anything after this call!
