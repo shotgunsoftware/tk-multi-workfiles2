@@ -451,8 +451,6 @@ class BrowserForm(QtGui.QWidget):
                 # If dealing with a Task, add a search for it.
                 # Otherwise add the entity as a child to the primary search
                 # which will be displayed as folders in the UI.
-                # TODO: assess why we're doing that and if we should keep doing
-                # it.
                 if entity["type"] != "Task":
                     primary_search.child_entities.append(
                         {"name":label, "entity":entity}

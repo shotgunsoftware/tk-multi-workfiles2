@@ -265,16 +265,6 @@ class FileFinder(QtCore.QObject):
                     if wf_ctx and wf_ctx.task:
                         file_details["task"] = wf_ctx.task 
 
-            # if no step try to determine from context or path:
-#            if not file_details.get("step"):
-#                if context.step:
-#                    file_details["step"] = context.task
-#                else:
-#                    # If we didn't evaluate the context from the path, do it now
-#                    if wf_ctx is None:
-#                        wf_ctx = self._app.sgtk.context_from_path(work_path, context)
-#                    file_details["step"] = wf_ctx.step
-
             # Add additional fields:
             #
     
@@ -299,13 +289,6 @@ class FileFinder(QtCore.QObject):
             file_details["name"] = name_map.get_name(
                 file_key, work_path, work_template, wf_fields
             )
-
-            # Add any field value extracted with the template and which is not
-            # already populated.
-#            for name, value in wf_fields.iteritems():
-#                # By convention we use lower case keys in the file details
-#                if name.lower() not in file_details:
-#                    file_details[name.lower()] = value
 
             logger.debug("File details for %s from %s are %s" % (
                 file_key,

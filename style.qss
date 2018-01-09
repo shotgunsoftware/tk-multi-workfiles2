@@ -69,13 +69,6 @@ FileGroupWidget #grid_radio_btn::indicator::checked:hover {
    image: url(:/tk-multi-workfiles2/grid_view_checked_hover.png);
 }
 */
-FileGroupWidget #new_file_button {
-    font-size: 20px;
-}
-FileGroupWidget #new_file_button:hover {
-    font-weight: bold;
-    color: white; /* needed to see the bold effect */
-}
 
 /* Styling for the FileWidget delegate in the files view */
 
