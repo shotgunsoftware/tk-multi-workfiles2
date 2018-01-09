@@ -77,6 +77,22 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             return True
         return False
 
+    def async_refresh(self):
+        """
+        Trigger an asynchronous refresh of the model
+        """
+        super(ShotgunUpdatableEntityModel, self).async_refresh()
+        if self._deferred_query:
+            # Refresh our deferred cache
+            # Get the full list of uids
+            uids = [uid for uid in self._deferred_cache.uids]
+            # Retrieve parents for these uids
+            affected_parents = set()
+            for uid in uids:
+                item = self._get_item_by_unique_id(uid)
+                if item and item.parent():
+                    item.parent().setData(False, self._SG_ITEM_FETCHED_MORE)
+
     def update_filters(self, extra_filters):
         """
         Update the filters used by this model.
@@ -101,60 +117,15 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             )
             self.async_refresh()
         else:
-            # Allow all leaves in the model to potentially fetch more data
-            entity_type = self.get_entity_type()
-            for entity_id in self.entity_ids:
-                item = super(ShotgunUpdatableEntityModel, self).item_from_entity(
-                    entity_type, entity_id
-                )
+            # Refresh our deferred cache.
+            # Get the full list of expanded parent uids
+            uids = [uid for uid in self._deferred_cache.get_child_uids(parent_uid=None)]
+            # And simply ask them to refetch their children.
+            for uid in uids:
+                item = self._get_item_by_unique_id(uid)
                 if item:
-                    item.setData(False, self._SG_ITEM_FETCHED_MORE)
-
-            # Refresh our deferred cache
-            # Get the full list of uids
-            uids = [uid for uid in self._deferred_cache.uids]
-            # Retrieve parents for these uids
-            affected_parents = set()
-            for uid in uids:
-                item = self._get_item_by_unique_id(uid)
-                if item and item.parent():
-                    affected_parents.add(item.parent())
-            # Loop over all affected parents (which were expanded) and refresh
-            # them. We are assuming that the number of expanded parents will not
-            # be high and that it is fine the run Shotgun queries synchronously for
-            # each of them.
-            name_field = get_sg_entity_name_field(self._deferred_query["entity_type"])
-            new_uids = []
-            for parent in affected_parents:
-                parent.setData(True, self._SG_ITEM_FETCHED_MORE)
-                sg_data = parent.get_sg_data()
-                if not sg_data:
-                    continue
-                sub_entities = self._run_deferred_query_for_entity(sg_data)
-                for sub_entity in sub_entities:
-                    # Keep a list of all uids
-                    uid = self._deferred_entity_uid(sub_entity)
-                    new_uids.append(uid)
-                    # Create new entries if needed.
-                    if uid in uids:
-                        continue
-                    self._add_deferred_item(parent, uid, name_field, sub_entity)
-                if not sub_entities and self._dummy_not_found_item_uid(parent) not in uids:
-                    uid = self._add_dummy_not_found_item(parent)
-                    new_uids.append(uid)
-
-            # Discard items which shouldn't be there anymore
-            for uid in uids:
-                if uid in new_uids:
-                    continue
-                data_item = self._deferred_cache.take_item(uid)
-                item = self._get_item_by_unique_id(uid)
-                if not item:
-                    logger.warning("Unable to find item with uid %s" % uid)
-                else:
-                    parent = item.parent()
-                    if parent:
-                        parent.removeRow(item.row())
+                    self.fetchMore(item.index())
+            return
 
     def _add_deferred_item(self, parent_item, uid, name_field, sg_data):
         """
@@ -166,22 +137,31 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         :param name_field: A field name from which the Entity name can be retrieved.
         :param sg_data: A Shotgun Entity dictionary.
         """
+        parent_uid = parent_item.data(self._SG_ITEM_UNIQUE_ID)
         self._deferred_cache.add_item(
             parent_uid=None,
+            sg_data={},
+            field_name="",
+            is_leaf=False,
+            uid=parent_uid,
+        )
+        created = self._deferred_cache.add_item(
+            parent_uid=parent_uid,
             sg_data=sg_data,
             field_name=name_field,
             is_leaf=True,
             uid=uid,
         )
-        sub_item = self._create_item(
-            parent=parent_item,
-            data_item=self._deferred_cache.get_entry_by_uid(uid),
-        )
-        sub_item.setData(True, self._SG_ITEM_FETCHED_MORE)
-        if sg_data["type"] == "Task" and "step" in sg_data:
-            # We don't have the step in the item hierarchy, we use the icon to
-            # highlight the Step the Task is linked to.
-            sub_item.setIcon(self._get_default_thumbnail(sg_data["step"]))
+        if created:
+            sub_item = self._create_item(
+                parent=parent_item,
+                data_item=self._deferred_cache.get_entry_by_uid(uid),
+            )
+            sub_item.setData(True, self._SG_ITEM_FETCHED_MORE)
+            if sg_data["type"] == "Task" and "step" in sg_data:
+                # We don't have the step in the item hierarchy, we use the icon to
+                # highlight the Step the Task is linked to.
+                sub_item.setIcon(self._get_default_thumbnail(sg_data["step"]))
 
     @classmethod
     def _dummy_not_found_item_uid(cls, parent_item):
@@ -204,9 +184,17 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         :param parent_item: A :class:`ShotgunStandardItem` instance.
         :returns: A string, the unique id for the item.
         """
-        uid = self._dummy_not_found_item_uid(parent_item)
+        parent_uid = parent_item.data(self._SG_ITEM_UNIQUE_ID)
         self._deferred_cache.add_item(
             parent_uid=None,
+            sg_data={},
+            field_name="",
+            is_leaf=False,
+            uid=parent_uid,
+        )
+        uid = self._dummy_not_found_item_uid(parent_item)
+        self._deferred_cache.add_item(
+            parent_uid=parent_uid,
             # We need to use something which looks like a SG Entity dictionary.
             # By having a "text" key and using it for the field name, the tree
             # view will display its contents.
@@ -358,11 +346,31 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         sub_entities = self._run_deferred_query_for_entity(sg_data)
         name_field = get_sg_entity_name_field(self._deferred_query["entity_type"])
         logger.info("Retrieved %s for %s" % (sg_data, sub_entities))
+        parent_uid = item.data(self._SG_ITEM_UNIQUE_ID)
+        if self._deferred_cache.item_exists(parent_uid):
+            # Grab all entries from the iterator
+            existing_uids = [x for x in self._deferred_cache.get_child_uids(parent_uid)]
+        else:
+            existing_uids = []
+        refreshed_uids = []
         for sub_entity in sub_entities:
             uid = self._deferred_entity_uid(sub_entity)
+            refreshed_uids.append(uid)
             self._add_deferred_item(item, uid, name_field, sub_entity)
         if not sub_entities:
-            self._add_dummy_not_found_item(item)
+            uid = self._add_dummy_not_found_item(item)
+            refreshed_uids.append(uid)
+        for uid in existing_uids:
+            if uid in refreshed_uids:
+                continue
+            data_item = self._deferred_cache.take_item(uid)
+            item = self._get_item_by_unique_id(uid)
+            if not item:
+                logger.warning("Unable to find item with uid %s" % uid)
+            else:
+                parent = item.parent()
+                if parent:
+                    parent.removeRow(item.row())
 
     def item_from_entity(self, entity_type, entity_id):
         """
