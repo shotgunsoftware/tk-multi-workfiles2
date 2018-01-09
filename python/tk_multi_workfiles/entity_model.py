@@ -222,23 +222,21 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         """
         Run the deferred Shotgun query for the given entity.
 
-        It is assumed that an "entity" field is available on the target entities
-        to link them to the given Shotgun Entity.
-
         :returns: A list of Shotgun results, as returned by a Shotgun `find` call.
         """
         deferred_query = self._deferred_query
         if not deferred_query:
             return []
         filters = deferred_query["filters"][:]
-        filters.append(["entity", "is", sg_entity])
+        link_field_name = deferred_query["link_field"]
+        filters.append([link_field_name, "is", sg_entity])
         if self._extra_filters:
             filters.append(self._extra_filters)
         name_field = get_sg_entity_name_field(deferred_query["entity_type"])
         return sgtk.platform.current_bundle().shotgun.find(
             deferred_query["entity_type"],
             filters=filters,
-            fields=deferred_query["fields"] + [name_field],
+            fields=deferred_query["fields"] + [name_field, link_field_name],
             order=[{
                 "field_name": name_field,
                 "direction": "asc"

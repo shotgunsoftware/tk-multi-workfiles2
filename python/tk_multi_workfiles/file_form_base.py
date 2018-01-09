@@ -162,13 +162,20 @@ class FileFormBase(QtGui.QWidget):
             sub_hierarchy = ent.get("sub_hierarchy", [])
             deferred_query = None
             if sub_hierarchy:
+                # The target entity type for the sub query.
                 sub_entity_type = sub_hierarchy.get("entity_type", "Task")
+                # Optional filters for the sub query.
                 sub_filters = sub_hierarchy.get("filters") or []
+                # A list of fields to retrieve in the sub query.
                 sub_fields = sub_hierarchy.get("fields", [])
+                # The SG field allowing linking the sub query Entity to its
+                # parent Entity.
+                sub_link_field = sub_hierarchy.get("link_field", "entity")
                 deferred_query = {
                     "entity_type": sub_entity_type,
                     "filters": sub_filters,
                     "fields": sub_fields,
+                    "link_field": sub_link_field,
                 }
                 logger.info("Added deferred query %s for %s" % (deferred_query, entity_type))
             # Check the hierarchy to use for the model for this entity:
