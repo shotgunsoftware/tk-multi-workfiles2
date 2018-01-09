@@ -193,7 +193,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             uid=parent_uid,
         )
         uid = self._dummy_not_found_item_uid(parent_item)
-        self._deferred_cache.add_item(
+        created = self._deferred_cache.add_item(
             parent_uid=parent_uid,
             # We need to use something which looks like a SG Entity dictionary.
             # By having a "text" key and using it for the field name, the tree
@@ -206,16 +206,17 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             is_leaf=True,
             uid=uid,
         )
-        sub_item = self._create_item(
-            parent=parent_item,
-            data_item=self._deferred_cache.get_entry_by_uid(uid),
-        )
-        sub_item.setData(True, self._SG_ITEM_FETCHED_MORE)
-        # This item can't be used.
-        sub_item.setSelectable(False)
-        sub_item.setEnabled(False)
-        # We don't want an icon to appear in the view.
-        sub_item.setIcon(QtGui.QIcon())
+        if created:
+            sub_item = self._create_item(
+                parent=parent_item,
+                data_item=self._deferred_cache.get_entry_by_uid(uid),
+            )
+            sub_item.setData(True, self._SG_ITEM_FETCHED_MORE)
+            # This item can't be used.
+            sub_item.setSelectable(False)
+            sub_item.setEnabled(False)
+            # We don't want an icon to appear in the view.
+            sub_item.setIcon(QtGui.QIcon())
         return uid
 
     def _run_deferred_query_for_entity(self, sg_entity):
@@ -343,7 +344,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             return super(ShotgunUpdatableEntityModel, self).fetchMore(index)
         sub_entities = self._run_deferred_query_for_entity(sg_data)
         name_field = get_sg_entity_name_field(self._deferred_query["entity_type"])
-        logger.info("Retrieved %s for %s" % (sg_data, sub_entities))
+        logger.info("Retrieved %s for %s" % (sub_entities, sg_data))
         parent_uid = item.data(self._SG_ITEM_UNIQUE_ID)
         if self._deferred_cache.item_exists(parent_uid):
             # Grab all entries from the iterator
