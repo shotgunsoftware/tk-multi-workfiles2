@@ -320,16 +320,23 @@ class UserFilterMenu(QtGui.QMenu):
     def _on_all_other_users_toggled(self, toggled):
         """
         """
-        signals_blocked = self.blockSignals(True)
         #users_changed = False
-        try:
-            # toggle all other user actions:
-            for user_details in self._available_users.values():
-                if user_details.action.isChecked() != toggled:
-                    #users_changed= True
+        # toggle all other user actions:
+        for user_id, user_details in self._available_users.iteritems():
+            if user_details.action.isChecked() != toggled:
+                #users_changed= True
+                signals_blocked = user_details.action.blockSignals(True)
+                try:
                     user_details.action.setChecked(toggled)
-        finally:
-            self.blockSignals(signals_blocked)
+                finally:
+                    user_details.action.blockSignals(signals_blocked)
+
+                if toggled:
+                    if user_id not in self._checked_user_ids:
+                        self._checked_user_ids.add(user_id)
+                else:
+                    if user_id in self._checked_user_ids:
+                        self._checked_user_ids.remove(user_id)
 
         #if users_changed:
         self._emit_users_selected()

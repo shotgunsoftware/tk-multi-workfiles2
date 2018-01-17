@@ -113,6 +113,6 @@ class FileFilters(QtCore.QObject):
         if new_user_ids != current_user_ids:
             self._users = [u for u in users if u and u["id"] in new_user_ids]
             self.users_changed.emit(self._users)
-            self.changed.emit()
+            #self.changed.emit()
 
     users = property(_get_users, _set_users)
