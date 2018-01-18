@@ -19,7 +19,7 @@ class FilterPublishes(HookClass):
     Work area
     """
 
-    def execute(self, publishes, **kwargs):
+    def execute(self, publishes, context, **kwargs):
         """
         Main hook entry point
 

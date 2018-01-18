@@ -170,7 +170,8 @@ class FileFinder(QtCore.QObject):
         published_files = self._find_publishes(publish_filters)
         filtered_published_files = self._filter_publishes(published_files, 
                                                           publish_template, 
-                                                          valid_file_extensions)
+                                                          valid_file_extensions,
+                                                          context)
         
         # turn these into FileItem instances:
         name_map = FileFinder._FileNameMap()
@@ -370,14 +371,14 @@ class FileFinder(QtCore.QObject):
         sg_publishes = self._app.shotgun.find(published_file_type, publish_filters, fields)
         return sg_publishes
 
-    def _filter_publishes(self, sg_publishes, publish_template, valid_file_extensions):
+    def _filter_publishes(self, sg_publishes, publish_template, valid_file_extensions, context):
         """
         """
         # build list of publishes to send to the filter_publishes hook:
         hook_publishes = [{"sg_publish":sg_publish} for sg_publish in sg_publishes]
         
         # execute the hook - this will return a list of filtered publishes:
-        hook_result = self._app.execute_hook("hook_filter_publishes", publishes = hook_publishes)
+        hook_result = self._app.execute_hook("hook_filter_publishes", publishes=hook_publishes, context=context)
         if not isinstance(hook_result, list):
             self._app.log_error("hook_filter_publishes returned an unexpected result type '%s' - ignoring!" 
                           % type(hook_result).__name__)
@@ -388,6 +389,11 @@ class FileFinder(QtCore.QObject):
         for item in hook_result:
             sg_publish = item.get("sg_publish")
             if not sg_publish:
+                continue
+
+            # Skip publishes not created by this user
+            created_by_user = sg_publish.get("created_by", {})
+            if context.user.get("id") != created_by_user.get("id"):
                 continue
 
             # A PublishedFile entity can be created with sgtk.util.register_publish, which will
@@ -914,6 +920,10 @@ class AsyncFileFinder(FileFinder):
             publish_filters.append(["task", "is", work_area.context.task])
         elif work_area.context.step:
             publish_filters.append(["task.Task.step", "is", work_area.context.step])
+
+        # Just get the list of publishes for the current set of users
+        publish_filters.append(["created_by", "in", search.users])
+
         fields = ["id", "description", "version_number", "image", "created_at", "created_by", "name", "path", "task"]
 
         # load the data into the publish model:
@@ -936,7 +946,8 @@ class AsyncFileFinder(FileFinder):
 
             filtered_publishes = self._filter_publishes(sg_publishes, 
                                                         environment.publish_template, 
-                                                        environment.valid_file_extensions)
+                                                        environment.valid_file_extensions,
+                                                        environment.context)
         return {"sg_publishes":filtered_publishes}    
 
     def _task_process_publish_items(self, sg_publishes, environment, name_map, **kwargs):
