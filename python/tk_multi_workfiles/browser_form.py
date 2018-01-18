@@ -70,6 +70,7 @@ class BrowserForm(QtGui.QWidget):
         self._file_filters = FileFilters(parent=None)
         monitor_qobject_lifetime(self._file_filters, "Browser file filters")
         self._file_filters.users_changed.connect(self._on_file_filters_users_changed)
+        self._file_filters.all_versions_changed.connect(self._on_file_filters_all_versions_changed)
 
     def shut_down(self):
         """
@@ -293,6 +294,17 @@ class BrowserForm(QtGui.QWidget):
         app.log_debug("File filter users: %s" % [u["name"].split()[0] for u in users if u])
         if self._file_model:
             self._file_model.set_users(users)
+
+    def _on_file_filters_all_versions_changed(self, toggle):
+        """
+        Called when the user toggles the "All Versions" checkbox in the user filter
+
+        :param toggle: The value set on the checkbox
+        """
+        app = sgtk.platform.current_bundle()
+        app.log_debug("Toggling 'All Versions' to: %s" % bool(toggle))
+        if self._file_model:
+            self._file_model.async_refresh()
 
     def _emit_work_area_changed(self, entity, child_breadcrumb_trail):
         """

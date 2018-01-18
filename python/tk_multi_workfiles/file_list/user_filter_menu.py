@@ -105,29 +105,34 @@ class UserFilterMenu(QtGui.QMenu):
     def _update_selected_users(self, users):
         """
         """
-        new_checked_user_ids = set()
-        user_ids = set([u["id"] for u in users if u])
-        for uid in user_ids:
-            details = self._available_users.get(uid)
-            if not details or not details.available:
-                continue
-            details.action.setChecked(True)
-            new_checked_user_ids.add(uid)
-        
-        if self._current_user_id in user_ids:
-            self._current_user_action.setChecked(True)
-            new_checked_user_ids.add(self._current_user_id)
-        else:
-            self._current_user_action.setChecked(False)
-        
-        to_uncheck = self._checked_user_ids - new_checked_user_ids
-        for uid in to_uncheck:
-            details = self._available_users.get(uid)
-            if not details or not details.available:
-                continue
-            details.action.setChecked(False)
+        signals_blocked = self.blockSignals(True)
+        try:
+            new_checked_user_ids = set()
+            user_ids = set([u["id"] for u in users if u])
+            for uid in user_ids:
+                details = self._available_users.get(uid)
+                if not details or not details.available:
+                    continue
+                details.action.setChecked(True)
+                new_checked_user_ids.add(uid)
 
-        self._checked_user_ids = new_checked_user_ids
+            if self._current_user_id in user_ids:
+                self._current_user_action.setChecked(True)
+                new_checked_user_ids.add(self._current_user_id)
+            else:
+                self._current_user_action.setChecked(False)
+
+            to_uncheck = self._checked_user_ids - new_checked_user_ids
+            for uid in to_uncheck:
+                details = self._available_users.get(uid)
+                if not details or not details.available:
+                    continue
+                details.action.setChecked(False)
+
+            self._checked_user_ids = new_checked_user_ids
+
+        finally:
+            self.blockSignals(signals_blocked)
         
     def _populate_available_users(self, users):
         """
@@ -320,23 +325,16 @@ class UserFilterMenu(QtGui.QMenu):
     def _on_all_other_users_toggled(self, toggled):
         """
         """
+        signals_blocked = self.blockSignals(True)
         #users_changed = False
-        # toggle all other user actions:
-        for user_id, user_details in self._available_users.iteritems():
-            if user_details.action.isChecked() != toggled:
-                #users_changed= True
-                signals_blocked = user_details.action.blockSignals(True)
-                try:
+        try:
+            # toggle all other user actions:
+            for user_details in self._available_users.values():
+                if user_details.action.isChecked() != toggled:
+                    #users_changed= True
                     user_details.action.setChecked(toggled)
-                finally:
-                    user_details.action.blockSignals(signals_blocked)
-
-                if toggled:
-                    if user_id not in self._checked_user_ids:
-                        self._checked_user_ids.add(user_id)
-                else:
-                    if user_id in self._checked_user_ids:
-                        self._checked_user_ids.remove(user_id)
+        finally:
+            self.blockSignals(signals_blocked)
 
         #if users_changed:
         self._emit_users_selected()

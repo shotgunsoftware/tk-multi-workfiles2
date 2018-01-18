@@ -61,7 +61,9 @@ class FileListForm(QtGui.QWidget):
 
         self._file_filters = file_filters
         if self._file_filters:
-            self._file_filters.changed.connect(self._on_file_filters_changed)
+            self._file_filters.reg_exp_changed.connect(self._on_file_filters_reg_exp_changed)
+            self._file_filters.all_versions_changed.connect(self._on_file_filters_all_versions_changed)
+            self._file_filters.users_changed.connect(self._on_file_filters_users_changed)
             self._file_filters.available_users_changed.connect(self._on_file_filters_available_users_changed)
 
         self._show_work_files = show_work_files
@@ -339,16 +341,25 @@ class FileListForm(QtGui.QWidget):
                 # emit the signal
                 self.file_selected.emit(selected_file, env_details, FileListForm.SYSTEM_SELECTED)
 
-    def _on_file_filters_changed(self):
+    def _on_file_filters_reg_exp_changed(self, reg_exp):
         """
         Slot triggered whenever the file filters emits the changed signal.
         """
         # update UI based on the new filter settings:
-        self._ui.all_versions_cb.setChecked(self._file_filters.show_all_versions)
-        self._ui.search_ctrl.search_text = (self._file_filters.filter_reg_exp.pattern() 
-                                                if self._file_filters.filter_reg_exp else "")
+        self._ui.search_ctrl.search_text = (reg_exp.pattern() if reg_exp else "")
 
-        self._ui.user_filter_btn.selected_users = self._file_filters.users
+    def _on_file_filters_all_versions_changed(self, toggle):
+        """
+        Slot triggered whenever the file filters emits the changed signal.
+        """
+        # update UI based on the new filter settings:
+        self._ui.all_versions_cb.setChecked(toggle)
+
+    def _on_file_filters_users_changed(self, users):
+        """
+        Slot triggered whenever the file filters emits the changed signal.
+        """
+        self._ui.user_filter_btn.selected_users = users
 
     def _on_file_filters_available_users_changed(self, users):
         """

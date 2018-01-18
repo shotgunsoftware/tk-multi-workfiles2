@@ -39,7 +39,7 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
 
         self._filters = filters
         if self._filters:
-            self._filters.changed.connect(self._on_filters_changed)
+            self._filters.reg_exp_changed.connect(self._on_filters_reg_exp_changed)
 
         self._show_publishes = show_publishes
         self._show_workfiles = show_work_files
@@ -74,13 +74,13 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
         # the regex in this model.
         self._filters.filter_reg_exp = reg_exp
 
-    def _on_filters_changed(self):
+    def _on_filters_reg_exp_changed(self, reg_exp):
         """
         Slot triggered when something on the FileFilters instance changes.  Invalidates
         the proxy model so that the filtering is re-run.
         """
-        if self._filters.filter_reg_exp != self.filterRegExp():
-            HierarchicalFilteringProxyModel.setFilterRegExp(self, self._filters.filter_reg_exp)
+        if reg_exp != self.filterRegExp():
+            HierarchicalFilteringProxyModel.setFilterRegExp(self, reg_exp)
         self.invalidateFilter()
 
     def _is_row_accepted(self, src_row, src_parent_idx, parent_accepted):
