@@ -93,6 +93,30 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                 if item and item.parent():
                     item.parent().setData(False, self._SG_ITEM_FETCHED_MORE)
 
+    def load_and_refresh(self, extra_filters=None):
+        """
+        Load the data for this model and post a refresh.
+
+        :param extra_filters: A list of additional Shotgun filters which are added
+                              to the initial filters.
+        """
+        self._extra_filters = extra_filters
+        if not self._deferred_query:
+            filters = self._original_filters[:] # Copy the list to not update the reference
+            if extra_filters:
+                filters.append(extra_filters)
+        else:
+            # Extra filter is not applied to the model containing top nodes
+            # for deferred queries.
+            filters = self._original_filters
+        self._load_data(
+            self._entity_type,
+            filters,
+            self._hierarchy,
+            self._fields
+        )
+        self.async_refresh()
+
     def update_filters(self, extra_filters):
         """
         Update the filters used by this model.

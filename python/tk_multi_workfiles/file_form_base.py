@@ -224,13 +224,7 @@ class FileFormBase(QtGui.QWidget):
             )
             monitor_qobject_lifetime(model, "Entity Model")
             entity_models.append((caption, model))
-            if step_filter:
-                # Apply the step filter as a second step so the original filter
-                # is preserved, allowing us to amend it later. A refresh is
-                # triggered by update_filters.
-                model.update_filters(step_filter)
-            else:
-                model.async_refresh()
+            model.load_and_refresh(step_filter)
 
         return entity_models
 
