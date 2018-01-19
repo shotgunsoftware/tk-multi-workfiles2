@@ -193,10 +193,6 @@ class BrowserForm(QtGui.QWidget):
             self._my_tasks_form.create_new_task.connect(self.create_new_task)
 
         for caption, model in entity_models:
-            # create new entity form:
-            entity_type = model.get_entity_type()
-            represent_tasks = False
-            filters = model.get_filters(None)
             if model.represents_tasks:
                 # Step filtering on the Entity type the Tasks are linked to or
                 # on Tasks.
@@ -467,17 +463,6 @@ class BrowserForm(QtGui.QWidget):
 
         # refresh files:
         if self._file_model:
-            # TODO: Why we need to have this? Is it to keep a local copy of
-            # details to avoid garbage collection?
-            p_details = []
-            for search in search_details:
-                p_details.append({
-                    "name":search.name,
-                    "entity":search.entity,
-                    "is_leaf":search.is_leaf,
-                    "child_entities":search.child_entities
-                })
-
             self._file_model.set_entity_searches(search_details)
 
         # emit work-area-changed signal:

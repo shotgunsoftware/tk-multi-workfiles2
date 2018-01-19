@@ -512,30 +512,6 @@ class FileFinder(QtCore.QObject):
         logger.debug("Found %s" % work_file_paths)
         return work_file_paths
 
-        # paths_from_template may have returned additional files that we don't want (aren't valid within this
-        # work area) if any of the fields were populated by the context.  Filter the list to remove these
-        # extra files.
-# Commenting out this code to highlight it is never called...
-#        filtered_paths = []
-#        for p in work_file_paths:
-#            # (AD) TODO - this should be optimized as it's doing 'get_fields' again
-#            # when this method returns!
-#            fields = work_template.get_fields(p)
-#            is_match = True
-#            for wfn, wfv in work_fields.iteritems():
-#                if wfn in fields:
-#                    if fields[wfn] != wfv:
-#                        is_match = False
-#                        break
-#                elif wfn not in skip_fields:
-#                    is_match = False
-#                    break
-#            if is_match:
-#                filtered_paths.append(p)
-#        work_file_paths = filtered_paths
-#
-#        return work_file_paths
-
     def _filter_work_files(self, work_file_paths, valid_file_extensions):
         """
         Filter the given list of file paths by calling the `hook_filter_work_files`
