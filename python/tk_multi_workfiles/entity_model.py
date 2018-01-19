@@ -9,7 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import sgtk
-from sgtk.platform.qt import QtGui
+from sgtk.platform.qt import QtGui, QtCore
 
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
@@ -48,6 +48,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         self._deferred_query = deferred_query
         self._extra_filters = None
         self._entity_types = set()
+        self._task_step_icons = {}
         super(ShotgunUpdatableEntityModel, self).__init__(
             entity_type,
             filters,
@@ -185,7 +186,41 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             if sg_data["type"] == "Task" and "step" in sg_data:
                 # We don't have the step in the item hierarchy, we use the icon to
                 # highlight the Step the Task is linked to.
-                sub_item.setIcon(self._get_default_thumbnail(sg_data["step"]))
+                step_id = sg_data["step"]["id"]
+                if step_id in self._task_step_icons:
+                    # If we already have such an icon for the given step, just
+                    # re-use it.
+                    sub_item.setIcon(self._task_step_icons[step_id])
+                else:
+                    # Otherwise, build a new one combinining the two icons
+                    # and cache it.
+                    step_icon = self._get_default_thumbnail(sg_data["step"])
+                    size = step_icon.availableSizes()[-1]
+                    step_pixmap = step_icon.pixmap(size)
+                    task_step_icon = sub_item.icon()
+                    size = step_icon.availableSizes()[-1]
+                    task_pixmap = sub_item.icon().pixmap(size)
+                    source_rect = QtCore.QRectF(
+                        0.0, 0.0,
+                        step_pixmap.width(),
+                        step_pixmap.height()
+                    )
+                    target_rect = QtCore.QRectF(
+                        task_pixmap.width() * 0.5,
+                        task_pixmap.height() * 0.5,
+                        task_pixmap.width() * 0.5,
+                        task_pixmap.height() * 0.5
+                    )
+                    painter = QtGui.QPainter(task_pixmap)
+                    try:
+                        painter.setCompositionMode(
+                            QtGui.QPainter.CompositionMode_Xor
+                        )
+                        painter.drawPixmap(target_rect, step_pixmap, source_rect)
+                        self._task_step_icons[step_id] = QtGui.QIcon(task_pixmap)
+                        sub_item.setIcon(self._task_step_icons[step_id])
+                    finally:
+                        painter.end()
 
     @classmethod
     def _dummy_not_found_item_uid(cls, parent_item):

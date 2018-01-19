@@ -206,12 +206,13 @@ class StepListWidget(QtCore.QObject):
         # Not already built, let's do it now
         for step in self._step_list[entity_type]:
             widget = QtGui.QCheckBox(step["code"])
-            pixmap = QtGui.QPixmap(100, 100)
-            # Get the Step color and add a bit of transparency to the
-            # color otherwise it is too bright.
-            color = [int(x) for x in step["color"].split(",")] + [200]
-            pixmap.fill(QtGui.QColor(*color))
-            widget.setIcon(pixmap)
+            if step["color"]:
+                pixmap = QtGui.QPixmap(100, 100)
+                # Get the Step color and add a bit of transparency to the
+                # color otherwise it is too bright.
+                color = [int(x) for x in step["color"].split(",")] + [200]
+                pixmap.fill(QtGui.QColor(*color))
+                widget.setIcon(pixmap)
             # Turn it on if it was in the step saved filters
             # We do this before the toggled signal is connected to not emit
             # un-wanted signals.
