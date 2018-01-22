@@ -196,7 +196,7 @@ class BrowserForm(QtGui.QWidget):
             if model.represents_tasks:
                 # Step filtering on the Entity type the Tasks are linked to or
                 # on Tasks.
-                self._form_step_entity_types.append(entity_type)
+                self._form_step_entity_types.append(model.get_entity_type())
             else:
                 # No Step filtering if not dealing with Tasks.
                 self._form_step_entity_types.append(None)

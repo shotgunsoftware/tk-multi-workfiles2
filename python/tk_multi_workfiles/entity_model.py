@@ -58,6 +58,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             **kwargs
         )
         self._deferred_cache = ShotgunDataHandlerCache()
+        self._deferred_models = {}
 
     @property
     def deferred_query(self):
@@ -92,6 +93,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             for uid in uids:
                 item = self._get_item_by_unique_id(uid)
                 if item and item.parent():
+                    # Let the parent re-fetch children
                     item.parent().setData(False, self._SG_ITEM_FETCHED_MORE)
 
     def load_and_refresh(self, extra_filters=None):
@@ -293,15 +295,71 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         if self._extra_filters:
             filters.append(self._extra_filters)
         name_field = get_sg_entity_name_field(deferred_query["entity_type"])
-        return sgtk.platform.current_bundle().shotgun.find(
-            deferred_query["entity_type"],
-            filters=filters,
-            fields=deferred_query["fields"] + [name_field, link_field_name],
-            order=[{
-                "field_name": name_field,
-                "direction": "asc"
-            }]
-        )
+        if sg_entity["id"] not in self._deferred_models:
+            self._deferred_models[sg_entity["id"]] = ShotgunEntityModel(
+                deferred_query["entity_type"],
+                filters,
+                hierarchy=[link_field_name, name_field],
+                fields=deferred_query["fields"] + [name_field, link_field_name],
+                parent=self,
+            )
+            self._deferred_models[sg_entity["id"]].data_refreshed.connect(
+                lambda changed : self._on_deferred_refreshed(sg_entity, changed)
+            )
+            self._deferred_models[sg_entity["id"]].async_refresh()
+        else:
+            self._deferred_models[sg_entity["id"]]._load_data(
+                deferred_query["entity_type"],
+                filters,
+                hierarchy=[link_field_name, name_field],
+                fields=deferred_query["fields"] + [name_field, link_field_name],
+            )
+        self._on_deferred_refreshed(sg_entity, True, True)
+        self._deferred_models[sg_entity["id"]].async_refresh()
+
+    def _on_deferred_refreshed(self, sg_entity, changed, refresh_posted=False):
+        logger.info("New data %s for %s" % (changed, sg_entity))
+        parent_item = self.item_from_entity(sg_entity["type"], sg_entity["id"])
+        if not parent_item:
+            logger.info("Invalid Parent item %s" % parent_item)
+            return
+        parent_uid = parent_item.data(self._SG_ITEM_UNIQUE_ID)
+        if self._deferred_cache.item_exists(parent_uid):
+            # Grab all entries from the iterator
+            existing_uids = [x for x in self._deferred_cache.get_child_uids(parent_uid)]
+        else:
+            existing_uids = []
+
+        sub_entities = []
+        deferred_model = self._deferred_models[sg_entity["id"]]
+        sub_entity_type = deferred_model.get_entity_type()
+        name_field = get_sg_entity_name_field(sub_entity_type)
+        #sub_entity_ids = deferred_model.entity_ids()
+        for sub_entity_id in deferred_model.entity_ids:
+            sub_item = deferred_model.item_from_entity(sub_entity_type, sub_entity_id)
+            if sub_item:
+                sg_data = sub_item.get_sg_data()
+                if sg_data:
+                    sub_entities.append(sg_data)
+        refreshed_uids = []
+        for sub_entity in sub_entities:
+            uid = self._deferred_entity_uid(sub_entity)
+            refreshed_uids.append(uid)
+            self._add_deferred_item(parent_item, uid, name_field, sub_entity)
+        if not sub_entities:
+            uid = self._add_dummy_not_found_item(parent_item)
+            refreshed_uids.append(uid)
+        for uid in existing_uids:
+            if uid in refreshed_uids:
+                continue
+            data_item = self._deferred_cache.take_item(uid)
+            item = self._get_item_by_unique_id(uid)
+            if not item:
+                logger.warning("Unable to find item with uid %s" % uid)
+            else:
+                parent = item.parent()
+                if parent:
+                    parent.removeRow(item.row())
 
     @staticmethod
     def _deferred_entity_uid(sg_entity):
@@ -402,6 +460,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         if not sg_data:
             return super(ShotgunUpdatableEntityModel, self).fetchMore(index)
         sub_entities = self._run_deferred_query_for_entity(sg_data)
+        return
         name_field = get_sg_entity_name_field(self._deferred_query["entity_type"])
         logger.info("Retrieved %s for %s" % (sub_entities, sg_data))
         parent_uid = item.data(self._SG_ITEM_UNIQUE_ID)
