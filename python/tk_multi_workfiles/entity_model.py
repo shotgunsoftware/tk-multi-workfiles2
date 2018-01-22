@@ -225,7 +225,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                         painter.end()
 
     @classmethod
-    def _dummy_not_found_item_uid(cls, parent_item):
+    def _dummy_not_found_item_uid(cls, parent_item, refreshing):
         """
         Return a unique id which can be used for a dummy "Not Found" item under
         the given parent item.
@@ -233,9 +233,12 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         :param parent_item: A :class:`ShotgunStandardItem` instance.
         :returns: A string.
         """
-        return "_dummy_item_uid_%s" % parent_item.data(cls._SG_ITEM_UNIQUE_ID)
+        return "_dummy_item_uid%s_%s" % (
+            "_refreshing" if refreshing else "",
+            parent_item.data(cls._SG_ITEM_UNIQUE_ID)
+        )
 
-    def _add_dummy_not_found_item(self, parent_item):
+    def _add_dummy_not_found_item(self, parent_item, refreshing):
         """
         Create a dummy child item under the given item.
 
@@ -253,14 +256,18 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             is_leaf=False,
             uid=parent_uid,
         )
-        uid = self._dummy_not_found_item_uid(parent_item)
+        uid = self._dummy_not_found_item_uid(parent_item, refreshing)
+        if refreshing:
+            text = "Retrieving %ss..." % self._deferred_query["entity_type"]
+        else:
+            text = "No %ss" % self._deferred_query["entity_type"]
         created = self._deferred_cache.add_item(
             parent_uid=parent_uid,
             # We need to use something which looks like a SG Entity dictionary.
             # By having a "text" key and using it for the field name, the tree
             # view will display its contents.
             sg_data={
-                "text": "No %ss" % self._deferred_query["entity_type"],
+                "text": text,
                 "type": ""
             },
             field_name="text",
@@ -304,7 +311,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                 parent=self,
             )
             self._deferred_models[sg_entity["id"]].data_refreshed.connect(
-                lambda changed : self._on_deferred_refreshed(sg_entity, changed)
+                lambda changed : self._on_deferred_data_refreshed(sg_entity, changed)
             )
             self._deferred_models[sg_entity["id"]].async_refresh()
         else:
@@ -314,10 +321,10 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                 hierarchy=[link_field_name, name_field],
                 fields=deferred_query["fields"] + [name_field, link_field_name],
             )
-        self._on_deferred_refreshed(sg_entity, True, True)
+        self._on_deferred_data_refreshed(sg_entity, True, True)
         self._deferred_models[sg_entity["id"]].async_refresh()
 
-    def _on_deferred_refreshed(self, sg_entity, changed, refresh_posted=False):
+    def _on_deferred_data_refreshed(self, sg_entity, changed, refresh_posted=False):
         logger.info("New data %s for %s" % (changed, sg_entity))
         parent_item = self.item_from_entity(sg_entity["type"], sg_entity["id"])
         if not parent_item:
@@ -347,10 +354,11 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             refreshed_uids.append(uid)
             self._add_deferred_item(parent_item, uid, name_field, sub_entity)
         if not sub_entities:
-            uid = self._add_dummy_not_found_item(parent_item)
+            uid = self._add_dummy_not_found_item(parent_item, refresh_posted)
             refreshed_uids.append(uid)
         for uid in existing_uids:
             if uid in refreshed_uids:
+                # Here we could update items from the refreshed data, although
                 continue
             data_item = self._deferred_cache.take_item(uid)
             item = self._get_item_by_unique_id(uid)
@@ -461,33 +469,6 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             return super(ShotgunUpdatableEntityModel, self).fetchMore(index)
         sub_entities = self._run_deferred_query_for_entity(sg_data)
         return
-        name_field = get_sg_entity_name_field(self._deferred_query["entity_type"])
-        logger.info("Retrieved %s for %s" % (sub_entities, sg_data))
-        parent_uid = item.data(self._SG_ITEM_UNIQUE_ID)
-        if self._deferred_cache.item_exists(parent_uid):
-            # Grab all entries from the iterator
-            existing_uids = [x for x in self._deferred_cache.get_child_uids(parent_uid)]
-        else:
-            existing_uids = []
-        refreshed_uids = []
-        for sub_entity in sub_entities:
-            uid = self._deferred_entity_uid(sub_entity)
-            refreshed_uids.append(uid)
-            self._add_deferred_item(item, uid, name_field, sub_entity)
-        if not sub_entities:
-            uid = self._add_dummy_not_found_item(item)
-            refreshed_uids.append(uid)
-        for uid in existing_uids:
-            if uid in refreshed_uids:
-                continue
-            data_item = self._deferred_cache.take_item(uid)
-            item = self._get_item_by_unique_id(uid)
-            if not item:
-                logger.warning("Unable to find item with uid %s" % uid)
-            else:
-                parent = item.parent()
-                if parent:
-                    parent.removeRow(item.row())
 
     def item_from_entity(self, entity_type, entity_id):
         """
