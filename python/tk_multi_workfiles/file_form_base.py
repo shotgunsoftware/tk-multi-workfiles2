@@ -25,7 +25,7 @@ BackgroundTaskManager = task_manager.BackgroundTaskManager
 
 shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
 
-from .entity_model import ShotgunUpdatableEntityModel
+from .entity_models import ShotgunExtendedEntityModel, ShotgunDeferredEntityModel
 from .file_model import FileModel
 from .my_tasks.my_tasks_model import MyTasksModel
 from .scene_operation import get_current_path, SAVE_FILE_AS_ACTION
@@ -213,15 +213,25 @@ class FileFormBase(QtGui.QWidget):
                 # Add so we can filter tasks assigned to the user only on the client side.
                 fields += ["task_assignees"]
 
-            model = ShotgunUpdatableEntityModel(
-                entity_type,
-                resolved_filters,
-                hierarchy,
-                fields,
-                deferred_query=deferred_query,
-                parent=self,
-                bg_task_manager=self._bg_task_manager
-            )
+            if deferred_query:
+                model = ShotgunDeferredEntityModel(
+                    entity_type,
+                    resolved_filters,
+                    hierarchy,
+                    fields,
+                    deferred_query=deferred_query,
+                    parent=self,
+                    bg_task_manager=self._bg_task_manager
+                )
+            else:
+                model = ShotgunExtendedEntityModel(
+                    entity_type,
+                    resolved_filters,
+                    hierarchy,
+                    fields,
+                    parent=self,
+                    bg_task_manager=self._bg_task_manager
+                )
             monitor_qobject_lifetime(model, "Entity Model")
             entity_models.append((caption, model))
             model.load_and_refresh(step_filter)

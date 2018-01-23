@@ -431,7 +431,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
     def _create_item(self, parent, data_item):
         """
         Override the base implementation to ensure we always have a valid value
-        for the _SG_ITEM_SORT_ROLE by copying the Qt.DisplayRole value.
+        for the _SG_ITEM_SORT_ROLE by copying over the Qt.DisplayRole value.
         """
         item = super(ShotgunUpdatableEntityModel, self)._create_item(parent, data_item)
         item.setData(item.data(QtCore.Qt.DisplayRole), self._SG_ITEM_SORT_ROLE)

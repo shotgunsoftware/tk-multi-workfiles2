@@ -75,6 +75,7 @@ class EntityTreeForm(QtGui.QWidget):
         # control if step->tasks in the entity hierarchy should be collapsed when building
         # the search details.
         self._collapse_steps_with_tasks = True
+        
         self._step_entity_filter = step_entity_filter
         # keep track of the entity to select when the model is updated:
         self._entity_to_select = None

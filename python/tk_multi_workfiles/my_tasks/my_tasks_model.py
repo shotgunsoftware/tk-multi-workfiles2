@@ -16,9 +16,9 @@ import sgtk
 from sgtk.platform.qt import QtGui
 
 from ..util import resolve_filters
-from ..entity_model import ShotgunUpdatableEntityModel
+from ..entity_models import ShotgunExtendedEntityModel
 
-class MyTasksModel(ShotgunUpdatableEntityModel):
+class MyTasksModel(ShotgunExtendedEntityModel):
     """
     Specialisation of the Shotgun entity model that represents a single users tasks.  Note that we derive
     from the Shotgun entity model so that we have access to the entity icons it provides.  These are used 
@@ -45,13 +45,12 @@ class MyTasksModel(ShotgunUpdatableEntityModel):
         fields = ["image", "entity", "content"]
         fields.extend(self.extra_display_fields)
 
-        ShotgunUpdatableEntityModel.__init__(
+        ShotgunExtendedEntityModel.__init__(
             self,
             "Task",
             filters,
             ["content"],
             fields,
-            deferred_query=None,
             parent=parent,
             download_thumbs=True,
             bg_load_thumbs = True,
