@@ -234,7 +234,8 @@ class FileFormBase(QtGui.QWidget):
                 )
             monitor_qobject_lifetime(model, "Entity Model")
             entity_models.append((caption, model))
-            model.load_and_refresh(step_filter)
+            if model.supports_step_filtering:
+                model.load_and_refresh(step_filter)
 
         return entity_models
 
@@ -356,7 +357,18 @@ class FileFormBase(QtGui.QWidget):
 
         return file_item
 
-    def _apply_step_filters(self, step_filters):
+    def _apply_step_filtering(self, step_filters):
+        """
+        Apply the given step filters to all Entity models.
+
+        :param step_filters: A list of Shotgun Step filters, directly usable in
+                             a Shotgun query.
+        """
         logger.info("Step filter %s" % step_filters)
+        # Please note that this could be optimized: we're applying step filters
+        # to all models, even if, for example, the changes in the filters are only
+        # for Shot Steps, so models containing only Asset Tasks do not need to be
+        # refreshed.
         for _, model in self._entity_models:
-            model.update_filters(step_filters)
+            if model.supports_step_filtering:
+                model.update_filters(step_filters)

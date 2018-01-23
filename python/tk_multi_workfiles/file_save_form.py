@@ -129,7 +129,7 @@ class FileSaveForm(FileFormBase):
         self._ui.browser.file_selected.connect(self._on_browser_file_selected)
         self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)
         self._ui.browser.work_area_changed.connect(self._on_browser_work_area_changed)
-        self._ui.browser.step_filter_changed.connect(self._apply_step_filters)
+        self._ui.browser.step_filter_changed.connect(self._apply_step_filtering)
         self._ui.nav.navigate.connect(self._on_navigate)
         self._ui.nav.home_clicked.connect(self._on_navigate_home)
 

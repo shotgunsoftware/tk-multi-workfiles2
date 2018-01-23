@@ -546,9 +546,3 @@ class BrowserForm(QtGui.QWidget):
         :param step_list: A list of Shotgun Step dictionaries.
         """
         self.step_filter_changed.emit(get_filter_from_filter_list(step_list))
-        if self._ui.task_browser_tabs.currentWidget().entity_model.deferred_query:
-            # If we have deferred queries, force a refresh by re-selecting the
-            # current tab.
-            tab_index = self._ui.task_browser_tabs.currentIndex()
-            self._on_task_tab_changed(tab_index)
-
