@@ -136,6 +136,25 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             if item:
                 self.fetchMore(item.index())
 
+    def clear(self):
+        """
+        Clear the data we hold.
+        """
+        self._deferred_cache = ShotgunDataHandlerCache()
+        for deferred_model in self._deferred_models.itervalues():
+            deferred_model.clear()
+        self._deferred_models = {}
+        super(ShotgunDeferredEntityModel, self).clear()
+
+    def destroy(self):
+        """
+        Destroy this model and any deferred models attached to it.
+        """
+        for deferred_model in self._deferred_models.itervalues():
+            deferred_model.destroy()
+        self._deferred_models = {}
+        super(ShotgunDeferredEntityModel, self).destroy()
+
     def _add_deferred_item(self, parent_item, uid, name_field, sg_data, order_key):
         """
         Add a child item under the given parent for the given Shotgun record
