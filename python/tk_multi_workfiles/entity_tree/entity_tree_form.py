@@ -27,7 +27,7 @@ logger = sgtk.platform.get_logger(__name__)
 
 class EntityTreeForm(QtGui.QWidget):
     """
-    Entity tree widget class
+    A tree view for a list of Entities, with a search field.
     """
 
     class _EntityBreadcrumb(Breadcrumb):
@@ -51,22 +51,31 @@ class EntityTreeForm(QtGui.QWidget):
     # Signal emitted when the 'New Task' button is clicked.
     create_new_task = QtCore.Signal(object, object)# entity, step
 
-    def __init__(self, entity_model, search_label, allow_task_creation, represent_tasks, extra_fields, parent):
+    def __init__(self, entity_model, search_label, allow_task_creation, represent_tasks, extra_fields, parent, step_entity_filter=None):
         """
-        Construction
+        Instantiate a new `EntityTreeForm`.
+
+        Step filtering can be enable with the `step_entity_filter` parameter. If
+        it is `None`, step filtering is disabled, if it is `Task` all existing
+        steps will be offered as filters, if another Entity type (e.g. 'Shot') is
+        given, only Steps linked to this Entity type will be offered as filters.
 
         :param entity_model:        The Shotgun Model this widget should connect to
         :param search_label:        The hint label to be displayed on the search control
         :param allow_task_creation: Indicates if the form is allowed by the app settings to show the
-                                    create task button.
+                                    create Task button.
         :param extra_fields:        Extra fields to use when comparing model entries.
         :param parent:              The parent QWidget for this control
+        :param step_entity_filter:  An Entity type as a string or None defining
+                                    the primary Entity to use when offering Step
+                                    filtering.
         """
         QtGui.QWidget.__init__(self, parent)
 
         # control if step->tasks in the entity hierarchy should be collapsed when building
         # the search details.
         self._collapse_steps_with_tasks = True
+        self._step_entity_filter = step_entity_filter
         # keep track of the entity to select when the model is updated:
         self._entity_to_select = None
         # keep track of the currently selected item:
@@ -148,6 +157,13 @@ class EntityTreeForm(QtGui.QWidget):
         selection_model = self._ui.entity_tree.selectionModel()
         if selection_model:
             selection_model.selectionChanged.connect(self._on_selection_changed)
+
+    @property
+    def step_entity_filter(self):
+        """
+        :returns: The primary Entity type to use for Step filtering or None.
+        """
+        return self._step_entity_filter
 
     def _model_about_to_reset(self):
         """

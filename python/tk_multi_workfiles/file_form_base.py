@@ -167,7 +167,7 @@ class FileFormBase(QtGui.QWidget):
                 # Optional filters for the sub query.
                 sub_filters = sub_hierarchy.get("filters") or []
                 # A list of fields to retrieve in the sub query.
-                sub_fields = sub_hierarchy.get("fields", [])
+                sub_fields = sub_hierarchy.get("fields") or []
                 # The SG field allowing linking the sub query Entity to its
                 # parent Entity.
                 sub_link_field = sub_hierarchy.get("link_field", "entity")

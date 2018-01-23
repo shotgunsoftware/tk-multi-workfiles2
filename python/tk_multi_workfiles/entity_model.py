@@ -181,7 +181,6 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             uid=uid,
         )
         if created:
-            logger.info("New data item created for %s" % sg_data)
             sub_item = self._create_item(
                 parent=parent_item,
                 data_item=self._deferred_cache.get_entry_by_uid(uid),
@@ -189,10 +188,14 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             sub_item.setData(True, self._SG_ITEM_FETCHED_MORE)
             sub_item.setData(order_key, self._SG_ITEM_SORT_ROLE)
 
-            if sg_data["type"] == "Task" and "step" in sg_data:
+            if sg_data["type"] == "Task" and "step" in sg_data and sg_data["step"]:
+                sg_step = sg_data["step"]
+                sub_item.setToolTip(
+                    "%s, Step '%s'" % (sub_item.toolTip(), sg_step["name"])
+                )
                 # We don't have the step in the item hierarchy, we use the icon to
                 # highlight the Step the Task is linked to.
-                step_id = sg_data["step"]["id"]
+                step_id = sg_step["id"]
                 if step_id in self._task_step_icons:
                     # If we already have such an icon for the given step, just
                     # re-use it.
@@ -200,7 +203,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                 else:
                     # Otherwise, build a new one combinining the two icons
                     # and cache it.
-                    step_icon = self._get_default_thumbnail(sg_data["step"])
+                    step_icon = self._get_default_thumbnail(sg_step)
                     size = step_icon.availableSizes()[-1]
                     step_pixmap = step_icon.pixmap(size)
                     task_step_icon = sub_item.icon()

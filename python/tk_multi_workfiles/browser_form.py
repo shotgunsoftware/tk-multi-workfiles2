@@ -67,8 +67,6 @@ class BrowserForm(QtGui.QWidget):
         self._my_tasks_form = None
         self._entity_tree_forms = []
         self._file_browser_forms = []
-        # Keep trace of the Entity types for Step filtering for each tab.
-        self._form_step_entity_types = []
         # set up the UI
         self._ui = Ui_BrowserForm()
         self._ui.setupUi(self)
@@ -181,25 +179,24 @@ class BrowserForm(QtGui.QWidget):
         """
         app = sgtk.platform.current_bundle()
         allow_task_creation = app.get_setting("allow_task_creation")
-        self._form_step_entity_types = []
 
         if my_tasks_model:
             # create my tasks form:
-            # No Step filtering for My Tasks.
-            self._form_step_entity_types.append(None)
-            self._my_tasks_form = MyTasksForm(my_tasks_model, allow_task_creation, parent=self)
+            self._my_tasks_form = MyTasksForm(
+                my_tasks_model,
+                allow_task_creation,
+                parent=self
+            )
             self._my_tasks_form.entity_selected.connect(self._on_entity_selected)
             self._ui.task_browser_tabs.addTab(self._my_tasks_form, "My Tasks")
             self._my_tasks_form.create_new_task.connect(self.create_new_task)
 
         for caption, model in entity_models:
+            step_entity_filter = None
             if model.represents_tasks:
                 # Step filtering on the Entity type the Tasks are linked to or
                 # on Tasks.
-                self._form_step_entity_types.append(model.get_entity_type())
-            else:
-                # No Step filtering if not dealing with Tasks.
-                self._form_step_entity_types.append(None)
+                step_entity_filter = model.get_entity_type()
 
             entity_form = EntityTreeForm(
                 model,
@@ -207,7 +204,8 @@ class BrowserForm(QtGui.QWidget):
                 allow_task_creation,
                 model.represents_tasks,
                 [],
-                parent=self
+                parent=self,
+                step_entity_filter=step_entity_filter
             )
             entity_form.entity_selected.connect(self._on_entity_selected)
             self._ui.task_browser_tabs.addTab(entity_form, caption)
@@ -536,7 +534,7 @@ class BrowserForm(QtGui.QWidget):
         # retrieve the selection from the form and emit a work-area changed signal:
         selection, breadcrumb_trail = form.get_selection()
         self._on_selected_entity_changed(selection, breadcrumb_trail)
-        self.entity_type_focus_changed.emit(self._form_step_entity_types[idx])
+        self.entity_type_focus_changed.emit(form.step_entity_filter)
 
     def _on_step_filter_changed(self, step_list):
         """
