@@ -174,6 +174,10 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                 sub_item.setToolTip(
                     "%s, Step '%s'" % (sub_item.toolTip(), sg_step["name"])
                 )
+# If we needed we can add the step name in the item name
+#                sub_item.setText("%s (%s)" % (
+#                    sub_item.text(), sg_step["name"]
+#                ))
                 # We don't have the step in the item hierarchy, we use the icon to
                 # highlight the Step the Task is linked to.
                 step_id = sg_step["id"]
@@ -203,6 +207,9 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                     )
                     painter = QtGui.QPainter(task_pixmap)
                     try:
+                        # Because of the pixmaps transparency, other composition
+                        # modes give some highlights when mixing colors from the
+                        # pixmaps. This mode is not perfect, but looks ok.
                         painter.setCompositionMode(
                             QtGui.QPainter.CompositionMode_Xor
                         )
