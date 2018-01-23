@@ -24,6 +24,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
     """
     A Shotgun Entity model with updatable filters and deferred queries.
     """
+    _SG_ITEM_SORT_ROLE = ShotgunEntityModel._SG_ITEM_UNIQUE_ID + 50
     def __init__(self, entity_type, filters, hierarchy, fields, deferred_query, *args, **kwargs):
         """
         :param entity_type: The type of the entities that should be loaded into this model.
@@ -154,7 +155,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                     self.fetchMore(item.index())
             return
 
-    def _add_deferred_item(self, parent_item, uid, name_field, sg_data):
+    def _add_deferred_item(self, parent_item, uid, name_field, sg_data, order_key):
         """
         Add a child item under the given parent for the given Shotgun record
         loaded from a deferred query.
@@ -180,11 +181,14 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             uid=uid,
         )
         if created:
+            logger.info("New data item created for %s" % sg_data)
             sub_item = self._create_item(
                 parent=parent_item,
                 data_item=self._deferred_cache.get_entry_by_uid(uid),
             )
             sub_item.setData(True, self._SG_ITEM_FETCHED_MORE)
+            sub_item.setData(order_key, self._SG_ITEM_SORT_ROLE)
+
             if sg_data["type"] == "Task" and "step" in sg_data:
                 # We don't have the step in the item hierarchy, we use the icon to
                 # highlight the Step the Task is linked to.
@@ -225,7 +229,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                         painter.end()
 
     @classmethod
-    def _dummy_not_found_item_uid(cls, parent_item, refreshing):
+    def _dummy_place_holder_item_uid(cls, parent_item, refreshing):
         """
         Return a unique id which can be used for a dummy "Not Found" item under
         the given parent item.
@@ -238,12 +242,12 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             parent_item.data(cls._SG_ITEM_UNIQUE_ID)
         )
 
-    def _add_dummy_not_found_item(self, parent_item, refreshing):
+    def _add_dummy_place_holder_item(self, parent_item, refreshing):
         """
         Create a dummy child item under the given item.
 
         These items are used in tree views to show that a deferred query didn't
-        return any Shotgun record.
+        return any Shotgun record or that the data is being refreshed from Shotgun.
 
         :param parent_item: A :class:`ShotgunStandardItem` instance.
         :returns: A string, the unique id for the item.
@@ -256,7 +260,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
             is_leaf=False,
             uid=parent_uid,
         )
-        uid = self._dummy_not_found_item_uid(parent_item, refreshing)
+        uid = self._dummy_place_holder_item_uid(parent_item, refreshing)
         if refreshing:
             text = "Retrieving %ss..." % self._deferred_query["entity_type"]
         else:
@@ -324,12 +328,22 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         self._on_deferred_data_refreshed(sg_entity, True, True)
         self._deferred_models[sg_entity["id"]].async_refresh()
 
-    def _on_deferred_data_refreshed(self, sg_entity, changed, refresh_posted=False):
-        logger.info("New data %s for %s" % (changed, sg_entity))
+    def _on_deferred_data_refreshed(self, sg_entity, changed, pending_refresh=False):
+        """
+        Called when new data is available in a deferred Shotgun model for a given
+        Entity.
+
+        :param dict sg_entity: A Shotgun Entity with at least "type" and "id" keys.
+        :param bool changed: Whether or not the data in the model was changed.
+        :param bool pending_refresh: Whether or not a data refresh has been posted,
+                                     so refreshed data is expected later.
+        """
         parent_item = self.item_from_entity(sg_entity["type"], sg_entity["id"])
         if not parent_item:
             logger.info("Invalid Parent item %s" % parent_item)
             return
+        # We use our own deferred cache to avoid conflicts with ShotgunModel so
+        # we can manipulate it freely.
         parent_uid = parent_item.data(self._SG_ITEM_UNIQUE_ID)
         if self._deferred_cache.item_exists(parent_uid):
             # Grab all entries from the iterator
@@ -341,7 +355,7 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         deferred_model = self._deferred_models[sg_entity["id"]]
         sub_entity_type = deferred_model.get_entity_type()
         name_field = get_sg_entity_name_field(sub_entity_type)
-        #sub_entity_ids = deferred_model.entity_ids()
+        # Loop over all entities (leaves) in the deferred model.
         for sub_entity_id in deferred_model.entity_ids:
             sub_item = deferred_model.item_from_entity(sub_entity_type, sub_entity_id)
             if sub_item:
@@ -349,16 +363,37 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
                 if sg_data:
                     sub_entities.append(sg_data)
         refreshed_uids = []
+        # Ideallly we would retrieve the field list from the ShotgunEntityModel
+        # but this is a private member.
+        deferred_query = self._deferred_query
+        fields = deferred_query["fields"] + [name_field]
         for sub_entity in sub_entities:
             uid = self._deferred_entity_uid(sub_entity)
             refreshed_uids.append(uid)
-            self._add_deferred_item(parent_item, uid, name_field, sub_entity)
+            # Build a key used to sort the items based on the fields specified
+            # in the deferred query settings
+            order_keys = []
+            for field in fields:
+                field_value = sub_entity[field]
+                # Special case for dictionaries which are linked entities: use
+                # the name field value.
+                if isinstance(field_value, dict) and "name" in field_value:
+                    order_keys.append("%s" % field_value["name"])
+                else:
+                    order_keys.append("%s" % field_value)
+            self._add_deferred_item(
+                parent_item, uid, name_field, sub_entity, "_".join(order_keys)
+            )
         if not sub_entities:
-            uid = self._add_dummy_not_found_item(parent_item, refresh_posted)
+            # If we don't have any Entity, add a "Retrieving XXXXXs" or
+            # "No XXXXs found" child, depending on `pending_refresh` value.
+            uid = self._add_dummy_place_holder_item(parent_item, pending_refresh)
             refreshed_uids.append(uid)
+        # Go through the existing items and discard the ones which shouldn't be
+        # there anymore.
         for uid in existing_uids:
             if uid in refreshed_uids:
-                # Here we could update items from the refreshed data, although
+                # Here we could update items from the refreshed data
                 continue
             data_item = self._deferred_cache.take_item(uid)
             item = self._get_item_by_unique_id(uid)
@@ -389,6 +424,15 @@ class ShotgunUpdatableEntityModel(ShotgunEntityModel):
         entity = self.get_entity(item)
         if entity:
             self._entity_types.add(entity["type"])
+
+    def _create_item(self, parent, data_item):
+        """
+        Override the base implementation to ensure we always have a valid value
+        for the _SG_ITEM_SORT_ROLE by copying the Qt.DisplayRole value.
+        """
+        item = super(ShotgunUpdatableEntityModel, self)._create_item(parent, data_item)
+        item.setData(item.data(QtCore.Qt.DisplayRole), self._SG_ITEM_SORT_ROLE)
+        return item
 
     def ensure_data_is_loaded(self, index=None):
         """
