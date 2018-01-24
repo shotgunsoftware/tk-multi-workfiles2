@@ -241,6 +241,9 @@ class EntityTreeForm(QtGui.QWidget):
         finally:
             self.blockSignals(signals_blocked)
 
+    def ensure_data_for_context(self, context):
+        self.entity_model.ensure_data_for_context(context)
+
     def select_entity(self, entity_type, entity_id):
         """
         Select the specified entity in the tree.  If the tree is still being populated then the selection

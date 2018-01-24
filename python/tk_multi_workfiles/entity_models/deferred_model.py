@@ -115,6 +115,26 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         )
         self.async_refresh()
 
+    def ensure_data_for_context(self, context):
+        """
+        Ensure the data is loaded for the given context.
+
+        This is typically used to load data for the current Toolkit context and
+        select a matching item in the tree.
+
+        :param context: A Toolkit context.
+        """
+        if not context:
+            return
+        if context.entity and context.entity["type"] == self.get_entity_type():
+            # If we have an entity in our context, check if we have it in our
+            # "static" model.
+            item = self.item_from_entity(context.entity["type"], context.entity["id"])
+            if item:
+                # Fetch children if not done yet.
+                if self.canFetchMore(item.index()):
+                    self.fetchMore(item.index())
+
     def update_filters(self, extra_filters):
         """
         Update the filters used by this model.
@@ -532,4 +552,6 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                 entity_type, entity_id
             )
         logger.info("Doing custom deferred lookup %s" % self.get_entity_type())
-        return self._get_item_by_unique_id(entity_id)
+        return self._get_item_by_unique_id(
+            self._deferred_entity_uid({ "type": entity_type, "id" : entity_id})
+        )

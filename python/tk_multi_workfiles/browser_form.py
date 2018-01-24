@@ -255,6 +255,13 @@ class BrowserForm(QtGui.QWidget):
         if not context:
             return
 
+        # Because of lazy loading and deferred queries, make sure the data for
+        # this context, and just that, is loaded so we will be able to select
+        # the item for the context.
+        for tab_i in range(self._ui.task_browser_tabs.count()):
+            widget = self._ui.task_browser_tabs.widget(tab_i)
+            widget.ensure_data_for_context(context)
+
         # update the selected entity in the various task/entity trees:
         ctx_entity = context.task or context.step or context.entity
         if not ctx_entity:

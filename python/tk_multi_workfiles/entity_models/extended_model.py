@@ -140,6 +140,30 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         super(ShotgunExtendedEntityModel, self).clear()
         self._entity_types = set()
 
+    def ensure_data_for_context(self, context):
+        """
+        Ensure the data is loaded for the given context.
+
+        This is typically used to load data for the current Toolkit context and
+        select a matching item in the tree.
+
+        :param context: A Toolkit context.
+        """
+        if not context:
+            return
+        entity_type = self.get_entity_type()
+        entity = None
+        if entity_type == "Task":
+            entity = context.task
+        elif context.entity and context.entity["type"] == entity_type:
+            # For now only load anything if dealing with leaves: loading intermediate
+            # nodes could lead to performance hits, we need to make sure there is
+            # a valid use case for doing this.
+            entity = context.entity
+        if entity:
+            # Retrieving the item is enough to ensure it is loaded if available.
+            item = self.item_from_entity(entity["type"], entity["id"])
+
     def item_from_entity(self, entity_type, entity_id):
         """
         Retrieve the item representing the given entity in the model.
