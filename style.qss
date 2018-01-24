@@ -91,3 +91,22 @@ FileWidget #background[selected=true] {
     background-color: rgb(0, 178, 236, 30);
     border-color: rgb(0, 178, 236);
 }
+
+EntityItemWidget {
+    border: none;
+}
+
+EntityItemWidget #detail_label {
+    font-size: 8px;
+    color: grey;
+}
+
+EntityItemWidget[selected=true] {
+    background-color: rgb(0, 178, 236, 30);
+}
+EntityTreeForm QTreeView {
+    selection-background-color: rgb(0, 178, 236, 30);
+    show-decoration-selected: 0;
+
+}
+
