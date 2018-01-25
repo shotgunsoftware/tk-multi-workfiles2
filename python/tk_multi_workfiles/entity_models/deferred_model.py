@@ -175,6 +175,65 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         self._deferred_models = {}
         super(ShotgunDeferredEntityModel, self).destroy()
 
+    def _add_deferred_item_hierarchy(self, parent_item, hierarchy, name_field, sg_data):
+        """
+        Add a hierarchy item under the given parent for the given Shotgun record
+        loaded from a deferred query.
+
+        :param parent_item: A :class:`ShotgunStandardItem` instance.
+        :param str uid: A unique id for the new item.
+        :param name_field: A field name from which the Entity name can be retrieved.
+        :param sg_data: A Shotgun Entity dictionary.
+        """
+        parent_uid = parent_item.data(self._SG_ITEM_UNIQUE_ID)
+        self._deferred_cache.add_item(
+            parent_uid=None,
+            sg_data={},
+            field_name="",
+            is_leaf=False,
+            uid=parent_uid,
+        )
+        refreshed_uids = []
+        current_item = parent_item
+        current_uid = parent_uid
+        for name in hierarchy:
+            value = sg_data.get(name)
+            uid = "%s/%s" % (parent_uid, value)
+            refreshed_uids.append(uid)
+            if not self._deferred_cache.item_exists(uid):
+                updated = self._deferred_cache.add_item(
+                    parent_uid=current_uid,
+                    sg_data=sg_data,
+                    field_name=name,
+                    is_leaf=False,
+                    uid=uid,
+                )
+                current_item = self._create_item(
+                    parent=current_item,
+                    data_item=self._deferred_cache.get_entry_by_uid(uid),
+                )
+                current_item.setData(True, self._SG_ITEM_FETCHED_MORE)
+            else:
+                current_item = self._get_item_by_unique_id(uid)
+
+        uid = self._deferred_entity_uid(sg_data)
+        refreshed_uids.append(uid)
+        if not self._deferred_cache.item_exists(uid):
+            self._deferred_cache.add_item(
+                parent_uid=current_uid,
+                sg_data=sg_data,
+                field_name=name_field,
+                is_leaf=True,
+                uid=uid,
+            )
+            current_item = self._create_item(
+                parent=current_item,
+                data_item=self._deferred_cache.get_entry_by_uid(uid),
+            )
+            current_item.setData(True, self._SG_ITEM_FETCHED_MORE)
+
+        return refreshed_uids
+
     def _add_deferred_item(self, parent_item, uid, name_field, sg_data, order_key):
         """
         Add a child item under the given parent for the given Shotgun record
@@ -334,11 +393,12 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         if self._extra_filters:
             filters.append(self._extra_filters)
         name_field = get_sg_entity_name_field(deferred_query["entity_type"])
+        fields = deferred_query["fields"]
         if sg_entity["id"] not in self._deferred_models:
             self._deferred_models[sg_entity["id"]] = ShotgunEntityModel(
                 deferred_query["entity_type"],
                 filters,
-                hierarchy=[link_field_name, name_field],
+                hierarchy=[name_field],
                 fields=deferred_query["fields"] + [name_field, link_field_name],
                 parent=self,
             )
@@ -350,11 +410,12 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             self._deferred_models[sg_entity["id"]]._load_data(
                 deferred_query["entity_type"],
                 filters,
-                hierarchy=[link_field_name, name_field],
+                hierarchy=[name_field],
                 fields=deferred_query["fields"] + [name_field, link_field_name],
             )
         self._on_deferred_data_refreshed(sg_entity, True, True)
         self._deferred_models[sg_entity["id"]].async_refresh()
+
 
     def _on_deferred_data_refreshed(self, sg_entity, changed, pending_refresh=False):
         """
@@ -383,6 +444,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         deferred_model = self._deferred_models[sg_entity["id"]]
         sub_entity_type = deferred_model.get_entity_type()
         name_field = get_sg_entity_name_field(sub_entity_type)
+
         # Loop over all entities (leaves) in the deferred model.
         for sub_entity_id in deferred_model.entity_ids:
             sub_item = deferred_model.item_from_entity(sub_entity_type, sub_entity_id)
@@ -395,23 +457,31 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         # but this is a private member.
         deferred_query = self._deferred_query
         fields = deferred_query["fields"] + [name_field]
+        logger.info("%s" % deferred_query["fields"])
         for sub_entity in sub_entities:
-            uid = self._deferred_entity_uid(sub_entity)
-            refreshed_uids.append(uid)
-            # Build a key used to sort the items based on the fields specified
-            # in the deferred query settings
-            order_keys = []
-            for field in fields:
-                field_value = sub_entity[field]
-                # Special case for dictionaries which are linked entities: use
-                # the name field value.
-                if isinstance(field_value, dict) and "name" in field_value:
-                    order_keys.append("%s" % field_value["name"])
-                else:
-                    order_keys.append("%s" % field_value)
-            self._add_deferred_item(
-                parent_item, uid, name_field, sub_entity, "_".join(order_keys)
+            uids = self._add_deferred_item_hierarchy(
+                parent_item,
+                deferred_query["fields"],
+                name_field,
+                sub_entity,
             )
+            refreshed_uids.extend(uids)
+#            uid = self._deferred_entity_uid(sub_entity)
+#            refreshed_uids.append(uid)
+#            # Build a key used to sort the items based on the fields specified
+#            # in the deferred query settings
+#            order_keys = []
+#            for field in fields:
+#                field_value = sub_entity[field]
+#                # Special case for dictionaries which are linked entities: use
+#                # the name field value.
+#                if isinstance(field_value, dict) and "name" in field_value:
+#                    order_keys.append("%s" % field_value["name"])
+#                else:
+#                    order_keys.append("%s" % field_value)
+#                self._add_deferred_item(
+#                    parent_item, uid, name_field, sub_entity, "_".join(order_keys)
+#                )
         if not sub_entities:
             # If we don't have any Entity, add a "Retrieving XXXXXs" or
             # "No XXXXs found" child, depending on `pending_refresh` value.
@@ -425,12 +495,10 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                 continue
             data_item = self._deferred_cache.take_item(uid)
             item = self._get_item_by_unique_id(uid)
-            if not item:
-                logger.warning("Unable to find item with uid %s" % uid)
-            else:
-                parent = item.parent()
-                if parent:
-                    parent.removeRow(item.row())
+            if item:
+                # The item might be already gone because one its parent was
+                # deleted.
+                self._delete_item(item)
 
     @staticmethod
     def _deferred_entity_uid(sg_entity):

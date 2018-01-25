@@ -153,8 +153,8 @@ class EntityTreeForm(QtGui.QWidget):
                 entity_model.modelReset.connect(self._model_reset)
                 self._ui.entity_tree.setModel(entity_model)
 
-        self._entity_item_delegate = EntityItemDelegate(self._ui.entity_tree)
-        self._ui.entity_tree.setItemDelegate(self._entity_item_delegate)
+#        self._entity_item_delegate = EntityItemDelegate(self._ui.entity_tree)
+#        self._ui.entity_tree.setItemDelegate(self._entity_item_delegate)
 
         self._expand_root_rows()
 
