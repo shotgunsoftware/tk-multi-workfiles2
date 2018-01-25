@@ -49,6 +49,7 @@ build_ui file_widget
 build_ui file_group_widget
 build_ui open_options_form
 build_ui new_task_form
+build_ui entity_widget
 
 build_ui crash_dbg_form
 

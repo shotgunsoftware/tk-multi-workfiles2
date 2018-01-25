@@ -21,17 +21,23 @@ from .entity_tree.entity_tree_form import EntityTreeForm
 from .my_tasks.my_tasks_form import MyTasksForm
 from .file_list.file_list_form import FileListForm
 from .file_model import FileModel
-from .util import value_to_str
+from .util import value_to_str, get_sg_entity_name_field
 from .ui.browser_form import Ui_BrowserForm
 from .framework_qtwidgets import Breadcrumb
 
 from .file_filters import FileFilters
 from .util import monitor_qobject_lifetime, get_template_user_keys
+from .step_list_filter import StepListWidget, get_filter_from_filter_list, get_saved_step_filter
+
+logger = sgtk.platform.get_logger(__name__)
 
 
 class BrowserForm(QtGui.QWidget):
     """
-    UI for saving a work file
+    Main UI piece holding the various views and the interactions between them.
+
+    'My Tasks', Entities/Tasks and file views are build by calling set_models from
+    the provided list of models.
     """
 
     class _EntityTabBreadcrumb(Breadcrumb):
@@ -45,6 +51,8 @@ class BrowserForm(QtGui.QWidget):
     file_selected = QtCore.Signal(object, object)# file, env
     file_double_clicked = QtCore.Signal(object, object)# file, env
     file_context_menu_requested = QtCore.Signal(object, object, QtCore.QPoint)# file, env, pnt
+    entity_type_focus_changed = QtCore.Signal(object) # entity type
+    step_filter_changed = QtCore.Signal(list) # SG filter
 
     def __init__(self, parent):
         """
@@ -59,7 +67,6 @@ class BrowserForm(QtGui.QWidget):
         self._my_tasks_form = None
         self._entity_tree_forms = []
         self._file_browser_forms = []
-
         # set up the UI
         self._ui = Ui_BrowserForm()
         self._ui.setupUi(self)
@@ -71,12 +78,28 @@ class BrowserForm(QtGui.QWidget):
         monitor_qobject_lifetime(self._file_filters, "Browser file filters")
         self._file_filters.users_changed.connect(self._on_file_filters_users_changed)
 
+        # Build the step filter UI
+        self._step_list_widget = StepListWidget(self._ui.step_filter_list_widget)
+        self._ui.select_all_step_button.pressed.connect(
+            self._step_list_widget.select_all_steps
+        )
+        self._ui.select_none_step_button.pressed.connect(
+            self._step_list_widget.unselect_all_steps
+        )
+        # Notify it when we change the entity type being displayed
+        self.entity_type_focus_changed.connect(
+            self._step_list_widget.set_widgets_for_entity_type
+        )
+        self._step_list_widget.step_filter_changed.connect(self._on_step_filter_changed)
+
     def shut_down(self):
         """
         Help the gc by cleaning up as much as possible when this widget is finished with
         """
         signals_blocked = self.blockSignals(True)
         try:
+            logger.info("Saving step filters...")
+            self._step_list_widget.save_step_filters()
             # clean up my tasks form:
             if self._my_tasks_form:
                 self._my_tasks_form.shut_down()
@@ -148,10 +171,10 @@ class BrowserForm(QtGui.QWidget):
 
     def set_models(self, my_tasks_model, entity_models, file_model):
         """
-        Sets the models used by browser.
+        Sets the models used by browser and create the widgets to display them.
 
-        :param my_tasks_model: Instance of the MyTaskModel class
-        :param entity_models: List of ShotgunEntityModel instances.
+        :param my_tasks_model: Instance of the :class:`MyTaskModel`.
+        :param entity_models: List of :class:`ShotgunEntityModel` instances.
         :param file_model: Instance of the file model.
         """
         app = sgtk.platform.current_bundle()
@@ -159,14 +182,31 @@ class BrowserForm(QtGui.QWidget):
 
         if my_tasks_model:
             # create my tasks form:
-            self._my_tasks_form = MyTasksForm(my_tasks_model, allow_task_creation, parent=self)
+            self._my_tasks_form = MyTasksForm(
+                my_tasks_model,
+                allow_task_creation,
+                parent=self
+            )
             self._my_tasks_form.entity_selected.connect(self._on_entity_selected)
             self._ui.task_browser_tabs.addTab(self._my_tasks_form, "My Tasks")
             self._my_tasks_form.create_new_task.connect(self.create_new_task)
 
         for caption, model in entity_models:
-            # create new entity form:
-            entity_form = EntityTreeForm(model, caption, allow_task_creation, [], parent=self)
+            step_entity_filter = None
+            if model.represents_tasks:
+                # Step filtering on the Entity type the Tasks are linked to or
+                # on Tasks.
+                step_entity_filter = model.get_entity_type()
+
+            entity_form = EntityTreeForm(
+                model,
+                caption,
+                allow_task_creation,
+                model.represents_tasks,
+                [],
+                parent=self,
+                step_entity_filter=step_entity_filter
+            )
             entity_form.entity_selected.connect(self._on_entity_selected)
             self._ui.task_browser_tabs.addTab(entity_form, caption)
             entity_form.create_new_task.connect(self.create_new_task)
@@ -215,12 +255,23 @@ class BrowserForm(QtGui.QWidget):
         if not context:
             return
 
+        # Because of lazy loading and deferred queries, make sure the data for
+        # this context, and just that, is loaded so we will be able to select
+        # the item for the context.
+        for tab_i in range(self._ui.task_browser_tabs.count()):
+            widget = self._ui.task_browser_tabs.widget(tab_i)
+            widget.ensure_data_for_context(context)
+
         # update the selected entity in the various task/entity trees:
         ctx_entity = context.task or context.step or context.entity
         if not ctx_entity:
             return
 
-        self._update_selected_entity(ctx_entity["type"], ctx_entity["id"], skip_current=False)
+        self._update_selected_entity(
+            ctx_entity["type"],
+            ctx_entity["id"],
+            skip_current=False
+        )
 
         if self._file_model:
             # now start a new file search based off the entity:
@@ -270,8 +321,7 @@ class BrowserForm(QtGui.QWidget):
 
         :param users: Array of user entity dictionary.
         """
-        app = sgtk.platform.current_bundle()
-        app.log_debug("Sandbox users found: %s" % [u["name"].split()[0] for u in users if u])
+        logger.debug("Sandbox users found: %s" % [u["name"].split()[0] for u in users if u])
         self._file_filters.add_users(users)
 
     def _on_file_filters_users_changed(self, users):
@@ -281,8 +331,7 @@ class BrowserForm(QtGui.QWidget):
 
         :param users: Array of user entity dictionary.
         """
-        app = sgtk.platform.current_bundle()
-        app.log_debug("File filter users: %s" % [u["name"].split()[0] for u in users if u])
+        logger.debug("File filter users: %s" % [u["name"].split()[0] for u in users if u])
         if self._file_model:
             self._file_model.set_users(users)
 
@@ -349,7 +398,10 @@ class BrowserForm(QtGui.QWidget):
         if self._ui.task_browser_tabs.currentWidget() != self.sender():
             return
 
-        selected_entity = self._on_selected_entity_changed(selection_details, breadcrumb_trail)
+        selected_entity = self._on_selected_entity_changed(
+            selection_details,
+            breadcrumb_trail
+        )
         if selected_entity:
             self._update_selected_entity(selected_entity["type"], selected_entity["id"])
         else:
@@ -389,27 +441,25 @@ class BrowserForm(QtGui.QWidget):
         if selection_details:
             label = selection_details["label"]
             primary_entity = selection_details["entity"]
-            children = selection_details["children"]
-            # TODO - this needs fixing.
-            is_leaf = primary_entity and primary_entity["type"] == "Task"
-
-            primary_details = FileModel.SearchDetails(label)
-            primary_details.entity = primary_entity
-            primary_details.is_leaf = is_leaf
-            search_details.append(primary_details)
+            children = selection_details["children"] or []
+            primary_search = FileModel.SearchDetails(label)
+            primary_search.entity = primary_entity
+            search_details.append(primary_search)
 
             for child_details in children:
                 label = child_details["label"]
                 entity = child_details["entity"]
-                # TODO - and here!
-                is_leaf = entity and entity["type"] == "Task"
-                if not is_leaf:
-                    primary_details.child_entities.append({"name":label, "entity":entity})
+                # If dealing with a Task, add a search for it.
+                # Otherwise add the entity as a child to the primary search
+                # which will be displayed as folders in the UI.
+                if entity["type"] != "Task":
+                    primary_search.child_entities.append(
+                        {"name":label, "entity":entity}
+                    )
                 else:
-                    details = FileModel.SearchDetails(label)
-                    details.entity = entity
-                    details.is_leaf = is_leaf
-                    search_details.append(details)
+                    child_search = FileModel.SearchDetails(label)
+                    child_search.entity = entity
+                    search_details.append(child_search)
 
         # Clear the user sandbox button. We'll asynchronously show it back if it
         # is needed as work areas are
@@ -418,15 +468,6 @@ class BrowserForm(QtGui.QWidget):
 
         # refresh files:
         if self._file_model:
-            p_details = []
-            for search in search_details:
-                p_details.append({
-                    "name":search.name,
-                    "entity":search.entity,
-                    "is_leaf":search.is_leaf,
-                    "child_entities":search.child_entities
-                })
-
             self._file_model.set_entity_searches(search_details)
 
         # emit work-area-changed signal:
@@ -475,6 +516,9 @@ class BrowserForm(QtGui.QWidget):
 
     def _on_file_tab_changed(self, idx):
         """
+        Called when the active File tab changed.
+
+        :param int idx: Active tab index.
         """
         selected_file = None
         env = None
@@ -489,8 +533,23 @@ class BrowserForm(QtGui.QWidget):
 
     def _on_task_tab_changed(self, idx):
         """
+        Called when the active Entity/Task tab changed.
+
+        :param int idx: Active tab index.
         """
         form = self._ui.task_browser_tabs.widget(idx)
         # retrieve the selection from the form and emit a work-area changed signal:
         selection, breadcrumb_trail = form.get_selection()
         self._on_selected_entity_changed(selection, breadcrumb_trail)
+        self.entity_type_focus_changed.emit(form.step_entity_filter)
+
+    def _on_step_filter_changed(self, step_list):
+        """
+        Called when Step filters are changed.
+
+        Emit step_filter_changed with a filter build from the list and refresh the
+        file browser.
+
+        :param step_list: A list of Shotgun Step dictionaries.
+        """
+        self.step_filter_changed.emit(get_filter_from_filter_list(step_list))

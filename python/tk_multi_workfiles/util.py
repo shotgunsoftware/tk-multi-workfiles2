@@ -89,6 +89,20 @@ def value_to_str(value):
         # For everything else, just return as string
         return str(value)
 
+def get_sg_entity_name_field(entity_type):
+    """
+    :returns: A string, the field holding the Entity name for a given Entity type.
+    """
+    # Deal with some known special cases and assume "code" for anything else.
+    return {
+        "Project": "name",
+        "Task": "content",
+        "HumanUser": "name",
+        "Note": "subject",
+        "Department": "name",
+        "Delivery": "title",
+    }.get(entity_type, "code")
+
 def get_model_data(item_or_index, role=QtCore.Qt.DisplayRole):
     """
     Safely get the Qt model data for the specified item or index.  This handles QVariant

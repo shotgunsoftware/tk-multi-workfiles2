@@ -20,10 +20,12 @@ from ..util import get_model_data, get_model_str
 from ..framework_qtwidgets import SpinnerWidget, GroupWidgetBase
 from ..user_cache import g_user_cache
 from ..errors import MissingTemplatesError
+from ..actions.new_file_action import NewFileAction
 
 class FileGroupWidget(GroupWidgetBase):
     """
     """
+
     def __init__(self, parent):
         """
         Construction
@@ -85,7 +87,7 @@ class FileGroupWidget(GroupWidgetBase):
         if search_status == None:
             search_status = FileModel.SEARCH_COMPLETED
 
-        # show the spinner if needed:
+        # Show the spinner if needed:
         self._ui.spinner.setVisible(search_status == FileModel.SEARCHING)
 
         # update the status message:
@@ -93,7 +95,7 @@ class FileGroupWidget(GroupWidgetBase):
         search_msg = ""
         if search_status == FileModel.SEARCHING and not idx_has_children:
             search_msg = "Searching for files..."
-        elif search_status == FileModel.SEARCH_COMPLETED and not idx_has_children:
+        elif work_area and search_status == FileModel.SEARCH_COMPLETED and not idx_has_children:
             templates = work_area.get_missing_templates()
             if not work_area.are_settings_loaded():
                 search_msg = "Shotgun Workfiles hasn't been setup."
@@ -109,8 +111,6 @@ class FileGroupWidget(GroupWidgetBase):
 
         show_msg = self._show_msg and self._ui.expand_check_box.checkState() == QtCore.Qt.Checked
         self._ui.msg_label.setVisible(show_msg)
-
-
 
     def set_expanded(self, expand=True):
         """
@@ -130,4 +130,3 @@ class FileGroupWidget(GroupWidgetBase):
         self._ui.msg_label.setVisible(show_msg)
         
         self.toggle_expanded.emit(state != QtCore.Qt.Unchecked)
-    
