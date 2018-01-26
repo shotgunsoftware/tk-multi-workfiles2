@@ -91,7 +91,7 @@ class FileFormBase(QtGui.QWidget):
             self._file_model.destroy()
         if self._my_tasks_model:
             self._my_tasks_model.destroy()
-        for _, model in self._entity_models:
+        for _, _, model in self._entity_models:
             model.destroy()
         self._entity_models = []
 
@@ -155,11 +155,13 @@ class FileFormBase(QtGui.QWidget):
         for ent in entities:
             caption = ent.get("caption", None)
             entity_type = ent.get("entity_type")
-            filters = ent.get("filters", [])
+            filters = ent.get("filters") or []
             hierarchy = ent.get("hierarchy", [])
+            step_filter_on = ent.get("step_filter_on")
             sub_query = ent.get("sub_hierarchy", [])
             deferred_query = None
             if sub_query:
+                step_filter_on = entity_type # Ensure this is not wrongly set
                 # The target entity type for the sub query.
                 sub_entity_type = sub_query.get("entity_type", "Task")
                 # Optional filters for the sub query.
@@ -231,7 +233,7 @@ class FileFormBase(QtGui.QWidget):
                     bg_task_manager=self._bg_task_manager
                 )
             monitor_qobject_lifetime(model, "Entity Model")
-            entity_models.append((caption, model))
+            entity_models.append((caption, step_filter_on, model))
             if model.supports_step_filtering:
                 model.load_and_refresh(step_filter)
 
@@ -278,7 +280,7 @@ class FileFormBase(QtGui.QWidget):
         """
         if self._my_tasks_model:
             self._my_tasks_model.async_refresh()
-        for _, entity_model in self._entity_models:
+        for _, _, entity_model in self._entity_models:
             entity_model.async_refresh()
         if self._file_model:
             self._file_model.async_refresh()
@@ -366,6 +368,6 @@ class FileFormBase(QtGui.QWidget):
         # to all models, even if, for example, the changes in the filters are only
         # for Shot Steps, so models containing only Asset Tasks do not need to be
         # refreshed.
-        for _, model in self._entity_models:
+        for _, _, model in self._entity_models:
             if model.supports_step_filtering:
                 model.update_filters(step_filters)

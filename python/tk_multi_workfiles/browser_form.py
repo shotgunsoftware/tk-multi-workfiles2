@@ -188,12 +188,12 @@ class BrowserForm(QtGui.QWidget):
             self._ui.task_browser_tabs.addTab(self._my_tasks_form, "My Tasks")
             self._my_tasks_form.create_new_task.connect(self.create_new_task)
 
-        for caption, model in entity_models:
+        for caption, step_filter_on, model in entity_models:
             step_entity_filter = None
             if model.represents_tasks:
                 # Step filtering on the Entity type the Tasks are linked to or
                 # on Tasks.
-                step_entity_filter = model.get_entity_type()
+                step_entity_filter = step_filter_on or model.get_entity_type()
 
             entity_form = EntityTreeForm(
                 model,
