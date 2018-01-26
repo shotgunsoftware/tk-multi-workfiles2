@@ -133,6 +133,12 @@ class OpenFileAction(FileAction):
             FileAction.restore_context(parent_ui, previous_context)
             return False
 
+        try:
+            self._app.log_metric("Opened Workfile")
+        except:
+            # ignore all errors. ex: using a core that doesn't support metrics
+            pass
+
         return True
 
 
