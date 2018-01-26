@@ -23,8 +23,6 @@ from ..framework_qtwidgets import Breadcrumb
 from ..util import get_model_str, map_to_source, get_source_model, monitor_qobject_lifetime
 from ..util import get_sg_entity_name_field
 
-logger = sgtk.platform.get_logger(__name__)
-
 
 class EntityTreeForm(QtGui.QWidget):
     """
@@ -189,7 +187,6 @@ class EntityTreeForm(QtGui.QWidget):
             if weak_expanded:
                 expanded = weak_expanded()
                 if expanded:
-                    logger.info("Dealing with %s" % expanded)
                     # TODO: check paths to only keep the longest one otherwise
                     # the same path will be searched for multiple times when
                     # re-expanding items on refresh.
@@ -199,7 +196,6 @@ class EntityTreeForm(QtGui.QWidget):
                         # appear once per Task linked to them.
                         entity_model.get_item_field_value_path(expanded),
                     )
-        logger.info("Reset, grabbing %s" % self._expanded_item_values)
         # Clear internal list which will be invalidated anyway.
         self._expanded_items = set()
         self._is_resetting_model = True
@@ -633,7 +629,6 @@ class EntityTreeForm(QtGui.QWidget):
         if self._expanded_item_values:
             for item_value in self._expanded_item_values:
                 item = entity_model.item_from_field_value_path(item_value)
-                logger.info("Found %s for %s" % (item, item_value))
                 if item:
                     # Items in the expanded items list are always items with
                     # indexes in the source (entity) model, not the in the proxy.
@@ -643,9 +638,7 @@ class EntityTreeForm(QtGui.QWidget):
 
         # expand any new root rows:
         self._expand_root_rows()
-        logger.info("Re-expanding tree with %s" % self._expanded_items)
         self._fix_expanded_rows()
-        logger.info("Valid expanded tree is now %s" % self._expanded_items)
         # try to select the current entity from the new items in the model:
         prev_selected_item = self._reset_selection()
         self._update_selection(prev_selected_item)
@@ -718,14 +711,8 @@ class EntityTreeForm(QtGui.QWidget):
                     if not filtered_idx.isValid():
                         continue
                 # and if the item isn't expanded then expand it:
-                logger.info("Checking %s" % item_ref())
                 if not self._ui.entity_tree.isExpanded(filtered_idx):
                     self._ui.entity_tree.expand(filtered_idx)
-                    logger.info(
-                        "Epxanded %s: %d" % (
-                            item_ref(), self._ui.entity_tree.isExpanded(filtered_idx)
-                        )
-                    )
             # update expanded item list with valid item refs:
             self._expanded_items = valid_expanded_items
         finally:

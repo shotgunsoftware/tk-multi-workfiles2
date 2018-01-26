@@ -29,8 +29,6 @@ BackgroundTaskManager = task_manager.BackgroundTaskManager
 from .work_area import WorkArea
 from .util import monitor_qobject_lifetime, Threaded
 
-logger = sgtk.platform.get_logger(__name__)
-
 
 class FileFinder(QtCore.QObject):
     """
@@ -232,7 +230,7 @@ class FileFinder(QtCore.QObject):
             # get fields for work file:
             wf_fields = work_template.get_fields(work_path)
             wf_ctx = None
-            logger.debug("Fields for %s are %s" % (work_path, wf_fields))
+
 
             # Build the unique file key for the work path.
             # All files that share the same key are considered
@@ -290,11 +288,6 @@ class FileFinder(QtCore.QObject):
                 file_key, work_path, work_template, wf_fields
             )
 
-            logger.debug("File details for %s from %s are %s" % (
-                file_key,
-                work_path,
-                file_details,
-            ))
             # add to the list of files
             files[(file_key, file_details["version"])] = {
                 "key": file_key,
@@ -481,7 +474,6 @@ class FileFinder(QtCore.QObject):
             # when the context object does not have any corresponding objects on 
             # disk / in the path cache. In this case, we cannot continue with any
             # file system resolution, so just exit early insted.
-            logger.debug("Invalid template for context: %s" % e, exc_info=True)
             return []
 
         # Build list of fields to ignore when looking for files, any missing key
@@ -500,16 +492,12 @@ class FileFinder(QtCore.QObject):
             skip_fields += ["version"]
 
         # find paths:
-        logger.debug("Searching files with %s and %s wildcards for %s" % (
-            work_template, work_fields, skip_fields,
-        ))
         work_file_paths = self._app.sgtk.paths_from_template(
             work_template,
             work_fields,
             skip_fields,
             skip_missing_optional_keys=True
         )
-        logger.debug("Found %s" % work_file_paths)
         return work_file_paths
 
     def _filter_work_files(self, work_file_paths, valid_file_extensions):

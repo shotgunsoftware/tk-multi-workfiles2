@@ -15,8 +15,6 @@ from sgtk.platform.qt import QtCore, QtGui
 
 settings_fw = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
 
-logger = sgtk.platform.get_logger(__name__)
-
 # Settings name to save the Step filter list
 _STEP_FILTERS_USER_SETTING = "step_filters"
 
@@ -31,7 +29,6 @@ def load_step_filters():
     """
     manager = settings_fw.UserSettings(sgtk.platform.current_bundle())
     step_filters = manager.retrieve(_STEP_FILTERS_USER_SETTING)
-    logger.info("Saved step filters %s" % step_filters)
     return step_filters
 
 
@@ -42,6 +39,7 @@ def get_saved_step_filter():
     :returns: A Shotgun filter which can be directly added to a Shotgun query.
     """
     return get_filter_from_filter_list(load_step_filters())
+
 
 def get_filter_from_filter_list(step_list):
     if step_list is None:

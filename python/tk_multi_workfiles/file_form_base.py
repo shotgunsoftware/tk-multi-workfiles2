@@ -36,8 +36,6 @@ from .user_cache import g_user_cache
 from .util import monitor_qobject_lifetime, resolve_filters, get_sg_entity_name_field
 from .step_list_filter import get_saved_step_filter
 
-logger = sgtk.platform.get_logger(__name__)
-
 
 class FileFormBase(QtGui.QWidget):
     """
@@ -177,10 +175,10 @@ class FileFormBase(QtGui.QWidget):
                     "fields": sub_fields,
                     "link_field": sub_link_field,
                 }
-                logger.info("Added deferred query %s for %s" % (deferred_query, entity_type))
             # Check the hierarchy to use for the model for this entity:
             if not hierarchy:
-                logger.error(
+                app = sgtk.platform.current_bundle()
+                app.log_error(
                     "No hierarchy found for entity type '%s' - at least one level of "
                     "hierarchy must be specified in the app configuration.  Skipping!" % entity_type
                 )
@@ -269,9 +267,9 @@ class FileFormBase(QtGui.QWidget):
         :param checked:    True if the refresh action is checked - ignored
         """
         app = sgtk.platform.current_bundle()
-        logger.debug("Synchronizing remote path cache...")
+        app.log_debug("Synchronizing remote path cache...")
         app.sgtk.synchronize_filesystem_structure()
-        logger.debug("Path cache up to date!")
+        app.log_debug("Path cache up to date!")
         self._refresh_all_async()
 
     def _refresh_all_async(self):
@@ -364,7 +362,6 @@ class FileFormBase(QtGui.QWidget):
         :param step_filters: A list of Shotgun Step filters, directly usable in
                              a Shotgun query.
         """
-        logger.info("Step filter %s" % step_filters)
         # Please note that this could be optimized: we're applying step filters
         # to all models, even if, for example, the changes in the filters are only
         # for Shot Steps, so models containing only Asset Tasks do not need to be

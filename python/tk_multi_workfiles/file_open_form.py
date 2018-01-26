@@ -27,8 +27,6 @@ from .ui.file_open_form import Ui_FileOpenForm
 from .work_area import WorkArea
 from .util import  get_template_user_keys
 
-logger = sgtk.platform.get_logger(__name__)
-
 
 class FileOpenForm(FileFormBase):
     """

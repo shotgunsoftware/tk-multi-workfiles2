@@ -29,8 +29,6 @@ from .file_filters import FileFilters
 from .util import monitor_qobject_lifetime, get_template_user_keys
 from .step_list_filter import StepListWidget, get_filter_from_filter_list, get_saved_step_filter
 
-logger = sgtk.platform.get_logger(__name__)
-
 
 class BrowserForm(QtGui.QWidget):
     """
@@ -98,7 +96,6 @@ class BrowserForm(QtGui.QWidget):
         """
         signals_blocked = self.blockSignals(True)
         try:
-            logger.info("Saving step filters...")
             self._step_list_widget.save_step_filters_if_changed()
             # clean up my tasks form:
             if self._my_tasks_form:
@@ -321,7 +318,8 @@ class BrowserForm(QtGui.QWidget):
 
         :param users: Array of user entity dictionary.
         """
-        logger.debug("Sandbox users found: %s" % [u["name"].split()[0] for u in users if u])
+        app = sgtk.platform.current_bundle()
+        app.log_debug("Sandbox users found: %s" % [u["name"].split()[0] for u in users if u])
         self._file_filters.add_users(users)
 
     def _on_file_filters_users_changed(self, users):
@@ -331,7 +329,8 @@ class BrowserForm(QtGui.QWidget):
 
         :param users: Array of user entity dictionary.
         """
-        logger.debug("File filter users: %s" % [u["name"].split()[0] for u in users if u])
+        app = sgtk.platform.current_bundle()
+        app.log_debug("File filter users: %s" % [u["name"].split()[0] for u in users if u])
         if self._file_model:
             self._file_model.set_users(users)
 

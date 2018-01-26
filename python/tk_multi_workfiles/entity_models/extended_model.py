@@ -14,8 +14,6 @@ from sgtk.platform.qt import QtGui, QtCore
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 
-logger = sgtk.platform.get_logger(__name__)
-
 
 class ShotgunExtendedEntityModel(ShotgunEntityModel):
     """
@@ -167,11 +165,9 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         :param str entity_type: A Shotgun Entity type.
         :param int entity_id: The Shotgun id of the Entity to look for.
         """
-        logger.info("[item_from_entity] Looking for %s %s..." % (entity_type, entity_id))
         # If dealing with the primary entity type this model represents, just
         # call the base implementation which only considers leaves.
         if entity_type == self.get_entity_type():
-            logger.info("Falling back on base impl. %s" % self.get_entity_type())
             return super(ShotgunExtendedEntityModel, self).item_from_entity(
                 entity_type, entity_id
             )
@@ -189,19 +185,16 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         parent_list = [self.invisibleRootItem()]
         while parent_list:
             parent = parent_list.pop()
-            logger.info("Checking items under %s" % parent)
             for row_i in range(parent.rowCount()):
                 item = parent.child(row_i)
                 if self.canFetchMore(item.index()):
                     self.fetchMore(item.index())
                 entity = self.get_entity(item)
-                logger.info("Got %s from %s" % (entity, item))
                 # If dealing with an item holding the entity type we're looking
                 # for, we don't add it to the list of items to explore. We return
                 # it if the id is the one we're looking for.
                 if not entity or entity["type"] != entity_type:
                     if item.hasChildren():
-                        logger.info("Adding %s to parent list" % item)
                         parent_list.append(item)
                 elif entity["id"] == entity_id:
                     return item
@@ -225,20 +218,14 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
             return None
         parent = self.invisibleRootItem()
         for field_value in field_value_list:
-            logger.info("Looking for %s under %s" % (field_value, parent))
             for row_i in range(parent.rowCount()):
                 item = parent.child(row_i)
                 if self.canFetchMore(item.index()):
                     self.fetchMore(item.index())
                 value = item.data(self.SG_ASSOCIATED_FIELD_ROLE)
-                logger.info("Got %s from %s" % (value, item))
                 if value == field_value:
                     parent = item
                     break
-            else:
-                logger.warning("Couldn't retrieve %s under %s" % (
-                    field_value, parent,
-                ))
         return parent
 
     def get_item_field_value_path(self, item):

@@ -18,8 +18,6 @@ ShotgunDataHandlerCache = shotgun_model.data_handler_cache.ShotgunDataHandlerCac
 from ..util import get_sg_entity_name_field
 from .extended_model import ShotgunExtendedEntityModel
 
-logger = sgtk.platform.get_logger(__name__)
-
 
 class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
     """
@@ -361,10 +359,8 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         Update the dummy place holder item, if any, with the error
         message.
         """
-        logger.error("Failed for %s: %s" % (sg_entity, message))
         parent_item = self.item_from_entity(sg_entity["type"], sg_entity["id"])
         if not parent_item:
-            logger.info("Invalid Parent item %s" % parent_item)
             return
         parent_uid = parent_item.data(self._SG_ITEM_UNIQUE_ID)
         refreshing_uid = self._dummy_place_holder_item_uid(parent_item)
@@ -404,7 +400,6 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             return
         parent_item = self.item_from_entity(sg_entity["type"], sg_entity["id"])
         if not parent_item:
-            logger.info("Invalid Parent item %s" % parent_item)
             return
         # We use our own deferred cache to avoid conflicts with ShotgunModel so
         # we can manipulate it freely.
@@ -432,7 +427,6 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         # but this is a private member.
         deferred_query = self._deferred_query
         fields = deferred_query["fields"] + [name_field]
-        logger.info("%s" % deferred_query["fields"])
         for sub_entity in sub_entities:
             uids = self._add_deferred_item_hierarchy(
                 parent_item,
@@ -570,15 +564,12 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         :param str entity_type: A Shotgun Entity type.
         :param int entity_id: The Shotgun id of the Entity to look for.
         """
-        logger.info("[item_from_entity] Looking for %s %s..." % (entity_type, entity_id))
         # If dealing with the primary entity type this model represents, just
         # call the base implementation which only considers leaves.
         if entity_type == self.get_entity_type() or self._deferred_query["entity_type"] != entity_type:
-            logger.info("Falling back on base extended impl. %s" % self.get_entity_type())
             return super(ShotgunDeferredEntityModel, self).item_from_entity(
                 entity_type, entity_id
             )
-        logger.info("Doing custom deferred lookup %s" % self.get_entity_type())
         return self._get_item_by_unique_id(
             self._deferred_entity_uid({ "type": entity_type, "id" : entity_id})
         )
