@@ -77,6 +77,9 @@ class StepListWidget(QtCore.QObject):
         self._cache_step_list()
         self._step_widgets = defaultdict(list)
         saved_filters = load_step_filters()
+        # Keep track of filters being changed if to only save them if it is the
+        # case.
+        self._step_filters_changed = False
         if saved_filters is None:
             # Settings were never saved before. Select all exsiting steps by
             # default.
@@ -119,6 +122,7 @@ class StepListWidget(QtCore.QObject):
             if not self._list_widget.isRowHidden(item_row):
                 item = self._list_widget.item(item_row)
                 self._list_widget.itemWidget(item).setChecked(value)
+        self._step_filters_changed = True
         self._retrieve_and_emit_selection()
 
     def unselect_all_steps(self):
@@ -161,6 +165,13 @@ class StepListWidget(QtCore.QObject):
                     selection.append(item_step)
             self._list_widget.parent().setVisible(True)
 
+    def save_step_filters_if_changed(self):
+        """
+        Save the current Step filters in user settings if they were changed.
+        """
+        if self._step_filters_changed:
+            self.save_step_filters()
+
     def save_step_filters(self):
         """
         Save the current Step filters in user settings.
@@ -183,14 +194,9 @@ class StepListWidget(QtCore.QObject):
                 selection.append(item_step)
         return selection
 
-    def _retrieve_and_emit_selection(self, value=None):
+    def _retrieve_and_emit_selection(self):
         """
         Retrieve the whole selection and emit it.
-
-        Typically triggered when one of the Step item is toggled on/off.
-
-        :param value: Ignored, the value which triggered the call if used as a
-                      signal target slot.
         """
         self.step_filter_changed.emit(self._retrieve_selection())
 
@@ -218,9 +224,19 @@ class StepListWidget(QtCore.QObject):
             # un-wanted signals.
             if step["id"] in self._saved_filter_step_ids:
                 widget.setChecked(True)
-            widget.toggled.connect(self._retrieve_and_emit_selection)
+            widget.toggled.connect(self._on_step_filter_toggled)
             item = QtGui.QListWidgetItem("", self._list_widget)
             item.setData(QtCore.Qt.UserRole, step)
             self._list_widget.setItemWidget(item, widget)
             self._step_widgets[entity_type].append(widget)
         return self._step_widgets[entity_type]
+
+    def _on_step_filter_toggled(self, value=None):
+        """
+        Triggered when one of the Step item is toggled on/off.
+
+        :param value: Ignored, the value which triggered the call.
+        """
+        self._step_filters_changed = True
+        self._retrieve_and_emit_selection()
+

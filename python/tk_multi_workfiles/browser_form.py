@@ -99,7 +99,7 @@ class BrowserForm(QtGui.QWidget):
         signals_blocked = self.blockSignals(True)
         try:
             logger.info("Saving step filters...")
-            self._step_list_widget.save_step_filters()
+            self._step_list_widget.save_step_filters_if_changed()
             # clean up my tasks form:
             if self._my_tasks_form:
                 self._my_tasks_form.shut_down()
