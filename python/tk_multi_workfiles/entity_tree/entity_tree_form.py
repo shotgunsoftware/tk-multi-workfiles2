@@ -16,9 +16,9 @@ import weakref
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
+
 from ..ui.entity_tree_form import Ui_EntityTreeForm
 from .entity_tree_proxy_model import EntityTreeProxyModel
-from .entity_tree_delegate import EntityItemDelegate
 from ..framework_qtwidgets import Breadcrumb
 from ..util import get_model_str, map_to_source, get_source_model, monitor_qobject_lifetime
 from ..util import get_sg_entity_name_field
@@ -153,9 +153,6 @@ class EntityTreeForm(QtGui.QWidget):
                 entity_model.modelReset.connect(self._model_reset)
                 self._ui.entity_tree.setModel(entity_model)
 
-#        self._entity_item_delegate = EntityItemDelegate(self._ui.entity_tree)
-#        self._ui.entity_tree.setItemDelegate(self._entity_item_delegate)
-
         self._expand_root_rows()
 
         # connect to the selection model for the tree view:
@@ -249,6 +246,15 @@ class EntityTreeForm(QtGui.QWidget):
             self.blockSignals(signals_blocked)
 
     def ensure_data_for_context(self, context):
+        """
+        Ensure the data for the given context is loaded in the model this view
+        is attached to.
+
+        This is typically used to load data for the current Toolkit context and
+        select a matching item in the tree.
+
+        :param context: A Toolkit context.
+        """
         self.entity_model.ensure_data_for_context(context)
 
     def select_entity(self, entity_type, entity_id):

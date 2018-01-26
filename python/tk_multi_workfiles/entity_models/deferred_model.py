@@ -240,89 +240,6 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             current_item.setData(True, self._SG_ITEM_FETCHED_MORE)
         return refreshed_uids
 
-    def _add_deferred_item(self, parent_item, uid, name_field, sg_data, order_key):
-        """
-        Add a child item under the given parent for the given Shotgun record
-        loaded from a deferred query.
-
-        :param parent_item: A :class:`ShotgunStandardItem` instance.
-        :param str uid: A unique id for the new item.
-        :param name_field: A field name from which the Entity name can be retrieved.
-        :param sg_data: A Shotgun Entity dictionary.
-        """
-        parent_uid = parent_item.data(self._SG_ITEM_UNIQUE_ID)
-        self._deferred_cache.add_item(
-            parent_uid=None,
-            sg_data={},
-            field_name="",
-            is_leaf=False,
-            uid=parent_uid,
-        )
-        created = self._deferred_cache.add_item(
-            parent_uid=parent_uid,
-            sg_data=sg_data,
-            field_name=name_field,
-            is_leaf=True,
-            uid=uid,
-        )
-        if created:
-            sub_item = self._create_item(
-                parent=parent_item,
-                data_item=self._deferred_cache.get_entry_by_uid(uid),
-            )
-            sub_item.setData(True, self._SG_ITEM_FETCHED_MORE)
-            sub_item.setData(order_key, self._SG_ITEM_SORT_ROLE)
-
-            if sg_data["type"] == "Task" and "step" in sg_data and sg_data["step"]:
-                sg_step = sg_data["step"]
-                sub_item.setToolTip(
-                    "%s, Step '%s'" % (sub_item.toolTip(), sg_step["name"])
-                )
-# If we needed we can add the step name in the item name
-#                sub_item.setText("%s (%s)" % (
-#                    sub_item.text(), sg_step["name"]
-#                ))
-                # We don't have the step in the item hierarchy, we use the icon to
-                # highlight the Step the Task is linked to.
-                step_id = sg_step["id"]
-                if step_id in self._task_step_icons:
-                    # If we already have such an icon for the given step, just
-                    # re-use it.
-                    sub_item.setIcon(self._task_step_icons[step_id])
-                else:
-                    # Otherwise, build a new one combinining the two icons
-                    # and cache it.
-                    step_icon = self._get_default_thumbnail(sg_step)
-                    size = step_icon.availableSizes()[-1]
-                    step_pixmap = step_icon.pixmap(size)
-                    task_step_icon = sub_item.icon()
-                    size = step_icon.availableSizes()[-1]
-                    task_pixmap = sub_item.icon().pixmap(size)
-                    source_rect = QtCore.QRectF(
-                        0.0, 0.0,
-                        step_pixmap.width(),
-                        step_pixmap.height()
-                    )
-                    target_rect = QtCore.QRectF(
-                        task_pixmap.width() * 0.5,
-                        task_pixmap.height() * 0.5,
-                        task_pixmap.width() * 0.5,
-                        task_pixmap.height() * 0.5
-                    )
-                    painter = QtGui.QPainter(task_pixmap)
-                    try:
-                        # Because of the pixmaps transparency, other composition
-                        # modes give some highlights when mixing colors from the
-                        # pixmaps. This mode is not perfect, but looks ok.
-                        painter.setCompositionMode(
-                            QtGui.QPainter.CompositionMode_Xor
-                        )
-                        painter.drawPixmap(target_rect, step_pixmap, source_rect)
-                        self._task_step_icons[step_id] = QtGui.QIcon(task_pixmap)
-                        sub_item.setIcon(self._task_step_icons[step_id])
-                    finally:
-                        painter.end()
-
     @classmethod
     def _dummy_place_holder_item_uid(cls, parent_item):
         """
@@ -441,7 +358,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         """
         Handle deferred query refresh for the given Entity.
 
-        Update the dummy "Retrieving..." place holder item, if any, with the error
+        Update the dummy place holder item, if any, with the error
         message.
         """
         logger.error("Failed for %s: %s" % (sg_entity, message))
@@ -524,22 +441,6 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                 sub_entity,
             )
             refreshed_uids.extend(uids)
-#            uid = self._deferred_entity_uid(sub_entity)
-#            refreshed_uids.append(uid)
-#            # Build a key used to sort the items based on the fields specified
-#            # in the deferred query settings
-#            order_keys = []
-#            for field in fields:
-#                field_value = sub_entity[field]
-#                # Special case for dictionaries which are linked entities: use
-#                # the name field value.
-#                if isinstance(field_value, dict) and "name" in field_value:
-#                    order_keys.append("%s" % field_value["name"])
-#                else:
-#                    order_keys.append("%s" % field_value)
-#                self._add_deferred_item(
-#                    parent_item, uid, name_field, sub_entity, "_".join(order_keys)
-#                )
         if not sub_entities:
             # If we don't have any Entity, add a "Retrieving XXXXXs" or
             # "No XXXXs found" child, depending on `pending_refresh` value.

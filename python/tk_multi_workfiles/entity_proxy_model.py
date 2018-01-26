@@ -14,7 +14,6 @@ from sgtk.platform.qt import QtCore, QtGui
 from .framework_qtwidgets import HierarchicalFilteringProxyModel
 
 from .util import get_model_str
-from .entity_models import ShotgunExtendedEntityModel
 
 class EntityProxyModel(HierarchicalFilteringProxyModel):
     """
@@ -25,7 +24,6 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
         """
         HierarchicalFilteringProxyModel.__init__(self, parent)
         self._compare_fields = compare_sg_fields
-        self.setSortRole(ShotgunExtendedEntityModel._SG_ITEM_SORT_ROLE)
 
     def setFilterFixedString(self, pattern):
         """

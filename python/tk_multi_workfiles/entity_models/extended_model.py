@@ -21,9 +21,6 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
     """
     A Shotgun Entity model with updatable filters and a couple of added methods.
     """
-    # Define a custom role used for sorting, we use the highest ShotgunModel role
-    # value with a bit of margin in case roles are added later to ShotgunModel
-    _SG_ITEM_SORT_ROLE = ShotgunEntityModel._SG_ITEM_UNIQUE_ID + 20
 
     def __init__(self, entity_type, filters, hierarchy, fields, *args, **kwargs):
         """
@@ -123,15 +120,6 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         entity = self.get_entity(item)
         if entity:
             self._entity_types.add(entity["type"])
-
-    def _create_item(self, parent, data_item):
-        """
-        Override the base implementation to ensure we always have a valid value
-        for the _SG_ITEM_SORT_ROLE by copying over the Qt.DisplayRole value.
-        """
-        item = super(ShotgunExtendedEntityModel, self)._create_item(parent, data_item)
-        item.setData(item.data(QtCore.Qt.DisplayRole), self._SG_ITEM_SORT_ROLE)
-        return item
 
     def clear(self):
         """
