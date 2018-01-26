@@ -197,17 +197,19 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         current_item = parent_item
         current_uid = parent_uid
         for name in hierarchy:
-            value = sg_data.get(name)
-            uid = "%s/%s" % (parent_uid, value)
+            uid = "%s/%s" % (parent_uid, self._get_key_for_field_data(name, sg_data))
             refreshed_uids.append(uid)
-            if not self._deferred_cache.item_exists(uid):
-                updated = self._deferred_cache.add_item(
-                    parent_uid=current_uid,
-                    sg_data=sg_data,
-                    field_name=name,
-                    is_leaf=False,
-                    uid=uid,
-                )
+            exists = self._deferred_cache.item_exists(uid)
+            # Update or create the cached data item
+            updated = self._deferred_cache.add_item(
+                parent_uid=current_uid,
+                sg_data=sg_data,
+                field_name=name,
+                is_leaf=False,
+                uid=uid,
+            )
+            if not exists:
+                # Create the model item if it didn't exist
                 current_item = self._create_item(
                     parent=current_item,
                     data_item=self._deferred_cache.get_entry_by_uid(uid),
@@ -218,20 +220,22 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
 
         uid = self._deferred_entity_uid(sg_data)
         refreshed_uids.append(uid)
-        if not self._deferred_cache.item_exists(uid):
-            self._deferred_cache.add_item(
-                parent_uid=current_uid,
-                sg_data=sg_data,
-                field_name=name_field,
-                is_leaf=True,
-                uid=uid,
-            )
+        exists = self._deferred_cache.item_exists(uid)
+        # Update or create the cached data item
+        self._deferred_cache.add_item(
+            parent_uid=current_uid,
+            sg_data=sg_data,
+            field_name=name_field,
+            is_leaf=True,
+            uid=uid,
+        )
+        if not exists:
+            # Create the model item if it didn't exist
             current_item = self._create_item(
                 parent=current_item,
                 data_item=self._deferred_cache.get_entry_by_uid(uid),
             )
             current_item.setData(True, self._SG_ITEM_FETCHED_MORE)
-
         return refreshed_uids
 
     def _add_deferred_item(self, parent_item, uid, name_field, sg_data, order_key):

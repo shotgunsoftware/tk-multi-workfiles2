@@ -269,4 +269,37 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
                 current_item.data(self.SG_ASSOCIATED_FIELD_ROLE)
             )
             current_item = current_item.parent()
+        # Reverse the list we return.
         return values[::-1]
+
+    def _get_key_for_field_data(self, field, sg_data):
+        """
+        Generates a key for a Shotgun field data.
+
+        These keys can be used as uid in caches.
+
+        :param field: a Shotgun field name from the sg_data dictionary.
+        :param sg_data: a Shotgun data dictionary.
+        :returns: a string key
+        """
+        # Note: this is a simplified version of tk-framework-shotgunutils
+        # ShotgunFindDataHandler.__generate_unique_key method.
+        value = sg_data.get(field)
+
+        if isinstance(value, dict) and "id" in value and "type" in value:
+            # For single entity links, return the entity id
+            unique_key = "%s_%s" % (value["type"], value["id"])
+        elif isinstance(value, list):
+            # This is a list of some sort. Loop over all elements and extract a comma separated list.
+            formatted_values = []
+            for v in value:
+                if isinstance(v, dict) and "id" in v and "type" in v:
+                    # This is a link field
+                    formatted_values.append("%s_%s" % (v["type"], v["id"]))
+                else:
+                    formatted_values.append(str(v))
+            unique_key = ",".join(formatted_values)
+        else:
+            # everything else just cast to string
+            unique_key = str(value)
+        return unique_key
