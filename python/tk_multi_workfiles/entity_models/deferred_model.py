@@ -197,6 +197,8 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         current_item = parent_item
         current_uid = parent_uid
         for name in hierarchy:
+            # We cache items directly under a single parent to retrieve them
+            # easily.
             uid = "%s/%s" % (parent_uid, self._get_key_for_field_data(name, sg_data))
             refreshed_uids.append(uid)
             exists = self._deferred_cache.item_exists(uid)
@@ -322,7 +324,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                         painter.end()
 
     @classmethod
-    def _dummy_place_holder_item_uid(cls, parent_item, refreshing):
+    def _dummy_place_holder_item_uid(cls, parent_item):
         """
         Return a unique id which can be used for a dummy "Not Found" item under
         the given parent item.
@@ -330,8 +332,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         :param parent_item: A :class:`ShotgunStandardItem` instance.
         :returns: A string.
         """
-        return "_dummy_item_uid%s_%s" % (
-            "_refreshing" if refreshing else "",
+        return "_dummy_item_uid_%s" % (
             parent_item.data(cls._SG_ITEM_UNIQUE_ID)
         )
 
@@ -353,12 +354,15 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             is_leaf=False,
             uid=parent_uid,
         )
-        uid = self._dummy_place_holder_item_uid(parent_item, refreshing)
+        uid = self._dummy_place_holder_item_uid(parent_item)
         if refreshing:
             text = "Retrieving %ss..." % self._deferred_query["entity_type"]
         else:
-            text = "No %ss" % self._deferred_query["entity_type"]
-        created = self._deferred_cache.add_item(
+            text = "No %ss found" % self._deferred_query["entity_type"]
+
+        exists = self._deferred_cache.item_exists(uid)
+        # Update or create the dummy item in the cache
+        self._deferred_cache.add_item(
             parent_uid=parent_uid,
             # We need to use something which looks like a SG Entity dictionary.
             # By having a "text" key and using it for the field name, the tree
@@ -371,7 +375,8 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             is_leaf=True,
             uid=uid,
         )
-        if created:
+        if not exists:
+            # Create the item in the model
             sub_item = self._create_item(
                 parent=parent_item,
                 data_item=self._deferred_cache.get_entry_by_uid(uid),
@@ -380,8 +385,17 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             # This item can't be used.
             sub_item.setSelectable(False)
             sub_item.setEnabled(False)
-            # We don't want an icon to appear in the view.
             sub_item.setIcon(QtGui.QIcon())
+        else:
+            sub_item = self._get_item_by_unique_id(uid)
+            if sub_item:
+                self._update_item(
+                    sub_item,
+                    self._deferred_cache.get_entry_by_uid(uid)
+                )
+                # We don't want an icon to appear in the view. Updating the item
+                # reset the icon, so we have to reset it after the update.
+                sub_item.setIcon(QtGui.QIcon())
         return uid
 
     def _run_deferred_query_for_entity(self, sg_entity):
@@ -409,6 +423,9 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             self._deferred_models[sg_entity["id"]].data_refreshed.connect(
                 lambda changed : self._on_deferred_data_refreshed(sg_entity, changed)
             )
+            self._deferred_models[sg_entity["id"]].data_refresh_fail.connect(
+                lambda message : self._on_deferred_data_refresh_failed(sg_entity, message)
+            )
             self._deferred_models[sg_entity["id"]].async_refresh()
         else:
             self._deferred_models[sg_entity["id"]]._load_data(
@@ -420,6 +437,41 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         self._on_deferred_data_refreshed(sg_entity, True, True)
         self._deferred_models[sg_entity["id"]].async_refresh()
 
+    def _on_deferred_data_refresh_failed(self, sg_entity, message):
+        """
+        Handle deferred query refresh for the given Entity.
+
+        Update the dummy "Retrieving..." place holder item, if any, with the error
+        message.
+        """
+        logger.error("Failed for %s: %s" % (sg_entity, message))
+        parent_item = self.item_from_entity(sg_entity["type"], sg_entity["id"])
+        if not parent_item:
+            logger.info("Invalid Parent item %s" % parent_item)
+            return
+        parent_uid = parent_item.data(self._SG_ITEM_UNIQUE_ID)
+        refreshing_uid = self._dummy_place_holder_item_uid(parent_item)
+        # Check if we have a dummy place holder item. If so update its text with
+        # an error message.
+        data_item = self._deferred_cache.get_entry_by_uid(refreshing_uid)
+        if data_item:
+            self._deferred_cache.add_item(
+                parent_uid=parent_uid,
+                # We need to use something which looks like a SG Entity dictionary.
+                # By having a "text" key and using it for the field name, the tree
+                # view will display its contents.
+                sg_data={
+                    "text": message,
+                    "type": ""
+                },
+                field_name="text",
+                is_leaf=True,
+                uid=refreshing_uid,
+            )
+            item = self._get_item_by_unique_id(refreshing_uid)
+            if item:
+                self._update_item(item, data_item)
+                item.setIcon(QtGui.QIcon())
 
     def _on_deferred_data_refreshed(self, sg_entity, changed, pending_refresh=False):
         """
@@ -431,6 +483,8 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         :param bool pending_refresh: Whether or not a data refresh has been posted,
                                      so refreshed data is expected later.
         """
+        if not changed:
+            return
         parent_item = self.item_from_entity(sg_entity["type"], sg_entity["id"])
         if not parent_item:
             logger.info("Invalid Parent item %s" % parent_item)

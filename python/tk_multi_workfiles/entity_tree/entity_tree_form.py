@@ -193,6 +193,9 @@ class EntityTreeForm(QtGui.QWidget):
                 expanded = weak_expanded()
                 if expanded:
                     logger.info("Dealing with %s" % expanded)
+                    # TODO: check paths to only keep the longest one otherwise
+                    # the same path will be searched for multiple times when
+                    # re-expanding items on refresh.
                     self._expanded_item_values.append(
                         # We need to collect values for the full path, as the same
                         # value can appear multiple times in the tree, e.g. Steps

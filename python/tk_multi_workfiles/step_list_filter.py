@@ -139,7 +139,6 @@ class StepListWidget(QtCore.QObject):
 
         :param str entity_type: A Shotgun Entity type or None.
         """
-        logger.info("Switching to %s" % entity_type)
         if entity_type == "Task":
             # Show all steps
             for linked_entity_type in self._step_list:
