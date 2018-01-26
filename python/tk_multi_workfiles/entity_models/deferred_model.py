@@ -35,7 +35,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                        These will be passed to the Shotgun API find() call when populating
                        the model.
         :param deferred_query: A dictionary with the `entity_type`, `filter` and
-                               `fields` allowing to run a Shotgun sub-query for
+                               `hierarchy` allowing to run a Shotgun sub-query for
                                a given entity in this model.
         """
         # Basic sanity check that we do have a deferred query, so we don't have
@@ -77,7 +77,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         """
         # If don't have steps in the fields we query from Shotgun, we assume
         # step filtering should be disabled.
-        return "step" in self._deferred_query["fields"]
+        return "step" in self._deferred_query["hierarchy"]
 
     def async_refresh(self):
         """
@@ -326,13 +326,12 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         if self._extra_filters:
             filters.append(self._extra_filters)
         name_field = get_sg_entity_name_field(deferred_query["entity_type"])
-        fields = deferred_query["fields"]
         if sg_entity["id"] not in self._deferred_models:
             self._deferred_models[sg_entity["id"]] = ShotgunEntityModel(
                 deferred_query["entity_type"],
                 filters,
                 hierarchy=[name_field],
-                fields=deferred_query["fields"] + [name_field, link_field_name],
+                fields=deferred_query["hierarchy"] + [name_field, link_field_name],
                 parent=self,
             )
             self._deferred_models[sg_entity["id"]].data_refreshed.connect(
@@ -347,7 +346,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                 deferred_query["entity_type"],
                 filters,
                 hierarchy=[name_field],
-                fields=deferred_query["fields"] + [name_field, link_field_name],
+                fields=deferred_query["hierarchy"] + [name_field, link_field_name],
             )
         self._on_deferred_data_refreshed(sg_entity, True, True)
         self._deferred_models[sg_entity["id"]].async_refresh()
@@ -426,11 +425,10 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         # Ideallly we would retrieve the field list from the ShotgunEntityModel
         # but this is a private member.
         deferred_query = self._deferred_query
-        fields = deferred_query["fields"] + [name_field]
         for sub_entity in sub_entities:
             uids = self._add_deferred_item_hierarchy(
                 parent_item,
-                deferred_query["fields"],
+                deferred_query["hierarchy"],
                 name_field,
                 sub_entity,
             )

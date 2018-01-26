@@ -157,22 +157,22 @@ class FileFormBase(QtGui.QWidget):
             entity_type = ent.get("entity_type")
             filters = ent.get("filters", [])
             hierarchy = ent.get("hierarchy", [])
-            sub_hierarchy = ent.get("sub_hierarchy", [])
+            sub_query = ent.get("sub_hierarchy", [])
             deferred_query = None
-            if sub_hierarchy:
+            if sub_query:
                 # The target entity type for the sub query.
-                sub_entity_type = sub_hierarchy.get("entity_type", "Task")
+                sub_entity_type = sub_query.get("entity_type", "Task")
                 # Optional filters for the sub query.
-                sub_filters = sub_hierarchy.get("filters") or []
+                sub_filters = sub_query.get("filters") or []
                 # A list of fields to retrieve in the sub query.
-                sub_fields = sub_hierarchy.get("fields") or []
+                sub_hierarchy = sub_query.get("hierarchy") or []
                 # The SG field allowing linking the sub query Entity to its
                 # parent Entity.
-                sub_link_field = sub_hierarchy.get("link_field", "entity")
+                sub_link_field = sub_query.get("link_field", "entity")
                 deferred_query = {
                     "entity_type": sub_entity_type,
                     "filters": sub_filters,
-                    "fields": sub_fields,
+                    "hierarchy": sub_hierarchy,
                     "link_field": sub_link_field,
                 }
             # Check the hierarchy to use for the model for this entity:
