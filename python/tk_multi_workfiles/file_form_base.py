@@ -165,7 +165,7 @@ class FileFormBase(QtGui.QWidget):
                 # The target entity type for the sub query.
                 sub_entity_type = sub_query.get("entity_type", "Task")
                 # Optional filters for the sub query.
-                sub_filters = sub_query.get("filters") or []
+                sub_filters = resolve_filters(sub_query.get("filters") or [])
                 # A list of fields to retrieve in the sub query.
                 sub_hierarchy = sub_query.get("hierarchy") or []
                 # The SG field allowing linking the sub query Entity to its
@@ -236,6 +236,8 @@ class FileFormBase(QtGui.QWidget):
             entity_models.append((caption, step_filter_on, model))
             if model.supports_step_filtering:
                 model.load_and_refresh(step_filter)
+            else:
+                model.async_refresh()
 
         return entity_models
 

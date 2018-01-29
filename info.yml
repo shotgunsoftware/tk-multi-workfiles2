@@ -125,7 +125,6 @@ configuration:
         - caption: Shots
           entity_type: Shot
           filters:
-          - [entity, type_is, Shot]
           hierarchy: [sg_sequence, code]
           sub_hierarchy:
             entity_type: Task
