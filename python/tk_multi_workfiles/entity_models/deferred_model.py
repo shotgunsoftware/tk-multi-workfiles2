@@ -25,6 +25,21 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
     """
     def __init__(self, entity_type, filters, hierarchy, fields, deferred_query, *args, **kwargs):
         """
+        A Shotgun Entity model which supports two steps for loading data:
+        - A primary request is used to populate top nodes in the tree, like for
+          a regular Shotgun Entity Model.
+        - Secondary requests are deferred until the point the data really needs
+          to be fetched, typically when a leaf in the primary model is expanded.
+          The primary tree is then extended with child items dynamically retrieved
+          on demand with the deferred queries.
+
+        Deferred queries need to specify:
+          - The target entity type for the query, e.g. 'Task'.
+          - The field name to link the secondary query to the primary one, e.g.
+            'entity'.
+        A sub-hierarchy can be defined with a list of fields, e.g. ['step'].
+        If needed, additional filters can be specified for deferred queries.
+
         :param entity_type: The type of the entities that should be loaded into this model.
         :param filters: A list of filters to be applied to entities in the model - these
                         will be passed to the Shotgun API find() call when populating the
@@ -34,9 +49,9 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         :param fields: List of Shotgun fields to populate the items in the model with.
                        These will be passed to the Shotgun API find() call when populating
                        the model.
-        :param deferred_query: A dictionary with the `entity_type`, `filter` and
-                               `hierarchy` allowing to run a Shotgun sub-query for
-                               a given entity in this model.
+        :param deferred_query: A dictionary with the `entity_type`, `link_field`
+                               `filters` and `hierarchy` keys, allowing to run a
+                               Shotgun sub-query for a given entity in this model.
         """
         # Basic sanity check that we do have a deferred query, so we don't have
         # to test it everywhere.
