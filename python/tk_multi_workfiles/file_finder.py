@@ -468,7 +468,6 @@ class FileFinder(QtCore.QObject):
         work_fields = []
         try:
             work_fields = context.as_template_fields(work_template, validate=True)
-            missing_keys = work_template.missing_keys(work_fields)
         except TankError as e:
             # could not resolve fields from this context. This typically happens
             # when the context object does not have any corresponding objects on 

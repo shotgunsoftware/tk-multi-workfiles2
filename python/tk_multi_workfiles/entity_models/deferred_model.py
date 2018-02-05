@@ -60,6 +60,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
 
         self._deferred_query = deferred_query
         self._task_step_icons = {}
+        self._deferred_models = {}
         super(ShotgunDeferredEntityModel, self).__init__(
             entity_type,
             filters,
@@ -69,12 +70,11 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             **kwargs
         )
         self._deferred_cache = ShotgunDataHandlerCache()
-        self._deferred_models = {}
 
     @property
     def deferred_query(self):
         """
-        :returns: The deferred query for this model, if any.
+        :returns: The deferred query for this model.
         """
         return self._deferred_query
 
@@ -90,7 +90,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         """
         :returns: True if Step filtering can be used with this model
         """
-        # If don't have steps in the fields we query from Shotgun, we assume
+        # If we don't have steps in the fields we query from Shotgun, we assume
         # step filtering should be disabled.
         return "step" in self._deferred_query["hierarchy"]
 
@@ -98,12 +98,12 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         """
         Trigger an asynchronous refresh of the model
         """
+        # Refresh the primary cache.
         super(ShotgunDeferredEntityModel, self).async_refresh()
         # Refresh our deferred cache
         # Get the full list of uids
         uids = [uid for uid in self._deferred_cache.uids]
-        # Retrieve parents for these uids
-        affected_parents = set()
+        # Retrieve parents for these uids in the model.
         for uid in uids:
             item = self._get_item_by_unique_id(uid)
             if item and item.parent():
@@ -137,8 +137,6 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
 
         :param context: A Toolkit context.
         """
-        if not context:
-            return
         if context.entity and context.entity["type"] == self.get_entity_type():
             # If we have an entity in our context, check if we have it in our
             # "static" model.
@@ -335,13 +333,19 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         :returns: A list of Shotgun results, as returned by a Shotgun `find` call.
         """
         deferred_query = self._deferred_query
+        # Retrieve the deferred query filters and amend them to return results
+        # linked to the given Entity.
         filters = deferred_query["filters"][:]
         link_field_name = deferred_query["link_field"]
         filters.append([link_field_name, "is", sg_entity])
+        # Append extra filters, (step filtering).
         if self._extra_filters:
             filters.append(self._extra_filters)
+        # Load or create a ShotgunEntityModel for the amended query. We have one
+        # ShotgunEntityModel per Entity.
         name_field = get_sg_entity_name_field(deferred_query["entity_type"])
         if sg_entity["id"] not in self._deferred_models:
+            # Create a new model and connect callback.
             self._deferred_models[sg_entity["id"]] = ShotgunEntityModel(
                 deferred_query["entity_type"],
                 filters,
@@ -363,17 +367,21 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                 hierarchy=[name_field],
                 fields=deferred_query["hierarchy"] + [name_field, link_field_name],
             )
+        # Immediately populate the model with the cached data (if any).
         self._on_deferred_data_refreshed(sg_entity, True, True)
+        # And post a refresh in the background.
         self._deferred_models[sg_entity["id"]].async_refresh()
 
     def _on_deferred_data_refresh_failed(self, sg_entity, message):
         """
-        Handle deferred query refresh for the given Entity.
+        Handle deferred query refresh failure for the given Entity.
 
         Update the dummy place holder item, if any, with the error
         message.
         """
         parent_item = self.item_from_entity(sg_entity["type"], sg_entity["id"])
+        # It is possible that the parent is gone because a refresh of the primary
+        # model happened. So let's be cautious here.
         if not parent_item:
             return
         parent_uid = parent_item.data(self._SG_ITEM_UNIQUE_ID)
@@ -413,6 +421,8 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         if not changed:
             return
         parent_item = self.item_from_entity(sg_entity["type"], sg_entity["id"])
+        # It is possible that the parent is gone because a refresh of the primary
+        # model happened. So let's be cautious here.
         if not parent_item:
             return
         # We use our own deferred cache to avoid conflicts with ShotgunModel so
@@ -457,7 +467,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         # there anymore.
         for uid in existing_uids:
             if uid in refreshed_uids:
-                # Here we could update items from the refreshed data
+                # TODO: here we could update items from the refreshed data
                 continue
             data_item = self._deferred_cache.take_item(uid)
             item = self._get_item_by_unique_id(uid)
@@ -489,6 +499,8 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         else:
             item_list = [self.itemFromIndex(index)]
 
+        # We modify the list by adding children as we go through it, so we can't
+        # use a simple iterator.
         while item_list:
             item = item_list.pop()
             if item.get_sg_data():
@@ -500,15 +512,6 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             for row_i in range(item.rowCount()):
                 child_item = item.child(row_i)
                 item_list.append(child_item)
-
-    def clear(self):
-        """
-        Clear the data we hold.
-        """
-        super(ShotgunDeferredEntityModel, self).clear()
-        # Get a fresh and empty deferred cache.
-        self._deferred_cache = ShotgunDataHandlerCache()
-        # TODO: clear deferred models?
 
     def hasChildren(self, index):
         """
@@ -572,7 +575,9 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
 
         .. note::
             The same entity can appear multiple times in the hierarchy, the first
-            match is returned.
+            match is returned. A typical example is Pipeline Steps, but this could
+            happen as well for some unusual hierarchies, like /Task/Sequence/Shot:
+            the same Sequence could appear under different Task.
 
         :param str entity_type: A Shotgun Entity type.
         :param int entity_id: The Shotgun id of the Entity to look for.

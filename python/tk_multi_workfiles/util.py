@@ -93,6 +93,8 @@ def get_sg_entity_name_field(entity_type):
     """
     :returns: A string, the field holding the Entity name for a given Entity type.
     """
+    # Please note that similar method was added in tk-core v0.18.121 but we have
+    # our own copy of it to not introduce a dependency just for this.
     # Deal with some known special cases and assume "code" for anything else.
     return {
         "Project": "name",

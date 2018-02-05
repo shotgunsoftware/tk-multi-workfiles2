@@ -160,7 +160,9 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
 
         .. note::
             The same entity can appear multiple times in the hierarchy, the first
-            match is returned.
+            match is returned. A typical example is Pipeline Steps, but this could
+            happen as well for some unusual hierarchies, like /Task/Sequence/Shot:
+            the same Sequence could appear under different Task.
 
         :param str entity_type: A Shotgun Entity type.
         :param int entity_id: The Shotgun id of the Entity to look for.
@@ -183,6 +185,8 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         if not self.rowCount():
             return None
         parent_list = [self.invisibleRootItem()]
+        # We modify the list as we iterate on it by adding children, so we can't
+        # use a simple iterator here.
         while parent_list:
             parent = parent_list.pop()
             for row_i in range(parent.rowCount()):
