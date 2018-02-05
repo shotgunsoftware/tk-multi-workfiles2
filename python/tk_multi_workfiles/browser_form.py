@@ -204,7 +204,6 @@ class BrowserForm(QtGui.QWidget):
                 model,
                 caption,
                 allow_task_creation,
-                model.represents_tasks,
                 [],
                 parent=self,
                 step_entity_filter=step_entity_filter
@@ -551,8 +550,8 @@ class BrowserForm(QtGui.QWidget):
         """
         Called when Step filters are changed.
 
-        Emit step_filter_changed with a filter build from the list and refresh the
-        file browser.
+        Emit step_filter_changed with a filter build from the list which will
+        trigger a refresh of the file browser.
 
         :param step_list: A list of Shotgun Step dictionaries.
         """

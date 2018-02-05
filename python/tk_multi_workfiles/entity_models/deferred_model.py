@@ -15,30 +15,54 @@ shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "sho
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 ShotgunDataHandlerCache = shotgun_model.data_handler_cache.ShotgunDataHandlerCache
 
+shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
+
 from ..util import get_sg_entity_name_field
 from .extended_model import ShotgunExtendedEntityModel
 
 
 class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
     """
-    A Shotgun Entity model with deferred queries.
+    A Shotgun Entity model which supports two steps for loading data:
+    - A primary request is used to populate top nodes in the tree, like for
+      a regular Shotgun Entity Model.
+    - Secondary requests are deferred until the point the data really needs
+      to be fetched, typically when a leaf in the primary model is expanded.
+      The primary tree is then extended with child items dynamically retrieved
+      on demand with the deferred queries.
+
+    Deferred queries need to specify:
+      - The target entity type for the query, e.g. 'Task'.
+      - The field name to link the secondary query to the primary one, e.g.
+        'entity'.
+    A sub-hierarchy can be defined with a list of fields, e.g. ['step'].
+    If needed, additional filters can be specified for deferred queries.
+
+    Typical use of a deferred model would look like:
+     .. code-block:: python
+            my_model = ShotgunDeferredEntityModel(
+                # Main query: retrieve Shots and group them by Sequences.
+                "Shot",
+                [],
+                ["sg_sequence", "code"],
+                # Deferred query: retrieve Tasks using the "entity" field to retrieve
+                # Tasks for a given Shot, group Tasks by their pipeline Step.
+                {
+                    "entity_type": "Task",
+                    "link_field": "entity",
+                    "filters": []
+                    hierarchy": ["step"]
+                }
+            )
+            # Load the model and refresh it
+            my_model.load_and_refresh()
+            # Narrow down the list of Tasks with a Step filter.
+            my_model.update_filters(["step.Step.code", "is", "Rig"])
     """
+
     def __init__(self, entity_type, filters, hierarchy, fields, deferred_query, *args, **kwargs):
         """
-        A Shotgun Entity model which supports two steps for loading data:
-        - A primary request is used to populate top nodes in the tree, like for
-          a regular Shotgun Entity Model.
-        - Secondary requests are deferred until the point the data really needs
-          to be fetched, typically when a leaf in the primary model is expanded.
-          The primary tree is then extended with child items dynamically retrieved
-          on demand with the deferred queries.
-
-        Deferred queries need to specify:
-          - The target entity type for the query, e.g. 'Task'.
-          - The field name to link the secondary query to the primary one, e.g.
-            'entity'.
-        A sub-hierarchy can be defined with a list of fields, e.g. ['step'].
-        If needed, additional filters can be specified for deferred queries.
+        Construct a ShotgunDeferredEntityModel.
 
         :param entity_type: The type of the entities that should be loaded into this model.
         :param filters: A list of filters to be applied to entities in the model - these
@@ -69,6 +93,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             *args,
             **kwargs
         )
+        # Create a cache to handle results from deferred queries.
         self._deferred_cache = ShotgunDataHandlerCache()
 
     @property
@@ -110,14 +135,17 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                 # Let the parent re-fetch children
                 item.parent().setData(False, self._SG_ITEM_FETCHED_MORE)
 
-    def load_and_refresh(self, extra_filters=None):
+    def load_and_refresh(self, extra_filter=None):
         """
         Load the data for this model and post a refresh.
 
-        :param extra_filters: A list of additional Shotgun filters which are added
-                              to the initial filters.
+        The given extra filter will be added to deferred queries initial filters
+        list when fetching deferred results.
+
+        :param extra_filter: An additional Shotgun filter which is added
+                             to the initial filters list for the deferred queries.
         """
-        self._extra_filters = extra_filters
+        self._extra_filter = extra_filter
         # Extra filter is not applied to the model containing top nodes
         # for deferred queries.
         self._load_data(
@@ -146,22 +174,24 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                 if self.canFetchMore(item.index()):
                     self.fetchMore(item.index())
 
-    def update_filters(self, extra_filters):
+    def update_filters(self, extra_filter):
         """
-        Update the filters used by this model.
+        Update the deferred filters used by this model.
 
-        A full refresh is triggered by the update if not using deferred queries.
-        Otherwise, the filter is applied to all expanded items in the model which
-        are direct parent of deferred results.
+        The given extra filter is added to the initial deferred query filters
+        list to fetch deferred results.
 
-        :param extra_filters: A list of additional Shotgun filters which are added
-                              to the initial filters.
+        All expanded items in the model which are direct parent of deferred results
+        are flagged as needing to be refreshed.
+
+        :param extra_filter: An additional Shotgun filter which is added
+                             to the initial filters list for the deferred queries.
         """
-        self._extra_filters = extra_filters
+        self._extra_filter = extra_filter
         # Refresh our deferred cache.
         # Get the full list of expanded parent uids
         uids = [uid for uid in self._deferred_cache.get_child_uids(parent_uid=None)]
-        # And simply ask them to refetch their children.
+        # And simply tell them to refetch their children.
         for uid in uids:
             item = self._get_item_by_unique_id(uid)
             if item:
@@ -188,11 +218,12 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
 
     def _add_deferred_item_hierarchy(self, parent_item, hierarchy, name_field, sg_data):
         """
-        Add a hierarchy item under the given parent for the given Shotgun record
+        Add a hierarchy of items under the given parent for the given Shotgun record
         loaded from a deferred query.
 
         :param parent_item: A :class:`ShotgunStandardItem` instance.
-        :param str uid: A unique id for the new item.
+        :param hierarchy: A list of Shotgun field names defining the tree structure
+                          to build under the parent item.
         :param name_field: A field name from which the Entity name can be retrieved.
         :param sg_data: A Shotgun Entity dictionary.
         """
@@ -252,7 +283,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         return refreshed_uids
 
     @classmethod
-    def _dummy_place_holder_item_uid(cls, parent_item):
+    def _dummy_placeholder_item_uid(cls, parent_item):
         """
         Return a unique id which can be used for a dummy "Not Found" item under
         the given parent item.
@@ -264,7 +295,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             parent_item.data(cls._SG_ITEM_UNIQUE_ID)
         )
 
-    def _add_dummy_place_holder_item(self, parent_item, refreshing):
+    def _add_dummy_placeholder_item(self, parent_item, refreshing):
         """
         Create a dummy child item under the given item.
 
@@ -282,11 +313,14 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             is_leaf=False,
             uid=parent_uid,
         )
-        uid = self._dummy_place_holder_item_uid(parent_item)
+        uid = self._dummy_placeholder_item_uid(parent_item)
+        display_name = shotgun_globals.get_type_display_name(
+            self._deferred_query["entity_type"]
+        )
         if refreshing:
-            text = "Retrieving %ss..." % self._deferred_query["entity_type"]
+            text = "Retrieving %ss..." % display_name
         else:
-            text = "No %ss found" % self._deferred_query["entity_type"]
+            text = "No %ss found" % display_name
 
         exists = self._deferred_cache.item_exists(uid)
         # Update or create the dummy item in the cache
@@ -339,8 +373,8 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         link_field_name = deferred_query["link_field"]
         filters.append([link_field_name, "is", sg_entity])
         # Append extra filters, (step filtering).
-        if self._extra_filters:
-            filters.append(self._extra_filters)
+        if self._extra_filter:
+            filters.append(self._extra_filter)
         # Load or create a ShotgunEntityModel for the amended query. We have one
         # ShotgunEntityModel per Entity.
         name_field = get_sg_entity_name_field(deferred_query["entity_type"])
@@ -376,7 +410,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         """
         Handle deferred query refresh failure for the given Entity.
 
-        Update the dummy place holder item, if any, with the error
+        Update the dummy placeholder item, if any, with the error
         message.
         """
         parent_item = self.item_from_entity(sg_entity["type"], sg_entity["id"])
@@ -385,9 +419,10 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         if not parent_item:
             return
         parent_uid = parent_item.data(self._SG_ITEM_UNIQUE_ID)
-        refreshing_uid = self._dummy_place_holder_item_uid(parent_item)
-        # Check if we have a dummy place holder item. If so update its text with
-        # an error message.
+        refreshing_uid = self._dummy_placeholder_item_uid(parent_item)
+        # Check if we have a dummy placeholder item. If so update its text with
+        # an error message. The message is already logged by shotgun_model, here
+        # we just don't want the user to think that the query is still going on.
         data_item = self._deferred_cache.get_entry_by_uid(refreshing_uid)
         if data_item:
             self._deferred_cache.add_item(
@@ -434,34 +469,43 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         else:
             existing_uids = []
 
-        sub_entities = []
         deferred_model = self._deferred_models[sg_entity["id"]]
-        sub_entity_type = deferred_model.get_entity_type()
-        name_field = get_sg_entity_name_field(sub_entity_type)
+        deferred_entity_type = deferred_model.get_entity_type()
+        name_field = get_sg_entity_name_field(deferred_entity_type)
 
-        # Loop over all entities (leaves) in the deferred model.
-        for sub_entity_id in deferred_model.entity_ids:
-            sub_item = deferred_model.item_from_entity(sub_entity_type, sub_entity_id)
-            if sub_item:
-                sg_data = sub_item.get_sg_data()
-                if sg_data:
-                    sub_entities.append(sg_data)
+        # First collect all Entity items which have been fetched so far by deferred
+        # queries.
+        sg_deferred_entities = []
+        for deferred_entity_id in deferred_model.entity_ids:
+            deferred_item = deferred_model.item_from_entity(
+                deferred_entity_type,
+                deferred_entity_id
+            )
+            # In theory we should always have a matching item, but better to be
+            # a bit cautious...
+            if deferred_item:
+                sg_entity = deferred_item.get_sg_data()
+                if sg_entity:
+                    sg_deferred_entities.append(sg_entity)
+        # Now refresh all the deferred entity items we retrieved and keep a list of
+        # the refreshed uids: new or which are still present.
         refreshed_uids = []
         # Ideallly we would retrieve the field list from the ShotgunEntityModel
         # but this is a private member.
         deferred_query = self._deferred_query
-        for sub_entity in sub_entities:
+        for sg_deferred_entity in sg_deferred_entities:
+            # Update existing items or create new ones.
             uids = self._add_deferred_item_hierarchy(
                 parent_item,
                 deferred_query["hierarchy"],
                 name_field,
-                sub_entity,
+                sg_deferred_entity,
             )
             refreshed_uids.extend(uids)
-        if not sub_entities:
+        if not sg_deferred_entities:
             # If we don't have any Entity, add a "Retrieving XXXXXs" or
             # "No XXXXs found" child, depending on `pending_refresh` value.
-            uid = self._add_dummy_place_holder_item(parent_item, pending_refresh)
+            uid = self._add_dummy_placeholder_item(parent_item, pending_refresh)
             refreshed_uids.append(uid)
         # Go through the existing items and discard the ones which shouldn't be
         # there anymore.
@@ -472,7 +516,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             data_item = self._deferred_cache.take_item(uid)
             item = self._get_item_by_unique_id(uid)
             if item:
-                # The item might be already gone because one its parent was
+                # The item might be already gone because one its ancestor was
                 # deleted.
                 self._delete_item(item)
 
@@ -488,7 +532,15 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
     def ensure_data_is_loaded(self, index=None):
         """
         Ensure all data is loaded in the model, except for deferred queries.
+
+        .. note::
+            The base class implementation is not called.
+
+        :param index: Model index for which to recursively load data.
+                      If set to None, the entire tree will be loaded.
+        :type index: :class:`~PySide.QtCore.QModelIndex`
         """
+
         item_list = []
         if index is None:
             # Load everything
@@ -525,7 +577,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         if not index.isValid() or not self.itemFromIndex(index).get_sg_data():
             return super(ShotgunDeferredEntityModel, self).hasChildren(index)
         # We always have at least a child, which can be a valid item pulled with
-        # a deferred query or a place holder item.
+        # a deferred query or a placeholder item.
         return True
 
     def canFetchMore(self, index):
@@ -573,6 +625,10 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         type this model represents. Otherwise, the full model hierarchy is traversed
         to retrieve the given Entity.
 
+        All entities which have been already fetched with direct or deferred queries
+        are considered. However, no additional deferred queries is run to fetch
+        more data from Shotgun.
+
         .. note::
             The same entity can appear multiple times in the hierarchy, the first
             match is returned. A typical example is Pipeline Steps, but this could
@@ -591,3 +647,35 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         return self._get_item_by_unique_id(
             self._deferred_entity_uid({ "type": entity_type, "id" : entity_id})
         )
+
+    def _get_key_for_field_data(self, field, sg_data):
+        """
+        Generates a key for a Shotgun field data.
+
+        These keys can be used as uid in caches.
+
+        :param field: a Shotgun field name from the sg_data dictionary.
+        :param sg_data: a Shotgun data dictionary.
+        :returns: a string key
+        """
+        # Note: this is a simplified version of tk-framework-shotgunutils
+        # ShotgunFindDataHandler.__generate_unique_key method.
+        value = sg_data.get(field)
+
+        if isinstance(value, dict) and "id" in value and "type" in value:
+            # For single entity links, return the entity id
+            unique_key = "%s_%s" % (value["type"], value["id"])
+        elif isinstance(value, list):
+            # This is a list of some sort. Loop over all elements and extract a comma separated list.
+            formatted_values = []
+            for v in value:
+                if isinstance(v, dict) and "id" in v and "type" in v:
+                    # This is a link field
+                    formatted_values.append("%s_%s" % (v["type"], v["id"]))
+                else:
+                    formatted_values.append(str(v))
+            unique_key = ",".join(formatted_values)
+        else:
+            # everything else just cast to string
+            unique_key = str(value)
+        return unique_key

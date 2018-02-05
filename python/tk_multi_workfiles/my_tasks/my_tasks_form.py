@@ -31,7 +31,7 @@ class MyTasksForm(EntityTreeForm):
         :param parent:  The parent QWidget for this control
         """
         EntityTreeForm.__init__(
-            self, tasks_model, "My Tasks", allow_task_creation, True, tasks_model.extra_display_fields, parent
+            self, tasks_model, "My Tasks", allow_task_creation, tasks_model.extra_display_fields, parent
         )
 
         # There is no need for the my tasks toggle.

@@ -50,7 +50,7 @@ class EntityTreeForm(QtGui.QWidget):
     # Signal emitted when the 'New Task' button is clicked.
     create_new_task = QtCore.Signal(object, object)# entity, step
 
-    def __init__(self, entity_model, search_label, allow_task_creation, represent_tasks, extra_fields, parent, step_entity_filter=None):
+    def __init__(self, entity_model, search_label, allow_task_creation, extra_fields, parent, step_entity_filter=None):
         """
         Instantiate a new `EntityTreeForm`.
 
@@ -103,11 +103,12 @@ class EntityTreeForm(QtGui.QWidget):
         self._ui.search_ctrl.setToolTip("Press enter to complete the search")
 
         # enable/hide the my-tasks-only button if we are showing tasks:
-        if not represent_tasks:
+        represents_tasks = entity_model.represents_tasks
+        if not represents_tasks:
             self._ui.my_tasks_cb.hide()
 
         # enable/hide the new task button if we have tasks and task creation is allowed:
-        if represent_tasks and allow_task_creation:
+        if represents_tasks and allow_task_creation:
             # enable and connect the new task button
             self._ui.new_task_btn.clicked.connect(self._on_new_task)
             self._ui.new_task_btn.setEnabled(False)

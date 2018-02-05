@@ -359,12 +359,12 @@ class FileFormBase(QtGui.QWidget):
 
         return file_item
 
-    def _apply_step_filtering(self, step_filters):
+    def _apply_step_filtering(self, step_filter):
         """
         Apply the given step filters to all Entity models.
 
-        :param step_filters: A list of Shotgun Step filters, directly usable in
-                             a Shotgun query.
+        :param step_filter: A Shotgun Step filter, directly usable in
+                            a Shotgun query.
         """
         # Please note that this could be optimized: we're applying step filters
         # to all models, even if, for example, the changes in the filters are only
@@ -372,4 +372,4 @@ class FileFormBase(QtGui.QWidget):
         # refreshed.
         for _, _, model in self._entity_models:
             if model.supports_step_filtering:
-                model.update_filters(step_filters)
+                model.update_filters(step_filter)

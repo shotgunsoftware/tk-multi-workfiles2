@@ -17,7 +17,27 @@ ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 
 class ShotgunExtendedEntityModel(ShotgunEntityModel):
     """
-    A Shotgun Entity model with updatable filters and a couple of added methods.
+    A Shotgun Entity model with updatable filters and the addition of methods to
+    maintain the selection of items when the model is refreshed.
+
+    Typical use of an extended model would look like:
+     .. code-block:: python
+            my_model = ShotgunExtendedEntityModel(
+                # Nothing different from the base ShotgunEntityModel class.
+                "Task",
+                [["entity", "type_is", "Asset"]],
+                [entity.Asset.sg_asset_type, entity, step, content],
+            )
+            # Load the model and refresh it
+            my_model.load_and_refresh()
+            # Retrieve the path to a selected item retrieved from a view
+            selected_path = my_model.get_item_field_value_path(selected_item)
+            # Narrow down the list of Tasks with a Step filter which will clear
+            # all the data and refresh it in the background.
+            my_model.update_filters(["step.Step.code", "is", "Rig"])
+            # Retrieve the previously selected item from the saved path to restore
+            # the selection in the view.
+            selected_item = my_model.item_from_field_value_path(selected_path)
     """
 
     def __init__(self, entity_type, filters, hierarchy, fields, *args, **kwargs):
@@ -38,8 +58,13 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         self._original_filters = filters
         self._hierarchy = hierarchy
         self._fields = fields
-        self._extra_filters = None
+        self._extra_filter = None
+
+        # We keep track of which entities are in the model, so we can bail
+        # out cheaply on entity searches, and not traverse the full model to look
+        # for an entity which can't be there.
         self._entity_types = set()
+
         super(ShotgunExtendedEntityModel, self).__init__(
             entity_type,
             filters,
@@ -61,21 +86,21 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         """
         :returns: True if Step filtering can be used with this model
         """
-        # If don't have steps in the fields we query from Shotgun, we assume
+        # If we don't have steps in the fields we query from Shotgun, we assume
         # step filtering should be disabled.
         return "step" in self._fields or "step" in self._hierarchy
 
-    def load_and_refresh(self, extra_filters=None):
+    def load_and_refresh(self, extra_filter=None):
         """
         Load the data for this model and post a refresh.
 
-        :param extra_filters: A list of additional Shotgun filters which are added
-                              to the initial filters.
+        :param extra_filter: An additional Shotgun filter which is added
+                             to the initial filters list.
         """
-        self._extra_filters = extra_filters
+        self._extra_filter = extra_filter
         filters = self._original_filters[:] # Copy the list to not update the reference
-        if extra_filters:
-            filters.append(extra_filters)
+        if extra_filter:
+            filters.append(extra_filter)
         self._load_data(
             self._entity_type,
             filters,
@@ -84,7 +109,7 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         )
         self.async_refresh()
 
-    def update_filters(self, extra_filters):
+    def update_filters(self, extra_filter):
         """
         Update the filters used by this model.
 
@@ -92,13 +117,13 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         Otherwise, the filter is applied to all expanded items in the model which
         are direct parent of deferred results.
 
-        :param extra_filters: A list of additional Shotgun filters which are added
-                              to the initial filters.
+        :param extra_filter: An additional Shotgun filter which is added
+                             to the initial filters list.
         """
-        self._extra_filters = extra_filters
+        self._extra_filter = extra_filter
         filters = self._original_filters[:] # Copy the list to not update the reference
-        if extra_filters:
-            filters.append(extra_filters)
+        if extra_filter:
+            filters.append(extra_filter)
         self._load_data(
             self._entity_type,
             filters,
@@ -239,6 +264,13 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         This can be collected and used later to retrieve the path to the item in an
         updated model.
 
+        The values are the Shotgun fields values which are set by the Shotgun
+        Model for the SG_ASSOCIATED_FIELD_ROLE, and therefore depends on which
+        Shotgun fields are used in the hierarchy and on their type.
+        E.g. for a model retrieving Tasks and with an entity/sg_status_list/task
+        hierarchy, the returned list could look like:
+        `[{"type": "Shot", "id": 123}, "ip", {"type": "Task", "id": 456}]`.
+
         :returns: A list of field values for the path from the root to the item.
         """
         current_item = item
@@ -250,35 +282,3 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
             current_item = current_item.parent()
         # Reverse the list we return.
         return values[::-1]
-
-    def _get_key_for_field_data(self, field, sg_data):
-        """
-        Generates a key for a Shotgun field data.
-
-        These keys can be used as uid in caches.
-
-        :param field: a Shotgun field name from the sg_data dictionary.
-        :param sg_data: a Shotgun data dictionary.
-        :returns: a string key
-        """
-        # Note: this is a simplified version of tk-framework-shotgunutils
-        # ShotgunFindDataHandler.__generate_unique_key method.
-        value = sg_data.get(field)
-
-        if isinstance(value, dict) and "id" in value and "type" in value:
-            # For single entity links, return the entity id
-            unique_key = "%s_%s" % (value["type"], value["id"])
-        elif isinstance(value, list):
-            # This is a list of some sort. Loop over all elements and extract a comma separated list.
-            formatted_values = []
-            for v in value:
-                if isinstance(v, dict) and "id" in v and "type" in v:
-                    # This is a link field
-                    formatted_values.append("%s_%s" % (v["type"], v["id"]))
-                else:
-                    formatted_values.append(str(v))
-            unique_key = ",".join(formatted_values)
-        else:
-            # everything else just cast to string
-            unique_key = str(value)
-        return unique_key

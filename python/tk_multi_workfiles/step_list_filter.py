@@ -42,6 +42,11 @@ def get_saved_step_filter():
 
 
 def get_filter_from_filter_list(step_list):
+    """
+    Build a Shotgun query filter from a list of Steps.
+
+    :returns: A Shotgun filter which can be directly added to a Shotgun query.
+    """
     if step_list is None:
         # No Steps saved yet, allow all Steps.
         return []
