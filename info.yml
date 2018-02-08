@@ -148,6 +148,15 @@ configuration:
         description: Automatically expands the root level of the treeviews.
         default_value: False
 
+    my_tasks_sort_fields:
+      type: list
+      description: List of fields that will be used to sort the "My Tasks" items. The order of the
+                   values in this list will be the order of sort priority.
+      values:
+        type: str
+      allows_empty: True
+      default_value: [entity]
+
     my_tasks_extra_display_fields:
       type: list
       description: List of additional fields to display with the task in the My Tasks list.

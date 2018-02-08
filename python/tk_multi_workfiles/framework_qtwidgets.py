@@ -43,3 +43,4 @@ WidgetDelegate = views.WidgetDelegate
 # hierarchical filtering proxy model:
 models = sgtk.platform.import_framework("tk-framework-qtwidgets", "models")
 HierarchicalFilteringProxyModel = models.HierarchicalFilteringProxyModel
+ShotgunSortFilterProxyModel = models.ShotgunSortFilterProxyModel

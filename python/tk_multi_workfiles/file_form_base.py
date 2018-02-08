@@ -122,6 +122,8 @@ class FileFormBase(QtGui.QWidget):
 
         # get any extra display fields we'll need to retrieve:
         extra_display_fields = app.get_setting("my_tasks_extra_display_fields")
+        # get the sort fields, so that they can be added to the model
+        sort_fields = app.get_setting("my_tasks_sort_fields")
         # get the my task filters from the config.
         my_tasks_filters = app.get_setting("my_tasks_filters")
 
@@ -129,6 +131,7 @@ class FileFormBase(QtGui.QWidget):
         model = MyTasksModel(app.context.project,
                              g_user_cache.current_user,
                              extra_display_fields,
+                             sort_fields,
                              my_tasks_filters,
                              parent=self,
                              bg_task_manager=self._bg_task_manager)
