@@ -23,6 +23,9 @@ from ..framework_qtwidgets import GroupedListViewItemDelegate
 class FileListItemDelegate(GroupedListViewItemDelegate):
 
     def __init__(self, view):
+        """
+        :param view: The view this delegate is for.
+        """
         GroupedListViewItemDelegate.__init__(self, view)
         
         self._item_widget = None

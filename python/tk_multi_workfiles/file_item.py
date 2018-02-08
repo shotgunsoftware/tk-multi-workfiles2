@@ -154,9 +154,16 @@ class FileItem(object):
     @property
     def task(self):
         """
-        :returns:   The Shotgun task entity dictionary that this file is associated with
+        :returns:   The Shotgun task entity dictionary that this file is associated with.
         """
         return self._details.get("task") or self._publish_details.get("task")
+
+    @property
+    def step(self):
+        """
+        :returns:   The Shotgun step entity dictionary that this file is associated with.
+        """
+        return self._details.get("step") or self._publish_details.get("step")
 
     #@property
     def _get_thumbnail_path(self):

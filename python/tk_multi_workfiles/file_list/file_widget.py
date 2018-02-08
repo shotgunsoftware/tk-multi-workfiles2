@@ -118,5 +118,3 @@ class FileWidget(QtGui.QWidget):
         self._ui.background.setProperty("selected", self._is_selected)
         self._ui.background.style().unpolish(self._ui.background)
         self._ui.background.ensurePolished()
-
-
