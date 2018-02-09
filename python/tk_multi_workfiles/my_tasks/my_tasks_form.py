@@ -19,6 +19,11 @@ from ..util import monitor_qobject_lifetime
 from ..entity_tree.entity_tree_form import EntityTreeForm
 from .my_tasks_proxy_model import MyTasksProxyModel
 
+class SortOption(object):
+
+    def __init__(self, sort_option_data):
+        self.data = sort_option_data
+
 class MyTasksForm(EntityTreeForm):
     """
     My Tasks widget class
@@ -53,6 +58,11 @@ class MyTasksForm(EntityTreeForm):
             self._set_sort_option(sort_option)
 
             sort_options_menu = QtGui.QMenu(self._ui.sort_tbn)
+            separator = QtGui.QAction("Presets", sort_options_menu)
+            # separator.setSeparator(True)
+            separator.setEnabled(False)
+            sort_options_menu.addAction(separator)
+
             self._ui.sort_tbn.setMenu(sort_options_menu)
             self._sort_menu_lambdas = []
             for sort_option in sort_data:
@@ -63,6 +73,16 @@ class MyTasksForm(EntityTreeForm):
                 action = QtGui.QAction(sort_option['name'], sort_options_menu)
                 action.triggered.connect(sort_callable)
                 sort_options_menu.addAction(action)
+
+                sort_fields_menu = QtGui.QMenu(self._ui.sort_tbn)
+                action.setMenu(sort_fields_menu)
+
+                # now loop over the fields and create a sub menu for them to all direction change.
+                for sort_field in sort_option["sort_fields"]:
+                    field_action = QtGui.QAction(sort_field['field_name'], sort_fields_menu)
+                    field_action.triggered.connect(sort_callable)
+                    sort_fields_menu.addAction(field_action)
+
 
             monitor_qobject_lifetime(self.sort_model, "My Tasks Sort model")
             self.sort_model.setSourceModel(tasks_model)
