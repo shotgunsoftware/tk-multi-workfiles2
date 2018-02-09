@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'entity_tree_form.ui'
 #
-#      by: pyside-uic 0.2.15 running on PySide 1.2.4
+#      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -11,7 +11,7 @@ from sgtk.platform.qt import QtCore, QtGui
 class Ui_EntityTreeForm(object):
     def setupUi(self, EntityTreeForm):
         EntityTreeForm.setObjectName("EntityTreeForm")
-        EntityTreeForm.resize(349, 367)
+        EntityTreeForm.resize(556, 367)
         self.verticalLayout = QtGui.QVBoxLayout(EntityTreeForm)
         self.verticalLayout.setSpacing(4)
         self.verticalLayout.setContentsMargins(2, 6, 2, 2)
@@ -22,6 +22,14 @@ class Ui_EntityTreeForm(object):
         self.my_tasks_cb = QtGui.QCheckBox(EntityTreeForm)
         self.my_tasks_cb.setObjectName("my_tasks_cb")
         self.horizontalLayout.addWidget(self.my_tasks_cb)
+        self.sort_tbn = QtGui.QToolButton(EntityTreeForm)
+        self.sort_tbn.setCheckable(False)
+        self.sort_tbn.setPopupMode(QtGui.QToolButton.InstantPopup)
+        self.sort_tbn.setToolButtonStyle(QtCore.Qt.ToolButtonTextOnly)
+        self.sort_tbn.setAutoRaise(True)
+        self.sort_tbn.setArrowType(QtCore.Qt.NoArrow)
+        self.sort_tbn.setObjectName("sort_tbn")
+        self.horizontalLayout.addWidget(self.sort_tbn)
         spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
         self.new_task_btn = QtGui.QPushButton(EntityTreeForm)
@@ -69,6 +77,7 @@ class Ui_EntityTreeForm(object):
     def retranslateUi(self, EntityTreeForm):
         EntityTreeForm.setWindowTitle(QtGui.QApplication.translate("EntityTreeForm", "Form", None, QtGui.QApplication.UnicodeUTF8))
         self.my_tasks_cb.setText(QtGui.QApplication.translate("EntityTreeForm", "My Tasks Only", None, QtGui.QApplication.UnicodeUTF8))
+        self.sort_tbn.setText(QtGui.QApplication.translate("EntityTreeForm", "Sort By:", None, QtGui.QApplication.UnicodeUTF8))
         self.new_task_btn.setText(QtGui.QApplication.translate("EntityTreeForm", "+ New Task", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..framework_qtwidgets import SearchWidget

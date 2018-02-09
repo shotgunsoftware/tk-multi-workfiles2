@@ -102,6 +102,9 @@ class EntityTreeForm(QtGui.QWidget):
         self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
         self._ui.search_ctrl.setToolTip("Press enter to complete the search")
 
+        # we don't support sorting in general on the tabs, so we should hide it and then show it if its on the My Tasks
+        self._ui.sort_tbn.hide()
+
         # enable/hide the my-tasks-only button if we are showing tasks:
         represents_tasks = entity_model.represents_tasks
         if not represents_tasks:

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>349</width>
+    <width>556</width>
     <height>367</height>
    </rect>
   </property>
@@ -44,6 +44,28 @@
       <widget class="QCheckBox" name="my_tasks_cb">
        <property name="text">
         <string>My Tasks Only</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="sort_tbn">
+       <property name="text">
+        <string>Sort By:</string>
+       </property>
+       <property name="checkable">
+        <bool>false</bool>
+       </property>
+       <property name="popupMode">
+        <enum>QToolButton::InstantPopup</enum>
+       </property>
+       <property name="toolButtonStyle">
+        <enum>Qt::ToolButtonTextOnly</enum>
+       </property>
+       <property name="autoRaise">
+        <bool>true</bool>
+       </property>
+       <property name="arrowType">
+        <enum>Qt::NoArrow</enum>
        </property>
       </widget>
      </item>

@@ -59,8 +59,6 @@ class MyTasksProxyModel(ShotgunSortFilterProxyModel):
         # existing order to act as secondary sort fields.
         secondary_sort_fields = [f for f in self.sort_by_fields if f != self.primary_sort_field]
 
-        print "secondary_sort_fields",secondary_sort_fields
-
         # We are also going to shove "id" to the end of the secondary list
         # if it is present. This is because it will never be equal between
         # two entities, and thus will act as a wall to any secondary fields
@@ -93,7 +91,6 @@ class MyTasksProxyModel(ShotgunSortFilterProxyModel):
                 # these fields and we need to move on to the rest.
                 continue
 
-            print "time dif:      ", sg_left['entity']['name'], sg_left['content'], left_data, sg_right['entity']['name'], sg_right['content'], right_data
             if left_data == right_data:
                 # If the fields are equal then there's no sorting we need to
                 # do based on this field. We'll just continue on to the rest.
@@ -105,3 +102,17 @@ class MyTasksProxyModel(ShotgunSortFilterProxyModel):
                     return (left_data > right_data)
 
         return False
+
+    def ensure_data_is_loaded(self, index=None):
+        """
+        Recursively processes the model and ensures that all data
+        has been loaded into the shotgun model contained by the proxy model.
+
+        :param index: Model index for which to recursively load data.
+                      If set to None, the entire tree will be loaded.
+        :type index: :class:`~PySide.QtCore.QModelIndex`
+        """
+        # convert proxy indices to internal model indices
+        source_index = self.mapToSource(index) if index else None
+
+        return self.sourceModel().ensure_data_is_loaded(source_index)

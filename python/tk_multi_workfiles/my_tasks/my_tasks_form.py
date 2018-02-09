@@ -13,7 +13,7 @@ Implementation of the my tasks list widget consisting of a list view displaying 
 of a Shotgun data model of my tasks, a text search and a filter control.
 """
 
-from sgtk.platform.qt import QtCore
+from sgtk.platform.qt import QtCore, QtGui
 from .my_task_item_delegate import MyTaskItemDelegate
 from ..util import monitor_qobject_lifetime
 from ..entity_tree.entity_tree_form import EntityTreeForm
@@ -35,31 +35,40 @@ class MyTasksForm(EntityTreeForm):
             self, tasks_model, "My Tasks", allow_task_creation, tasks_model.extra_display_fields, parent
         )
 
-        sort_model = MyTasksProxyModel(self)
-        sort_model.filter_by_fields = []
         sort_data = tasks_model.sort_data
-
         self.chosen_sort_option = 0
 
         if sort_data:
 
-            sort_option = sort_data[self.chosen_sort_option]
-            sort_fields = sort_option["sort_fields"]
+            self.sort_model = MyTasksProxyModel(self)
+            self.sort_model.filter_by_fields = []
+            self.sort_model.setDynamicSortFilter(True)
+            self.sort_model.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
+            # we set the sort order, but we may actually perform a different sort order
+            # in the proxy model on a per field basis
+            self.sort_model.sort(0, QtCore.Qt.AscendingOrder)
 
-            sort_model.primary_sort_field = sort_fields[0]
+            # default to the first sort option.
+            sort_option = sort_data[0]
+            self._set_sort_option(sort_option)
 
-            if len(sort_fields) > 1:
-                sort_model.sort_by_fields = sort_fields[1:]
-            else:
-                sort_model.sort_by_fields = []
+            sort_options_menu = QtGui.QMenu(self._ui.sort_tbn)
+            self._ui.sort_tbn.setMenu(sort_options_menu)
+            self._sort_menu_lambdas = []
+            for sort_option in sort_data:
 
-        sort_model.setDynamicSortFilter(True)
-        sort_model.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        sort_model.sort(0, QtCore.Qt.AscendingOrder)
+                sort_callable = lambda data=sort_option : self._set_sort_option(data)
+                self._sort_menu_lambdas.append(sort_callable)
 
-        monitor_qobject_lifetime(sort_model, "My Tasks Sort model")
-        sort_model.setSourceModel(tasks_model)
-        self._ui.entity_tree.setModel(sort_model)
+                action = QtGui.QAction(sort_option['name'], sort_options_menu)
+                action.triggered.connect(sort_callable)
+                sort_options_menu.addAction(action)
+
+            monitor_qobject_lifetime(self.sort_model, "My Tasks Sort model")
+            self.sort_model.setSourceModel(tasks_model)
+            self._ui.entity_tree.setModel(self.sort_model)
+
+            self._ui.sort_tbn.show()
 
         # There is no need for the my tasks toggle.
         self._ui.my_tasks_cb.hide()
@@ -89,3 +98,15 @@ class MyTasksForm(EntityTreeForm):
                 self._item_delegate = None
         finally:
             self.blockSignals(signals_blocked)
+
+    def _set_sort_option(self, sort_option):
+        sort_fields = sort_option['sort_fields']
+        self.sort_model.primary_sort_field = sort_fields[0]
+
+        if len(sort_fields) > 1:
+            self.sort_model.sort_by_fields = sort_fields[1:]
+        else:
+            self.sort_model.sort_by_fields = []
+
+        self._ui.sort_tbn.setText("Sort By: %s" % (sort_option["name"]))
+        self.sort_model.invalidate()
