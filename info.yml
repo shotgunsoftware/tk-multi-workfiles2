@@ -153,9 +153,17 @@ configuration:
       description: List of fields that will be used to sort the "My Tasks" items. The order of the
                    values in this list will be the order of sort priority.
       values:
-        type: str
+         type: dict
       allows_empty: True
-      default_value: [entity]
+      default_value:
+      - name: By Entity
+        sort_fields:
+        - {field_name: entity, direction: Ascending}
+        - {field_name: sg_sort_order, direction: Descending}
+      - name: By Status
+        sort_fields:
+        - {field_name: sg_status_list, direction: Descending}
+        - {field_name: entity, direction: Descending}
 
     my_tasks_extra_display_fields:
       type: list

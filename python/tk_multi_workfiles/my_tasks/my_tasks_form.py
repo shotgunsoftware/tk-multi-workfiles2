@@ -17,7 +17,7 @@ from sgtk.platform.qt import QtCore
 from .my_task_item_delegate import MyTaskItemDelegate
 from ..util import monitor_qobject_lifetime
 from ..entity_tree.entity_tree_form import EntityTreeForm
-from ..framework_qtwidgets import ShotgunSortFilterProxyModel
+from .my_tasks_proxy_model import MyTasksProxyModel
 
 class MyTasksForm(EntityTreeForm):
     """
@@ -35,15 +35,23 @@ class MyTasksForm(EntityTreeForm):
             self, tasks_model, "My Tasks", allow_task_creation, tasks_model.extra_display_fields, parent
         )
 
-        sort_model = ShotgunSortFilterProxyModel(self)
+        sort_model = MyTasksProxyModel(self)
         sort_model.filter_by_fields = []
-        sort_fields = tasks_model.sort_fields
-        print "sort_fields",sort_fields
-        if sort_fields:
+        sort_data = tasks_model.sort_data
+
+        self.chosen_sort_option = 0
+
+        if sort_data:
+
+            sort_option = sort_data[self.chosen_sort_option]
+            sort_fields = sort_option["sort_fields"]
+
             sort_model.primary_sort_field = sort_fields[0]
 
             if len(sort_fields) > 1:
                 sort_model.sort_by_fields = sort_fields[1:]
+            else:
+                sort_model.sort_by_fields = []
 
         sort_model.setDynamicSortFilter(True)
         sort_model.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)

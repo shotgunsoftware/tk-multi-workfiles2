@@ -24,7 +24,7 @@ class MyTasksModel(ShotgunExtendedEntityModel):
     from the Shotgun entity model so that we have access to the entity icons it provides.  These are used 
     later by the MyTaskItemDelegate when rending a widget for a task in the My Tasks view.
     """
-    def __init__(self, project, user, extra_display_fields, sort_fields, my_tasks_filters, parent, bg_task_manager=None):
+    def __init__(self, project, user, extra_display_fields, sort_data, my_tasks_filters, parent, bg_task_manager=None):
         """
         Construction
 
@@ -38,7 +38,7 @@ class MyTasksModel(ShotgunExtendedEntityModel):
                                         background threaded work.
         """
 
-        self.sort_fields = sort_fields or []
+        self.sort_data = sort_data or []
         self.extra_display_fields = extra_display_fields or []
 
         filters = [["project", "is", project]]
@@ -46,6 +46,9 @@ class MyTasksModel(ShotgunExtendedEntityModel):
 
         fields = ["image", "entity", "content"]
         fields.extend(self.extra_display_fields)
+
+        sort_fields = [sort_field['field_name'] for sort_option in sort_data for sort_field in sort_option['sort_fields']]
+        # gather all potential fields used for sorting
         fields.extend(sort_fields)
 
         ShotgunExtendedEntityModel.__init__(
