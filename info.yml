@@ -114,23 +114,17 @@ configuration:
           type: dict
         default_value:
         - caption: Assets
-          entity_type: Asset
+          entity_type: Task
+          step_filter_on: Asset
           filters:
-          hierarchy: [sg_asset_type, code]
-          sub_hierarchy:
-            entity_type: Task
-            filters:
-            link_field: entity
-            hierarchy: [step]
+          - [entity, type_is, Asset]
+          hierarchy: [entity.Asset.sg_asset_type, entity, step, content]
         - caption: Shots
-          entity_type: Shot
+          entity_type: Task
+          step_filter_on: Shot
           filters:
-          hierarchy: [sg_sequence, code]
-          sub_hierarchy:
-            entity_type: Task
-            filters:
-            link_field: entity
-            hierarchy: [step]
+          - [entity, type_is, Shot]
+          hierarchy: [entity.Shot.sg_sequence, entity, step, content]
         default_value_tk-hiero:
         - caption: Projects
           entity_type: Project
