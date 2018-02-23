@@ -23,7 +23,6 @@ from ..framework_qtwidgets import Breadcrumb
 from ..util import get_model_str, map_to_source, get_source_model, monitor_qobject_lifetime
 from ..util import get_sg_entity_name_field
 
-logger = sgtk.platform.get_logger(__name__)
 
 class EntityTreeForm(QtGui.QWidget):
     """
@@ -615,7 +614,6 @@ class EntityTreeForm(QtGui.QWidget):
         self._fix_expanded_rows()
         # try to select the current entity from the new items in the model:
         prev_selected_item = self._reset_selection()
-        logger.info("Data refreshed for %s" % entity_model)
         self._update_selection(prev_selected_item, True)
 
     def _expand_root_rows(self):
@@ -655,20 +653,6 @@ class EntityTreeForm(QtGui.QWidget):
             self._ui.entity_tree.blockSignals(signals_blocked)
             # re-enable updates to allow painting to continue
             self._ui.entity_tree.setUpdatesEnabled(True)
-
-    def _collect_expanded_paths(self):
-        """
-        Collect all expanded paths so they can be restored later.
-
-        :returns: A list of paths to all expanded items.
-        """
-        view_model = self._ui.entity_tree.model()
-        expanded_items = []
-        for row in range(view_model.rowCount()):
-            idx = view_model.index(row, 0)
-            if self._ui.entity_tree.isExpanded(idx):
-                item = self._item_from_index(idx)
-                item.model().get_item_field_value_path(item)
 
     def _fix_expanded_rows(self):
         """
