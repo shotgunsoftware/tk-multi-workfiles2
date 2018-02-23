@@ -29,7 +29,7 @@ QWidget {
 #step_filters_frame QPushButton {
     font-size: 9px;
     margin: 5px;
-    background-color: transparent;
+    background-color: #515151;
 }
 
 /* Styling for FileGroupWidget in the files view */

@@ -519,6 +519,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                 # The item might be already gone because one its ancestor was
                 # deleted.
                 self._delete_item(item)
+        self.data_refreshed.emit(True)
 
     @staticmethod
     def _deferred_entity_uid(sg_entity):
