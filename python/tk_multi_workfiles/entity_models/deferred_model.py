@@ -576,10 +576,8 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             if item.get_sg_data() and item.index() != index:
                 # Leaves in the static SG model, we only load data for children
                 # if the leaf was the actual item being selected, so files for
-                # it will be collected. Otherwise we stop here otherwise to avoid
-                # triggering all deferred queries.
-                if item.index() == index:
-                    print "Selected itme is a leaf!"
+                # it will be collected. Otherwise we stop here to not trigger
+                # all deferred queries.
                 continue
             if self.canFetchMore(item.index()):
                 self.fetchMore(item.index())
