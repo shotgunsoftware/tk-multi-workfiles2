@@ -85,6 +85,8 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         self._deferred_query = deferred_query
         self._task_step_icons = {}
         self._deferred_models = {}
+        # A bool used to track if a data_refreshed signal emission has been posted
+        # in the event queue, to ensure there is only one at any given time.
         self._pending_delayed_data_refreshed = False
         super(ShotgunDeferredEntityModel, self).__init__(
             entity_type,
@@ -520,16 +522,28 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                 # The item might be already gone because one its ancestor was
                 # deleted.
                 self._delete_item(item)
-        # If we have any uid which is not in both sets, then things changed.
+        # Use a symmetric difference (^) to get all uids which are either in one or
+        # the other set, but not in both. If we have any uid which is not in both
+        # sets, then things changed.
         if existing_uids ^ refreshed_uids:
-            # Make sure we only trigger a refresh only once after all pending
-            # deferred data has been processed by posting a single data_refreshed
-            # emission in the event queue after all events which are already queued.
-            if not self._pending_delayed_data_refreshed:
-                # Post the signal emission at the end of the event queue.
-                QtCore.QTimer.singleShot(0, self._delayed_data_refreshed_emission)
-                # And keep trace an emission was posted
-                self._pending_delayed_data_refreshed = True
+            self._post_delayed_data_refreshed()
+
+    def _post_delayed_data_refreshed(self):
+        """
+        Post the emission of the `data_refreshed` signal at the end of the event
+        queue.
+
+        This method guarantees that there is only one pending signals in the queue
+        at any time.
+        """
+        # Make sure we only trigger a refresh only once after all pending
+        # deferred data has been processed by posting a single data_refreshed
+        # emission in the event queue after all events which are already queued.
+        if not self._pending_delayed_data_refreshed:
+            # Post the signal emission at the end of the event queue.
+            QtCore.QTimer.singleShot(0, self._delayed_data_refreshed_emission)
+            # And keep trace an emission was posted
+            self._pending_delayed_data_refreshed = True
 
     def _delayed_data_refreshed_emission(self):
         """

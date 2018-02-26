@@ -109,6 +109,25 @@ configuration:
                       The optional *step_filter_on* setting is an Entity type and can be used to restrict
                       the list of Steps used for filtering to only the Steps for the specified Entity type.
 "
+        # For backward compatibility reasons we don't use the new deferred queries
+        # by default. Using deferred queries, an Asset/Shot setup could be:
+        # - caption: Assets (deferred)
+        #    entity_type: Asset
+        #    hierarchy: [sg_asset_type, code]
+        #    sub_hierarchy:
+        #        entity_type: Task
+        #        filters:
+        #        link_field: entity
+        #        hierarchy: [step]
+        # - caption: Shots (deferred)
+        #    entity_type: Shot
+        #    hierarchy: [sg_sequence, code]
+        #    sub_hierarchy:
+        #        entity_type: Task
+        #        filters:
+        #        link_field: entity
+        #        hierarchy: [step]
+
         allows_empty: True
         values:
           type: dict
