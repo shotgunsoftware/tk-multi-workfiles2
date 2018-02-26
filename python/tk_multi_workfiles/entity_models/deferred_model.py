@@ -85,6 +85,9 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         self._deferred_query = deferred_query
         self._task_step_icons = {}
         self._deferred_models = {}
+        # A bool used to track if a data_refreshed signal emission has been posted
+        # in the event queue, to ensure there is only one at any given time.
+        self._pending_delayed_data_refreshed = False
         super(ShotgunDeferredEntityModel, self).__init__(
             entity_type,
             filters,
@@ -465,9 +468,9 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         parent_uid = parent_item.data(self._SG_ITEM_UNIQUE_ID)
         if self._deferred_cache.item_exists(parent_uid):
             # Grab all entries from the iterator
-            existing_uids = [x for x in self._deferred_cache.get_child_uids(parent_uid)]
+            existing_uids = set([x for x in self._deferred_cache.get_child_uids(parent_uid)])
         else:
-            existing_uids = []
+            existing_uids = set()
 
         deferred_model = self._deferred_models[sg_entity["id"]]
         deferred_entity_type = deferred_model.get_entity_type()
@@ -489,7 +492,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                     sg_deferred_entities.append(sg_entity)
         # Now refresh all the deferred entity items we retrieved and keep a list of
         # the refreshed uids: new or which are still present.
-        refreshed_uids = []
+        refreshed_uids = set()
         # Ideallly we would retrieve the field list from the ShotgunEntityModel
         # but this is a private member.
         deferred_query = self._deferred_query
@@ -501,12 +504,12 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                 name_field,
                 sg_deferred_entity,
             )
-            refreshed_uids.extend(uids)
+            refreshed_uids.update(uids)
         if not sg_deferred_entities:
             # If we don't have any Entity, add a "Retrieving XXXXXs" or
             # "No XXXXs found" child, depending on `pending_refresh` value.
             uid = self._add_dummy_placeholder_item(parent_item, pending_refresh)
-            refreshed_uids.append(uid)
+            refreshed_uids.add(uid)
         # Go through the existing items and discard the ones which shouldn't be
         # there anymore.
         for uid in existing_uids:
@@ -519,6 +522,35 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                 # The item might be already gone because one its ancestor was
                 # deleted.
                 self._delete_item(item)
+        # Use a symmetric difference (^) to get all uids which are either in one or
+        # the other set, but not in both. If we have any uid which is not in both
+        # sets, then things changed.
+        if existing_uids ^ refreshed_uids:
+            self._post_delayed_data_refreshed()
+
+    def _post_delayed_data_refreshed(self):
+        """
+        Post the emission of the `data_refreshed` signal at the end of the event
+        queue.
+
+        This method guarantees that there is only one pending signals in the queue
+        at any time.
+        """
+        # Make sure we only trigger a refresh only once after all pending
+        # deferred data has been processed by posting a single data_refreshed
+        # emission in the event queue after all events which are already queued.
+        if not self._pending_delayed_data_refreshed:
+            # Post the signal emission at the end of the event queue.
+            QtCore.QTimer.singleShot(0, self._delayed_data_refreshed_emission)
+            # And keep trace an emission was posted
+            self._pending_delayed_data_refreshed = True
+
+    def _delayed_data_refreshed_emission(self):
+        """
+        Emit the data_refreshed signal and reset the pending emission flag.
+        """
+        self._pending_delayed_data_refreshed = False
+        self.data_refreshed.emit(True)
 
     @staticmethod
     def _deferred_entity_uid(sg_entity):
@@ -555,9 +587,11 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         # use a simple iterator.
         while item_list:
             item = item_list.pop()
-            if item.get_sg_data():
-                # Leaves in the static SG model, stop here otherwise we will trigger
-                # deferred queries
+            if item.get_sg_data() and item.index() != index:
+                # Leaves in the static SG model, we only load data for children
+                # if the leaf was the actual item being selected, so files for
+                # it will be collected. Otherwise we stop here to not trigger
+                # all deferred queries.
                 continue
             if self.canFetchMore(item.index()):
                 self.fetchMore(item.index())

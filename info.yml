@@ -109,28 +109,41 @@ configuration:
                       The optional *step_filter_on* setting is an Entity type and can be used to restrict
                       the list of Steps used for filtering to only the Steps for the specified Entity type.
 "
+        # For backward compatibility reasons we don't use the new deferred queries
+        # by default. Using deferred queries, an Asset/Shot setup could be:
+        # - caption: Assets (deferred)
+        #    entity_type: Asset
+        #    hierarchy: [sg_asset_type, code]
+        #    sub_hierarchy:
+        #        entity_type: Task
+        #        filters:
+        #        link_field: entity
+        #        hierarchy: [step]
+        # - caption: Shots (deferred)
+        #    entity_type: Shot
+        #    hierarchy: [sg_sequence, code]
+        #    sub_hierarchy:
+        #        entity_type: Task
+        #        filters:
+        #        link_field: entity
+        #        hierarchy: [step]
+
         allows_empty: True
         values:
           type: dict
         default_value:
         - caption: Assets
-          entity_type: Asset
+          entity_type: Task
+          step_filter_on: Asset
           filters:
-          hierarchy: [sg_asset_type, code]
-          sub_hierarchy:
-            entity_type: Task
-            filters:
-            link_field: entity
-            hierarchy: [step]
+          - [entity, type_is, Asset]
+          hierarchy: [entity.Asset.sg_asset_type, entity, step, content]
         - caption: Shots
-          entity_type: Shot
+          entity_type: Task
+          step_filter_on: Shot
           filters:
-          hierarchy: [sg_sequence, code]
-          sub_hierarchy:
-            entity_type: Task
-            filters:
-            link_field: entity
-            hierarchy: [step]
+          - [entity, type_is, Shot]
+          hierarchy: [entity.Shot.sg_sequence, entity, step, content]
         default_value_tk-hiero:
         - caption: Projects
           entity_type: Project
@@ -227,6 +240,7 @@ supported_engines:
 
 # the frameworks required to run this app
 frameworks:
-    - {"name": "tk-framework-shotgunutils", "version": "v5.x.x"}
+    # We need a version of tk-framework-shotgunutils with a fix for deleting items.
+    - {"name": "tk-framework-shotgunutils", "version": "v5.x.x", "minimum_version": "v5.3.5"}
     - {"name": "tk-framework-qtwidgets", "version": "v2.x.x"}    
     
