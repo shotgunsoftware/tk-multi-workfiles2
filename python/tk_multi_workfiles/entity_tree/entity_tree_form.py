@@ -237,8 +237,10 @@ class EntityTreeForm(QtGui.QWidget):
 
     def select_entity(self, entity_type, entity_id):
         """
-        Select the specified entity in the tree.  If the tree is still being populated then the selection
-        will happen when an item representing the entity appears in the model.
+        Select the specified entity in the tree.
+
+        If the tree is still being populated then the selection will happen when
+        an item representing the entity appears in the model.
 
         Note that this doesn't emit an entity_selected signal.
 
@@ -248,7 +250,6 @@ class EntityTreeForm(QtGui.QWidget):
         # track the selected entity - this allows the entity to be selected when
         # it appears in the model even if the model hasn't been fully populated yet:
         self._entity_to_select = {"type": entity_type, "id": entity_id}
-
         # reset the current selection without emitting a signal:
         prev_selected_item = self._reset_selection()
         self._current_item_ref = None
@@ -484,7 +485,7 @@ class EntityTreeForm(QtGui.QWidget):
             self._update_selection(prev_selected_item)
         self._fix_expanded_rows()
 
-    def _update_selection(self, prev_selected_item, force_refresh=False):
+    def _update_selection(self, prev_selected_item, data_changed=False):
         """
         Update the selection to either the to-be-selected entity if set or the current item if known.  The
         current item is the item that was last selected but which may no longer be visible in the view due
@@ -525,15 +526,18 @@ class EntityTreeForm(QtGui.QWidget):
 
         finally:
             self.blockSignals(signals_blocked)
-
-            # if the selection is different to the previously selected item then we
-            # will emit an entity_selected signal:
+            # Emitting the entity_selected signal has two effects:
+            # - it tells other tabs that they should check their current selection.
+            # - it tells the file finder for the current tab to refresh itself.
+            # So we only emit the signal in two cases:
+            # - The selection has changed.
+            # - The selection didn't change, but the data did and there is something
+            #   selected.
             selected_item = self._get_selected_item()
-            if force_refresh or id(selected_item) != id(prev_selected_item):
-                # get the selected entity details:
+            if (data_changed and selected_item) or id(selected_item) != id(prev_selected_item):
+                # Get the selected entity details:
                 selection_details, breadcrumbs = self.get_selection()
-
-                # emit a selection changed signal:
+                # Emit a selection changed signal:
                 self.entity_selected.emit(selection_details, breadcrumbs)
 
     def _update_ui(self):
