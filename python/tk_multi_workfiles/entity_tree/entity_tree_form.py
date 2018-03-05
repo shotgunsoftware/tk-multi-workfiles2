@@ -19,7 +19,7 @@ from sgtk.platform.qt import QtCore, QtGui
 
 from ..ui.entity_tree_form import Ui_EntityTreeForm
 from .entity_tree_proxy_model import EntityTreeProxyModel
-from ..framework_qtwidgets import Breadcrumb
+from ..framework_qtwidgets import Breadcrumb, overlay_widget
 from ..util import get_model_str, map_to_source, get_source_model, monitor_qobject_lifetime
 from ..util import get_sg_entity_name_field
 
@@ -85,6 +85,11 @@ class EntityTreeForm(QtGui.QWidget):
         # reset to re-expand the tree from the SG entities.
         self._expanded_item_values = []
         self._selected_item_value = []
+
+        # An overlay widget we can hide and show when the model is being refreshed.
+        # This is mainly used as a workaround for 3ds 2016 refresh problems: by
+        # hiding the widget when the data is refreshed, the UI is properly refreshed.
+        self._refresh_overlay_widget = overlay_widget.ShotgunSpinningWidget(self)
 
         # load the setting that states whether the first level of the tree should be auto expanded
         app = sgtk.platform.current_bundle()
@@ -167,6 +172,9 @@ class EntityTreeForm(QtGui.QWidget):
         """
         Slot called when the underlying model is about to be reset.
         """
+        # Show that something heavy is going on by showing the spinning overlay
+        # widget.
+        self._refresh_overlay_widget.start_spin()
         entity_model = get_source_model(self._ui.entity_tree.model())
         # _entity_to_select is used to define a pre-selection before the model is
         # fully build. Reset it if the model is reset, and capture a path to the
@@ -619,6 +627,9 @@ class EntityTreeForm(QtGui.QWidget):
         # try to select the current entity from the new items in the model:
         prev_selected_item = self._reset_selection()
         self._update_selection(prev_selected_item, True)
+        # Hide the overlay widget, if it was visible
+        if not self._refresh_overlay_widget.isHidden():
+            self._refresh_overlay_widget.hide()
 
     def _expand_root_rows(self):
         """
