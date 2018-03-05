@@ -124,6 +124,7 @@ class StepListWidget(QtCore.QObject):
             # Only toggle widgets currently active
             if not self._list_widget.isRowHidden(item_row):
                 item = self._list_widget.item(item_row)
+                # Retrieve the Step dictionary which was stored in user data.
                 item_step = item.data(QtCore.Qt.UserRole)
                 if value:
                     self._current_filter_step_ids.add(item_step["id"])
@@ -225,22 +226,22 @@ class StepListWidget(QtCore.QObject):
             # un-wanted signals.
             if step["id"] in self._current_filter_step_ids:
                 widget.setChecked(True)
-            widget.toggled.connect(lambda value, step_id=step["id"] : self._on_step_filter_toggled(step_id, value))
+            widget.toggled.connect(lambda value, step_id=step["id"] : self._on_step_filter_toggled(step_id, checked=value))
             item = QtGui.QListWidgetItem("", self._list_widget)
             item.setData(QtCore.Qt.UserRole, step)
             self._list_widget.setItemWidget(item, widget)
             self._step_widgets[entity_type].append(widget)
         return self._step_widgets[entity_type]
 
-    def _on_step_filter_toggled(self, step_id, value=None):
+    def _on_step_filter_toggled(self, step_id, checked=None):
         """
         Triggered when one of the Step item is toggled on/off.
 
         :param int step_id: The Step id which was changed.
-        :param bool value: Whether the Step is on or off.
+        :param bool checked: Whether the Step is on or off.
         """
         self._step_filters_changed = True
-        if value:
+        if checked:
             self._current_filter_step_ids.add(step_id)
         else:
             self._current_filter_step_ids.discard(step_id)
