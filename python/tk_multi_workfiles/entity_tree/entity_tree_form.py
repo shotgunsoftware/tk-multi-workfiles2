@@ -87,6 +87,8 @@ class EntityTreeForm(QtGui.QWidget):
         self._selected_item_value = []
 
         # An overlay widget we can hide and show when the model is being refreshed.
+        # This is mainly used as a workaround for 3ds 2016 refresh problems: by
+        # hiding the widget when the data is refreshed, the UI is properly refreshed.
         self._refresh_overlay_widget = overlay_widget.ShotgunSpinningWidget(self)
 
         # load the setting that states whether the first level of the tree should be auto expanded
