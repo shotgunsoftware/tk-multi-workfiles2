@@ -527,6 +527,12 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         # sets, then things changed.
         if existing_uids ^ refreshed_uids:
             self._post_delayed_data_refreshed()
+        elif len(refreshed_uids) == 1 and self._dummy_placeholder_item_uid(parent_item) in refreshed_uids:
+            # Special case if we just have the dummy placeholder: the same item
+            # is kept but its value changed, e.g. "Retrieving..." to "No xx found"
+            # this value is used by the file browser tab so we need to notify it
+            # to update itself.
+            self._post_delayed_data_refreshed()
 
     def _post_delayed_data_refreshed(self):
         """
