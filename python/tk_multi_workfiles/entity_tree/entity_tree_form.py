@@ -86,10 +86,6 @@ class EntityTreeForm(QtGui.QWidget):
         self._expanded_item_values = []
         self._selected_item_value = []
 
-        # An overlay widget we can hide and show when the model is being refreshed.
-        # This is mainly used as a workaround for 3ds 2016 refresh problems: by
-        # hiding the widget when the data is refreshed, the UI is properly refreshed.
-        self._refresh_overlay_widget = overlay_widget.ShotgunSpinningWidget(self)
 
         # load the setting that states whether the first level of the tree should be auto expanded
         app = sgtk.platform.current_bundle()
@@ -99,6 +95,10 @@ class EntityTreeForm(QtGui.QWidget):
         self._ui = Ui_EntityTreeForm()
         self._ui.setupUi(self)
 
+        # An overlay widget we can hide and show when the model is being refreshed.
+        # This is mainly used as a workaround for 3ds 2016 refresh problems: by
+        # hiding the widget when the data is refreshed, the UI is properly refreshed.
+        self._refresh_overlay_widget = overlay_widget.ShotgunOverlayWidget(self._ui.entity_tree)
         self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
         self._ui.search_ctrl.setToolTip("Press enter to complete the search")
 
@@ -627,9 +627,8 @@ class EntityTreeForm(QtGui.QWidget):
         # try to select the current entity from the new items in the model:
         prev_selected_item = self._reset_selection()
         self._update_selection(prev_selected_item, True)
-        # Hide the overlay widget, if it was visible
-        if not self._refresh_overlay_widget.isHidden():
-            self._refresh_overlay_widget.hide()
+        # Hide the overlay widget
+        self._refresh_overlay_widget.hide()
 
     def _expand_root_rows(self):
         """

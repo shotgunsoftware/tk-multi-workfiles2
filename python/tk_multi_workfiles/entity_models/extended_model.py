@@ -130,6 +130,10 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
             self._hierarchy,
             self._fields
         )
+        # If we loaded something from the cache notify viewers that new data is
+        # already available.
+        if self.invisibleRootItem().rowCount():
+            self.data_refreshed.emit(True)
         self.async_refresh()
 
     def _finalize_item(self, item):
