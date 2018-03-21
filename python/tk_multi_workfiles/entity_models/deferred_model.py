@@ -366,8 +366,6 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
     def _run_deferred_query_for_entity(self, sg_entity):
         """
         Run the deferred Shotgun query for the given entity.
-
-        :returns: A list of Shotgun results, as returned by a Shotgun `find` call.
         """
         deferred_query = self._deferred_query
         # Retrieve the deferred query filters and amend them to return results
@@ -655,7 +653,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             # If not dealing with a leaf, let the base implementation deal with
             # the index.
             return super(ShotgunDeferredEntityModel, self).fetchMore(index)
-        sub_entities = self._run_deferred_query_for_entity(sg_data)
+        self._run_deferred_query_for_entity(sg_data)
 
     def item_from_entity(self, entity_type, entity_id):
         """
@@ -687,6 +685,36 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         return self._get_item_by_unique_id(
             self._deferred_entity_uid({ "type": entity_type, "id" : entity_id})
         )
+
+    def item_from_field_value_path(self, field_value_list):
+        """
+        Retrieve an item from a list of field values identifying its path.
+
+        This allows to retrieve an item in an updated model from a list of
+        collected field values representing its path.
+
+        Full or partial matches are performed: if the item represented by the
+        given value list is not present in the model anymore, the last item
+        matched from the value list is returned.
+
+        :param field_value_list: A list of field values for the path from the
+                                 root to the item.
+        """
+        if not self.rowCount():
+            return None
+        parent = self.invisibleRootItem()
+        for field_value in field_value_list:
+            for row_i in range(parent.rowCount()):
+                item = parent.child(row_i)
+                # We never fetch more data for leaves in the primary model
+                # otherwise this trigger deferred queries.
+                if not item.get_sg_data() and self.canFetchMore(item.index()):
+                    self.fetchMore(item.index())
+                value = item.data(self.SG_ASSOCIATED_FIELD_ROLE)
+                if value == field_value:
+                    parent = item
+                    break
+        return parent
 
     def _get_key_for_field_data(self, field, sg_data):
         """
