@@ -71,6 +71,10 @@ class NewFileAction(Action):
                                 "there is a mismatch between your folder schema and templates.  Please email "
                                 "support@shotgunsoftware.com if you need help fixing this.")
 
+            if not self._environment.context == self._app.context:
+                # Change context
+                FileAction.change_context(self._environment.context)
+
             # reset the current scene:
             if not reset_current_scene(self._app, NEW_FILE_ACTION, self._environment.context):
                 self._app.log_debug("Unable to perform New Scene operation after failing to reset scene!")
@@ -78,10 +82,6 @@ class NewFileAction(Action):
 
             # prepare the new scene:
             prepare_new_scene(self._app, NEW_FILE_ACTION, self._environment.context)
-
-            if not self._environment.context == self._app.context:
-                # Change context
-                FileAction.change_context(self._environment.context)
 
         except Exception, e:
             error_title = "Failed to complete '%s' action" % self.label
