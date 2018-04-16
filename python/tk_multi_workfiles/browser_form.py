@@ -225,7 +225,7 @@ class BrowserForm(QtGui.QWidget):
             if "All" in preferred_tabs:
                 self._add_file_list_form("All", "All Files", show_work_files=True, show_publishes=True)
             if "Working" in preferred_tabs:
-                self._add_file_list_form("Workingxxx", "Work Files", show_work_files=True, show_publishes=False)
+                self._add_file_list_form("Working", "Work Files", show_work_files=True, show_publishes=False)
             if "Publishes" in preferred_tabs:
                 self._add_file_list_form("Publishes", "Publishes", show_work_files=False, show_publishes=True)
 
