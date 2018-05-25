@@ -39,12 +39,11 @@ class MyTasksForm(EntityTreeForm):
 
         # Sets an item delete to show a list of tiles for tasks instead of nodes in a tree.
         self._item_delegate = None
-        if True:
-            # create the item delegate - make sure we keep a reference to the delegate otherwise
-            # things may crash later on!
-            self._item_delegate = MyTaskItemDelegate(tasks_model.extra_display_fields, self._ui.entity_tree)
-            monitor_qobject_lifetime(self._item_delegate)
-            self._ui.entity_tree.setItemDelegate(self._item_delegate)
+        # create the item delegate - make sure we keep a reference to the delegate otherwise
+        # things may crash later on!
+        self._item_delegate = MyTaskItemDelegate(tasks_model.extra_display_fields, self._ui.entity_tree)
+        monitor_qobject_lifetime(self._item_delegate)
+        self._ui.entity_tree.setItemDelegate(self._item_delegate)
 
     def shut_down(self):
         """

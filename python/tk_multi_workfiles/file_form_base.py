@@ -13,6 +13,8 @@ Base class for the file-open & file-save forms.  Contains common code for settin
 models etc. and common signals/operations (e.g creating a task)
 """
 import sys
+import re
+
 from itertools import chain
 
 import sgtk
@@ -26,6 +28,7 @@ ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 
 shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
 
+from .entity_models import ShotgunExtendedEntityModel, ShotgunDeferredEntityModel
 from .file_model import FileModel
 from .my_tasks.my_tasks_model import MyTasksModel
 from .scene_operation import get_current_path, SAVE_FILE_AS_ACTION
@@ -33,7 +36,8 @@ from .file_item import FileItem
 from .work_area import WorkArea
 from .actions.new_task_action import NewTaskAction
 from .user_cache import g_user_cache
-from .util import monitor_qobject_lifetime, resolve_filters
+from .util import monitor_qobject_lifetime, resolve_filters, get_sg_entity_name_field
+from .step_list_filter import get_saved_step_filter
 
 
 class FileFormBase(QtGui.QWidget):
@@ -90,7 +94,7 @@ class FileFormBase(QtGui.QWidget):
             self._file_model.destroy()
         if self._my_tasks_model:
             self._my_tasks_model.destroy()
-        for _, model in self._entity_models:
+        for _, _, model in self._entity_models:
             model.destroy()
         self._entity_models = []
 
@@ -146,12 +150,44 @@ class FileFormBase(QtGui.QWidget):
 
         entity_models = []
 
+        # Retrieve the step filter which was saved to apply it to Tasks
+        step_filter = get_saved_step_filter()
+
         # set up any defined task trees:
         entities = app.get_setting("entities", [])
         for ent in entities:
             caption = ent.get("caption", None)
             entity_type = ent.get("entity_type")
-            filters = ent.get("filters", [])
+            filters = ent.get("filters") or []
+            hierarchy = ent.get("hierarchy", [])
+            step_filter_on = ent.get("step_filter_on")
+            sub_query = ent.get("sub_hierarchy", [])
+            deferred_query = None
+            if sub_query:
+                step_filter_on = entity_type # Ensure this is not wrongly set
+                # The target entity type for the sub query.
+                sub_entity_type = sub_query.get("entity_type", "Task")
+                # Optional filters for the sub query.
+                sub_filters = resolve_filters(sub_query.get("filters") or [])
+                # A list of fields to retrieve in the sub query.
+                sub_hierarchy = sub_query.get("hierarchy") or []
+                # The SG field allowing linking the sub query Entity to its
+                # parent Entity.
+                sub_link_field = sub_query.get("link_field", "entity")
+                deferred_query = {
+                    "entity_type": sub_entity_type,
+                    "filters": sub_filters,
+                    "hierarchy": sub_hierarchy,
+                    "link_field": sub_link_field,
+                }
+            # Check the hierarchy to use for the model for this entity:
+            if not hierarchy:
+                app = sgtk.platform.current_bundle()
+                app.log_error(
+                    "No hierarchy found for entity type '%s' - at least one level of "
+                    "hierarchy must be specified in the app configuration.  Skipping!" % entity_type
+                )
+                continue
 
             # resolve any magic tokens in the filter
             # Note, we always filter on the current project as the app needs templates
@@ -174,24 +210,37 @@ class FileFormBase(QtGui.QWidget):
 
             resolved_filters.extend(resolve_filters(filters))
 
-            # Get the hierarchy to use for the model for this entity:
-            hierarchy = ent.get("hierarchy")
-            if not hierarchy:
-                app.log_error("No hierarchy found for entity type '%s' - at least one level of "
-                              "hierarchy must be specified in the app configuration.  Skipping!" % entity_type)
-                continue
-
-            # create an entity model for this query:
+            # Create an entity model for this query:
             fields = []
             if entity_type == "Task":
                 # Add so we can filter tasks assigned to the user only on the client side.
                 fields += ["step", "task_assignees"]
 
-            model = ShotgunEntityModel(entity_type, resolved_filters, hierarchy, fields, parent=self,
-                                       bg_task_manager=self._bg_task_manager)
+            if deferred_query:
+                model = ShotgunDeferredEntityModel(
+                    entity_type,
+                    resolved_filters,
+                    hierarchy,
+                    fields,
+                    deferred_query=deferred_query,
+                    parent=self,
+                    bg_task_manager=self._bg_task_manager
+                )
+            else:
+                model = ShotgunExtendedEntityModel(
+                    entity_type,
+                    resolved_filters,
+                    hierarchy,
+                    fields,
+                    parent=self,
+                    bg_task_manager=self._bg_task_manager
+                )
             monitor_qobject_lifetime(model, "Entity Model")
-            entity_models.append((caption, model))
-            model.async_refresh()
+            entity_models.append((caption, step_filter_on, model))
+            if model.supports_step_filtering:
+                model.load_and_refresh(step_filter)
+            else:
+                model.async_refresh()
 
         return entity_models
 
@@ -236,7 +285,7 @@ class FileFormBase(QtGui.QWidget):
         """
         if self._my_tasks_model:
             self._my_tasks_model.async_refresh()
-        for _, entity_model in self._entity_models:
+        for _, _, entity_model in self._entity_models:
             entity_model.async_refresh()
         if self._file_model:
             self._file_model.async_refresh()
@@ -312,3 +361,18 @@ class FileFormBase(QtGui.QWidget):
                              publish_details = fields if is_publish else None)
 
         return file_item
+
+    def _apply_step_filtering(self, step_filter):
+        """
+        Apply the given step filters to all Entity models.
+
+        :param step_filter: A Shotgun Step filter, directly usable in
+                            a Shotgun query.
+        """
+        # Please note that this could be optimized: we're applying step filters
+        # to all models, even if, for example, the changes in the filters are only
+        # for Shot Steps, so models containing only Asset Tasks do not need to be
+        # refreshed.
+        for _, _, model in self._entity_models:
+            if model.supports_step_filtering:
+                model.update_filters(step_filter)

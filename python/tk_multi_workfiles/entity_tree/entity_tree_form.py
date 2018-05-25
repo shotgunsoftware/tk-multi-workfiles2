@@ -16,18 +16,17 @@ import weakref
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
+
 from ..ui.entity_tree_form import Ui_EntityTreeForm
 from .entity_tree_proxy_model import EntityTreeProxyModel
-from ..framework_qtwidgets import Breadcrumb
+from ..framework_qtwidgets import Breadcrumb, overlay_widget
 from ..util import get_model_str, map_to_source, get_source_model, monitor_qobject_lifetime
-
-shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
-ShotgunEntityModel = shotgun_model.ShotgunEntityModel
+from ..util import get_sg_entity_name_field
 
 
 class EntityTreeForm(QtGui.QWidget):
     """
-    Entity tree widget class
+    A tree view for a list of Entities, with a search field.
     """
 
     class _EntityBreadcrumb(Breadcrumb):
@@ -51,32 +50,42 @@ class EntityTreeForm(QtGui.QWidget):
     # Signal emitted when the 'New Task' button is clicked.
     create_new_task = QtCore.Signal(object, object)# entity, step
 
-    def __init__(self, entity_model, search_label, allow_task_creation, extra_fields, parent):
+    def __init__(self, entity_model, search_label, allow_task_creation, extra_fields, parent, step_entity_filter=None):
         """
-        Construction
+        Instantiate a new `EntityTreeForm`.
+
+        Step filtering can be enable with the `step_entity_filter` parameter. If
+        it is `None`, step filtering is disabled, if it is `Task` all existing
+        steps will be offered as filters, if another Entity type (e.g. 'Shot') is
+        given, only Steps linked to this Entity type will be offered as filters.
 
         :param entity_model:        The Shotgun Model this widget should connect to
         :param search_label:        The hint label to be displayed on the search control
         :param allow_task_creation: Indicates if the form is allowed by the app settings to show the
-                                    create task button.
+                                    create Task button.
         :param extra_fields:        Extra fields to use when comparing model entries.
         :param parent:              The parent QWidget for this control
+        :param step_entity_filter:  An Entity type as a string or None defining
+                                    the primary Entity to use when offering Step
+                                    filtering.
         """
         QtGui.QWidget.__init__(self, parent)
 
         # control if step->tasks in the entity hierarchy should be collapsed when building
         # the search details.
         self._collapse_steps_with_tasks = True
+
+        self._step_entity_filter = step_entity_filter
         # keep track of the entity to select when the model is updated:
         self._entity_to_select = None
         # keep track of the currently selected item:
         self._current_item_ref = None
 
-        # keep track of expanded items as items in the tree are expanded/collapsed.  We
-        # also want to auto-expand root items the first time they appear so track them
-        # as well
-        self._expanded_items = set()
-        self._auto_expanded_root_items = set()
+        # Loose reference to expanded/selected entities used when the model is
+        # reset to re-expand the tree from the SG entities.
+        self._expanded_item_values = []
+        self._selected_item_value = []
+
 
         # load the setting that states whether the first level of the tree should be auto expanded
         app = sgtk.platform.current_bundle()
@@ -86,16 +95,20 @@ class EntityTreeForm(QtGui.QWidget):
         self._ui = Ui_EntityTreeForm()
         self._ui.setupUi(self)
 
+        # An overlay widget we can hide and show when the model is being refreshed.
+        # This is mainly used as a workaround for 3ds 2016 refresh problems: by
+        # hiding the widget when the data is refreshed, the UI is properly refreshed.
+        self._refresh_overlay_widget = overlay_widget.ShotgunOverlayWidget(self._ui.entity_tree)
         self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
         self._ui.search_ctrl.setToolTip("Press enter to complete the search")
 
         # enable/hide the my-tasks-only button if we are showing tasks:
-        have_tasks = (entity_model and entity_model.get_entity_type() == "Task")
-        if not have_tasks:
+        represents_tasks = entity_model.represents_tasks
+        if not represents_tasks:
             self._ui.my_tasks_cb.hide()
 
         # enable/hide the new task button if we have tasks and task creation is allowed:
-        if have_tasks and allow_task_creation:
+        if represents_tasks and allow_task_creation:
             # enable and connect the new task button
             self._ui.new_task_btn.clicked.connect(self._on_new_task)
             self._ui.new_task_btn.setEnabled(False)
@@ -106,8 +119,6 @@ class EntityTreeForm(QtGui.QWidget):
         self._ui.entity_tree.collapsed.connect(self._on_item_collapsed)
 
         self._is_resetting_model = False
-        entity_model.modelAboutToBeReset.connect(self._model_about_to_reset)
-        entity_model.modelReset.connect(self._model_reset)
 
         if entity_model:
             # Every time the model is refreshed with data from Shotgun, we'll need to re-expand nodes
@@ -115,8 +126,18 @@ class EntityTreeForm(QtGui.QWidget):
             entity_model.data_refreshed.connect(self._on_data_refreshed)
 
             if True:
-                # create a filter proxy model between the source model and the task tree view:
-                filter_model = EntityTreeProxyModel(self, ["content", {"entity": "name"}] + extra_fields)
+                # Create a filter proxy model between the source model and the task tree view:
+                # For Tasks we allow matching by the Task name and the name of the
+                # Entity it is linked to. For the other Entities, we match with
+                # the model item name and the Shotgun Entity field name, although
+                # in most (if not all) cases the item name will match without the
+                # need to check the Entity field.
+                filter_model = EntityTreeProxyModel(
+                    self, [
+                        get_sg_entity_name_field(entity_model.get_entity_type()),
+                        {"entity": "name"}
+                    ] + extra_fields
+                )
                 monitor_qobject_lifetime(filter_model, "%s entity filter model" % search_label)
                 filter_model.setSourceModel(entity_model)
                 self._ui.entity_tree.setModel(filter_model)
@@ -124,7 +145,11 @@ class EntityTreeForm(QtGui.QWidget):
                 # connect up the filter controls:
                 self._ui.search_ctrl.search_changed.connect(self._on_search_changed)
                 self._ui.my_tasks_cb.toggled.connect(self._on_my_tasks_only_toggled)
+                filter_model.modelAboutToBeReset.connect(self._model_about_to_reset)
+                filter_model.modelReset.connect(self._model_reset)
             else:
+                entity_model.modelAboutToBeReset.connect(self._model_about_to_reset)
+                entity_model.modelReset.connect(self._model_reset)
                 self._ui.entity_tree.setModel(entity_model)
 
         self._expand_root_rows()
@@ -134,19 +159,54 @@ class EntityTreeForm(QtGui.QWidget):
         if selection_model:
             selection_model.selectionChanged.connect(self._on_selection_changed)
 
+    @property
+    def step_entity_filter(self):
+        """
+        :returns: The primary Entity type to use for Step filtering or None.
+        """
+        if not self.entity_model.supports_step_filtering:
+            return None
+        return self._step_entity_filter
+
     def _model_about_to_reset(self):
-        # Catch the currently selected item and convert it to dictionary form
-        # so we can pick it back after the model is reset.
+        """
+        Slot called when the underlying model is about to be reset.
+        """
+        # Show that something heavy is going on by showing the spinning overlay
+        # widget.
+        self._refresh_overlay_widget.start_spin()
+        entity_model = get_source_model(self._ui.entity_tree.model())
+        # _entity_to_select is used to define a pre-selection before the model is
+        # fully build. Reset it if the model is reset, and capture a path to the
+        # selected item which will allow us to retrieve it in the updated model.
+        self._entity_to_select = None
         if self._current_item_ref:
             item = self._current_item_ref()
             if item:
-                idx = item.index()
-                self._entity_to_select = idx.model().get_entity(item)
-
+                # We only set `_selected_item_value` if there is a valid selection
+                # this allows us to preserve a selection across filtering changes
+                # if the expected item is not available with the current filter.
+                self._selected_item_value = entity_model.get_item_field_value_path(item)
         self._is_resetting_model = True
 
     def _model_reset(self):
+        """
+        Called when the model was reset.
+        """
+        # Please note that this is called on shutdown, and in that case the
+        # model is None.
         self._is_resetting_model = False
+        if isinstance(self._ui.entity_tree.model(), QtGui.QAbstractProxyModel):
+            # Reset the search filter: brute force solution to not have to deal with
+            # current selection.
+            self._ui.search_ctrl._set_search_text("")
+            self._ui.entity_tree.model().setFilterRegExp("")
+            # Toggle off the show "My Tasks" checkbox, trying to get it to behave
+            # seems complicated.
+            self._ui.my_tasks_cb.setChecked(False)
+            self._ui.entity_tree.model().only_show_my_tasks = False
+            # Tell connected objects that the current selection is gone.
+            self.entity_selected.emit(None, [])
 
     def shut_down(self):
         """
@@ -156,8 +216,7 @@ class EntityTreeForm(QtGui.QWidget):
         try:
             # clear any references:
             self._entity_to_select = None
-            self._expanded_items = set()
-            self._auto_expanded_root_items = set()
+            self._expanded_item_values = []
 
             # clear the selection:
             if self._ui.entity_tree.selectionModel():
@@ -172,10 +231,24 @@ class EntityTreeForm(QtGui.QWidget):
         finally:
             self.blockSignals(signals_blocked)
 
+    def ensure_data_for_context(self, context):
+        """
+        Ensure the data for the given context is loaded in the model this view
+        is attached to.
+
+        This is typically used to load data for the current Toolkit context and
+        select a matching item in the tree.
+
+        :param context: A Toolkit context.
+        """
+        self.entity_model.ensure_data_for_context(context)
+
     def select_entity(self, entity_type, entity_id):
         """
-        Select the specified entity in the tree.  If the tree is still being populated then the selection
-        will happen when an item representing the entity appears in the model.
+        Select the specified entity in the tree.
+
+        If the tree is still being populated then the selection will happen when
+        an item representing the entity appears in the model.
 
         Note that this doesn't emit an entity_selected signal.
 
@@ -184,8 +257,7 @@ class EntityTreeForm(QtGui.QWidget):
         """
         # track the selected entity - this allows the entity to be selected when
         # it appears in the model even if the model hasn't been fully populated yet:
-        self._entity_to_select = {"type":entity_type, "id":entity_id}
-
+        self._entity_to_select = {"type": entity_type, "id": entity_id}
         # reset the current selection without emitting a signal:
         prev_selected_item = self._reset_selection()
         self._current_item_ref = None
@@ -295,6 +367,13 @@ class EntityTreeForm(QtGui.QWidget):
         if isinstance(tree_model, QtGui.QAbstractProxyModel):
             idx_to_select = tree_model.mapFromSource(current_item.index())
         self._ui.entity_tree.selectionModel().setCurrentIndex(idx_to_select, QtGui.QItemSelectionModel.SelectCurrent)
+
+    @property
+    def entity_model(self):
+        """
+        :returns: The :class:`ShotgunEntityModel` this widget is attached to.
+        """
+        return get_source_model(self._ui.entity_tree.model())
 
     # ------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------
@@ -438,7 +517,7 @@ class EntityTreeForm(QtGui.QWidget):
             self._update_selection(prev_selected_item)
         self._fix_expanded_rows()
 
-    def _update_selection(self, prev_selected_item):
+    def _update_selection(self, prev_selected_item, data_changed=False):
         """
         Update the selection to either the to-be-selected entity if set or the current item if known.  The
         current item is the item that was last selected but which may no longer be visible in the view due
@@ -456,9 +535,10 @@ class EntityTreeForm(QtGui.QWidget):
             # try to get the item to select:
             item = None
             if self._entity_to_select:
-                # we know about an entity we should try to select:
-                if entity_model.get_entity_type() == self._entity_to_select["type"]:
-                    item = entity_model.item_from_entity(self._entity_to_select["type"], self._entity_to_select["id"])
+                item = entity_model.item_from_entity(
+                    self._entity_to_select["type"],
+                    self._entity_to_select["id"]
+                )
             elif self._current_item_ref:
                 # no item to select but we do know about a current item:
                 item = self._current_item_ref()
@@ -478,15 +558,18 @@ class EntityTreeForm(QtGui.QWidget):
 
         finally:
             self.blockSignals(signals_blocked)
-
-            # if the selection is different to the previously selected item then we
-            # will emit an entity_selected signal:
+            # Emitting the entity_selected signal has two effects:
+            # - it tells other tabs that they should check their current selection.
+            # - it tells the file finder for the current tab to refresh itself.
+            # So we only emit the signal in two cases:
+            # - The selection has changed.
+            # - The selection didn't change, but the data did and there is something
+            #   selected.
             selected_item = self._get_selected_item()
-            if id(selected_item) != id(prev_selected_item):
-                # get the selected entity details:
+            if (data_changed and selected_item) or id(selected_item) != id(prev_selected_item):
+                # Get the selected entity details:
                 selection_details, breadcrumbs = self.get_selection()
-
-                # emit a selection changed signal:
+                # Emit a selection changed signal:
                 self.entity_selected.emit(selection_details, breadcrumbs)
 
     def _update_ui(self):
@@ -548,22 +631,28 @@ class EntityTreeForm(QtGui.QWidget):
 
     def _on_data_refreshed(self, modifications_made):
         """
-        Slot triggered when new rows are inserted into the filter model.  When this happens
-        we just make sure that any new root rows are expanded.
+        Slot triggered when the data in the model has been refreshed.
 
-        :param parent_idx:  The parent model index of the rows that were inserted
-        :param first:       The first row id inserted
-        :param last:        The last row id inserted
+        :param bool modifications_made: Whether or not changes were made.
         """
+        entity_model = get_source_model(self._ui.entity_tree.model())
+        # If something was selected on model reset, restore the selection, if
+        # possible.
+        if self._selected_item_value:
+            item = entity_model.item_from_field_value_path(self._selected_item_value)
+            if item:
+                self._current_item_ref = weakref.ref(item)
         if not modifications_made:
             return
 
         # expand any new root rows:
         self._expand_root_rows()
-
+        self._fix_expanded_rows()
         # try to select the current entity from the new items in the model:
         prev_selected_item = self._reset_selection()
-        self._update_selection(prev_selected_item)
+        self._update_selection(prev_selected_item, True)
+        # Hide the overlay widget
+        self._refresh_overlay_widget.hide()
 
     def _expand_root_rows(self):
         """
@@ -588,15 +677,16 @@ class EntityTreeForm(QtGui.QWidget):
                 if not item:
                     continue
 
-                ref = weakref.ref(item)
-                if ref in self._auto_expanded_root_items:
+                path = item.model().get_item_field_value_path(item)
+                if path in self._expanded_item_values:
                     # we already processed this item
                     continue
 
                 # expand item:
                 self._ui.entity_tree.expand(idx)
-                self._auto_expanded_root_items.add(ref)
-                self._expanded_items.add(ref)
+                self._expanded_item_values.append(
+                    path
+                )
         finally:
             self._ui.entity_tree.blockSignals(signals_blocked)
             # re-enable updates to allow painting to continue
@@ -604,42 +694,34 @@ class EntityTreeForm(QtGui.QWidget):
 
     def _fix_expanded_rows(self):
         """
-        Update all items that have previously been expanded to be expanded.  Filtering resets
-        the expanded state of items so this is used to reset them correctly.
+        Update all items that have previously been expanded to be expanded.
+
+        Filtering resets the expanded state of items so this is used to re-expand
+        them correctly when previously expanded items re-appear in the model.
         """
         view_model = self._ui.entity_tree.model()
         if not view_model:
             return
 
-        # disable widget paint updates whilst we update the expanded state of the tree:
+        # Disable widget paint updates whilst we update the expanded state of the tree:
         self._ui.entity_tree.setUpdatesEnabled(False)
-        # and block signals so that the expanded signal doesn't fire during item expansion!
+        # Block signals so that the expanded signal doesn't fire during item expansion!
         signals_blocked = self._ui.entity_tree.blockSignals(True)
         try:
-            valid_expanded_items = set()
-            for item_ref in self._expanded_items:
-                if not item_ref() or not item_ref().model():
-                    # bad ref!
-                    continue
-                src_idx = item_ref().index()
-                if not src_idx.isValid():
-                    # item doesn't exist in the source model!
-                    continue
-                valid_expanded_items.add(item_ref)
-                # map from the source index to the proxy index if needed:
-                filtered_idx = src_idx
-                if isinstance(view_model, QtGui.QAbstractProxyModel):
-                    filtered_idx = self._ui.entity_tree.model().mapFromSource(src_idx)
-                    if not filtered_idx.isValid():
-                        continue
-                # and if the item isn't expanded then expand it:
-                if not self._ui.entity_tree.isExpanded(filtered_idx):
-                    self._ui.entity_tree.expand(filtered_idx)
-            # update expanded item list with valid item refs:
-            self._expanded_items = valid_expanded_items
+            for item_value in self._expanded_item_values:
+                item = self.entity_model.item_from_field_value_path(item_value)
+                if item:
+                    idx = item.index()
+                    if isinstance(view_model, QtGui.QAbstractProxyModel):
+                        idx = self._ui.entity_tree.model().mapFromSource(idx)
+                        if not idx.isValid():
+                            continue
+                    # If the item isn't expanded then expand it:
+                    if not self._ui.entity_tree.isExpanded(idx):
+                        self._ui.entity_tree.expand(idx)
         finally:
+            # Re-enable what we disabled
             self._ui.entity_tree.blockSignals(signals_blocked)
-            # re-enable updates to allow painting to continue
             self._ui.entity_tree.setUpdatesEnabled(True)
 
     def _item_from_index(self, idx):
@@ -663,7 +745,9 @@ class EntityTreeForm(QtGui.QWidget):
         item = self._item_from_index(idx)
         if not item:
             return
-        self._expanded_items.add(weakref.ref(item))
+        self._expanded_item_values.append(
+            item.model().get_item_field_value_path(item)
+        )
 
     def _on_item_collapsed(self, idx):
         """
@@ -675,7 +759,9 @@ class EntityTreeForm(QtGui.QWidget):
         item = self._item_from_index(idx)
         if not item:
             return
-        self._expanded_items.discard(weakref.ref(item))
+        path = item.model().get_item_field_value_path(item)
+        if path in self._expanded_item_values:
+            self._expanded_item_values.remove(path)
 
     def _on_new_task(self):
         """
@@ -729,7 +815,13 @@ class EntityTreeForm(QtGui.QWidget):
         while src_index.isValid():
             entity = entity_model.get_entity(entity_model.itemFromIndex(src_index))
             if entity:
-                name_token = "content" if entity["type"] == "Task" else "name"
+                name_token = get_sg_entity_name_field(entity["type"])
+                # In some cases the name is not stored in under regular entity field
+                # name, but under the "name" key, e.g. if the Entity was retrieved
+                # from a TK context or using a nested SG query. So check if the
+                # expected key is present, use "name" if not.
+                if name_token not in entity:
+                    name_token = "name"
                 label = "<b>%s</b> %s" % (entity["type"], entity.get(name_token))
                 breadcrumbs.append(EntityTreeForm._EntityBreadcrumb(label, entity))
             else:

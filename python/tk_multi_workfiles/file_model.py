@@ -47,7 +47,7 @@ class FileModel(QtGui.QStandardItemModel):
             self.name = name
             self.entity = None
             self.child_entities = []
-            self.is_leaf = False
+            self.is_leaf = False # TODO: this does not seem to be used anywhere?
 
         def __repr__(self):
             """
