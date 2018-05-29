@@ -57,6 +57,13 @@ class EntityTreeProxyModel(EntityProxyModel):
             if not src_idx.isValid():
                 return False
 
+            # The only way we can traverse down to the Task level of the
+            # entity hierarchy and determine whether a Task is assigned to
+            # the current user is to load the child data up front for each
+            # index in the model. The downside to this is that it might be
+            # slow on some high-volume projects, but the upside is that the
+            # "My Tasks" checkbox in the entity tree view actually works.
+            src_idx.model().ensure_data_is_loaded(src_idx)
             item = src_idx.model().itemFromIndex(src_idx)
             sg_entity = src_idx.model().get_entity(item)
 
