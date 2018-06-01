@@ -18,6 +18,7 @@ from sgtk.platform.qt import QtGui
 from .file_action import FileAction
 from .action import Action
 from ..scene_operation import prepare_new_scene, reset_current_scene, NEW_FILE_ACTION
+from ..user_cache import g_user_cache
 
 
 class NewFileAction(Action):
@@ -43,7 +44,12 @@ class NewFileAction(Action):
         :param environment: A WorkArea instance of where the new file will go.
         """
         Action.__init__(self, "New File")
-        self._environment = environment
+
+        # Ensure that we are creating the new file for the current user only
+        if environment.context.user != g_user_cache.current_user:
+            self._environment = environment.create_copy_for_user(g_user_cache.current_user)
+        else:
+            self._environment = environment
 
     def execute(self, parent_ui):
         """
