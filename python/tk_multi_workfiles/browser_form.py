@@ -529,7 +529,7 @@ class BrowserForm(QtGui.QWidget):
             # Turn the filtering button on if it uses sandboxes.
             if form.work_files_visible and work_area.work_area_contains_user_sandboxes:
                 form.enable_user_filtering_widget(True)
-            elif form.publishes_visible and work_area.publish_area_contains_user_sandboxes:
+            elif form.publishes_visible:
                 form.enable_user_filtering_widget(True)
 
     def _on_file_selected(self, file, env, selection_mode):
