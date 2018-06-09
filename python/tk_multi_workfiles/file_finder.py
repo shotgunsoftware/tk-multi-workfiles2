@@ -413,11 +413,6 @@ class FileFinder(QtCore.QObject):
             if not sg_publish:
                 continue
 
-            # Skip publishes not created by this user
-            created_by_user = sg_publish.get("created_by", {})
-            if context.user.get("id") != created_by_user.get("id"):
-                continue
-
             # A PublishedFile entity can be created with sgtk.util.register_publish, which will
             # always set a valid path. However, it is possible to create them manually in the web
             # UI or with the Shotgun API, in which cases local_path might not be set and ["path"]
@@ -748,8 +743,13 @@ class AsyncFileFinder(FileFinder):
         for user in search.users:
             user_id = user["id"] if user else None
             user_work_area = search.user_work_areas[user_id]
+            users_publishes = []
 
-            users_publishes = copy.deepcopy(sg_publishes)
+            # Only process publishes created by this user
+            for sg_publish in sg_publishes:
+                created_by_user = sg_publish.get("created_by", {})
+                if user_id == created_by_user.get("id"):
+                    users_publishes.append(copy.deepcopy(sg_publish))
 
             # filter publishes:
             filter_publishes_task = self._bg_task_manager.add_task(self._task_filter_publishes,
@@ -945,10 +945,6 @@ class AsyncFileFinder(FileFinder):
             publish_filters.append(["task", "is", work_area.context.task])
         elif work_area.context.step:
             publish_filters.append(["task.Task.step", "is", work_area.context.step])
-
-        # Just get the list of publishes for the current set of users
-        publish_filters.append(["created_by", "in", search.users])
-
         fields = ["id", "description", "version_number", "image", "created_at", "created_by", "name", "path", "task"]
 
         # load the data into the publish model:
