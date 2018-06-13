@@ -108,7 +108,7 @@ class EntityTreeForm(QtGui.QWidget):
         # have the data queried up front that's needed to properly filter the
         # tree down to "my tasks", so the checkbox won't function properly.
         represents_tasks = entity_model.represents_tasks
-        if not represents_tasks or isinstance(entity_model, ShotgunDeferredEntityModel):
+        if not represents_tasks or isinstance(entity_model, ShotgunDeferredEntityModel) or app.context.user is None:
             self._ui.my_tasks_cb.hide()
 
         # enable/hide the new task button if we have tasks and task creation is allowed:

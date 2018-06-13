@@ -40,6 +40,13 @@ class EntityTreeProxyModel(EntityProxyModel):
     #@only_show_my_tasks.setter
     def _set_only_show_my_tasks(self, show):
         if self._only_show_my_tasks != show:
+            # We're forcing a load of the model's data here to ensure we have
+            # everything in memory that's required to properly filter the tree.
+            # Since this my tasks checkbox feature is only available when we're
+            # NOT using a deferred-query model, everything we need from Shotgun
+            # is already here and we just need to populate the model with the
+            # full tree of items prior to filtering.
+            self.sourceModel().ensure_data_is_loaded()
             self._only_show_my_tasks = show
             self.invalidateFilter()
     only_show_my_tasks=property(_get_only_show_my_tasks, _set_only_show_my_tasks)
