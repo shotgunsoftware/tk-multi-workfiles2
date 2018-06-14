@@ -107,6 +107,9 @@ class EntityTreeForm(QtGui.QWidget):
         # model is making use of deferred queries. In the latter case, we don't
         # have the data queried up front that's needed to properly filter the
         # tree down to "my tasks", so the checkbox won't function properly.
+        #
+        # We're also hiding it if we're working with script-key auth and no
+        # named user was determined in SG.
         represents_tasks = entity_model.represents_tasks
         if not represents_tasks or isinstance(entity_model, ShotgunDeferredEntityModel) or app.context.user is None:
             self._ui.my_tasks_cb.hide()
