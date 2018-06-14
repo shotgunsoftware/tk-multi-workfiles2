@@ -97,31 +97,54 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
         if not src_idx.isValid():
             return False
 
+        user_id = None
+
         # try to get the work area and see if this item should be filtered:
         work_area = get_model_data(src_idx, FileModel.WORK_AREA_ROLE)
         if work_area and work_area.context and work_area.context.user:
+            user_id = work_area.context.user["id"]
             user_ids = set(u["id"] for u in self._filters.users if u)
-            if work_area.context.user["id"] not in user_ids:
+            if user_id not in user_ids:
                 return False
 
         # get the file item and see if it should be filtered:
         file_item = get_model_data(src_idx, FileModel.FILE_ITEM_ROLE)
         if file_item:
-            ## Filter based on showing work files, publishes or both:
+            # Filter based on showing work files, publishes or both:
             if (not (file_item.is_local and self._show_workfiles)
                 and not (file_item.is_published and self._show_publishes)):
                 return False
 
+            versions_to_compare = { v:f for v, f in file_item.versions.iteritems() 
+                                        if (f.is_local and self._show_workfiles) 
+                                        or (f.is_published and self._show_publishes) }
+
+            # If the publish area doesn't contain a user sandbox....
+            if not work_area.publish_area_contains_user_sandboxes:
+                # Filter out files not owned by the current user. This is to avoid
+                # files showing up in multiple groups...
+                if file_item.is_published and file_item.published_by.get("id") != user_id:
+                    return False
+
+                # Filter the published versions to the ones owned by the current user
+                versions_to_compare = { v:f for v, f in versions_to_compare.iteritems()
+                                            if not (f.is_published and f.published_by.get("id") != user_id) }
+
+            # If the work area doesn't contain a user sandbox....
+            if not work_area.work_area_contains_user_sandboxes:
+                # Filter out files not owned by the current user. This is to avoid
+                # files showing up in multiple groups...
+                if file_item.is_local and file_item.modified_by.get("id") != user_id:
+                    return False
+
+                # Filter the work versions to the ones owned by the current user
+                versions_to_compare = { v:f for v, f in versions_to_compare.iteritems()
+                                            if not (f.is_local and f.modified_by.get("id") != user_id) }
+
             if not self._filters.show_all_versions:
                 # Filter based on latest version - need to check if this is the latest 
                 # version of the file:
-                all_versions = file_item.versions
-
-                visible_versions = [v for v, f in all_versions.iteritems() 
-                                        if (f.is_local and self._show_workfiles) 
-                                            or (f.is_published and self._show_publishes)]
-
-                if not visible_versions or file_item.version != max(visible_versions):
+                if not versions_to_compare or file_item.version != max(versions_to_compare.keys()):
                     return False
 
 

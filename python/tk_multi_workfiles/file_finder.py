@@ -743,13 +743,8 @@ class AsyncFileFinder(FileFinder):
         for user in search.users:
             user_id = user["id"] if user else None
             user_work_area = search.user_work_areas[user_id]
-            users_publishes = []
 
-            # Only process publishes created by this user
-            for sg_publish in sg_publishes:
-                created_by_user = sg_publish.get("created_by", {})
-                if user_id == created_by_user.get("id"):
-                    users_publishes.append(copy.deepcopy(sg_publish))
+            users_publishes = copy.deepcopy(sg_publishes)
 
             # filter publishes:
             filter_publishes_task = self._bg_task_manager.add_task(self._task_filter_publishes,
