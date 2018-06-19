@@ -295,6 +295,7 @@ class FileModel(QtGui.QStandardItemModel):
     uses_user_sandboxes = QtCore.Signal(object) # Work area that uses sandboxes.
     # Signal emitted when the sandbox_users_found when users were found in the sandbox.
     sandbox_users_found = QtCore.Signal(list)# list of users
+    available_users_found = QtCore.Signal(list)# list of users
 
     def __init__(self, bg_task_manager, parent):
         """
@@ -829,6 +830,20 @@ class FileModel(QtGui.QStandardItemModel):
 
         # update the cache - it's important this is done _before_ adding/updating the model items:
         self._search_cache.add(work_area, valid_files.values())
+
+        # Emit new users found.
+        users_by_id = {}
+        for file_item in valid_files.values():
+            user = None
+            if file_item.is_published:
+                user = file_item.published_by
+            elif file_item.is_local:
+                user = file_item.modified_by
+            if user:
+                users_by_id[user.get("id")] = user
+
+        if users_by_id:
+            self.available_users_found.emit(users_by_id.values())
 
         # now lets remove, add and update items as needed:
         # 1. Remove items that are no longer needed:

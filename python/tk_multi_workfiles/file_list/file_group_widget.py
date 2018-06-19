@@ -78,7 +78,7 @@ class FileGroupWidget(GroupWidgetBase):
                     user_name = "My"
                 else: 
                     user_name = "%s's" % work_area.context.user.get("name", "Unknown")
-            self._ui.user_label.setText("(%s Files)" % user_name)
+            self._ui.user_label.setText("(%s Workspace)" % user_name)
             self._ui.user_label.show()
         else:
             self._ui.user_label.hide()

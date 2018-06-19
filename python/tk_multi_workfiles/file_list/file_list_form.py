@@ -206,9 +206,9 @@ class FileListForm(QtGui.QWidget):
             sandbox_type = ""
 
         if is_enabled:
-            self._ui.user_filter_btn.setToolTip("Click to see the list of %ssandboxes available for this context." % sandbox_type)
+            self._ui.user_filter_btn.setToolTip("Click to see the list of %sfiles available for this context." % sandbox_type)
         else:
-            self._ui.user_filter_btn.setToolTip("There are no %ssandboxes available for this context." % sandbox_type)
+            self._ui.user_filter_btn.setToolTip("There are no %sfiles available for this context." % sandbox_type)
 
         self._ui.user_filter_btn.setEnabled(is_enabled)
 
@@ -296,6 +296,13 @@ class FileListForm(QtGui.QWidget):
                                     method the selection is different then a file_selected signal will be
                                     emitted
         """
+        # Sometimes the internal C++ object gets deleted, so cleanup the dangling ref
+        if self._current_item_ref:
+            try:
+                self._current_item_ref().index()
+            except RuntimeError:
+                self._current_item_ref = None
+
         # we want to make sure we don't emit any signals whilst we are 
         # manipulating the selection:
         signals_blocked = self.blockSignals(True)

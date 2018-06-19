@@ -74,6 +74,7 @@ class BrowserForm(QtGui.QWidget):
 
         self._file_filters = FileFilters(parent=None)
         monitor_qobject_lifetime(self._file_filters, "Browser file filters")
+        self._file_filters.available_users_changed.connect(self._on_available_users_changed)
         self._file_filters.users_changed.connect(self._on_file_filters_users_changed)
         self._file_filters.all_versions_changed.connect(self._on_file_filters_all_versions_changed)
 
@@ -217,8 +218,8 @@ class BrowserForm(QtGui.QWidget):
         if file_model:
             # attach file model to the file views:
             self._file_model = file_model
-            self._file_model.sandbox_users_found.connect(self._on_sandbox_users_found)
-            self._file_model.uses_user_sandboxes.connect(self._on_uses_user_sandboxes)
+            self._file_model.sandbox_users_found.connect(self._on_available_users_found)
+            self._file_model.available_users_found.connect(self._on_available_users_found)
             self._file_model.set_users(self._file_filters.users)
 
             # add an 'all files' tab:
@@ -320,16 +321,30 @@ class BrowserForm(QtGui.QWidget):
     # ------------------------------------------------------------------------------------------
     # protected methods
 
-    def _on_sandbox_users_found(self, users):
+    def _on_available_users_found(self, users):
         """
-        Called when the list of sandbox users available for a given selection has been updated
+        Called when the list of available users for a given selection has been updated
         in the model after parsing the context's directories.
 
-        :param users: Array of user entity dictionary.
+        :param users: Array of user entity dictionaries.
         """
         app = sgtk.platform.current_bundle()
-        app.log_debug("Sandbox users found: %s" % [u["name"].split()[0] for u in users if u])
+        app.log_debug("Available users found: %s" % [u["name"].split()[0] for u in users if u])
         self._file_filters.add_users(users)
+
+    def _on_available_users_changed(self, users):
+        """
+        Called when the list of available users for a given selection has been updated
+        in the file_filter.
+
+        :param users: Array of user entity dictionaries.
+        """
+        for form in self._file_browser_forms:
+            # Turn the filtering button on if there are users and visible files.
+            if form.work_files_visible and users:
+                form.enable_user_filtering_widget(True)
+            elif form.publishes_visible and users:
+                form.enable_user_filtering_widget(True)
 
     def _on_file_filters_users_changed(self, users):
         """
@@ -518,19 +533,6 @@ class BrowserForm(QtGui.QWidget):
         self._emit_work_area_changed(primary_entity or None, breadcrumb_trail)
 
         return primary_entity
-
-    def _on_uses_user_sandboxes(self, work_area):
-        """
-        Called when the file finder reports a work area that uses sandboxes.
-
-        :param work_area: WorkArea using a sandbox.
-        """
-        for form in self._file_browser_forms:
-            # Turn the filtering button on if it uses sandboxes.
-            if form.work_files_visible and work_area.work_area_contains_user_sandboxes:
-                form.enable_user_filtering_widget(True)
-            elif form.publishes_visible:
-                form.enable_user_filtering_widget(True)
 
     def _on_file_selected(self, file, env, selection_mode):
         """
