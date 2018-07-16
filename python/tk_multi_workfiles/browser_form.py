@@ -221,9 +221,13 @@ class BrowserForm(QtGui.QWidget):
             self._file_model.set_users(self._file_filters.users)
 
             # add an 'all files' tab:
-            self._add_file_list_form("All", "All Files", show_work_files=True, show_publishes=True )
-            self._add_file_list_form("Working", "Work Files", show_work_files=True, show_publishes=False)
-            self._add_file_list_form("Publishes", "Publishes", show_work_files=False, show_publishes=True)
+            preferred_tabs = app.get_setting("file_browser_tabs")
+            if "All" in preferred_tabs:
+                self._add_file_list_form("All", "All Files", show_work_files=True, show_publishes=True)
+            if "Working" in preferred_tabs:
+                self._add_file_list_form("Working", "Work Files", show_work_files=True, show_publishes=False)
+            if "Publishes" in preferred_tabs:
+                self._add_file_list_form("Publishes", "Publishes", show_work_files=False, show_publishes=True)
 
     def _add_file_list_form(self, tab_name, search_label, show_work_files, show_publishes):
         """
