@@ -116,10 +116,11 @@ class MultiWorkFiles(sgtk.platform.Application):
         self._tk_multi_workfiles.WorkFiles.show_file_save_dlg()
 
     # access general information:
-    def get_work_template(self, context):
+    def get_work_template(self, context=None):
         """
         Return the work template for the specified context
         """
+        context = context or self.context
         return self._tk_multi_workfiles.WorkArea(context).work_template
 
     @property
