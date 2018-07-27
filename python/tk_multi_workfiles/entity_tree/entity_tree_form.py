@@ -22,6 +22,7 @@ from .entity_tree_proxy_model import EntityTreeProxyModel
 from ..framework_qtwidgets import Breadcrumb, overlay_widget
 from ..util import get_model_str, map_to_source, get_source_model, monitor_qobject_lifetime
 from ..util import get_sg_entity_name_field
+from ..entity_models import ShotgunDeferredEntityModel
 
 
 class EntityTreeForm(QtGui.QWidget):
@@ -102,9 +103,15 @@ class EntityTreeForm(QtGui.QWidget):
         self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
         self._ui.search_ctrl.setToolTip("Press enter to complete the search")
 
-        # enable/hide the my-tasks-only button if we are showing tasks:
+        # Hide the my-tasks-only checkbox if we are showing tasks, or if the entity
+        # model is making use of deferred queries. In the latter case, we don't
+        # have the data queried up front that's needed to properly filter the
+        # tree down to "my tasks", so the checkbox won't function properly.
+        #
+        # We're also hiding it if we're working with script-key auth and no
+        # named user was determined in SG.
         represents_tasks = entity_model.represents_tasks
-        if not represents_tasks:
+        if not represents_tasks or isinstance(entity_model, ShotgunDeferredEntityModel) or app.context.user is None:
             self._ui.my_tasks_cb.hide()
 
         # enable/hide the new task button if we have tasks and task creation is allowed:
