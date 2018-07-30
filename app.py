@@ -78,7 +78,7 @@ class MultiWorkFiles(sgtk.platform.Application):
         # the behaviour can be very different.
         #
         # currently, we have done QA on the following engines:
-        SUPPORTED_ENGINES = ["tk-nuke", "tk-maya", "tk-3dsmax"]
+        SUPPORTED_ENGINES = ["tk-nuke", "tk-maya", "tk-3dsmax", "tk-houdini"]
 
         if self.engine.has_ui and not hasattr(sgtk, "_tk_multi_workfiles2_launch_at_startup"):
 
@@ -114,6 +114,14 @@ class MultiWorkFiles(sgtk.platform.Application):
         Launch the main File Save UI
         """
         self._tk_multi_workfiles.WorkFiles.show_file_save_dlg()
+
+    # access general information:
+    def get_work_template(self, context=None):
+        """
+        Return the work template for the specified context
+        """
+        context = context or self.context
+        return self._tk_multi_workfiles.WorkArea(context).work_template
 
     @property
     def context_change_allowed(self):

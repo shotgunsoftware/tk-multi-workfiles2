@@ -63,7 +63,7 @@ class WorkArea(object):
             :param context: Context for which these settings need to be cached.
             :param settings: Settings to cache.
             """
-            self._cache.append((context, copy.deepcopy(settings)))
+            self._cache.append((context, settings))
 
     _settings_cache = _SettingsCache()
 
@@ -308,6 +308,11 @@ class WorkArea(object):
         app = sgtk.platform.current_bundle()
         settings_to_find = settings_to_find or []
 
+        # first look in the cache:
+        app_settings = WorkArea._settings_cache.get(context)
+        if app_settings:
+            return app_settings
+
         resolved_settings = {}
         if app.context == context:
             # no need to look for settings as we already have them in the
@@ -323,15 +328,35 @@ class WorkArea(object):
 
         else:
             # need to look for settings in a different context/environment
-            settings = self._get_raw_app_settings_for_context(app, context)
-            if settings:
+            app_settings = self._get_raw_app_settings_for_context(app, context)
+            if app_settings:
+
+                new_env = app_settings["env_instance"]
+                new_eng = app_settings["engine_instance"]
+                new_app = app_settings["app_instance"]
+                new_settings = app_settings["settings"]
+                new_descriptor = new_env.get_app_descriptor(new_eng, new_app)
+
+                # Create a new app instance from the new env / context
+                new_app_obj = sgtk.platform.application.get_application(
+                        app.engine, 
+                        new_descriptor.get_path(), 
+                        new_descriptor, 
+                        new_settings, 
+                        new_app, 
+                        new_env,
+                        context)
+                
                 # get templates:
                 for key in templates_to_find:
-                    resolved_settings[key] = app.get_template_from(settings, key)
+                    resolved_settings[key] = new_app_obj.get_template(key)
 
                 # get additional settings:
                 for key in settings_to_find:
-                    resolved_settings[key] = app.get_setting_from(settings, key)
+                    resolved_settings[key] = new_app_obj.get_setting(key)
+
+        # Cache any found settings
+        WorkArea._settings_cache.add(context, resolved_settings)
 
         return resolved_settings
 
@@ -344,24 +369,16 @@ class WorkArea(object):
 
         :returns: The workfiles 2 application settings for the given context or None.
         """
-        app = sgtk.platform.current_bundle()
+        app = app or sgtk.platform.current_bundle()
 
         if not context:
             app.log_debug("No context found.")
             return
 
-        # first look in the cache:
-        app_settings = WorkArea._settings_cache.get(context)
-
-        if app_settings is None:
-            try:
-                # find settings for all instances of app in the environment picked for the given context:
-                app_settings = sgtk.platform.find_app_settings(
-                    app.engine.name, app.name, app.sgtk, context, app.engine.instance_name
-                )
-            finally:
-                # Ignore any errors while looking for the settings
-                WorkArea._settings_cache.add(context, app_settings or {})
+        # find settings for all instances of app in the environment picked for the given context:
+        app_settings = sgtk.platform.find_app_settings(
+            app.engine.name, app.name, app.sgtk, context, app.engine.instance_name
+        )
 
         # No settings found, do nothing.
         if not app_settings:
@@ -369,14 +386,14 @@ class WorkArea(object):
             return None
 
         if len(app_settings) == 1:
-            return app_settings[0].get("settings")
+            return app_settings[0]
 
         # There's more than one instance of that app for the engine instance, so we'll
         # need to deterministically pick one. We'll pick the one with the same
         # application instance name as the current app instance.
         for settings in app_settings:
             if settings.get("app_instance") == app.instance_name:
-                return settings.get("settings")
+                return settings
 
         app.log_warning(
             "Looking for tk-multi-workfiles application settings in '%s' context"

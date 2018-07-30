@@ -42,7 +42,7 @@ class MyTasksModel(ShotgunExtendedEntityModel):
         filters = [["project", "is", project]]
         filters.extend(resolve_filters(my_tasks_filters))
 
-        fields = ["image", "entity", "content"]
+        fields = ["image", "entity", "step", "content"]
         fields.extend(self.extra_display_fields)
 
         ShotgunExtendedEntityModel.__init__(

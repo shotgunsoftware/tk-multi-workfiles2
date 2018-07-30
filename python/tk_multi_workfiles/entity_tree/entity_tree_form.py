@@ -274,6 +274,30 @@ class EntityTreeForm(QtGui.QWidget):
         # try to update the selection to reflect the change:
         self._update_selection(prev_selected_item)
 
+    def get_entity_items(self, entity_type, entity_id):
+        """
+        Gets all entity items matching a specified entity type and id.
+
+        :param entity_type: Type of the entity selected.
+        :param entity_id: Id of the entity selected.
+
+        :returns: A dictionary of matching entity items keyed by entity model
+        """
+        entity_model = get_source_model(self._ui.entity_tree.model())
+        if not entity_model:
+            return {}
+
+        items = {}
+        if entity_model.get_entity_type() == entity_type:
+            item = entity_model.item_from_entity(entity_type, entity_id)
+            if item:
+                if entity_model not in items:
+                    items[entity_model] = [item]
+                else:
+                    items[entity_model].append(item)
+
+        return items
+
     def get_selection(self):
         """
         Get the currently selected item as well as the breadcrumb trail that represents

@@ -295,6 +295,7 @@ class FileModel(QtGui.QStandardItemModel):
     uses_user_sandboxes = QtCore.Signal(object) # Work area that uses sandboxes.
     # Signal emitted when the sandbox_users_found when users were found in the sandbox.
     sandbox_users_found = QtCore.Signal(list)# list of users
+    available_users_found = QtCore.Signal(list)# list of users
 
     def __init__(self, bg_task_manager, parent):
         """
@@ -424,17 +425,17 @@ class FileModel(QtGui.QStandardItemModel):
         # stop any in-progress searches:
         self._stop_in_progress_searches()
 
-        self._current_users = list(users or [])
-        if g_user_cache.current_user:
-            # we _always_ search for the current user:
-            user_ids = [user["id"] for user in self._current_users]
-            if g_user_cache.current_user["id"] not in user_ids:
-                self._current_users.insert(0, g_user_cache.current_user)
-        elif not self._current_users:
-            # no users so use 'None' instead which will effectively search for the
-            # current user but handles the legacy case where the current user doesn't
-            # match the log-in!
-            self._current_users = [None]
+        self._current_users = list(users or [None])
+#        if g_user_cache.current_user:
+#            # we _always_ search for the current user:
+#            user_ids = [user["id"] for user in self._current_users]
+#            if g_user_cache.current_user["id"] not in user_ids:
+#                self._current_users.insert(0, g_user_cache.current_user)
+#        elif not self._current_users:
+#            # no users so use 'None' instead which will effectively search for the
+#            # current user but handles the legacy case where the current user doesn't
+#            # match the log-in!
+#            self._current_users = [None]
 
         # update groups:
         self._update_groups()
@@ -829,6 +830,20 @@ class FileModel(QtGui.QStandardItemModel):
 
         # update the cache - it's important this is done _before_ adding/updating the model items:
         self._search_cache.add(work_area, valid_files.values())
+
+        # Emit new users found.
+        users_by_id = {}
+        for file_item in valid_files.values():
+            user = None
+            if file_item.is_published:
+                user = file_item.published_by
+            elif file_item.is_local:
+                user = file_item.modified_by
+            if user:
+                users_by_id[user.get("id")] = user
+
+        if users_by_id:
+            self.available_users_found.emit(users_by_id.values())
 
         # now lets remove, add and update items as needed:
         # 1. Remove items that are no longer needed:

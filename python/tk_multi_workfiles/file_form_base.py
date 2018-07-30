@@ -23,6 +23,9 @@ from sgtk.platform.qt import QtCore, QtGui
 task_manager = sgtk.platform.import_framework("tk-framework-shotgunutils", "task_manager")
 BackgroundTaskManager = task_manager.BackgroundTaskManager
 
+shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
+ShotgunEntityModel = shotgun_model.ShotgunEntityModel
+
 shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
 
 from .entity_models import ShotgunExtendedEntityModel, ShotgunDeferredEntityModel
@@ -211,7 +214,7 @@ class FileFormBase(QtGui.QWidget):
             fields = []
             if entity_type == "Task":
                 # Add so we can filter tasks assigned to the user only on the client side.
-                fields += ["task_assignees"]
+                fields += ["step", "task_assignees"]
 
             if deferred_query:
                 model = ShotgunDeferredEntityModel(

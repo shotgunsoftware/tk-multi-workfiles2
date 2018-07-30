@@ -74,7 +74,9 @@ class BrowserForm(QtGui.QWidget):
 
         self._file_filters = FileFilters(parent=None)
         monitor_qobject_lifetime(self._file_filters, "Browser file filters")
+        self._file_filters.available_users_changed.connect(self._on_available_users_changed)
         self._file_filters.users_changed.connect(self._on_file_filters_users_changed)
+        self._file_filters.all_versions_changed.connect(self._on_file_filters_all_versions_changed)
 
         # Build the step filter UI
         self._step_list_widget = StepListWidget(self._ui.step_filter_list_widget)
@@ -216,8 +218,8 @@ class BrowserForm(QtGui.QWidget):
         if file_model:
             # attach file model to the file views:
             self._file_model = file_model
-            self._file_model.sandbox_users_found.connect(self._on_sandbox_users_found)
-            self._file_model.uses_user_sandboxes.connect(self._on_uses_user_sandboxes)
+            self._file_model.sandbox_users_found.connect(self._on_available_users_found)
+            self._file_model.available_users_found.connect(self._on_available_users_found)
             self._file_model.set_users(self._file_filters.users)
 
             # add an 'all files' tab:
@@ -264,15 +266,19 @@ class BrowserForm(QtGui.QWidget):
             widget.ensure_data_for_context(context)
 
         # update the selected entity in the various task/entity trees:
-        ctx_entity = context.task or context.step or context.entity
+        ctx_entity = context.task or context.entity or context.project
         if not ctx_entity:
             return
 
-        self._update_selected_entity(
-            ctx_entity["type"],
-            ctx_entity["id"],
-            skip_current=False
-        )
+        # get a list of widgets that have the entity in the various task/entity trees:
+        widgets = self._get_entity_widgets(ctx_entity["type"], ctx_entity["id"], skip_current=False)
+        if not widgets:
+            # stop if nothing matches the context
+            return
+
+        # update the selected entity in the various task/entity trees:
+        for widget in widgets:
+            widget.select_entity(ctx_entity["type"], ctx_entity["id"])
 
         if self._file_model:
             # now start a new file search based off the entity:
@@ -315,16 +321,30 @@ class BrowserForm(QtGui.QWidget):
     # ------------------------------------------------------------------------------------------
     # protected methods
 
-    def _on_sandbox_users_found(self, users):
+    def _on_available_users_found(self, users):
         """
-        Called when the list of sandbox users available for a given selection has been updated
+        Called when the list of available users for a given selection has been updated
         in the model after parsing the context's directories.
 
-        :param users: Array of user entity dictionary.
+        :param users: Array of user entity dictionaries.
         """
         app = sgtk.platform.current_bundle()
-        app.log_debug("Sandbox users found: %s" % [u["name"].split()[0] for u in users if u])
+        app.log_debug("Available users found: %s" % [u["name"].split()[0] for u in users if u])
         self._file_filters.add_users(users)
+
+    def _on_available_users_changed(self, users):
+        """
+        Called when the list of available users for a given selection has been updated
+        in the file_filter.
+
+        :param users: Array of user entity dictionaries.
+        """
+        for form in self._file_browser_forms:
+            # Turn the filtering button on if there are users and visible files.
+            if form.work_files_visible and users:
+                form.enable_user_filtering_widget(True)
+            elif form.publishes_visible and users:
+                form.enable_user_filtering_widget(True)
 
     def _on_file_filters_users_changed(self, users):
         """
@@ -337,6 +357,17 @@ class BrowserForm(QtGui.QWidget):
         app.log_debug("File filter users: %s" % [u["name"].split()[0] for u in users if u])
         if self._file_model:
             self._file_model.set_users(users)
+
+    def _on_file_filters_all_versions_changed(self, toggle):
+        """
+        Called when the user toggles the "All Versions" checkbox in the user filter
+
+        :param toggle: The value set on the checkbox
+        """
+        app = sgtk.platform.current_bundle()
+        app.log_debug("Toggling 'All Versions' to: %s" % bool(toggle))
+        if self._file_model:
+            self._file_model.async_refresh()
 
     def _emit_work_area_changed(self, entity, child_breadcrumb_trail):
         """
@@ -360,6 +391,31 @@ class BrowserForm(QtGui.QWidget):
         breadcrumb_trail.extend(child_breadcrumb_trail)
 
         self.work_area_changed.emit(entity, breadcrumb_trail)
+
+    def _get_entity_widgets(self, entity_type, entity_id, skip_current=True):
+        """
+        Returns a dictionary of entity items in all entity views for the specified entity.
+
+        :param entity_type: Type of the entity selected.
+        :param entity_id: Id of the entity selected.
+        :param skip_current: Hint to not return a widget for the current view.
+
+        :returns: A dictionary of matching items keyed by their model keyed by their widget.
+        """
+        current_widget = self._ui.task_browser_tabs.currentWidget()
+
+        # loop through all widgets and see if there is a widget for the entity:
+        widgets = []
+        for ti in range(self._ui.task_browser_tabs.count()):
+            widget = self._ui.task_browser_tabs.widget(ti)
+
+            if skip_current and widget == current_widget:
+                continue
+
+            if widget.get_entity_items(entity_type, entity_id):
+                widgets.append(widget)
+
+        return widgets
 
     def _update_selected_entity(self, entity_type, entity_id, skip_current=True):
         """
@@ -477,19 +533,6 @@ class BrowserForm(QtGui.QWidget):
         self._emit_work_area_changed(primary_entity or None, breadcrumb_trail)
 
         return primary_entity
-
-    def _on_uses_user_sandboxes(self, work_area):
-        """
-        Called when the file finder reports a work area that uses sandboxes.
-
-        :param work_area: WorkArea using a sandbox.
-        """
-        for form in self._file_browser_forms:
-            # Turn the filtering button on if it uses sandboxes.
-            if form.work_files_visible and work_area.work_area_contains_user_sandboxes:
-                form.enable_user_filtering_widget(True)
-            elif form.publishes_visible and work_area.publish_area_contains_user_sandboxes:
-                form.enable_user_filtering_widget(True)
 
     def _on_file_selected(self, file, env, selection_mode):
         """

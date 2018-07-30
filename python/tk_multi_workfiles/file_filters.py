@@ -22,8 +22,10 @@ class FileFilters(QtCore.QObject):
     Implementation of the FileFilters class
     """
 
-    # signal emitted whenever something in the filters is changed
-    changed = QtCore.Signal()
+    # signal emitted whenever the filter reg_exp is changed
+    reg_exp_changed = QtCore.Signal(object) # reg_exp value
+    # signal emitted whenever show all versions is changed
+    all_versions_changed = QtCore.Signal(object) # toggle value
     # signal emitted whenever the available users are changed
     available_users_changed = QtCore.Signal(object)# list of users
     # signal emitted whenever the users changed:
@@ -49,7 +51,7 @@ class FileFilters(QtCore.QObject):
     def _set_show_all_versions(self, show):
         if show != self._show_all_versions:
             self._show_all_versions = show
-            self.changed.emit()
+            self.all_versions_changed.emit(show)
 
     show_all_versions = property(_get_show_all_versions, _set_show_all_versions)
 
@@ -61,7 +63,7 @@ class FileFilters(QtCore.QObject):
     def _set_filter_reg_exp(self, value):
         if value != self._filter_reg_exp:
             self._filter_reg_exp = value
-            self.changed.emit()
+            self.reg_exp_changed.emit(value)
 
     filter_reg_exp = property(_get_filter_reg_exp, _set_filter_reg_exp)
 
@@ -113,6 +115,5 @@ class FileFilters(QtCore.QObject):
         if new_user_ids != current_user_ids:
             self._users = [u for u in users if u and u["id"] in new_user_ids]
             self.users_changed.emit(self._users)
-            self.changed.emit()
 
     users = property(_get_users, _set_users)
