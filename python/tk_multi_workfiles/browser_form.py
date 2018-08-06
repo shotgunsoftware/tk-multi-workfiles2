@@ -42,22 +42,22 @@ class BrowserForm(QtGui.QWidget):
 
     # This dict provides a lookup of tab names and the values required to
     # display them in the UI. The keys correspond to valid values for the app's
-    # file_browser_tabs settings. The tooltip key corresponds to that tabs
-    # tooltip when the tab is hovered. The show_* values are supplied to the
-    # method that adds that tab to the UI.
+    # file_browser_tabs settings. The search_label key corresponds to the text
+    # shown in the search box when that tab is selected. The show_* values are
+    # supplied to the method that adds that tab to the UI.
     TAB_INFO = {
         "all": {
-            "tooltip": "All Files",
+            "search_label": "All Files",
             "show_work_files": True,
             "show_publishes": True
         },
         "working": {
-            "tooltip": "Work Files",
+            "search_label": "Work Files",
             "show_work_files": True,
             "show_publishes": False
         },
         "publishes": {
-            "tooltip": "Published Files",
+            "search_label": "Publishes",
             "show_work_files": False,
             "show_publishes": True
         }
@@ -259,14 +259,14 @@ class BrowserForm(QtGui.QWidget):
 
                     # extract the tab info from the lookup
                     tab_name = tab.title()
-                    tooltip = self.TAB_INFO[tab]["tooltip"]
+                    search_label = self.TAB_INFO[tab]["search_label"]
                     show_work_files = self.TAB_INFO[tab]["show_work_files"]
                     show_publishes = self.TAB_INFO[tab]["show_publishes"]
 
                     # add the tab
                     self._add_file_list_form(
                         tab_name,
-                        tooltip,
+                        search_label,
                         show_work_files=show_work_files,
                         show_publishes=show_publishes
                     )
