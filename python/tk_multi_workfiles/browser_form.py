@@ -251,15 +251,13 @@ class BrowserForm(QtGui.QWidget):
 
             tab_count = 0
 
-            # loop over the valid tabs
+            # iterate over each configured tab and see if it is valid (in the
+            # list of valid tabs)
             for tab in tabs_to_display:
-
-                # see if this is one of the ones to display
                 if tab in self.TAB_INFO.keys():
 
-                    tab_info = self.TAB_INFO[tab]
-
                     # extract the tab info from the lookup
+                    tab_info = self.TAB_INFO[tab]
                     tab_name = tab.title()
                     search_label = tab_info["search_label"]
                     show_work_files = tab_info["show_work_files"]
@@ -274,7 +272,6 @@ class BrowserForm(QtGui.QWidget):
                     )
                     tab_count += 1
                 else:
-
                     # invalid tab specified. log an error
                     logger.warning(
                         "An invalid tab name was used when configuring the "
@@ -283,6 +280,7 @@ class BrowserForm(QtGui.QWidget):
                         (tab, ", ".join(self.TAB_INFO.keys()))
                     )
 
+            # no valid tabs. raise an error
             if tab_count < 1:
                 raise sgtk.TankError(
                     "No valid tabs configured for workfiles2. Configured tabs: "
@@ -291,7 +289,6 @@ class BrowserForm(QtGui.QWidget):
                         ", ".join(self.TAB_INFO.keys())
                     )
                 )
-
 
     def _add_file_list_form(self, tab_name, search_label, show_work_files, show_publishes):
         """
