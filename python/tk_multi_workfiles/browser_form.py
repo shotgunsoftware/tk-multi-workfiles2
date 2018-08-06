@@ -252,16 +252,18 @@ class BrowserForm(QtGui.QWidget):
             tab_count = 0
 
             # loop over the valid tabs
-            for tab in self.TAB_INFO.keys():
+            for tab in tabs_to_display:
 
                 # see if this is one of the ones to display
-                if tab in tabs_to_display:
+                if tab in self.TAB_INFO.keys():
+
+                    tab_info = self.TAB_INFO[tab]
 
                     # extract the tab info from the lookup
                     tab_name = tab.title()
-                    search_label = self.TAB_INFO[tab]["search_label"]
-                    show_work_files = self.TAB_INFO[tab]["show_work_files"]
-                    show_publishes = self.TAB_INFO[tab]["show_publishes"]
+                    search_label = tab_info["search_label"]
+                    show_work_files = tab_info["show_work_files"]
+                    show_publishes = tab_info["show_publishes"]
 
                     # add the tab
                     self._add_file_list_form(
@@ -272,7 +274,6 @@ class BrowserForm(QtGui.QWidget):
                     )
                     tab_count += 1
                 else:
-
                     # invalid tab specified. log an error
                     logger.warning(
                         "An invalid tab name was used when configuring the "
