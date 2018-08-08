@@ -210,8 +210,8 @@ configuration:
         type: list
         description: "A list of tab names that are visible in the main browser. Values
                       can be any combination of the following tab names: 'All',
-                      'Working', and 'Publishes'. The "
-
+                      'Working', and 'Publishes'. The order of the specified
+                      values determines the order of the tabs in the app."
         allows_empty: False
         values:
           type: str

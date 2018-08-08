@@ -254,7 +254,7 @@ class BrowserForm(QtGui.QWidget):
             # iterate over each configured tab and see if it is valid (in the
             # list of valid tabs)
             for tab in tabs_to_display:
-                if tab in self.TAB_INFO.keys():
+                if tab in self.TAB_INFO:
 
                     # extract the tab info from the lookup
                     tab_info = self.TAB_INFO[tab]
