@@ -29,6 +29,8 @@ from .file_filters import FileFilters
 from .util import monitor_qobject_lifetime, get_template_user_keys
 from .step_list_filter import StepListWidget, get_filter_from_filter_list, get_saved_step_filter
 
+logger = sgtk.platform.get_logger(__name__)
+
 
 class BrowserForm(QtGui.QWidget):
     """
@@ -37,6 +39,29 @@ class BrowserForm(QtGui.QWidget):
     'My Tasks', Entities/Tasks and file views are build by calling set_models from
     the provided list of models.
     """
+
+    # This dict provides a lookup of tab names and the values required to
+    # display them in the UI. The keys correspond to valid values for the app's
+    # file_browser_tabs settings. The search_label key corresponds to the text
+    # shown in the search box when that tab is selected. The show_* values are
+    # supplied to the method that adds that tab to the UI.
+    TAB_INFO = {
+        "all": {
+            "search_label": "All Files",
+            "show_work_files": True,
+            "show_publishes": True
+        },
+        "working": {
+            "search_label": "Work Files",
+            "show_work_files": True,
+            "show_publishes": False
+        },
+        "publishes": {
+            "search_label": "Publishes",
+            "show_work_files": False,
+            "show_publishes": True
+        }
+    }
 
     class _EntityTabBreadcrumb(Breadcrumb):
         def __init__(self, label, tab_index):
@@ -220,10 +245,50 @@ class BrowserForm(QtGui.QWidget):
             self._file_model.uses_user_sandboxes.connect(self._on_uses_user_sandboxes)
             self._file_model.set_users(self._file_filters.users)
 
-            # add an 'all files' tab:
-            self._add_file_list_form("All", "All Files", show_work_files=True, show_publishes=True )
-            self._add_file_list_form("Working", "Work Files", show_work_files=True, show_publishes=False)
-            self._add_file_list_form("Publishes", "Publishes", show_work_files=False, show_publishes=True)
+            # lowercase tabs to display as configured for the app
+            tabs_to_display = [
+                t.lower() for t in app.get_setting("file_browser_tabs")]
+
+            tab_count = 0
+
+            # iterate over each configured tab and see if it is valid (in the
+            # list of valid tabs)
+            for tab in tabs_to_display:
+                if tab in self.TAB_INFO:
+
+                    # extract the tab info from the lookup
+                    tab_info = self.TAB_INFO[tab]
+                    tab_name = tab.title()
+                    search_label = tab_info["search_label"]
+                    show_work_files = tab_info["show_work_files"]
+                    show_publishes = tab_info["show_publishes"]
+
+                    # add the tab
+                    self._add_file_list_form(
+                        tab_name,
+                        search_label,
+                        show_work_files=show_work_files,
+                        show_publishes=show_publishes
+                    )
+                    tab_count += 1
+                else:
+                    # invalid tab specified. log an error
+                    logger.warning(
+                        "An invalid tab name was used when configuring the "
+                        "workfiles2 app. The tab name '%s' is not one of the "
+                        "valid tabs (%s)." %
+                        (tab, ", ".join(self.TAB_INFO.keys()))
+                    )
+
+            # no valid tabs. raise an error
+            if tab_count < 1:
+                raise sgtk.TankError(
+                    "No valid tabs configured for workfiles2. Configured tabs: "
+                    "%s. Valid tabs: %s" % (
+                        ", ".join(app.get_setting("file_browser_tabs")),
+                        ", ".join(self.TAB_INFO.keys())
+                    )
+                )
 
     def _add_file_list_form(self, tab_name, search_label, show_work_files, show_publishes):
         """
