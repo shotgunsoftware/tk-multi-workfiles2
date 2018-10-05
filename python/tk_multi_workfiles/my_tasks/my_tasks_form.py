@@ -21,32 +21,40 @@ from .my_tasks_proxy_model import MyTasksProxyModel
 
 class SortFieldWidget( QtGui.QWidget ):
 
-    def __init__(self, text, parent):
+    def __init__(self, text, action, parent):
         super(SortFieldWidget, self).__init__(parent)
+
+        self.action = action
 
         self.setAutoFillBackground(True)
         self.text = QtGui.QLabel(text, self)
+        self.text.setSizePolicy(QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum, ))
+        self.text.setMinimumHeight(32)
+        self.text.setStyleSheet("padding-left: 7; padding-right: 15;")
         self.asc_check_box = QtGui.QRadioButton(self)
         self.desc_check_box = QtGui.QRadioButton(self)
-        spacerItem = QtGui.QSpacerItem(20, 0, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.layout = QtGui.QHBoxLayout(self)
         self.layout.addWidget(self.text)
-        self.layout.addItem(spacerItem)
         self.layout.addWidget(self.asc_check_box)
         self.layout.addWidget(self.desc_check_box)
+        self.layout.setSpacing(0)
         self.layout.setContentsMargins(4, 4, 4, 4)
         self.setLayout(self.layout)
 
-        defaultHLBackground = "#%02x%02x%02x" % self.palette().highlight().color().getRgb()[:3]
-        defaultHLText = "#%02x%02x%02x" % self.palette().highlightedText().color().getRgb()[:3]
+        self._triggerAction = lambda: self.action.activate(QtGui.QAction.ActionEvent.Trigger)
+        self.asc_check_box.toggled.connect(self._triggerAction)
+        self.desc_check_box.toggled.connect(self._triggerAction)
 
-        highlight = self.palette().highlight().color().name()
-        css = "QWidget:hover { background:%s; color: white;} QWidget { padding: 4px;}" % (highlight)
-        self.setStyleSheet(css)
+        # defaultHLBackground = "#%02x%02x%02x" % self.palette().highlight().color().getRgb()[:3]
+        # defaultHLText = "#%02x%02x%02x" % self.palette().highlightedText().color().getRgb()[:3]
+
+        # highlight = self.palette().highlight().color().name()
+        # css = "QWidget:hover { background:%s; color: white;} QWidget { padding: 4px;}" % (highlight)
+        # self.setStyleSheet(css)
 
         # self.setStyleSheet("QWidget:hover { selection-background-color:%s; color: %s;};" % (defaultHLBackground, defaultHLText))
 
-    def set_sort_dirction(self, direction):
+    def set_sort_direction(self, direction):
         if direction.lower() == "ascending":
             self.asc_check_box.setChecked(True)
         elif direction.lower() == "descending":
@@ -54,29 +62,34 @@ class SortFieldWidget( QtGui.QWidget ):
 
 class SortOptionWidget( QtGui.QWidget ):
 
-    def __init__(self, text, parent):
+    def __init__(self, text, action, parent):
         super(SortOptionWidget, self).__init__(parent)
+        self.action = action
 
-        self.state = QtGui.QRadioButton(self)
-        self.text = QtGui.QLabel(text, self)
-        self.options = QtGui.QPushButton("X", self)
+        self.state = QtGui.QRadioButton(text, self)
+        self.options = QtGui.QToolButton( self) #QtGui.QIcon(":/tk-multi-workfiles2/sorting_menu.png"),
+        self.options.setPopupMode(QtGui.QToolButton.InstantPopup)
+        self.options.setCheckable(True)
+
+        self.state.setSizePolicy( QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding ,QtGui.QSizePolicy.Minimum,))
+        self._triggerAction = lambda : self.action.activate(QtGui.QAction.ActionEvent.Trigger)
+        self.state.toggled.connect(self._triggerAction)
+        self.options.pressed.connect(self.on_options_pressed)
 
         self.layout = QtGui.QHBoxLayout(self)
         self.layout.addWidget(self.state)
-        self.layout.addWidget(self.text)
         self.layout.addWidget(self.options)
-        self.layout.setContentsMargins(4, 4, 4, 4)
+        self.layout.setSpacing(0)
+        self.layout.setContentsMargins(0, 0, 0, 0)
 
         highlight = self.palette().highlight().color().name()
-        css = "QWidget:hover { background:%s; color: white;} QWidget { padding: 4px;}" % (highlight)
-        self.setStyleSheet(css)
+        css = "QWidget { padding-left: 7; padding-right: 15; padding-top: 4; padding-bottom: 4;}"
+        self.state.setStyleSheet(css)
+        self.setStyleSheet("QWidget:hover { background: %s; color: white; }" % (highlight))
 
-        # defaultHLBackground = "#%02x%02x%02x" % self.palette().highlight().color().getRgb()[:3]
-        # defaultHLText = "#%02x%02x%02x" % self.palette().highlightedText().color().getRgb()[:3]
-        # self.setAutoFillBackground(True)
-        # self.setStyleSheet(
-        #     "QWidget:hover { selection-background-color:%s; color: %s;};" % (defaultHLBackground, defaultHLText))
-
+    def on_options_pressed(self):
+        self.state.setChecked(True)
+        # self._triggerAction()
 
 class MyTasksForm(EntityTreeForm):
     """
@@ -95,6 +108,7 @@ class MyTasksForm(EntityTreeForm):
         )
 
         sort_data = tasks_model.sort_data
+        self.tasks_model = tasks_model
         self.chosen_sort_option = 0
 
         if sort_data:
@@ -117,48 +131,62 @@ class MyTasksForm(EntityTreeForm):
             sort_options_menu = QtGui.QMenu(self._ui.sort_tbn)
             separator = QtGui.QWidgetAction(sort_options_menu)
             separator.setDefaultWidget(QtGui.QLabel("Presets:"))
-            # separator.setSeparator(True)
-            # separator.setEnabled(False)
+
             sort_options_menu.addAction(separator)
             sort_options_menu.triggered.connect(self._on_set_sort_option)
-            # sort_options_menu.hovered.connect(self._on_sort_option_hover)
 
             self._ui.sort_tbn.setMenu(sort_options_menu)
             self._sort_menu_lambdas = []
-            alignmentGroup = QtGui.QActionGroup(self)
+
+            # Create button group for all our action radio buttons to belong to
+            radioButtonGroup = QtGui.QButtonGroup(self)
 
             for n, sort_option in enumerate(sort_data):
 
                 sort_callable = lambda data=sort_option : self._set_sort_option(data)
                 self._sort_menu_lambdas.append(sort_callable)
 
-                sort_option_widget = SortOptionWidget(sort_option["name"], self)
+                # Create a QWidgetAction so that
+                action = QtGui.QWidgetAction( sort_options_menu )
 
-                action = QtGui.QWidgetAction( sort_options_menu)
-                # action = QtGui.QAction(sort_option["name"], sort_options_menu)
+                # Now create the custom widget
+                sort_option_widget = SortOptionWidget(sort_option["name"], action, sort_options_menu)
+
+                # the radio buttons are all in different widgets so here we group them under the same QButtonGroup
+                radioButtonGroup.addButton(sort_option_widget.state)
+
                 action.setCheckable(True)
                 if n == 0:
-                    action.setChecked(True)
-                action.setData(sort_option)
-                alignmentGroup.addAction(action)
+                    sort_option_widget.state.setChecked(True)
+                action.setData(sort_option['name'])
+
                 action.setDefaultWidget(sort_option_widget)
-                # action.triggered.connect(sort_callable)
+                action.triggered.connect(sort_callable)
                 sort_options_menu.addAction(action)
 
-                # sort_fields_menu = QtGui.QMenu(self._ui.sort_tbn)
-                # # sort_fields_menu.triggered.connect(self._set_sort_option_test)
-                # action.setMenu(sort_fields_menu)
-                #
-                # # now loop over the fields and create a sub menu for them to all direction change.
-                # for sort_field in sort_option["sort_fields"]:
-                #     # sort_field_widget = SortFieldWidget(sort_field["field_name"], self)
-                #     # sort_field_widget.set_sort_dirction(sort_field.get("direction","ascending"))
-                #
-                #     # field_action = QtGui.QWidgetAction(sort_fields_menu)
-                #     # field_action.setDefaultWidget(sort_field_widget)
-                #     field_action = QtGui.QAction(sort_field["field_name"], sort_fields_menu)
-                #     sort_fields_menu.addAction(field_action)
+                # fields
+                sort_fields_menu = QtGui.QMenu(sort_option_widget.options)
+                sort_option_widget.options.setMenu(sort_fields_menu)
+                sort_fields_menu.triggered.connect(self._on_change_sort_direction)
 
+                # now loop over the fields and create a sub menu for them to all direction change.
+                for sort_field in sort_option["sort_fields"]:
+                    field_action = QtGui.QWidgetAction(sort_fields_menu)
+
+                    sort_field_widget = SortFieldWidget(sort_field["field_name"], field_action, self)
+                    sort_field_widget.set_sort_direction(sort_field.get("direction", "ascending"))
+
+                    field_action.setDefaultWidget(sort_field_widget)
+
+                    data = {
+                        "field_name": sort_field["field_name"],
+                        "sort_option_name": sort_option["name"],
+                    }
+
+                    field_action.setData(data)
+
+                    # field_action = QtGui.QAction(sort_field["field_name"], sort_fields_menu)
+                    sort_fields_menu.addAction(field_action)
 
             monitor_qobject_lifetime(self.sort_model, "My Tasks Sort model")
             self.sort_model.setSourceModel(tasks_model)
@@ -177,8 +205,6 @@ class MyTasksForm(EntityTreeForm):
         monitor_qobject_lifetime(self._item_delegate)
         self._ui.entity_tree.setItemDelegate(self._item_delegate)
 
-
-
     def shut_down(self):
         """
         Clean up as much as we can to help the gc once the widget is finished with.
@@ -195,41 +221,64 @@ class MyTasksForm(EntityTreeForm):
         finally:
             self.blockSignals(signals_blocked)
 
-    def _on_sort_option_hover(self, action):
-        print "here"
+    def _get_sort_option(self, sort_option_name):
+        """
+        This method returns the sort option data from the task model for the given sort option name (preset name.)
 
-        if self._highlighted_action == action:
-            return
-        else:
-            if self._sort_fields_menu is not None:
-                self._sort_fields_menu.close()
+        :param sort_option_name: The name of the sort option preset to retrieve the data for
+        :return: dict - containing the sort_option data
+        """
+        return next( (sort_option for sort_option in self.tasks_model.sort_data
+                      if sort_option['name'] == sort_option_name), None)
 
-            self._highlighted_action = action
+    def _on_change_sort_direction(self, action):
+        """
+        This will be called when the sort option field has its sort direction changed. It update the sort_data on the
+        task_model with the new direction for the field and then trigger the sorting to be reevaluated.
 
-            sort_option = action.data()
+        :param action: QWidgetAction - for the field action
+        :return: None
+        """
+        # The action should have the sort option name and field name stored in a dictionary on the action data.
+        # as defined when the menu gets built
+        data = action.data()
 
-            # self._sort_fields_menu = QtGui.QMenu(action.menu())
-            # self._sort_fields_menu.setAttribute(QtCore.Qt.WA_ShowWithoutActivating)
-            # self._sort_fields_menu.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint)
-            # # self._sort_fields_menu.triggered.connect(self._set_sort_option_test)
-            # # action.setMenu(self._sort_fields_menu)
-            #
-            # # now loop over the fields and create a sub menu for them to all direction change.
-            # for sort_field in sort_option["sort_fields"]:
-            #     sort_field_widget = SortFieldWidget(sort_field["field_name"], self)
-            #     sort_field_widget.set_sort_dirction(sort_field.get("direction","ascending"))
-            #
-            #     field_action = QtGui.QWidgetAction(self._sort_fields_menu)
-            #     field_action.setDefaultWidget(sort_field_widget)
-            #     self._sort_fields_menu.addAction(field_action)
-            #
-            # self._sort_fields_menu.show()
+        # get the specific sort option data from the task model
+        sort_option = self._get_sort_option(data["sort_option_name"])
+        field_name = data["field_name"]
 
+        for num, field_data in enumerate(sort_option['sort_fields']):
+            if field_data['field_name'] != field_name:
+                continue
+
+            # update the sort model field's direction
+            if action.defaultWidget().asc_check_box.isChecked():
+                sort_option["sort_fields"][num]["direction"] = "Ascending"
+            else:
+                sort_option["sort_fields"][num]["direction"] = "Descending"
+            break
+
+        # trigger a resort
+        self._set_sort_option(sort_option)
 
     def _on_set_sort_option(self, action):
-        self._set_sort_option(action.data())
+        """
+        This method is called by the current sort option preset being changed. This will then trigger a resorting
+        of the menu based on the action representing the preset that triggered it.
+        :param action: QActionWidget - for the sort option preset
+        :return: None
+        """
+        # gather the sort data from the action and then call the _set_sort_option method to apply to the model
+        sort_option = self._get_sort_option(action.data())
+        self._set_sort_option(sort_option)
 
     def _set_sort_option(self, sort_option):
+        """
+        When passed a sort option it updates the sort model to sort by the new parameters
+        :param sort_option: dict - The sort option data for a specific preset from the task model
+        :return: None
+        """
+
         sort_fields = sort_option['sort_fields']
         self.sort_model.primary_sort_field = sort_fields[0]
 
@@ -239,4 +288,5 @@ class MyTasksForm(EntityTreeForm):
             self.sort_model.sort_by_fields = []
 
         self._ui.sort_tbn.setText("Sort By: %s" % (sort_option["name"]))
+        # now trigger a resort in the UI
         self.sort_model.invalidate()

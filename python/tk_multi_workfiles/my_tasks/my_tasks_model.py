@@ -47,8 +47,9 @@ class MyTasksModel(ShotgunExtendedEntityModel):
         fields = ["image", "entity", "content"]
         fields.extend(self.extra_display_fields)
 
+        # There maybe additional fields required by the sorting configuration the we need to pull down
+        # So gather these from the sort options
         sort_fields = [sort_field['field_name'] for sort_option in sort_data for sort_field in sort_option['sort_fields']]
-        # gather all potential fields used for sorting
         fields.extend(sort_fields)
 
         ShotgunExtendedEntityModel.__init__(

@@ -88,7 +88,7 @@ class FileListItemDelegate(GroupedListViewItemDelegate):
             widget.set_is_editable(is_editable)
 
         elif item_type == FileModel.FOLDER_NODE_TYPE:
-            # get the lavel from the index and use the default folder icon
+            # get the label from the index and use the default folder icon
             label = get_model_str(model_index)
             icon = self._folder_icon
         else:
