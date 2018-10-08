@@ -64,6 +64,16 @@ class MyTasksModel(ShotgunExtendedEntityModel):
             bg_task_manager=bg_task_manager
         )
 
+        # Add the display names for the sort fields to the sort data
+        for sort_preset in self.sort_data:
+            for sort_field in sort_preset["sort_fields"]:
+                display_name = self._shotgun_globals.get_field_display_name( "Task",
+                                                                             sort_field["field_name"],
+                                                                             project_id=project['id'])
+                sort_field['display_name'] = display_name
+
+
+
     def _populate_default_thumbnail(self, item):
         """
         Override base class method as we don't need the default thumbnail that it

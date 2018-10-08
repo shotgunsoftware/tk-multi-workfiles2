@@ -27,23 +27,28 @@ class SortFieldWidget( QtGui.QWidget ):
         self.action = action
 
         self.setAutoFillBackground(True)
-        self.text = QtGui.QLabel(text, self)
+        self.text = QtGui.QPushButton(text, self)
+        self.text.setFlat(True)
         self.text.setSizePolicy(QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum, ))
-        self.text.setMinimumHeight(32)
-        self.text.setStyleSheet("padding-left: 7; padding-right: 15;")
+        # self.text.setMinimumHeight(32)
+        css = "padding-left: 7; padding-right: 15; padding-top: 4; padding-bottom: 4; Text-align: left; border: 0px;"
+        self.text.setStyleSheet(css)
         self.asc_check_box = QtGui.QRadioButton(self)
         self.desc_check_box = QtGui.QRadioButton(self)
+        self.asc_check_box.setStyleSheet("padding-left: 4; padding-right: 4; padding-top: 4; padding-bottom: 4;")
+        self.desc_check_box.setStyleSheet("padding-left: 4; padding-right: 4; padding-top: 4; padding-bottom: 4;")
         self.layout = QtGui.QHBoxLayout(self)
         self.layout.addWidget(self.text)
         self.layout.addWidget(self.asc_check_box)
         self.layout.addWidget(self.desc_check_box)
         self.layout.setSpacing(0)
-        self.layout.setContentsMargins(4, 4, 4, 4)
+        self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
 
         self._triggerAction = lambda: self.action.activate(QtGui.QAction.ActionEvent.Trigger)
         self.asc_check_box.toggled.connect(self._triggerAction)
         self.desc_check_box.toggled.connect(self._triggerAction)
+        self.text.pressed.connect(self._swap_direction)
 
         # defaultHLBackground = "#%02x%02x%02x" % self.palette().highlight().color().getRgb()[:3]
         # defaultHLText = "#%02x%02x%02x" % self.palette().highlightedText().color().getRgb()[:3]
@@ -53,6 +58,12 @@ class SortFieldWidget( QtGui.QWidget ):
         # self.setStyleSheet(css)
 
         # self.setStyleSheet("QWidget:hover { selection-background-color:%s; color: %s;};" % (defaultHLBackground, defaultHLText))
+
+    def _swap_direction(self):
+        if self.asc_check_box.isChecked():
+            self.desc_check_box.setChecked(True)
+        else:
+            self.asc_check_box.setChecked(True)
 
     def set_sort_direction(self, direction):
         if direction.lower() == "ascending":
@@ -74,7 +85,9 @@ class SortOptionWidget( QtGui.QWidget ):
         self.state.setSizePolicy( QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding ,QtGui.QSizePolicy.Minimum,))
         self._triggerAction = lambda : self.action.activate(QtGui.QAction.ActionEvent.Trigger)
         self.state.toggled.connect(self._triggerAction)
-        self.options.pressed.connect(self.on_options_pressed)
+        # we are monkey patching the mousePressEvent so that we can capture when the button is pressed without waiting
+        # for the menu to close. The pressed signal only gets called once the menu is closed.
+        self.options.mousePressEvent = self.sort_options_mouse_event
 
         self.layout = QtGui.QHBoxLayout(self)
         self.layout.addWidget(self.state)
@@ -87,9 +100,11 @@ class SortOptionWidget( QtGui.QWidget ):
         self.state.setStyleSheet(css)
         self.setStyleSheet("QWidget:hover { background: %s; color: white; }" % (highlight))
 
-    def on_options_pressed(self):
+    def sort_options_mouse_event(self, event):
         self.state.setChecked(True)
-        # self._triggerAction()
+        # Call the base class's implementation of the mousePressEvent
+        QtGui.QToolButton.mousePressEvent(self.options, event)
+
 
 class MyTasksForm(EntityTreeForm):
     """
@@ -147,22 +162,22 @@ class MyTasksForm(EntityTreeForm):
                 self._sort_menu_lambdas.append(sort_callable)
 
                 # Create a QWidgetAction so that
-                action = QtGui.QWidgetAction( sort_options_menu )
+                sort_option_action = QtGui.QWidgetAction( sort_options_menu )
 
                 # Now create the custom widget
-                sort_option_widget = SortOptionWidget(sort_option["name"], action, sort_options_menu)
+                sort_option_widget = SortOptionWidget(sort_option["name"], sort_option_action, sort_options_menu)
 
                 # the radio buttons are all in different widgets so here we group them under the same QButtonGroup
                 radioButtonGroup.addButton(sort_option_widget.state)
 
-                action.setCheckable(True)
+                sort_option_action.setCheckable(True)
                 if n == 0:
                     sort_option_widget.state.setChecked(True)
-                action.setData(sort_option['name'])
 
-                action.setDefaultWidget(sort_option_widget)
-                action.triggered.connect(sort_callable)
-                sort_options_menu.addAction(action)
+                sort_option_action.setData(sort_option['name'])
+                sort_option_action.setDefaultWidget(sort_option_widget)
+                sort_option_action.triggered.connect(sort_callable)
+                sort_options_menu.addAction(sort_option_action)
 
                 # fields
                 sort_fields_menu = QtGui.QMenu(sort_option_widget.options)
@@ -173,7 +188,7 @@ class MyTasksForm(EntityTreeForm):
                 for sort_field in sort_option["sort_fields"]:
                     field_action = QtGui.QWidgetAction(sort_fields_menu)
 
-                    sort_field_widget = SortFieldWidget(sort_field["field_name"], field_action, self)
+                    sort_field_widget = SortFieldWidget(sort_field["display_name"], field_action, sort_option_widget)
                     sort_field_widget.set_sort_direction(sort_field.get("direction", "ascending"))
 
                     field_action.setDefaultWidget(sort_field_widget)
