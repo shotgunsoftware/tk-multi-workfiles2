@@ -158,7 +158,7 @@ configuration:
     show_my_tasks:
         type: bool
         description: Define if the My Tasks view should be visible or not.
-        default_value: False
+        default_value: True
         default_value_tk-hiero: False
 
     auto_expand_tree:
