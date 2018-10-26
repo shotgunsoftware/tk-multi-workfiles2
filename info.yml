@@ -91,7 +91,7 @@ configuration:
 
     hook_workfiles_management:
         type: hook
-        default_Value: "{self}/workfiles_management.py"
+        default_value: "{self}/workfiles_management.py"
         description: Hook that allows to take over workfiles discovery and tracking.
 
     # General preferences
@@ -158,7 +158,7 @@ configuration:
     show_my_tasks:
         type: bool
         description: Define if the My Tasks view should be visible or not.
-        default_value: True
+        default_value: False
         default_value_tk-hiero: False
 
     auto_expand_tree:

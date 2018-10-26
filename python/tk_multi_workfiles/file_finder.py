@@ -169,8 +169,7 @@ class FileFinder(QtCore.QObject):
         # Find and process all work files
         filted_work_files = self._find_and_filter_work_files(
             context, work_template,
-            version_compare_ignore_fields, valid_file_extensions,
-            name_map, filter_file_key
+            version_compare_ignore_fields, valid_file_extensions
         )
         work_file_item_details = self._process_work_files(
             filted_work_files,
@@ -214,8 +213,7 @@ class FileFinder(QtCore.QObject):
     def _find_and_filter_work_files(
         self,
         context, work_template,
-        version_compare_ignore_fields, valid_file_extensions,
-        name_map, filter_file_key
+        version_compare_ignore_fields, valid_file_extensions
     ):
         if self._app.workfiles_management.is_implemented():
             return self._app.workfiles_management.find_work_files(
@@ -1020,12 +1018,11 @@ class AsyncFileFinder(FileFinder):
         work_files = []
         if (environment and environment.context and environment.work_template):
             work_files = self._find_and_filter_work_files(
-                environment.context,
-                environment.work_template,
-                environment.version_compare_ignore_fields
+                environment.context, environment.work_template,
+                environment.version_compare_ignore_fields,
+                environment.valid_file_extensions
             )
         return {"work_files": work_files}
-
 
     def _task_filter_work_files(self, work_files, environment, **kwargs):
         """

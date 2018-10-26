@@ -752,7 +752,8 @@ class FileSaveForm(FileFormBase):
             return
 
         # construct a temporary file item:
-        file_item = FileItem(key=None, is_work_file=True, work_path=path_to_save)
+        # FIXME: This needs to be filled with comments and thumbnail as well.
+        file_item = FileItem(key=None, is_work_file=True, work_path=path_to_save, work_details={"version": version})
 
         # Build and execute the save action:
         action = SaveAsFileAction(file_item, self._current_env)

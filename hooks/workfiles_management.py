@@ -14,22 +14,55 @@ Abstract outs the discovery of files on disk.
 
 import os
 
-from sgtk import get_hook_baseclass
+import sgtk
 
 
-class WorkfilesManagement(get_hook_baseclass()):
+class WorkfilesManagement(sgtk.get_hook_baseclass()):
 
     WORKFILE_ENTITY = "CustomEntity45"
 
     def is_implemented(self):
-        return False
+        return True
 
-    def _get_filter_from_context(self, context):
+    def register_workfile(self, name, version, context, work_template, path, description, image):
 
-        # Create a filter for the context. Do not bother creating a super complex filter.
-        # If task is set then every other field is implied.
+        # FIXME: Big giant smelly hack. Do not do this!!!
+        # We need to refactor in core the logic that allows to turn a templated path into a
+        # file reference. Here we'll use the code from create publish and run it in dry-run mode.
+        # The method returns the new published data
+        sg_path = sgtk.util.shotgun.publish_creation._create_published_file(
+            context.sgtk,
+            context,
+            path,
+            name,
+            version,
+            None,
+            comment="",
+            published_file_type=None,
+            created_by_user=None,
+            created_at=None,
+            version_entity=None,
+            dry_run=True
+        )["path"]
+
+        self.parent.shotgun.create(
+            self.WORKFILE_ENTITY,
+            {
+                "code": name,
+                "sg_version": version,
+                "sg_task": context.task,
+                "sg_step": context.step,
+                "sg_link": context.entity or context.project,
+                "sg_template": work_template.name,
+                "sg_path": sg_path,
+                "project": context.project
+            }
+        )
+
+    def find_work_files(self, context, work_template, version_compare_ignore_fields, valid_file_extensions):
+
         if context.task:
-            filters = [["sg_step", "is", context.task]]
+            filters = [["sg_task", "is", context.task]]
         elif context.step:
             filters = [
                 ["sg_link", "is", context.entity or context.project],
@@ -40,30 +73,14 @@ class WorkfilesManagement(get_hook_baseclass()):
         else:
             filters = [["entity", "is", context.project]]
 
-        return filters
+        filters.append(["sg_template", "is", work_template.name])
 
-    def register_workfiles(self, name, version, context, work_template, path, description, image):
-        self.parent.shotgun.create(
-            self.WORKFILE_ENTITY,
-            {
-                "code": name,
-                "sg_version": version,
-                "sg_task": context.task,
-                "sg_step": context.step,
-                "sg_link": context.entity or context.project,
-                "sg_work_template": work_template.name,
-                "sg_path": path,
-                "project": context.project
-            }
-        )
+        print filters
 
-    def find_work_files(self, context, work_template, version_compare_ignore_fields, valid_file_extensions):
         work_files = self.parent.shotgun.find(
             self.WORKFILE_ENTITY,
-            self._get_filter_from_context(context).extend(
-                ["sg_work_template", "is", work_template.name]
-            ),
-            [
+            filters,
+            fields=[
                 "code", "description", "image",
                 "updated_at", "updated_by",
                 "sg_version", "sg_link", "sg_step", "sg_task",
@@ -71,10 +88,18 @@ class WorkfilesManagement(get_hook_baseclass()):
             ]
         )
 
+        print work_files
+
         work_file_item_details = []
         for wf in work_files:
-            print(wf)
-            path = self.get_publish_path(wf["sg_path"])
+
+            # FIXME: Big smelly hack. We'll reuse the logic for resolving paths from publishes.
+            fake_sg_publish_data = {
+                "id": wf["id"],
+                "path": wf["sg_path"]
+            }
+
+            path = self.get_publish_path(fake_sg_publish_data)
 
             # skip file if it doesn't contain a valid file extension:
             if valid_file_extensions and os.path.splitext(path)[1] not in valid_file_extensions:

@@ -72,7 +72,7 @@ class MultiWorkFiles(sgtk.platform.Application):
         )
 
         self.workfiles_management = self.create_hook_instance(
-            self.get_setting("workfiles_management")
+            self.get_setting("hook_workfiles_management")
         )
 
         # Process auto startup options - but only on certain supported platforms
