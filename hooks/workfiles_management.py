@@ -20,11 +20,33 @@ import sgtk
 class WorkfilesManagement(sgtk.get_hook_baseclass()):
 
     WORKFILE_ENTITY = "CustomEntity45"
+    # The custom entity has the following custom fields:
+    # sg_version (number): version number of the scene
+    # sg_task (task entity): task associated with the work file
+    # sg_step (step entity): step associated with the work file
+    # sg_link (asset, project or shot entity): entity associated with the work file
+    # sg_template (text): Name of the Toolkit template used to generate the file name.
+    # sg_path (file/link): Path to the file on disk.
 
     def is_implemented(self):
+        """
+        When this methods true, the workfiles application will use this hook for file discovery.
+        """
         return True
 
     def register_workfile(self, name, version, context, work_template, path, description, image):
+        """
+        Registers a work file with Shotgun.
+
+        :param name str: Name of the work file.
+        :param int version: Version of the work file.
+        :param context: Context we're saving into.
+        :type context: :class:`sgtk.Context`
+        :param work_template: Template associated with this work file.
+        :type work_template: :class:`sgtk.Template`
+        :param str path: Path to the file on disk.
+        :param str image: Path to the image associated with the work file.
+        """
 
         # FIXME: Big giant smelly hack. Do not do this!!!
         # We need to refactor in core the logic that allows to turn a templated path into a
@@ -60,7 +82,34 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
         )
 
     def find_work_files(self, context, work_template, version_compare_ignore_fields, valid_file_extensions):
+        """
+        Finds all the work files for a given context.
 
+        :param context: Context for the files.
+        :type context: :class:`sgtk.Context`
+        :param work_template: Template used to search for files.
+        :type work_template: :class:`sgtk.Template`
+        :param list(str) version_compare_ignore_fields: A list of fields that should be ignored when
+            comparing files to determine if they are different versions of the same file. If
+            this is left empty then only the version field will be ignored. Care should be taken
+            when specifying fields to ignore as Toolkit will expect the version to be unique across
+            files that have different values for those fields and will error if this isn't the case.
+        :param list(str) valid_file_extensions: List of valid file extension types.
+
+        :returns: A list work file item. Each item has the following format::
+            {
+                "name": "something",
+                "version": 42,
+                "task": {"type": "Task", "id": 38},
+                "path": "/path/to/the/file.dcc",
+                "description": "something descriptive",
+                "thumbnail": {"type": "url", "path": "https://site.com/b/c/.png"}
+                "modified_at": datetime.datetime(2018, 9, 26),
+                "modified_by": {"type": "HumanUser", "id": 343}
+            }
+        """
+
+        # Build out a filter to return the requested files.
         if context.task:
             filters = [["sg_task", "is", context.task]]
         elif context.step:
@@ -75,8 +124,6 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
 
         filters.append(["sg_template", "is", work_template.name])
 
-        print filters
-
         work_files = self.parent.shotgun.find(
             self.WORKFILE_ENTITY,
             filters,
@@ -87,8 +134,6 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
                 "sg_path"
             ]
         )
-
-        print work_files
 
         work_file_item_details = []
         for wf in work_files:
@@ -106,10 +151,10 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
                 continue
 
             work_file_item_details.append({
-                "path": path,
                 "version": wf["sg_version"],
                 "name": wf["code"],
                 "task": wf["sg_task"],
+                "path": path,
                 "description": wf["description"],
                 "thumbnail": wf["image"],
                 "modified_at": wf["updated_at"],
