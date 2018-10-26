@@ -14,7 +14,6 @@ Provides File Open/Save functionality for Work Files
 """
 
 import os
-
 import sgtk
 
 
@@ -70,6 +69,10 @@ class MultiWorkFiles(sgtk.platform.Application):
                     }
                 }
             }
+        )
+
+        self.workfiles_management = self.create_hook_instance(
+            self.get_setting("workfiles_management")
         )
 
         # Process auto startup options - but only on certain supported platforms

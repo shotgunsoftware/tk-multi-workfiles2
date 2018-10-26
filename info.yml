@@ -89,6 +89,11 @@ configuration:
         description: Specify a hook that will create the task and do any input validation that is
                      required.
 
+    hook_workfiles_management:
+        type: hook
+        default_Value: "{self}/workfiles_management.py"
+        description: Hook that allows to take over workfiles discovery and tracking.
+
     # General preferences
     #
     entities:

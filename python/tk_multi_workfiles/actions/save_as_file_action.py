@@ -12,6 +12,7 @@
 """
 import os
 from sgtk.platform.qt import QtCore, QtGui
+import sgtk
 
 from .file_action import FileAction
 from ..scene_operation import save_file, SAVE_FILE_AS_ACTION
@@ -28,7 +29,7 @@ class SaveAsFileAction(FileAction):
         """
         """
         if (not self.file or not self.file.path 
-            or not self.environment or not self.environment.context):
+        or not self.environment or not self.environment.context):
             return False
 
         # switch context:
@@ -47,6 +48,9 @@ class SaveAsFileAction(FileAction):
         # and save the current file as the new path:
         try:
             save_file(self._app, SAVE_FILE_AS_ACTION, self.environment.context, self.file.path)
+            sgtk.platform.current_bundle().workfiles_management.register_workfile(
+                self.environment.context, self.environment.context, self.file.path
+            )
         except Exception, e:
             QtGui.QMessageBox.critical(None, "Failed to save file!", "Failed to save file:\n\n%s" % e)
             self._app.log_exception("Failed to save file!")

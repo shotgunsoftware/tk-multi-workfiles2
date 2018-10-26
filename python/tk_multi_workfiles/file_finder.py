@@ -162,34 +162,40 @@ class FileFinder(QtCore.QObject):
                                  for ext in self._app.get_setting("file_extensions", [])]
         
         # get list of fields that should be ignored when comparing work files:
-        version_compare_ignore_fields = self._app.get_setting("version_compare_ignore_fields", [])    
+        version_compare_ignore_fields = self._app.get_setting("version_compare_ignore_fields", [])
 
-        # find all work & publish files and filter out any that should be ignored:
-        work_files = self._find_work_files(context, work_template, version_compare_ignore_fields)
-        filtered_work_files = self._filter_work_files(work_files, valid_file_extensions)
-        
-        published_files = self._find_publishes(publish_filters)
-        filtered_published_files = self._filter_publishes(published_files, 
-                                                          publish_template, 
-                                                          valid_file_extensions)
-        
-        # turn these into FileItem instances:
         name_map = FileFinder._FileNameMap()
-        work_file_item_details = self._process_work_files(filtered_work_files, 
-                                                        work_template, 
-                                                        context, 
-                                                        name_map, 
-                                                        version_compare_ignore_fields, 
-                                                        filter_file_key)
+
+        # Find and process all work files
+        filted_work_files = self._find_and_filter_work_files(
+            context, work_template,
+            version_compare_ignore_fields, valid_file_extensions,
+            name_map, filter_file_key
+        )
+        work_file_item_details = self._process_work_files(
+            filted_work_files,
+            work_template,
+            context,
+            name_map,
+            version_compare_ignore_fields,
+            filter_file_key
+        )
         work_file_items = dict([(k, FileItem(**kwargs)) for k, kwargs in work_file_item_details.iteritems()])
 
-        publish_item_details = self._process_publish_files(filtered_published_files, 
-                                                         publish_template, 
-                                                         work_template, 
-                                                         context, 
-                                                         name_map, 
-                                                         version_compare_ignore_fields,
-                                                         filter_file_key)
+        # Find and process all publish files.
+        published_files = self._find_publishes(publish_filters)
+        filtered_published_files = self._filter_publishes(published_files,
+                                                          publish_template,
+                                                          valid_file_extensions)
+        publish_item_details = self._process_publish_files(
+            filtered_published_files,
+            publish_template,
+            work_template,
+            context,
+            name_map,
+            version_compare_ignore_fields,
+            filter_file_key
+        )
         publish_items = dict([(k, FileItem(**kwargs)) for k, kwargs in publish_item_details.iteritems()])
 
         # and aggregate the results:
@@ -204,6 +210,20 @@ class FileFinder(QtCore.QObject):
             work_file.update_from_publish(publish)
 
         return file_items
+
+    def _find_and_filter_work_files(
+        self,
+        context, work_template,
+        version_compare_ignore_fields, valid_file_extensions,
+        name_map, filter_file_key
+    ):
+        if self._app.workfiles_management.is_implemented():
+            return self._app.workfiles_management.find_work_files(
+                context, work_template, version_compare_ignore_fields, valid_file_extensions
+            )
+        else:
+            work_files = self._find_work_files(context, work_template, version_compare_ignore_fields)
+            return self._filter_work_files(work_files, valid_file_extensions)
 
     def _process_work_files(self, work_files, work_template, context, name_map, version_compare_ignore_fields, 
                           filter_file_key=None):
@@ -230,7 +250,6 @@ class FileFinder(QtCore.QObject):
             # get fields for work file:
             wf_fields = work_template.get_fields(work_path)
             wf_ctx = None
-
 
             # Build the unique file key for the work path.
             # All files that share the same key are considered
@@ -713,24 +732,31 @@ class AsyncFileFinder(FileFinder):
             user_work_area = work_area.create_copy_for_user(user) if user else work_area
             search.user_work_areas[user_id] = user_work_area
 
-            # find work files:
-            find_work_files_task = self._bg_task_manager.add_task(self._task_find_work_files, 
-                                                                  group=search.id,
-                                                                  priority=AsyncFileFinder._FIND_FILES_PRIORITY,
-                                                                  task_kwargs = {"environment":user_work_area})
+            if self._app.workfiles_management.is_implemented():
+                previous_work_file_task = self._bg_task_manager.add_task(
+                    self._task_find_and_filter_work_files,
+                    group=search.id,
+                    priority=AsyncFileFinder._FIND_FILES_PRIORITY,
+                    task_kwargs={"environment": user_work_area})
+            else:
+                # find work files:
+                previous_work_file_task = self._bg_task_manager.add_task(self._task_find_work_files,
+                                                                      group=search.id,
+                                                                      priority=AsyncFileFinder._FIND_FILES_PRIORITY,
+                                                                      task_kwargs = {"environment":user_work_area})
 
-            # filter work files:
-            filter_work_files_task = self._bg_task_manager.add_task(self._task_filter_work_files,
-                                                                    group=search.id,
-                                                                    priority=AsyncFileFinder._FIND_FILES_PRIORITY,
-                                                                    upstream_task_ids = [find_work_files_task],
-                                                                    task_kwargs = {"environment":user_work_area})
+                # filter work files:
+                previous_work_file_task = self._bg_task_manager.add_task(self._task_filter_work_files,
+                                                                        group=search.id,
+                                                                        priority=AsyncFileFinder._FIND_FILES_PRIORITY,
+                                                                        upstream_task_ids = [previous_work_file_task],
+                                                                        task_kwargs = {"environment":user_work_area})
 
             # build work items:
             process_work_items_task = self._bg_task_manager.add_task(self._task_process_work_items,
                                                                      group=search.id, 
                                                                      priority=AsyncFileFinder._FIND_FILES_PRIORITY,
-                                                                     upstream_task_ids = [filter_work_files_task],
+                                                                     upstream_task_ids = [previous_work_file_task],
                                                                      task_kwargs = {"environment":user_work_area,
                                                                                     "name_map":search.name_map})
             search.find_work_files_tasks.add(process_work_items_task)
@@ -987,6 +1013,18 @@ class AsyncFileFinder(FileFinder):
                                                environment.work_template, 
                                                environment.version_compare_ignore_fields)
         return {"work_files":work_files}
+
+    def _task_find_and_filter_work_files(self, environment, **kwargs):
+        """
+        """
+        work_files = []
+        if (environment and environment.context and environment.work_template):
+            work_files = self._find_and_filter_work_files(
+                environment.context,
+                environment.work_template,
+                environment.version_compare_ignore_fields
+            )
+        return {"work_files": work_files}
 
 
     def _task_filter_work_files(self, work_files, environment, **kwargs):
