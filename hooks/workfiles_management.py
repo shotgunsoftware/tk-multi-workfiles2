@@ -27,6 +27,10 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
     # sg_link (asset, project or shot entity): entity associated with the work file
     # sg_template (text): Name of the Toolkit template used to generate the file name.
     # sg_path (file/link): Path to the file on disk.
+    # sg_path_cache (str): Relative path to the file inside the local storage.
+    # sg_path_cache_storage (local storage entity): LocalStorage the file is part of. This can't
+    #   be created through the GUI, but can be programmatically:
+    #   shotgun.schema_field_create("CustomEntity45", "entity", "Path Cache Storage", {"valid_types": ["LocalStorage"]})
 
     def is_implemented(self):
         """
@@ -67,18 +71,24 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
             dry_run=True
         )["path"]
 
+        new_workfile = {
+            "code": name,
+            "sg_version": version,
+            "sg_task": context.task,
+            "sg_step": context.step,
+            "sg_link": context.entity or context.project,
+            "sg_template": work_template.name,
+            "sg_path": sg_path,
+            "project": context.project
+        }
+
+        if "local_storage" in sg_path and "relative_path" in sg_path:
+            new_workfile["sg_path_cache_storage"] = sg_path["local_storage"]
+            new_workfile["sg_path_cache"] = sg_path["relative_path"]
+
         self.parent.shotgun.create(
             self.WORKFILE_ENTITY,
-            {
-                "code": name,
-                "sg_version": version,
-                "sg_task": context.task,
-                "sg_step": context.step,
-                "sg_link": context.entity or context.project,
-                "sg_template": work_template.name,
-                "sg_path": sg_path,
-                "project": context.project
-            }
+            new_workfile
         )
 
     def find_work_files(self, context, work_template, version_compare_ignore_fields, valid_file_extensions):
