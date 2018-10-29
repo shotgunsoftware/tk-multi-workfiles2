@@ -731,6 +731,9 @@ class AsyncFileFinder(FileFinder):
             search.user_work_areas[user_id] = user_work_area
 
             if self._app.workfiles_management.is_implemented():
+                # find and filter work files. The hook does these two steps in a single call.
+                # we could arguably break it into two tasks, but I'm not sure
+                # what benefit there would be. The filtering is 100% processing only and no file io.
                 previous_work_file_task = self._bg_task_manager.add_task(
                     self._task_find_and_filter_work_files,
                     group=search.id,
@@ -1014,6 +1017,10 @@ class AsyncFileFinder(FileFinder):
 
     def _task_find_and_filter_work_files(self, environment, **kwargs):
         """
+        Background task that finds and filters available work files.
+
+        :param environment: Environment for which we'll want to scan for files.
+        :type environment: :class:`tk_multi_workfiles2.Environment`
         """
         work_files = []
         if (environment and environment.context and environment.work_template):
