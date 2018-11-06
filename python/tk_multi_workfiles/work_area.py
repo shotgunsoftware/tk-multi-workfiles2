@@ -180,7 +180,7 @@ class WorkArea(object):
         :returns: List of users inside the work area sandboxes.
         """
         if self._work_template_contains_user:
-            return self._resolve_user_sandboxes(self.work_template)
+            return self._resolve_user_sandboxes(self.work_template, is_work_template=True)
         else:
             return []
 
@@ -212,7 +212,7 @@ class WorkArea(object):
         """
         Caches internally the list of user sandboxes.
         """
-        self._resolve_user_sandboxes(self.work_template)
+        self._resolve_user_sandboxes(self.work_template, is_work_template=True)
         self._resolve_user_sandboxes(self.publish_template)
 
     # ------------------------------------------------------------------------------------------
@@ -389,7 +389,7 @@ class WorkArea(object):
 
         return None
 
-    def _resolve_user_sandboxes(self, template):
+    def _resolve_user_sandboxes(self, template, is_work_template=False):
         """
         Resolves user sandboxes on disk for a given template. Caches the result.
 
@@ -401,19 +401,32 @@ class WorkArea(object):
             # don't have enough information to resolve users!
             return []
 
-        # find all 'user' keys in the template:
-        user_keys = get_template_user_keys(template)
-        if not user_keys:
-            # this template doesn't contain user keys!
-            return []
-
         users = self._sandbox_users.get(template.definition)
         if users is not None:
             # already resolved users!
             return users
 
         # update cache:
-        self._sandbox_users[template.definition] = []
+
+        if sgtk.platform.current_bundle().workfiles_management.is_implemented():
+            user_list = sgtk.platform.current_bundle().workfiles_management.resolve_user_sandboxes(
+                self.context, template
+            )
+        else:
+            user_list = self._resolve_user_sandboxes_from_files(template)
+
+        # look these up in the user cache:
+        users = g_user_cache.get_user_details_for_ids(set([user["id"] for user in user_list])).values()
+        self._sandbox_users[template.definition] = users
+        return users
+
+    def _resolve_user_sandboxes_from_files(self, template):
+
+        # find all 'user' keys in the template:
+        user_keys = get_template_user_keys(template)
+        if not user_keys:
+            # this template doesn't contain user keys!
+            return []
 
         # find shortest template that contains one of the user keys:
         # (AD) - this might need to be extended to cope with optional
@@ -454,17 +467,13 @@ class WorkArea(object):
         paths = app.sgtk.paths_from_template(search_template, ctx_fields, user_keys)
 
         # split out users from the list of paths:
-        user_ids = set()
+        users = set()
         for path in paths:
             # to find the user, we have to construct a context
             # from the path and then inspect the user from this
             path_ctx = app.sgtk.context_from_path(path)
             user = path_ctx.user
-            if user: 
-                user_ids.add(user["id"])
+            if user:
+                users.add(user)
 
-        # look these up in the user cache:
-        users = g_user_cache.get_user_details_for_ids(user_ids).values()
-        self._sandbox_users[template.definition] = users
         return users
-

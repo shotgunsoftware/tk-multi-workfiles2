@@ -25,6 +25,7 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
     # sg_task (task entity): task associated with the work file
     # sg_step (step entity): step associated with the work file
     # sg_link (asset, project or shot entity): entity associated with the work file
+    # sg_sandbox (person or script entity): user sandbox for the workfile (filled only if the )
     # sg_template (text): Name of the Toolkit template used to generate the file name.
     # sg_path (file/link): Path to the file on disk.
     # sg_path_cache (str): Relative path to the file inside the local storage.
@@ -91,6 +92,34 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
             new_workfile
         )
 
+    def _find_entities(self, context, work_template, fields, filter_by_user):
+        """
+        Finds all workfiles entities for a given template and context.
+        """
+        # Build out a filter to return the requested files.
+        if context.task:
+            filters = [["sg_task", "is", context.task]]
+        elif context.step:
+            filters = [
+                ["sg_link", "is", context.entity or context.project],
+                ["sg_step", "is", context.step]
+            ]
+        elif context.entity:
+            filters = [["sg_link", "is", context.entity]]
+        else:
+            filters = [["entity", "is", context.project]]
+
+        filters.append(["sg_template", "is", work_template.name])
+
+        if filter_by_user and self._is_using_sandboxes(work_template):
+            filters.append(["sg_sandbox", "is", context.user])
+
+        return self.parent.shotgun.find(
+            self.WORKFILE_ENTITY,
+            filters,
+            fields=fields
+        )
+
     def find_work_files(self, context, work_template, version_compare_ignore_fields, valid_file_extensions):
         """
         Finds all the work files for a given context.
@@ -118,32 +147,13 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
                 "modified_by": {"type": "HumanUser", "id": 343}
             }
         """
-
-        # Build out a filter to return the requested files.
-        if context.task:
-            filters = [["sg_task", "is", context.task]]
-        elif context.step:
-            filters = [
-                ["sg_link", "is", context.entity or context.project],
-                ["sg_step", "is", context.step]
-            ]
-        elif context.entity:
-            filters = [["sg_link", "is", context.entity]]
-        else:
-            filters = [["entity", "is", context.project]]
-
-        filters.append(["sg_template", "is", work_template.name])
-
-        work_files = self.parent.shotgun.find(
-            self.WORKFILE_ENTITY,
-            filters,
-            fields=[
-                "code", "description", "image",
-                "updated_at", "updated_by",
-                "sg_version", "sg_link", "sg_step", "sg_task",
-                "sg_path"
-            ]
-        )
+        fields = [
+            "code", "description", "image",
+            "updated_at", "updated_by",
+            "sg_version", "sg_link", "sg_step", "sg_task",
+            "sg_path"
+        ]
+        work_files = self._find_entities(context, work_template, fields, filter_by_user=True)
 
         work_file_item_details = []
         for wf in work_files:
@@ -172,3 +182,25 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
             })
 
         return work_file_item_details
+
+    def resolve_user_sandboxes(self, context, template):
+        # FIXME: This could probably be optimized by a summarize call.
+        return [
+            work_file["sg_sandbox"] for work_file in self._find_entities(
+                context, template, ["sg_sandbox"], filter_by_user=False
+            )
+        ]
+
+    def _is_using_sandboxes(self, template):
+        """
+        Checks if a template uses user sandboxes.
+
+        :returns: ``True`` if the template does, ``False`` if not.
+        """
+        if "HumanUser" in template.keys:
+            return True
+        for key in template.keys.values():
+            if key.shotgun_entity_type == "HumanUser":
+                return True
+        return False
+
