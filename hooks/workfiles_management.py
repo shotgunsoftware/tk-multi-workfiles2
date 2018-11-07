@@ -13,7 +13,6 @@ Abstract outs the discovery of files on disk.
 """
 
 import os
-
 import sgtk
 
 
@@ -35,7 +34,7 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
     # sg_task (task entity): task associated with the work file
     # sg_step (step entity): step associated with the work file
     # sg_link (asset, project or shot entity): entity associated with the work file
-    # sg_sandbox (person or script entity): user sandbox for the workfile (filled only if the )
+    # sg_sandbox (person): user sandbox for the workfile (to be filled only if sandboxing is used)
     # sg_template (text): Name of the Toolkit template used to generate the file name.
     # sg_path (file/link): Path to the file on disk.
     # sg_path_cache (str): Relative path to the file inside the local storage.
@@ -43,10 +42,9 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
     #   be created through the GUI, but can be programmatically:
     #   shotgun.schema_field_create("CustomEntity45", "entity", "Path Cache Storage", {"valid_types": ["LocalStorage"]})
 
-
     def register_workfile(self, name, version, context, work_template, path, description, image):
         """
-        Registers a work file with Shotgun.
+        Register a work file with Shotgun.
 
         :param name str: Name of the work file.
         :param int version: Version of the work file.
@@ -87,6 +85,9 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
             "sg_path": sg_path,
             "project": context.project
         }
+
+        if self._is_using_sandboxes(work_template):
+            new_workfile["sg_sandbox"] = context.user
 
         if "local_storage" in sg_path and "relative_path" in sg_path:
             new_workfile["sg_path_cache_storage"] = sg_path["local_storage"]
@@ -171,11 +172,11 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
 
         This will be used to populate the user button in the UI.
 
-        :param context: Context for the sandboxes.
+        :param context: Context of the files for which we want the sandboxes.
         :type context: :class:`sgtk.Context`
-        :param work_template: Template for sandboxes.
+        :param work_template: Template of the files for which we want the sandboxes.
         :type work_template: :class:`sgtk.Template`
-        :param bool is_work_template: If ``True``, the template is for a workfile
+        :param bool is_work_template: If ``True``, the template is for a workfile.
 
         :returns: A list of HumanUser entity links. Each item has the following format:
             {
@@ -192,11 +193,16 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
                 work_file["sg_sandbox"] for work_file in workfiles if work_file["sg_sandbox"] is not None
             ]
         else:
+            # A publish could be created by user A into user B's publish sandbox.
+            # Unfortunately, that publish's relationship with B isn't encapsulated
+            # by the PublishFile entity, so we can't extract the information out of Shotgun.
+            # we'll have to extract if from the files themselves using the built-in
+            # app logic.
             raise NotImplementedError
 
     def _is_using_sandboxes(self, template):
         """
-        Checks if a template uses user sandboxes.
+        Check if a template uses user sandboxes.
 
         :returns: ``True`` if the template does, ``False`` if not.
         """
@@ -210,7 +216,7 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
 
     def _find_workfile_entities(self, context, work_template, fields, filter_by_user):
         """
-        Finds all workfiles entities for a given template and context.
+        Find all workfiles entities for a given template and context.
 
         :param context: Context for the files.
         :type context: :class:`sgtk.Context`
