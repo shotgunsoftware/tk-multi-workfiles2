@@ -215,13 +215,15 @@ class FileFinder(QtCore.QObject):
         context, work_template,
         version_compare_ignore_fields, valid_file_extensions
     ):
-        if self._app.workfiles_management.is_implemented():
+        try:
             return self._app.workfiles_management.find_work_files(
                 context, work_template, version_compare_ignore_fields, valid_file_extensions
             )
-        else:
-            work_files = self._find_work_files(context, work_template, version_compare_ignore_fields)
-            return self._filter_work_files(work_files, valid_file_extensions)
+        except NotImplementedError:
+            pass
+
+        work_files = self._find_work_files(context, work_template, version_compare_ignore_fields)
+        return self._filter_work_files(work_files, valid_file_extensions)
 
     def _process_work_files(self, work_files, work_template, context, name_map, version_compare_ignore_fields, 
                           filter_file_key=None):
@@ -730,7 +732,7 @@ class AsyncFileFinder(FileFinder):
             user_work_area = work_area.create_copy_for_user(user) if user else work_area
             search.user_work_areas[user_id] = user_work_area
 
-            if self._app.workfiles_management.is_implemented():
+            try:
                 # find and filter work files. The hook does these two steps in a single call.
                 # we could arguably break it into two tasks, but I'm not sure
                 # what benefit there would be. The filtering is 100% processing only and no file io.
@@ -739,7 +741,7 @@ class AsyncFileFinder(FileFinder):
                     group=search.id,
                     priority=AsyncFileFinder._FIND_FILES_PRIORITY,
                     task_kwargs={"environment": user_work_area})
-            else:
+            except NotImplementedError:
                 # find work files:
                 previous_work_file_task = self._bg_task_manager.add_task(self._task_find_work_files,
                                                                       group=search.id,

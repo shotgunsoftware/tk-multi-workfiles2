@@ -406,13 +406,11 @@ class WorkArea(object):
             # already resolved users!
             return users
 
-        # update cache:
-
-        if sgtk.platform.current_bundle().workfiles_management.is_implemented():
+        try:
             user_list = sgtk.platform.current_bundle().workfiles_management.resolve_user_sandboxes(
-                self.context, template
+                self.context, template, is_work_template
             )
-        else:
+        except NotImplementedError:
             user_list = self._resolve_user_sandboxes_from_files(template)
 
         # look these up in the user cache:

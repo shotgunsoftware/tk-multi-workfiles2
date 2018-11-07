@@ -18,6 +18,16 @@ import sgtk
 
 
 class WorkfilesManagement(sgtk.get_hook_baseclass()):
+    """
+    This hooks allows to drive file discovery and file persistence with the workfiles application.
+
+    You need to implement at minimum the following hooks to get the basic functionality working:
+        - register_workfiles
+        - find_work_files
+
+    If you intend on using user sandboxes for your workfiles, you can also implement
+    `resolve_sandbox_users` to speed up sandbox discovery for a given context.
+    """
 
     WORKFILE_ENTITY = "CustomEntity45"
     # The custom entity has the following custom fields:
@@ -33,11 +43,6 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
     #   be created through the GUI, but can be programmatically:
     #   shotgun.schema_field_create("CustomEntity45", "entity", "Path Cache Storage", {"valid_types": ["LocalStorage"]})
 
-    def is_implemented(self):
-        """
-        When this methods true, the workfiles application will use this hook for file discovery.
-        """
-        return True
 
     def register_workfile(self, name, version, context, work_template, path, description, image):
         """
@@ -92,37 +97,12 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
             new_workfile
         )
 
-    def _find_entities(self, context, work_template, fields, filter_by_user):
-        """
-        Finds all workfiles entities for a given template and context.
-        """
-        # Build out a filter to return the requested files.
-        if context.task:
-            filters = [["sg_task", "is", context.task]]
-        elif context.step:
-            filters = [
-                ["sg_link", "is", context.entity or context.project],
-                ["sg_step", "is", context.step]
-            ]
-        elif context.entity:
-            filters = [["sg_link", "is", context.entity]]
-        else:
-            filters = [["entity", "is", context.project]]
-
-        filters.append(["sg_template", "is", work_template.name])
-
-        if filter_by_user and self._is_using_sandboxes(work_template):
-            filters.append(["sg_sandbox", "is", context.user])
-
-        return self.parent.shotgun.find(
-            self.WORKFILE_ENTITY,
-            filters,
-            fields=fields
-        )
-
     def find_work_files(self, context, work_template, version_compare_ignore_fields, valid_file_extensions):
         """
-        Finds all the work files for a given context.
+        Find all the work files for a given context.
+
+        This is used to populate the file view and figure out the next available version number when saving
+        a scene.
 
         :param context: Context for the files.
         :type context: :class:`sgtk.Context`
@@ -153,7 +133,9 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
             "sg_version", "sg_link", "sg_step", "sg_task",
             "sg_path"
         ]
-        work_files = self._find_entities(context, work_template, fields, filter_by_user=True)
+        work_files = self._find_workfile_entities(
+            context, work_template, fields, filter_by_user=self._is_using_sandboxes(work_template)
+        )
 
         work_file_item_details = []
         for wf in work_files:
@@ -183,13 +165,34 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
 
         return work_file_item_details
 
-    def resolve_user_sandboxes(self, context, template):
-        # FIXME: This could probably be optimized by a summarize call.
-        return [
-            work_file["sg_sandbox"] for work_file in self._find_entities(
+    def resolve_user_sandboxes(self, context, template, is_work_template):
+        """
+        Find all the user sandboxes in use for the given context and template.
+
+        This will be used to populate the user button in the UI.
+
+        :param context: Context for the sandboxes.
+        :type context: :class:`sgtk.Context`
+        :param work_template: Template for sandboxes.
+        :type work_template: :class:`sgtk.Template`
+        :param bool is_work_template: If ``True``, the template is for a workfile
+
+        :returns: A list of HumanUser entity links. Each item has the following format:
+            {
+                "type": "HumanUser",
+                "id": 42
+            }
+        """
+        if is_work_template:
+            workfiles = self._find_workfile_entities(
                 context, template, ["sg_sandbox"], filter_by_user=False
             )
-        ]
+
+            return [
+                work_file["sg_sandbox"] for work_file in workfiles if work_file["sg_sandbox"] is not None
+            ]
+        else:
+            raise NotImplementedError
 
     def _is_using_sandboxes(self, template):
         """
@@ -197,6 +200,7 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
 
         :returns: ``True`` if the template does, ``False`` if not.
         """
+        # TODO: It would be nice if this logic was refactored unto the template class in core.
         if "HumanUser" in template.keys:
             return True
         for key in template.keys.values():
@@ -204,3 +208,37 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
                 return True
         return False
 
+    def _find_workfile_entities(self, context, work_template, fields, filter_by_user):
+        """
+        Finds all workfiles entities for a given template and context.
+
+        :param context: Context for the files.
+        :type context: :class:`sgtk.Context`
+        :param work_template: Template used to search for files.
+        :type work_template: :class:`sgtk.Template`
+        :param list(str) fields: List of fields that should be retrieved.
+        :param bool filter_by_user: If ``True``, only workfiles in user's sandbox will be returned.
+        """
+        # Build out a filter to return the requested files.
+        if context.task:
+            filters = [["sg_task", "is", context.task]]
+        elif context.step:
+            filters = [
+                ["sg_link", "is", context.entity or context.project],
+                ["sg_step", "is", context.step]
+            ]
+        elif context.entity:
+            filters = [["sg_link", "is", context.entity]]
+        else:
+            filters = [["entity", "is", context.project]]
+
+        filters.append(["sg_template", "is", work_template.name])
+
+        if filter_by_user:
+            filters.append(["sg_sandbox", "is", context.user])
+
+        return self.parent.shotgun.find(
+            self.WORKFILE_ENTITY,
+            filters,
+            fields=fields
+        )
