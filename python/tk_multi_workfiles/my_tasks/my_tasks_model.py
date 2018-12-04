@@ -39,6 +39,7 @@ class MyTasksModel(ShotgunExtendedEntityModel):
         """
 
         self.sort_data = sort_data or []
+        self.sort_data = sorted(self.sort_data, key=lambda k: k['type'])
         self.extra_display_fields = extra_display_fields or []
 
         filters = [["project", "is", project]]
@@ -49,8 +50,17 @@ class MyTasksModel(ShotgunExtendedEntityModel):
 
         # There maybe additional fields required by the sorting configuration the we need to pull down
         # So gather these from the sort options
-        sort_fields = [sort_field['field_name'] for sort_option in sort_data for sort_field in sort_option['sort_fields']]
-        fields.extend(sort_fields)
+        sort_fields = set()
+        for sort_option in sort_data:
+
+            if sort_option["type"] == "field":
+                sort_fields.add(sort_option["field_name"])
+
+            elif sort_option["type"] == "preset":
+                for sort_option_field in sort_option['sort_fields']:
+                    sort_fields.add(sort_option_field['field_name'])
+
+        fields.extend(list(sort_fields))
 
         ShotgunExtendedEntityModel.__init__(
             self,
@@ -65,12 +75,22 @@ class MyTasksModel(ShotgunExtendedEntityModel):
         )
 
         # Add the display names for the sort fields to the sort data
-        for sort_preset in self.sort_data:
-            for sort_field in sort_preset["sort_fields"]:
-                display_name = self._shotgun_globals.get_field_display_name( "Task",
-                                                                             sort_field["field_name"],
-                                                                             project_id=project['id'])
-                sort_field['display_name'] = display_name
+        # TODO: merge into the loop above
+        # TODO: log warning if unknown type is found, and maybe validate direction strings
+        for sort_option in self.sort_data:
+            if sort_option["type"] == "field":
+                sort_option['display_name'] = self._shotgun_globals.get_field_display_name("Task",
+                                                                                           sort_option["field_name"],
+                                                                                           project_id=project['id'])
+
+            elif sort_option["type"] == "preset":
+                for sort_option_field in sort_option['sort_fields']:
+                    display_name = self._shotgun_globals.get_field_display_name("Task",
+                                                                                sort_option_field["field_name"],
+                                                                                project_id=project['id'])
+                    sort_option_field['display_name'] = display_name
+
+
 
 
 

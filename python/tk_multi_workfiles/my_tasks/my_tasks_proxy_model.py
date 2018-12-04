@@ -42,8 +42,6 @@ class MyTasksProxyModel(ShotgunSortFilterProxyModel):
         sg_left = shotgun_model.get_sg_data(left)
         sg_right = shotgun_model.get_sg_data(right)
 
-        # print "sg_left",sg_left
-        # print "sg_right",sg_right
         if not sg_left or not sg_right:
             return False
 

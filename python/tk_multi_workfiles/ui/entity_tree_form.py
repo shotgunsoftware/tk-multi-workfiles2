@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'entity_tree_form.ui'
 #
-#      by: pyside-uic 0.2.15 running on PySide 1.2.2
+#      by: pyside-uic 0.2.15 running on PySide 1.2.4
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -77,7 +77,7 @@ class Ui_EntityTreeForm(object):
     def retranslateUi(self, EntityTreeForm):
         EntityTreeForm.setWindowTitle(QtGui.QApplication.translate("EntityTreeForm", "Form", None, QtGui.QApplication.UnicodeUTF8))
         self.my_tasks_cb.setText(QtGui.QApplication.translate("EntityTreeForm", "My Tasks Only", None, QtGui.QApplication.UnicodeUTF8))
-        self.sort_tbn.setText(QtGui.QApplication.translate("EntityTreeForm", "Sort By:", None, QtGui.QApplication.UnicodeUTF8))
+        self.sort_tbn.setText(QtGui.QApplication.translate("EntityTreeForm", "Sort:", None, QtGui.QApplication.UnicodeUTF8))
         self.new_task_btn.setText(QtGui.QApplication.translate("EntityTreeForm", "+ New Task", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..framework_qtwidgets import SearchWidget
