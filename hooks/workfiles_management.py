@@ -236,7 +236,7 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
         elif context.entity:
             filters = [["sg_link", "is", context.entity]]
         else:
-            filters = [["entity", "is", context.project]]
+            filters = [["sg_link", "is", context.project]]
 
         filters.append(["sg_template", "is", work_template.name])
 
