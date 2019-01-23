@@ -195,13 +195,14 @@ class InteractiveOpenAction(OpenFileAction):
         # trying to open a work file...
         src_path = None
         work_path = file.path
+        workfile_context = env.context
+        current_user = g_user_cache.current_user
+        copy_to_new_user = (current_user and current_user["id"] != env.context.user["id"])
         
         # construct a context for this path to determine if it's in
         # a user sandbox or not:
         if env.context.user:
-            current_user = g_user_cache.current_user
-            if current_user and current_user["id"] != env.context.user["id"]:
-
+            if copy_to_new_user:
                 # file is in a user sandbox - construct path
                 # for the current user's sandbox:
                 try:
@@ -212,6 +213,29 @@ class InteractiveOpenAction(OpenFileAction):
                     local_ctx = env.context.create_copy_for_user(current_user)
                     ctx_fields = local_ctx.as_template_fields(env.work_template)
                     fields.update(ctx_fields)
+                    if "version" in fields:
+                        # Check for existing Workfiles linked to the current context for the
+                        # new user to determine the version of the new user's Workfile.
+                        new_user_version = 1
+                        workfile_filters = [
+                            ["project", "is", local_ctx.project],
+                            ["sg_template", "is", env.work_template.name],
+                            ["sg_sandbox", "is", local_ctx.user],
+                        ]
+                        if local_ctx.entity:
+                            workfile_filters.append(["sg_link", "is", local_ctx.entity])
+                        if local_ctx.step:
+                            workfile_filters.append(["sg_step", "is", local_ctx.step])
+                        if local_ctx.task:
+                            workfile_filters.append(["sg_task", "is", local_ctx.task])
+                        new_user_workfiles = self._app.shotgun.find(
+                            self._app.workfiles_management.WORKFILE_ENTITY,
+                            workfile_filters,
+                            ["sg_version"],
+                            order=[{"field_name": "sg_version", "direction": "desc"}]
+                        )
+                        if new_user_workfiles:
+                            fields["version"] = (new_user_workfiles[0].get("sg_version") or 0) + 1
 
                     # construct the local path from these fields:
                     local_path = env.work_template.apply_fields(fields)
@@ -235,8 +259,25 @@ class InteractiveOpenAction(OpenFileAction):
 
                     src_path = work_path
                     work_path = local_path
+                    workfile_context = local_ctx
 
-        return self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui)
+        file_copied = self._do_copy_and_open(src_path, work_path, None, not file.editable,
+                                             env.context, parent_ui)
+        if file_copied and copy_to_new_user:
+            # If a user is copying another user's Workfile into their sandbox,
+            # create the corresponding Workfile entity.
+            workfile_fields = env.work_template.get_fields(work_path)
+            self._app.workfiles_management.register_workfile(
+                name=file.name,
+                version=(workfile_fields.get("version") or 0),
+                context=workfile_context,
+                work_template=env.work_template,
+                path=work_path,
+                description=file.workfile_description,
+                image=file.thumbnail
+            )
+
+        return file_copied
 
     def _open_previous_publish(self, file, env, parent_ui):
         """
@@ -328,13 +369,13 @@ class InteractiveOpenAction(OpenFileAction):
                 self._app.log_exception("Failed to resolve work file path from publish path: %s" % src_path)
                 return False
 
-        return self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui)
+        file_copied = self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui)
+        if file_copied:
+            # Create a corresponding Workfile entity if the app is setup to do that.
+            self._app.workfiles_management.register_workfile(
+                file.name, new_version, env.context, env.work_template, work_path,
+                file.workfile_description, file.thumbnail
+            )
 
-        
-        
-        
-        
-        
-        
-        
-        
+        return file_copied
+
