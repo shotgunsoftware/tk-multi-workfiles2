@@ -85,7 +85,10 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
             "sg_path": sg_path,
             "project": context.project
         }
-
+        if "name" in work_template.keys:
+            new_workfile["sg_name_field"] = work_template.get_fields(path)["name"]
+        else:
+            new_workfile["sg_name_field"] = None
         if self._is_using_sandboxes(work_template):
             new_workfile["sg_sandbox"] = context.user
 
@@ -97,6 +100,26 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
             self.WORKFILE_ENTITY,
             new_workfile
         )
+
+    def get_next_workfile_version(self, name, context, work_template):
+
+        # TODO: This could probably be optimized by a summarize call for the maximum
+        # value for the field version.
+        results = self._find_workfile_entities(
+            context,
+            work_template,
+            ["sg_version"],
+            # We want unique version number per user.
+            filter_by_user=False,
+            name_filter=name
+        )
+
+        # max fails on empty iterables.
+        if not results:
+            return 1
+
+        # Find the maximum version number
+        return max(results, key=lambda entity: entity["sg_version"])["sg_version"] + 1
 
     def find_work_files(self, context, work_template, version_compare_ignore_fields, valid_file_extensions):
         """
@@ -214,7 +237,7 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
                 return True
         return False
 
-    def _find_workfile_entities(self, context, work_template, fields, filter_by_user):
+    def _find_workfile_entities(self, context, work_template, fields, filter_by_user, name_filter=None):
         """
         Find all workfiles entities for a given template and context.
 
@@ -242,6 +265,9 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
 
         if filter_by_user:
             filters.append(["sg_sandbox", "is", context.user])
+
+        if name_filter:
+            filters.append(["sg_name_field", "is", name_filter])
 
         return self.parent.shotgun.find(
             self.WORKFILE_ENTITY,
