@@ -222,28 +222,8 @@ class InteractiveOpenAction(OpenFileAction):
                                 env.work_template
                             )
                         except NotImplementedError:
-                            # Check for existing Workfiles linked to the current context for the
-                            # new user to determine the version of the new user's Workfile.
-                            new_user_version = 1
-                            workfile_filters = [
-                                ["project", "is", local_ctx.project],
-                                ["sg_template", "is", env.work_template.name],
-                                ["sg_sandbox", "is", local_ctx.user],
-                            ]
-                            if local_ctx.entity:
-                                workfile_filters.append(["sg_link", "is", local_ctx.entity])
-                            if local_ctx.step:
-                                workfile_filters.append(["sg_step", "is", local_ctx.step])
-                            if local_ctx.task:
-                                workfile_filters.append(["sg_task", "is", local_ctx.task])
-                            new_user_workfiles = self._app.shotgun.find(
-                                self._app.workfiles_management.WORKFILE_ENTITY,
-                                workfile_filters,
-                                ["sg_version"],
-                                order=[{"field_name": "sg_version", "direction": "desc"}]
-                            )
-                            if new_user_workfiles:
-                                fields["version"] = (new_user_workfiles[0].get("sg_version") or 0) + 1
+                            # We keep the default value.
+                            pass
 
                     # construct the local path from these fields:
                     local_path = env.work_template.apply_fields(fields)
