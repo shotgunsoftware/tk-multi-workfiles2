@@ -384,7 +384,7 @@ class FileSaveForm(FileFormBase):
                 file_versions = None
                 if self._file_model:
                     file_versions = self._file_model.get_cached_file_versions(file_key, env, clean_only=True)
-                if file_versions == None:
+                if file_versions is None:
                     # fall back to finding the files manually - this will be slower!
                     try:
                         finder = FileFinder()
