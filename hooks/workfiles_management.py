@@ -31,6 +31,7 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
     WORKFILE_ENTITY = "CustomEntity45"
     # The custom entity has the following custom fields:
     # sg_version (number): version number of the scene
+    # sg_name_field (text): user specified name at save time
     # sg_task (task entity): task associated with the work file
     # sg_step (step entity): step associated with the work file
     # sg_link (asset, project or shot entity): entity associated with the work file
