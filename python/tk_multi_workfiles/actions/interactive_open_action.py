@@ -215,9 +215,9 @@ class InteractiveOpenAction(OpenFileAction):
                     fields.update(ctx_fields)
                     if "version" in fields:
                         try:
-                            name = fields.get("name")
                             fields["version"] = sgtk.platform.current_bundle().workfiles_management.get_next_workfile_version(
-                                name,
+                                # Name is not mandatory
+                                fields.get("name"),
                                 local_ctx,
                                 env.work_template
                             )

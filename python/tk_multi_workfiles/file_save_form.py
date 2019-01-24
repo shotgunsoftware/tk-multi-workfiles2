@@ -367,28 +367,37 @@ class FileSaveForm(FileFormBase):
         next_version = None
         version_is_used = "version" in env.work_template.keys
         if version_is_used:
-            # version is used so we need to find the latest version - this means 
-            # searching for files...
-            # need a file key to find all versions so lets build it:
-            file_key = FileItem.build_file_key(fields, env.work_template, 
-                                               env.version_compare_ignore_fields)
-            file_versions = None
-            if self._file_model:
-                file_versions = self._file_model.get_cached_file_versions(file_key, env, clean_only=True)
-            if file_versions == None:
-                # fall back to finding the files manually - this will be slower!  
-                try:
-                    finder = FileFinder()
-                    files = finder.find_files(env.work_template, 
-                                              env.publish_template, 
-                                              env.context,
-                                              file_key) or []
-                except TankError, e:
-                    raise TankError("Failed to find files for this work area: %s" % e)
-                file_versions = [f.version for f in files]
 
-            max_version = max(file_versions or [0])
-            next_version = max_version + 1
+            try:
+                next_version = sgtk.platform.current_bundle().workfiles_management.get_next_workfile_version(
+                    # Name is not mandatory
+                    fields.get("name"),
+                    env.context,
+                    env.work_template
+                )
+            except NotImplementedError:
+                # version is used so we need to find the latest version - this means
+                # searching for files...
+                # need a file key to find all versions so lets build it:
+                file_key = FileItem.build_file_key(fields, env.work_template,
+                                                   env.version_compare_ignore_fields)
+                file_versions = None
+                if self._file_model:
+                    file_versions = self._file_model.get_cached_file_versions(file_key, env, clean_only=True)
+                if file_versions == None:
+                    # fall back to finding the files manually - this will be slower!
+                    try:
+                        finder = FileFinder()
+                        files = finder.find_files(env.work_template,
+                                                  env.publish_template,
+                                                  env.context,
+                                                  file_key) or []
+                    except TankError, e:
+                        raise TankError("Failed to find files for this work area: %s" % e)
+                    file_versions = [f.version for f in files]
+
+                max_version = max(file_versions or [0])
+                next_version = max_version + 1
 
             # update version:
             version = next_version if use_next_version else max(version, next_version)
