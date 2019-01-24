@@ -103,14 +103,25 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
         )
 
     def get_next_workfile_version(self, name, context, work_template):
+        """
+        Compute the next version for a workfile.
 
+        :param str name: User specified name. Can be ``None``.
+        :param context: Context for the files.
+        :type context: :class:`sgtk.Context`
+        :param work_template: Template for which we want to compute the next version.
+        :type work_template: :class:`sgtk.Template`
+
+        :returns: An integer indicating the next available and unique version number.
+        """
         # TODO: This could probably be optimized by a summarize call for the maximum
-        # value for the field version.
+        # value for the version field, but doing it this way ensures consistency of how
+        # workfiles are resolved.
         results = self._find_workfile_entities(
             context,
             work_template,
             ["sg_version"],
-            # We want unique version number per user.
+            # We want a unique version number per scene file.
             filter_by_user=False,
             name_filter=name
         )
@@ -248,6 +259,7 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
         :type work_template: :class:`sgtk.Template`
         :param list(str) fields: List of fields that should be retrieved.
         :param bool filter_by_user: If ``True``, only workfiles in user's sandbox will be returned.
+        :param name name_filter: If set, only workfiles with the given name will be returned.
         """
         # Build out a filter to return the requested files.
         if context.task:
