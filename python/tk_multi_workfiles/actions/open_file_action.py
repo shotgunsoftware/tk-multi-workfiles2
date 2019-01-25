@@ -248,7 +248,7 @@ class ContinueFromFileAction(OpenFileAction):
             self._version = next_version
         else:
             # Q. should the next version include the current version?
-            all_versions = [v for v, f in file_versions.iteritems()] + [file.version]
+            all_versions = v.keys() + [file.version]
             max_version = max(all_versions)
             self._version = max_version + 1
 

@@ -31,7 +31,7 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
     WORKFILE_ENTITY = "CustomEntity45"
     # The custom entity has the following custom fields:
     # sg_version (number): version number of the scene
-    # sg_name_field (text): user specified name at save time
+    # sg_name_field (text): user specified name at save time.
     # sg_task (task entity): task associated with the work file
     # sg_step (step entity): step associated with the work file
     # sg_link (asset, project or shot entity): entity associated with the work file
@@ -42,12 +42,17 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
     # sg_path_cache_storage (local storage entity): LocalStorage the file is part of. This can't
     #   be created through the GUI, but can be programmatically:
     #   shotgun.schema_field_create("CustomEntity45", "entity", "Path Cache Storage", {"valid_types": ["LocalStorage"]})
+    #
+    # Note that the code field in Shotgun will be the name of the file on disk.
+    # The sg_name_field value however is the value of the {name} token inside the file name,
+    # e.g. given the template {name}.v{version}.ma and the file name (code) of car.v003.ma,
+    # sg_name_field would be set to "car".
 
     def register_workfile(self, name, version, context, work_template, path, description, image):
         """
         Register a work file with Shotgun.
 
-        :param name str: Name of the work file.
+        :param name str: File name on disk of the work file. Not to be confused with the {name} token.
         :param int version: Version of the work file.
         :param context: Context we're saving into.
         :type context: :class:`sgtk.Context`
@@ -86,10 +91,13 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
             "sg_path": sg_path,
             "project": context.project
         }
+        # Extract the name token outside of the path, so it can be used for filtering when
+        # searching for files.
         if "name" in work_template.keys:
             new_workfile["sg_name_field"] = work_template.get_fields(path)["name"]
         else:
             new_workfile["sg_name_field"] = None
+
         if self._is_using_sandboxes(work_template):
             new_workfile["sg_sandbox"] = context.user
 
