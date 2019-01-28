@@ -21,11 +21,15 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
     This hooks allows to drive file discovery and file persistence with the workfiles application.
 
     You need to implement at minimum the following hooks to get the basic functionality working:
-        - register_workfiles
+        - register_workfile
         - find_work_files
 
     If you intend on using user sandboxes for your workfiles, you can also implement
     `resolve_sandbox_users` to speed up sandbox discovery for a given context.
+
+    You can also tweak the next version computation logic in `get_next_workfile_version`. The default
+    behavior of the app is to use the next available number for a given the name supplied by the user,
+    template and context the file is saved into.
     """
 
     WORKFILE_ENTITY = "CustomEntity45"
@@ -48,11 +52,11 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
     # e.g. given the template {name}.v{version}.ma and the file name (code) of car.v003.ma,
     # sg_name_field would be set to "car".
 
-    def register_workfile(self, name, version, context, work_template, path, description, image):
+    def register_workfile(self, filename, version, context, work_template, path, description, image):
         """
         Register a work file with Shotgun.
 
-        :param name str: File name on disk of the work file. Not to be confused with the {name} token.
+        :param filename str: File name on disk of the work file. Not to be confused with the {name} token.
         :param int version: Version of the work file.
         :param context: Context we're saving into.
         :type context: :class:`sgtk.Context`
@@ -70,7 +74,7 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
             context.sgtk,
             context,
             path,
-            name,
+            filename,
             version,
             None,
             comment="",
@@ -82,7 +86,7 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
         )["path"]
 
         new_workfile = {
-            "code": name,
+            "code": filename,
             "sg_version": version,
             "sg_task": context.task,
             "sg_step": context.step,

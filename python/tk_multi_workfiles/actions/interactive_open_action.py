@@ -256,13 +256,13 @@ class InteractiveOpenAction(OpenFileAction):
             # create the corresponding Workfile entity.
             workfile_fields = env.work_template.get_fields(work_path)
             self._app.workfiles_management.register_workfile(
-                name=file.name,
-                version=(workfile_fields.get("version") or 0),
-                context=workfile_context,
-                work_template=env.work_template,
-                path=work_path,
-                description=file.workfile_description,
-                image=file.thumbnail
+                file.name,
+                (workfile_fields.get("version") or 0),
+                workfile_context,
+                env.work_template,
+                work_path,
+                file.workfile_description,
+                file.thumbnail
             )
 
         return file_copied
