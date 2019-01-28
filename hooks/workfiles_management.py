@@ -21,16 +21,21 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
     This hooks allows to drive file discovery and file persistence with the workfiles application.
 
     You need to implement at minimum the following hooks to get the basic functionality working:
-        - register_workfiles
+        - register_workfile
         - find_work_files
 
     If you intend on using user sandboxes for your workfiles, you can also implement
     `resolve_sandbox_users` to speed up sandbox discovery for a given context.
+
+    You can also tweak the next version computation logic in `get_next_workfile_version`. The default
+    behavior of the app is to use the next available number for a given the name supplied by the user,
+    template and context the file is saved into.
     """
 
     WORKFILE_ENTITY = "CustomEntity45"
     # The custom entity has the following custom fields:
     # sg_version (number): version number of the scene
+    # sg_name_field (text): user specified name at save time.
     # sg_task (task entity): task associated with the work file
     # sg_step (step entity): step associated with the work file
     # sg_link (asset, project or shot entity): entity associated with the work file
@@ -41,12 +46,17 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
     # sg_path_cache_storage (local storage entity): LocalStorage the file is part of. This can't
     #   be created through the GUI, but can be programmatically:
     #   shotgun.schema_field_create("CustomEntity45", "entity", "Path Cache Storage", {"valid_types": ["LocalStorage"]})
+    #
+    # Note that the code field in Shotgun will be the name of the file on disk.
+    # The sg_name_field value however is the value of the {name} token inside the file name,
+    # e.g. given the template {name}.v{version}.ma and the file name (code) of car.v003.ma,
+    # sg_name_field would be set to "car".
 
-    def register_workfile(self, name, version, context, work_template, path, description, image):
+    def register_workfile(self, filename, version, context, work_template, path, description, image):
         """
         Register a work file with Shotgun.
 
-        :param name str: Name of the work file.
+        :param filename str: File name on disk of the work file. Not to be confused with the {name} token.
         :param int version: Version of the work file.
         :param context: Context we're saving into.
         :type context: :class:`sgtk.Context`
@@ -64,7 +74,7 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
             context.sgtk,
             context,
             path,
-            name,
+            filename,
             version,
             None,
             comment="",
@@ -76,7 +86,7 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
         )["path"]
 
         new_workfile = {
-            "code": name,
+            "code": filename,
             "sg_version": version,
             "sg_task": context.task,
             "sg_step": context.step,
@@ -85,6 +95,12 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
             "sg_path": sg_path,
             "project": context.project
         }
+        # Extract the name token outside of the path, so it can be used for filtering when
+        # searching for files.
+        if "name" in work_template.keys:
+            new_workfile["sg_name_field"] = work_template.get_fields(path)["name"]
+        else:
+            new_workfile["sg_name_field"] = None
 
         if self._is_using_sandboxes(work_template):
             new_workfile["sg_sandbox"] = context.user
@@ -97,6 +113,37 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
             self.WORKFILE_ENTITY,
             new_workfile
         )
+
+    def get_next_workfile_version(self, name, context, work_template):
+        """
+        Compute the next version for a workfile.
+
+        :param str name: User specified name. Can be ``None``.
+        :param context: Context for the files.
+        :type context: :class:`sgtk.Context`
+        :param work_template: Template for which we want to compute the next version.
+        :type work_template: :class:`sgtk.Template`
+
+        :returns: An integer indicating the next available and unique version number.
+        """
+        # TODO: This could probably be optimized by a summarize call for the maximum
+        # value for the version field, but doing it this way ensures consistency of how
+        # workfiles are resolved.
+        results = self._find_workfile_entities(
+            context,
+            work_template,
+            ["sg_version"],
+            # We want a unique version number per scene file.
+            filter_by_user=False,
+            name_filter=name
+        )
+
+        # max fails on empty iterables.
+        if not results:
+            return 1
+
+        # Find the maximum version number
+        return max(results, key=lambda entity: entity["sg_version"])["sg_version"] + 1
 
     def find_work_files(self, context, work_template, version_compare_ignore_fields, valid_file_extensions):
         """
@@ -214,7 +261,7 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
                 return True
         return False
 
-    def _find_workfile_entities(self, context, work_template, fields, filter_by_user):
+    def _find_workfile_entities(self, context, work_template, fields, filter_by_user, name_filter=None):
         """
         Find all workfiles entities for a given template and context.
 
@@ -224,6 +271,7 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
         :type work_template: :class:`sgtk.Template`
         :param list(str) fields: List of fields that should be retrieved.
         :param bool filter_by_user: If ``True``, only workfiles in user's sandbox will be returned.
+        :param name name_filter: If set, only workfiles with the given name will be returned.
         """
         # Build out a filter to return the requested files.
         if context.task:
@@ -242,6 +290,9 @@ class WorkfilesManagement(sgtk.get_hook_baseclass()):
 
         if filter_by_user:
             filters.append(["sg_sandbox", "is", context.user])
+
+        if name_filter:
+            filters.append(["sg_name_field", "is", name_filter])
 
         return self.parent.shotgun.find(
             self.WORKFILE_ENTITY,

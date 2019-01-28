@@ -240,13 +240,18 @@ class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
 class ContinueFromFileAction(OpenFileAction):
     """
     """
-    def __init__(self, label, file, file_versions, environment):
+    def __init__(self, label, file, file_versions, environment, next_version=None):
         """
         """
-        # Q. should the next version include the current version?
-        all_versions = [v for v, f in file_versions.iteritems()] + [file.version]
-        max_version = max(all_versions)
-        self._version = max_version+1
+
+        if next_version is not None:
+            self._version = next_version
+        else:
+            # Q. should the next version include the current version?
+            all_versions = v.keys() + [file.version]
+            max_version = max(all_versions)
+            self._version = max_version + 1
+
         label = "%s (as v%03d)" % (label, self._version) 
         OpenFileAction.__init__(self, label, file, file_versions, environment)
     

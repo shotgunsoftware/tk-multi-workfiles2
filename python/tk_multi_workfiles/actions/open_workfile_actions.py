@@ -75,7 +75,20 @@ class ContinueFromWorkFileAction(ContinueFromFileAction):
         else:
             label = "Continue Working"
 
-        ContinueFromFileAction.__init__(self, label, file, file_versions, environment)
+        # Figure out what could be the default next version number.
+        try:
+            next_version = sgtk.platform.current_bundle().workfiles_management.get_next_workfile_version(
+                # Name is not mandatory
+                environment.work_template.get_fields(file.path).get("name"),
+                environment.context,
+                environment.work_template
+            )
+        except NotImplementedError:
+            next_version = None
+
+        ContinueFromFileAction.__init__(
+            self, label, file, file_versions, environment, next_version
+        )
 
     def execute(self, parent_ui):
         """
