@@ -149,9 +149,10 @@ class MultiWorkFiles(sgtk.platform.Application):
         """
         Color used to display errors in the UI.
 
-        :returns: An RGBA tuple.
+        :returns: An RGBA tuple of int (0-255).
         """
-        return sgtk.platform.qt.QtGui.QColor(self.style_constants["SG_ALERT_COLOR"]).toTuple()
+        color = sgtk.platform.qt.QtGui.QColor(self.style_constants["SG_ALERT_COLOR"])
+        return color.red(), color.green(), color.blue(), color.alpha()
 
 
 class DebugWrapperShotgun(object):
