@@ -62,6 +62,9 @@ class FileActionFactory(object):
 
         app = sgtk.platform.current_bundle()
 
+        self._show_workfile_actions_on_publishes = app.get_setting("show_workfile_actions_on_publishes")
+        self._show_publish_actions_on_workfiles = app.get_setting("show_publish_actions_on_workfiles")
+
         # determine if this file is in a different users sandbox:
         self._in_other_users_sandbox = (
             work_area.contains_user_sandboxes

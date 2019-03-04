@@ -222,6 +222,16 @@ configuration:
           type: str
         default_value: ['All', 'Working', 'Publishes']
 
+    show_workfile_actions_on_publishes:
+        type: bool
+        description: Show workfile related operations on publishes.
+        default_value: true
+
+    show_publish_actions_on_workfiles:
+        type: bool
+        description: Show publish related operations on workfiles.
+        default_value: true
+
     # Save specific options
     #
 
