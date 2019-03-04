@@ -249,23 +249,8 @@ class InteractiveOpenAction(OpenFileAction):
                     work_path = local_path
                     workfile_context = local_ctx
 
-        file_copied = self._do_copy_and_open(src_path, work_path, None, not file.editable,
+        return self._do_copy_and_open(src_path, work_path, None, not file.editable,
                                              env.context, parent_ui)
-        if file_copied and copy_to_new_user:
-            # If a user is copying another user's Workfile into their sandbox,
-            # create the corresponding Workfile entity.
-            workfile_fields = env.work_template.get_fields(work_path)
-            self._app.workfiles_management.register_workfile(
-                file.name,
-                (workfile_fields.get("version") or 0),
-                workfile_context,
-                env.work_template,
-                work_path,
-                file.workfile_description,
-                file.thumbnail
-            )
-
-        return file_copied
 
     def _open_previous_publish(self, file, env, parent_ui):
         """
@@ -357,13 +342,4 @@ class InteractiveOpenAction(OpenFileAction):
                 self._app.log_exception("Failed to resolve work file path from publish path: %s" % src_path)
                 return False
 
-        file_copied = self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui)
-        if file_copied:
-            # Create a corresponding Workfile entity if the app is setup to do that.
-            self._app.workfiles_management.register_workfile(
-                file.name, new_version, env.context, env.work_template, work_path,
-                file.workfile_description, file.thumbnail
-            )
-
-        return file_copied
-
+        return self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui)

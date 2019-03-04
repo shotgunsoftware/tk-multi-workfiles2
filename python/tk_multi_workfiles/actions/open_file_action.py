@@ -106,6 +106,22 @@ class OpenFileAction(FileAction):
                                            "Copy of file failed!\n\n%s!" % e)
                 self._app.log_exception("Copy file failed")
                 return False            
+
+            # Workfile was created on disk, we should register it with Shotgun.
+            # FIXME: Note that it's possible that opening the file might fail due to a software
+            # error in the following lines. It would probably be better at that point
+            # to delete the file and unregister the workfiles. For now we'll do no
+            # such thing and keep it registered, but it's worth keeping in mind for the future.
+            try:
+                sgtk.platform.current_bundle().workfiles_management.register_workfile(
+                    os.path.basename(dst_path), version,
+                    new_context, self.environment.work_template, dst_path,
+                    # FIXME: We don't have workfile descriptions or thumbnail implemented for now,
+                    # so pass None.
+                    None, None
+                )
+            except NotImplementedError:
+                pass
                     
         # switch context:
         previous_context = self._app.context
@@ -240,15 +256,20 @@ class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
 class ContinueFromFileAction(OpenFileAction):
     """
     """
-    def __init__(self, label, file, file_versions, environment, next_version=None):
+    def __init__(self, label, file, file_versions, environment):
         """
         """
-
-        if next_version is not None:
-            self._version = next_version
-        else:
+        # Figure out what could be the default next version number.
+        try:
+            self._version = sgtk.platform.current_bundle().workfiles_management.get_next_workfile_version(
+                # Name is not mandatory
+                environment.work_template.get_fields(file.path).get("name"),
+                environment.context,
+                environment.work_template
+            )
+        except NotImplementedError:
             # Q. should the next version include the current version?
-            all_versions = v.keys() + [file.version]
+            all_versions = [v for v, f in file_versions.iteritems()] + [file.version]
             max_version = max(all_versions)
             self._version = max_version + 1
 
