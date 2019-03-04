@@ -115,7 +115,7 @@ class OpenFileAction(FileAction):
             try:
                 sgtk.platform.current_bundle().workfiles_management.register_workfile(
                     os.path.basename(dst_path), version,
-                    new_context, self.environment.work_template, dst_path,
+                    new_ctx, self.environment.work_template, dst_path,
                     # FIXME: We don't have workfile descriptions or thumbnail implemented for now,
                     # so pass None.
                     None, None
@@ -160,6 +160,7 @@ class OpenFileAction(FileAction):
 
 class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
     """
+    This command allows to open a file another task into the current context.
     """
     def _open_in_current_work_area(self, src_path, src_template, file, src_work_area, parent_ui):
         """
@@ -196,26 +197,36 @@ class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
         src_version = None
         dst_version = None
         if "version" in dst_work_area.work_template.keys:
-            # need to figure out the next version:
-            src_version = fields["version"]
 
-            # build a file key from the fields: 
-            file_key = FileItem.build_file_key(fields, 
-                                               dst_work_area.work_template, 
-                                               dst_work_area.version_compare_ignore_fields)
-    
-            # look for all files that match this key:
-            finder = FileFinder()
-            found_files = finder.find_files(dst_work_area.work_template, 
-                                            dst_work_area.publish_template, 
-                                            dst_work_area.context, 
-                                            file_key)
+            try:
+                dst_version = sgtk.platform.current_bundle().workfiles_management.get_next_workfile_version(
+                    # Name is not mandatory
+                    dst_work_area.work_template.get_fields(file.path).get("name"),
+                    dst_work_area.context,
+                    dst_work_area.work_template
+                )
+                fields["version"] = dst_version
+            except NotImplementedError:
+                # need to figure out the next version:
+                src_version = fields["version"]
 
-            # get the max version:
-            versions = [file.version for file in found_files]
-            dst_version = (max(versions or [0]) + 1)
+                # build a file key from the fields:
+                file_key = FileItem.build_file_key(fields,
+                                                   dst_work_area.work_template,
+                                                   dst_work_area.version_compare_ignore_fields)
 
-            fields["version"] = dst_version
+                # look for all files that match this key:
+                finder = FileFinder()
+                found_files = finder.find_files(dst_work_area.work_template,
+                                                dst_work_area.publish_template,
+                                                dst_work_area.context,
+                                                file_key)
+
+                # get the max version:
+                versions = [file.version for file in found_files]
+                dst_version = (max(versions or [0]) + 1)
+
+                fields["version"] = dst_version
 
         # confirm we should copy and open the file:
         msg = "'%s" % file.name
@@ -248,7 +259,7 @@ class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
         # copy and open the file:
         return self._do_copy_and_open(src_path, 
                                       dst_file_path, 
-                                      version = None, 
+                                      version = fields.get("version"),
                                       read_only = False, 
                                       new_ctx = dst_work_area.context, 
                                       parent_ui = parent_ui)
@@ -304,5 +315,7 @@ class ContinueFromFileAction(OpenFileAction):
         dst_path = dst_work_area.work_template.apply_fields(fields)
 
         # copy and open the file:
-        return self._do_copy_and_open(src_path, dst_path, None, not self.file.editable, 
-                                      dst_work_area.context, parent_ui)
+        return self._do_copy_and_open(
+            src_path, dst_path, fields["version"], not self.file.editable, 
+            dst_work_area.context, parent_ui
+        )

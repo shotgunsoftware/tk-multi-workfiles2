@@ -198,7 +198,11 @@ class InteractiveOpenAction(OpenFileAction):
         workfile_context = env.context
         current_user = g_user_cache.current_user
         copy_to_new_user = (current_user and current_user["id"] != env.context.user["id"])
-        
+
+
+        # get fields from work path:
+        fields = env.work_template.get_fields(work_path)
+
         # construct a context for this path to determine if it's in
         # a user sandbox or not:
         if env.context.user:
@@ -206,9 +210,6 @@ class InteractiveOpenAction(OpenFileAction):
                 # file is in a user sandbox - construct path
                 # for the current user's sandbox:
                 try:
-                    # get fields from work path:
-                    fields = env.work_template.get_fields(work_path)
-
                     # add in the fields from the context with the current user:
                     local_ctx = env.context.create_copy_for_user(current_user)
                     ctx_fields = local_ctx.as_template_fields(env.work_template)
@@ -249,7 +250,9 @@ class InteractiveOpenAction(OpenFileAction):
                     work_path = local_path
                     workfile_context = local_ctx
 
-        return self._do_copy_and_open(src_path, work_path, None, not file.editable,
+
+
+        return self._do_copy_and_open(src_path, work_path, fields.get("version"), not file.editable,
                                              env.context, parent_ui)
 
     def _open_previous_publish(self, file, env, parent_ui):
@@ -307,6 +310,9 @@ class InteractiveOpenAction(OpenFileAction):
         # trying to open a publish:
         work_path = None
         src_path = file.publish_path
+
+        # get fields for the path:
+        fields = env.publish_template.get_fields(src_path)
         
         # early check to see if the publish path & work path will actually be different:
         if env.publish_template == env.work_template and "version" not in env.publish_template.keys:
@@ -315,9 +321,6 @@ class InteractiveOpenAction(OpenFileAction):
         else:
             # get the work path for the publish:
             try:
-                # get fields for the path:                
-                fields = env.publish_template.get_fields(src_path)
-    
                 # construct a context for the path:
                 sp_ctx = self._app.sgtk.context_from_path(src_path, env.context)
     
@@ -342,4 +345,4 @@ class InteractiveOpenAction(OpenFileAction):
                 self._app.log_exception("Failed to resolve work file path from publish path: %s" % src_path)
                 return False
 
-        return self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui)
+        return self._do_copy_and_open(src_path, work_path, fields.get("version"), not file.editable, env.context, parent_ui)

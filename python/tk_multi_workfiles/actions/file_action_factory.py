@@ -219,6 +219,7 @@ class FileActionFactory(object):
         :returns: List of actions.
         """
         actions = []
+
         if not file_item.is_published:
             return actions
 
