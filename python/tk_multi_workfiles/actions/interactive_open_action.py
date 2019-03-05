@@ -199,7 +199,6 @@ class InteractiveOpenAction(OpenFileAction):
         current_user = g_user_cache.current_user
         copy_to_new_user = (current_user and current_user["id"] != env.context.user["id"])
 
-
         # get fields from work path:
         fields = env.work_template.get_fields(work_path)
 
@@ -243,7 +242,7 @@ class InteractiveOpenAction(OpenFileAction):
                     workfile_context = local_ctx
 
         return self._do_copy_and_open(src_path, work_path, fields.get("version"), not file.editable,
-                                             env.context, parent_ui)
+                                      env.context, parent_ui)
 
     def _open_previous_publish(self, file, env, parent_ui):
         """

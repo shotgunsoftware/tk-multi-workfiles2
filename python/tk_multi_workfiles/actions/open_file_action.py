@@ -258,10 +258,10 @@ class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
         # copy and open the file:
         return self._do_copy_and_open(src_path, 
                                       dst_file_path, 
-                                      version = fields.get("version"),
-                                      read_only = False, 
-                                      new_ctx = dst_work_area.context, 
-                                      parent_ui = parent_ui)
+                                      version=fields.get("version"),
+                                      read_only=False,
+                                      new_ctx=dst_work_area.context,
+                                      parent_ui=parent_ui)
 
 class ContinueFromFileAction(OpenFileAction):
     """
