@@ -71,7 +71,7 @@ class ContinueFromWorkFileAction(ContinueFromFileAction):
             and environment.context and environment.context.user and g_user_cache.current_user
             and environment.context.user["id"] != g_user_cache.current_user["id"]):
             sandbox_user = environment.context.user.get("name", "Unknown").split(" ")[0]
-            label = "Continue Working from %s's File" % sandbox_user
+            label = "Continue Working from %s's Work File in your Work Area" % sandbox_user
         else:
             label = "Continue Working"
 
