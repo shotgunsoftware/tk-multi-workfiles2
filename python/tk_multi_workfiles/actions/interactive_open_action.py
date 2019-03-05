@@ -21,11 +21,11 @@ from ..user_cache import g_user_cache
 
 class InteractiveOpenAction(OpenFileAction):
 
-    def __init__(self, file, file_versions, environment, workfiles_visible, publishes_visible):
+    def __init__(self, file, file_versions, environment, workfiles_visible, publishes_visible, next_version_override):
         """
         """
-        OpenFileAction.__init__(self, "Open", file, file_versions, environment)
-        
+        OpenFileAction.__init__(self, "Open", file, file_versions, environment, next_version_override)
+
         self._workfiles_visible = workfiles_visible
         self._publishes_visible = publishes_visible
 
@@ -215,16 +215,8 @@ class InteractiveOpenAction(OpenFileAction):
                     ctx_fields = local_ctx.as_template_fields(env.work_template)
                     fields.update(ctx_fields)
                     if "version" in fields:
-                        try:
-                            fields["version"] = sgtk.platform.current_bundle().workfiles_management.get_next_workfile_version(
-                                # Name is not mandatory
-                                fields.get("name"),
-                                local_ctx,
-                                env.work_template
-                            )
-                        except NotImplementedError:
-                            # We keep the default value.
-                            pass
+                        if self._next_version_override is not None:
+                            fields["version"] = self._next_version_override
 
                     # construct the local path from these fields:
                     local_path = env.work_template.apply_fields(fields)
@@ -249,8 +241,6 @@ class InteractiveOpenAction(OpenFileAction):
                     src_path = work_path
                     work_path = local_path
                     workfile_context = local_ctx
-
-
 
         return self._do_copy_and_open(src_path, work_path, fields.get("version"), not file.editable,
                                              env.context, parent_ui)

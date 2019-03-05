@@ -63,7 +63,7 @@ class OpenWorkfileAction(OpenFileAction):
 class ContinueFromWorkFileAction(ContinueFromFileAction):
     """
     """
-    def __init__(self, file, file_versions, environment):
+    def __init__(self, file, file_versions, environment, next_version_override):
         """
         """
         label = ""
@@ -75,7 +75,7 @@ class ContinueFromWorkFileAction(ContinueFromFileAction):
         else:
             label = "Continue Working"
 
-        ContinueFromFileAction.__init__(self, label, file, file_versions, environment)
+        ContinueFromFileAction.__init__(self, label, file, file_versions, environment, next_version_override)
 
     def execute(self, parent_ui):
         """
@@ -94,10 +94,10 @@ class CopyAndOpenFileInCurrentWorkAreaAction(CopyAndOpenInCurrentWorkAreaAction)
     Action that copies a file to the current work area as the next available version
     and opens it from there
     """
-    def __init__(self, file, file_versions, environment):
+    def __init__(self, file, file_versions, environment, next_version_override):
         """
         """
-        CopyAndOpenInCurrentWorkAreaAction.__init__(self, "Open in Current Work Area...", file, file_versions, environment)
+        CopyAndOpenInCurrentWorkAreaAction.__init__(self, "Open in Current Work Area...", file, file_versions, environment, next_version_override)
 
     def execute(self, parent_ui):
         """

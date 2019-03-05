@@ -27,6 +27,10 @@ class OpenFileAction(FileAction):
     """
     """
 
+    def __init__(self, label, file, file_versions, environment, next_version_override=None):
+        super(OpenFileAction, self).__init__(label, file, file_versions, environment)
+        self._next_version_override = next_version_override
+
     def _copy_file(self, source_path, target_path):
         """
         Use hook to copy a file from source to target path
@@ -198,15 +202,10 @@ class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
         dst_version = None
         if "version" in dst_work_area.work_template.keys:
 
-            try:
-                dst_version = sgtk.platform.current_bundle().workfiles_management.get_next_workfile_version(
-                    # Name is not mandatory
-                    dst_work_area.work_template.get_fields(file.path).get("name"),
-                    dst_work_area.context,
-                    dst_work_area.work_template
-                )
-                fields["version"] = dst_version
-            except NotImplementedError:
+            if self._next_version_override is not None:
+                dst_version = self._next_version_override
+                fields["version"] = self._next_version_override
+            else:
                 # need to figure out the next version:
                 src_version = fields["version"]
 
@@ -267,25 +266,17 @@ class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
 class ContinueFromFileAction(OpenFileAction):
     """
     """
-    def __init__(self, label, file, file_versions, environment):
+    def __init__(self, label, file, file_versions, environment, next_version_override):
         """
         """
         # Figure out what could be the default next version number.
-        try:
-            self._version = sgtk.platform.current_bundle().workfiles_management.get_next_workfile_version(
-                # Name is not mandatory
-                environment.work_template.get_fields(file.path).get("name"),
-                environment.context,
-                environment.work_template
-            )
-        except NotImplementedError:
-            # Q. should the next version include the current version?
-            all_versions = [v for v, f in file_versions.iteritems()] + [file.version]
-            max_version = max(all_versions)
-            self._version = max_version + 1
+        # Q. should the next version include the current version?
+        all_versions = [v for v, f in file_versions.iteritems()] + [file.version]
+        max_version = max(all_versions)
+        self._version = max_version + 1
 
         label = "%s (as v%03d)" % (label, self._version) 
-        OpenFileAction.__init__(self, label, file, file_versions, environment)
+        OpenFileAction.__init__(self, label, file, file_versions, environment, next_version_override)
     
     def _continue_from(self, src_path, src_template, parent_ui):
         """
@@ -299,7 +290,7 @@ class ContinueFromFileAction(OpenFileAction):
                           "work template could be found" % src_path)
             return False
 
-        # build dst path for the next version of this file:
+    # build dst path for the next version of this file:
         fields = src_template.get_fields(src_path)
 
         # get the template fields for the current context using the current work template: 
@@ -309,7 +300,7 @@ class ContinueFromFileAction(OpenFileAction):
         fields.update(context_fields)
 
         # update version:
-        fields["version"] = self._version
+        fields["version"] = self._version if self._next_version_override is None else self._next_version_override
 
         # build the destination path:
         dst_path = dst_work_area.work_template.apply_fields(fields)

@@ -51,13 +51,13 @@ class OpenPublishAction(OpenFileAction):
 class ContinueFromPublishAction(ContinueFromFileAction):
     """
     """
-    def __init__(self, file, file_versions, environment):
+    def __init__(self, file, file_versions, environment, next_version_override):
         """
         """
         # This command does not pass down a next_version because it is assumed
         # that the publishes have all been retrieved from Shotgun, so therefore
         # the default behaviour from the base class of doing max + 1 works great.
-        ContinueFromFileAction.__init__(self, "Continue working from Publish in your Work Area", file, file_versions, environment)
+        ContinueFromFileAction.__init__(self, "Continue working from Publish in your Work Area", file, file_versions, environment, next_version_override)
 
     def execute(self, parent_ui):
         """
@@ -74,8 +74,8 @@ class ContinueFromPublishAction(ContinueFromFileAction):
 class CopyAndOpenPublishInCurrentWorkAreaAction(CopyAndOpenInCurrentWorkAreaAction):
     """
     """
-    def __init__(self, file, file_versions, environment):
-        CopyAndOpenInCurrentWorkAreaAction.__init__(self, "Open Publish in Current Work Area...", file, file_versions, environment)
+    def __init__(self, file, file_versions, environment, next_version_override):
+        CopyAndOpenInCurrentWorkAreaAction.__init__(self, "Open Publish in Current Work Area...", file, file_versions, environment, next_version_override)
 
     def execute(self, parent_ui):
         """

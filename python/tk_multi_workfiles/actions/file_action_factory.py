@@ -64,6 +64,7 @@ class FileActionFactory(object):
         # By default, we always show all actions on the menus.
         self._show_workfile_actions = True
         self._show_publish_actions = True
+        self._next_version_override = None
 
         app = sgtk.platform.current_bundle()
 
@@ -128,6 +129,16 @@ class FileActionFactory(object):
 
         current_user_file_versions = self._get_current_user_file_versions(file_item)
 
+        try:
+            self._next_version_override = sgtk.platform.current_bundle().workfiles_management.get_next_workfile_version(
+                # Name is not mandatory
+                self._work_area.work_template.get_fields(file_item.path).get("name"),
+                self._work_area.context,
+                self._work_area.work_template
+            )
+        except NotImplementedError:
+            self._next_version_override = None
+
         # add the interactive 'open' action.  This is the
         # default/generic open action that gets run whenever someone
         # double-clicks on a file or just hits the 'Open' button
@@ -137,7 +148,8 @@ class FileActionFactory(object):
                 current_user_file_versions,
                 self._work_area,
                 self._workfiles_visible,
-                self._publishes_visible
+                self._publishes_visible,
+                self._next_version_override
             )
         )
 
@@ -214,10 +226,10 @@ class FileActionFactory(object):
 
         if self._in_other_users_sandbox:
             # file is in another user sandbox so add appropriate actions:
-            actions.append(ContinueFromWorkFileAction(file_item, file_versions, self._work_area))
+            actions.append(ContinueFromWorkFileAction(file_item, file_versions, self._work_area, self._next_version_override))
 
             if self._change_work_area and self._can_copy_to_work_area:
-                actions.append(CopyAndOpenFileInCurrentWorkAreaAction(file_item, file_versions, self._work_area))
+                actions.append(CopyAndOpenFileInCurrentWorkAreaAction(file_item, file_versions, self._work_area, self._next_version_override))
 
         else:
             # file isn't in a different sandbox so add regular open actions:
@@ -226,10 +238,10 @@ class FileActionFactory(object):
                 all_versions = [v for v, f in file_versions.iteritems()]
                 max_version = max(all_versions) if all_versions else 0
                 if file_item.version != max_version:
-                    actions.append(ContinueFromWorkFileAction(file_item, file_versions, self._work_area))
+                    actions.append(ContinueFromWorkFileAction(file_item, file_versions, self._work_area, self._next_version_override))
 
             if self._change_work_area and self._can_copy_to_work_area:
-                actions.append(CopyAndOpenFileInCurrentWorkAreaAction(file_item, file_versions, self._work_area))
+                actions.append(CopyAndOpenFileInCurrentWorkAreaAction(file_item, file_versions, self._work_area, self._next_version_override))
 
         return actions
 
@@ -253,10 +265,10 @@ class FileActionFactory(object):
         actions.append(OpenPublishAction(file_item, file_versions, self._work_area))
         if file_item.path:
             # file has a local path so it's possible to carry copy it to the local work area!
-            actions.append(ContinueFromPublishAction(file_item, file_versions, self._work_area))
+            actions.append(ContinueFromPublishAction(file_item, file_versions, self._work_area, self._next_version_override))
 
             if self._change_work_area and self._can_copy_to_work_area:
-                actions.append(CopyAndOpenPublishInCurrentWorkAreaAction(file_item, file_versions, self._work_area))
+                actions.append(CopyAndOpenPublishInCurrentWorkAreaAction(file_item, file_versions, self._work_area, self._next_version_override))
 
         return actions
 
