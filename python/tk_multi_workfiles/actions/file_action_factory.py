@@ -52,18 +52,20 @@ class FileActionFactory(object):
 
         :param work_area: WorkArea instance representing the context associate with the file.
         :param file_model: A FileModel instance.
-        :param workfiles_visible: True if workfiles are visible. Defauls to True.
-        :param publishes_visible: True if publishes are visible. Defauls to True.
+        :param workfiles_visible: True if workfiles are visible in the current view. Defauls to True.
+        :param publishes_visible: True if publishes are visible in the current view. Defauls to True.
         """
         self._work_area = work_area
         self._file_model = file_model
+
         self._workfiles_visible = workfiles_visible
         self._publishes_visible = publishes_visible
 
-        app = sgtk.platform.current_bundle()
+        # By default, we always show all actions on the menus.
+        self._show_workfile_actions = True
+        self._show_publish_actions = True
 
-        self._show_workfile_actions_on_publishes = app.get_setting("show_workfile_actions_on_publishes")
-        self._show_publish_actions_on_workfiles = app.get_setting("show_publish_actions_on_workfiles")
+        app = sgtk.platform.current_bundle()
 
         # determine if this file is in a different users sandbox:
         self._in_other_users_sandbox = (
@@ -104,6 +106,25 @@ class FileActionFactory(object):
         :returns: List of Actions.
         """
         actions = []
+
+        app = sgtk.platform.current_bundle()
+
+        show_workfile_actions_on_publishes = app.get_setting("show_workfile_actions_on_publishes")
+        show_publish_actions_on_workfiles = app.get_setting("show_publish_actions_on_workfiles")
+
+        # If this menu is for the All tab, then we show both types of actions as the items
+        # in that view can be both Publishes and Workfiles.
+        if self._workfiles_visible and self._publishes_visible:
+            self._show_workfile_actions = True
+            self._show_publish_actions = True
+        else:
+            # If they are not, then we'll defer to the show_*_actions_on_* setting.
+            self._show_workfile_actions = file_item.is_local or (
+                file_item.is_published and show_workfile_actions_on_publishes
+            )
+            self._show_publish_actions = file_item.is_published or (
+                file_item.is_local and show_publish_actions_on_workfiles
+            )
 
         current_user_file_versions = self._get_current_user_file_versions(file_item)
 
@@ -181,7 +202,7 @@ class FileActionFactory(object):
 
         actions = []
 
-        if not file_item.is_local:
+        if not self._show_workfile_actions:
             return actions
 
         # all actions available when selection is a work file
@@ -223,7 +244,7 @@ class FileActionFactory(object):
         """
         actions = []
 
-        if not file_item.is_published:
+        if not self._show_publish_actions:
             return actions
 
         # all actions available when selection is a work file:
@@ -251,19 +272,21 @@ class FileActionFactory(object):
         # ------------------------------------------------------------------
         actions.append(SeparatorAction())
 
-        actions.extend(
-            self._create_previous_versions_actions_menu(
-                "Previous Work Files",
-                [item for item in file_item.versions.itervalues() if file_item.version > item.version and item.is_local]
+        if self._show_workfile_actions:
+            actions.extend(
+                self._create_previous_versions_actions_menu(
+                    "Previous Work Files",
+                    [item for item in file_item.versions.itervalues() if file_item.version > item.version and item.is_local]
+                )
             )
-        )
 
-        actions.extend(
-            self._create_previous_versions_actions_menu(
-                "Previous Publishes",
-                [item for item in file_item.versions.itervalues() if file_item.version > item.version and item.is_published],
+        if self._show_publish_actions:
+            actions.extend(
+                self._create_previous_versions_actions_menu(
+                    "Previous Publishes",
+                    [item for item in file_item.versions.itervalues() if file_item.version > item.version and item.is_published],
+                )
             )
-        )
 
         return actions
 
