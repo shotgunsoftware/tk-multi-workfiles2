@@ -28,6 +28,14 @@ class OpenFileAction(FileAction):
     """
 
     def __init__(self, label, file, file_versions, environment, next_version_override=None):
+        """
+        :params str label: Label of the menu item.
+        :param FileItem file: File the menu item is launched from.
+        :param file_versions: All the file versions, publishes and workfiles, associated with the selection.
+        :param environment: Environment associated with this file.
+        :param int next_version_override: Allows to override the next version for the current version
+            stream of this file.
+        """
         super(OpenFileAction, self).__init__(label, file, file_versions, environment)
         self._next_version_override = next_version_override
 
@@ -112,10 +120,6 @@ class OpenFileAction(FileAction):
                 return False            
 
             # Workfile was created on disk, we should register it with Shotgun.
-            # FIXME: Note that it's possible that opening the file might fail due to a software
-            # error in the following lines. It would probably be better at that point
-            # to delete the file and unregister the workfiles. For now we'll do no
-            # such thing and keep it registered, but it's worth keeping in mind for the future.
             try:
                 sgtk.platform.current_bundle().workfiles_management.register_workfile(
                     os.path.basename(dst_path), version,
@@ -268,6 +272,12 @@ class ContinueFromFileAction(OpenFileAction):
     """
     def __init__(self, label, file, file_versions, environment, next_version_override):
         """
+        :params str label: Label of the menu item.
+        :param FileItem file: File the menu item is launched from.
+        :param file_versions: All the file versions, publishes and workfiles, associated with the selection.
+        :param environment: Environment associated with this file.
+        :param int next_version_override: Allows to override the next version for the current version
+            stream of this file.
         """
         # Figure out what could be the default next version number.
         # Q. should the next version include the current version?
@@ -290,7 +300,7 @@ class ContinueFromFileAction(OpenFileAction):
                           "work template could be found" % src_path)
             return False
 
-    # build dst path for the next version of this file:
+        # build dst path for the next version of this file:
         fields = src_template.get_fields(src_path)
 
         # get the template fields for the current context using the current work template: 

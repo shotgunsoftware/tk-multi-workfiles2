@@ -119,16 +119,29 @@ class FileActionFactory(object):
             self._show_workfile_actions = True
             self._show_publish_actions = True
         else:
-            # If they are not, then we'll defer to the show_*_actions_on_* setting.
+            # If we're only showing one type of item, we'll go with
+            # what is in the selection.
+            # If the item is a workfile, we definitely want to show workfiles actions.
+            # If the item is a publish, but the publish actions on workfiles setting
+            # is turned on, we also want to show workfiles.
+            # If not, we won't show them.
             self._show_workfile_actions = file_item.is_local or (
                 file_item.is_published and show_workfile_actions_on_publishes
             )
+            # Similar logic, but for publish actions.
             self._show_publish_actions = file_item.is_published or (
                 file_item.is_local and show_publish_actions_on_workfiles
             )
 
         current_user_file_versions = self._get_current_user_file_versions(file_item)
 
+        # Each actions has their own way of computing the next version.
+        # For the workfiles management workflow however, there is only
+        # one way to grab the next available ticket for a workfile so
+        # we'll make sure that we grab it the right way. Because of this,
+        # we'll compute the value once here if the hook can compute
+        # the next version number and we'll pass it down as an override to all
+        # the actions that generate new files on disk.
         try:
             self._next_version_override = sgtk.platform.current_bundle().workfiles_management.get_next_workfile_version(
                 # Name is not mandatory

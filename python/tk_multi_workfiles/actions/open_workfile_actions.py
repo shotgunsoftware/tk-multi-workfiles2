@@ -65,6 +65,11 @@ class ContinueFromWorkFileAction(ContinueFromFileAction):
     """
     def __init__(self, file, file_versions, environment, next_version_override):
         """
+        :param FileItem file: File the menu item is launched from.
+        :param file_versions: All the file versions, publishes and workfiles, associated with the selection.
+        :param environment: Environment associated with this file.
+        :param int next_version_override: Allows to override the next version for the current version
+            stream of this file.
         """
         label = ""
         if (environment and environment.contains_user_sandboxes
