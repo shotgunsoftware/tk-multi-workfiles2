@@ -63,32 +63,24 @@ class OpenWorkfileAction(OpenFileAction):
 class ContinueFromWorkFileAction(ContinueFromFileAction):
     """
     """
-    def __init__(self, file, file_versions, environment):
+    def __init__(self, file, file_versions, environment, next_version_override):
         """
+        :param FileItem file: File the menu item is launched from.
+        :param file_versions: All the file versions, publishes and workfiles, associated with the selection.
+        :param environment: Environment associated with this file.
+        :param int next_version_override: Allows to override the next version for the current version
+            stream of this file.
         """
         label = ""
         if (environment and environment.contains_user_sandboxes
             and environment.context and environment.context.user and g_user_cache.current_user
             and environment.context.user["id"] != g_user_cache.current_user["id"]):
             sandbox_user = environment.context.user.get("name", "Unknown").split(" ")[0]
-            label = "Continue Working from %s's File" % sandbox_user
+            label = "Continue Working from %s's Work File in your Work Area" % sandbox_user
         else:
             label = "Continue Working"
 
-        # Figure out what could be the default next version number.
-        try:
-            next_version = sgtk.platform.current_bundle().workfiles_management.get_next_workfile_version(
-                # Name is not mandatory
-                environment.work_template.get_fields(file.path).get("name"),
-                environment.context,
-                environment.work_template
-            )
-        except NotImplementedError:
-            next_version = None
-
-        ContinueFromFileAction.__init__(
-            self, label, file, file_versions, environment, next_version
-        )
+        ContinueFromFileAction.__init__(self, label, file, file_versions, environment, next_version_override)
 
     def execute(self, parent_ui):
         """
@@ -107,10 +99,10 @@ class CopyAndOpenFileInCurrentWorkAreaAction(CopyAndOpenInCurrentWorkAreaAction)
     Action that copies a file to the current work area as the next available version
     and opens it from there
     """
-    def __init__(self, file, file_versions, environment):
+    def __init__(self, file, file_versions, environment, next_version_override):
         """
         """
-        CopyAndOpenInCurrentWorkAreaAction.__init__(self, "Open in Current Work Area...", file, file_versions, environment)
+        CopyAndOpenInCurrentWorkAreaAction.__init__(self, "Open in Current Work Area...", file, file_versions, environment, next_version_override)
 
     def execute(self, parent_ui):
         """

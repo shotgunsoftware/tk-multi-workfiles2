@@ -21,11 +21,11 @@ from ..user_cache import g_user_cache
 
 class InteractiveOpenAction(OpenFileAction):
 
-    def __init__(self, file, file_versions, environment, workfiles_visible, publishes_visible):
+    def __init__(self, file, file_versions, environment, workfiles_visible, publishes_visible, next_version_override):
         """
         """
-        OpenFileAction.__init__(self, "Open", file, file_versions, environment)
-        
+        OpenFileAction.__init__(self, "Open", file, file_versions, environment, next_version_override)
+
         self._workfiles_visible = workfiles_visible
         self._publishes_visible = publishes_visible
 
@@ -198,7 +198,10 @@ class InteractiveOpenAction(OpenFileAction):
         workfile_context = env.context
         current_user = g_user_cache.current_user
         copy_to_new_user = (current_user and current_user["id"] != env.context.user["id"])
-        
+
+        # get fields from work path:
+        fields = env.work_template.get_fields(work_path)
+
         # construct a context for this path to determine if it's in
         # a user sandbox or not:
         if env.context.user:
@@ -206,24 +209,13 @@ class InteractiveOpenAction(OpenFileAction):
                 # file is in a user sandbox - construct path
                 # for the current user's sandbox:
                 try:
-                    # get fields from work path:
-                    fields = env.work_template.get_fields(work_path)
-
                     # add in the fields from the context with the current user:
                     local_ctx = env.context.create_copy_for_user(current_user)
                     ctx_fields = local_ctx.as_template_fields(env.work_template)
                     fields.update(ctx_fields)
                     if "version" in fields:
-                        try:
-                            fields["version"] = sgtk.platform.current_bundle().workfiles_management.get_next_workfile_version(
-                                # Name is not mandatory
-                                fields.get("name"),
-                                local_ctx,
-                                env.work_template
-                            )
-                        except NotImplementedError:
-                            # We keep the default value.
-                            pass
+                        if self._next_version_override is not None:
+                            fields["version"] = self._next_version_override
 
                     # construct the local path from these fields:
                     local_path = env.work_template.apply_fields(fields)
@@ -249,23 +241,8 @@ class InteractiveOpenAction(OpenFileAction):
                     work_path = local_path
                     workfile_context = local_ctx
 
-        file_copied = self._do_copy_and_open(src_path, work_path, None, not file.editable,
-                                             env.context, parent_ui)
-        if file_copied and copy_to_new_user:
-            # If a user is copying another user's Workfile into their sandbox,
-            # create the corresponding Workfile entity.
-            workfile_fields = env.work_template.get_fields(work_path)
-            self._app.workfiles_management.register_workfile(
-                file.name,
-                (workfile_fields.get("version") or 0),
-                workfile_context,
-                env.work_template,
-                work_path,
-                file.workfile_description,
-                file.thumbnail
-            )
-
-        return file_copied
+        return self._do_copy_and_open(src_path, work_path, fields.get("version"), not file.editable,
+                                      env.context, parent_ui)
 
     def _open_previous_publish(self, file, env, parent_ui):
         """
@@ -322,6 +299,9 @@ class InteractiveOpenAction(OpenFileAction):
         # trying to open a publish:
         work_path = None
         src_path = file.publish_path
+
+        # get fields for the path:
+        fields = env.publish_template.get_fields(src_path)
         
         # early check to see if the publish path & work path will actually be different:
         if env.publish_template == env.work_template and "version" not in env.publish_template.keys:
@@ -330,9 +310,6 @@ class InteractiveOpenAction(OpenFileAction):
         else:
             # get the work path for the publish:
             try:
-                # get fields for the path:                
-                fields = env.publish_template.get_fields(src_path)
-    
                 # construct a context for the path:
                 sp_ctx = self._app.sgtk.context_from_path(src_path, env.context)
     
@@ -357,13 +334,4 @@ class InteractiveOpenAction(OpenFileAction):
                 self._app.log_exception("Failed to resolve work file path from publish path: %s" % src_path)
                 return False
 
-        file_copied = self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui)
-        if file_copied:
-            # Create a corresponding Workfile entity if the app is setup to do that.
-            self._app.workfiles_management.register_workfile(
-                file.name, new_version, env.context, env.work_template, work_path,
-                file.workfile_description, file.thumbnail
-            )
-
-        return file_copied
-
+        return self._do_copy_and_open(src_path, work_path, fields.get("version"), not file.editable, env.context, parent_ui)
