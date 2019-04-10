@@ -73,13 +73,13 @@ class FileFinder(QtCore.QObject):
                 # find out if version is used in the file name:
                 template_name, _ = os.path.splitext(os.path.basename(template.definition))
                 version_in_name = "{version}" in template_name
-            
+
                 # extract the file name from the path:
                 name, _ = os.path.splitext(os.path.basename(path))
                 delims_str = "_-. "
                 if version_in_name:
-                    # looks like version is part of the file name so we        
-                    # need to isolate it so that we can remove it safely.  
+                    # looks like version is part of the file name so we
+                    # need to isolate it so that we can remove it safely.
                     # First, find a dummy version whose string representation
                     # doesn't exist in the name string
                     version_key = template.keys["version"]
@@ -89,40 +89,40 @@ class FileFinder(QtCore.QObject):
                         if test_str not in name:
                             break
                         dummy_version += 1
-                    
+
                     # now use this dummy version and rebuild the path
                     fields["version"] = dummy_version
                     path = template.apply_fields(fields)
                     name, _ = os.path.splitext(os.path.basename(path))
-                    
+
                     # we can now locate the version in the name and remove it
                     dummy_version_str = version_key.str_from_value(dummy_version)
-                    
+
                     v_pos = name.find(dummy_version_str)
                     # remove any preceeding 'v'
                     pre_v_str = name[:v_pos].rstrip("v")
                     post_v_str = name[v_pos + len(dummy_version_str):]
-                    
-                    if (pre_v_str and post_v_str 
-                        and pre_v_str[-1] in delims_str 
+
+                    if (pre_v_str and post_v_str
+                        and pre_v_str[-1] in delims_str
                         and post_v_str[0] in delims_str):
                         # only want one delimiter - strip the second one:
                         post_v_str = post_v_str.lstrip(delims_str)
-    
+
                     versionless_name = pre_v_str + post_v_str
                     versionless_name = versionless_name.strip(delims_str)
-                    
+
                     if versionless_name:
                         # great - lets use this!
                         name = versionless_name
-                    else: 
-                        # likely that version is only thing in the name so 
+                    else:
+                        # likely that version is only thing in the name so
                         # instead, replace the dummy version with #'s:
-                        zero_version_str = version_key.str_from_value(0)        
+                        zero_version_str = version_key.str_from_value(0)
                         new_version_str = "#" * len(zero_version_str)
                         name = name.replace(dummy_version_str, new_version_str)
-            
-            return name    
+
+            return name
 
     def __init__(self, parent=None):
         """
@@ -136,58 +136,58 @@ class FileFinder(QtCore.QObject):
     def find_files(self, work_template, publish_template, context, filter_file_key=None):
         """
         Find files using the specified context, work and publish templates
-        
+
         :param work_template:       The template to use when searching for work files
         :param publish_template:    The template to use when searching for publish files
         :param context:             The context to search for file with
-        :param filter_file_key:     A unique file 'key' that if specified will limit the returned list of files to just 
+        :param filter_file_key:     A unique file 'key' that if specified will limit the returned list of files to just
                                     those that match.  This 'key' should be generated using the FileItem.build_file_key()
                                     method.
-        :returns:                   A list of FileItem instances, one for each unique version of a file found in either 
+        :returns:                   A list of FileItem instances, one for each unique version of a file found in either
                                     the work or publish areas
         """
         # can't find anything without a work template!
         if not work_template:
             return []
-    
+
         # determien the publish filters to use from the context:
         publish_filters = [["entity", "is", context.entity or context.project]]
         if context.task:
             publish_filters.append(["task", "is", context.task])
         else:
             publish_filters.append(["task", "is", None])
-    
+
         # get the list of valid file extensions if set:
-        valid_file_extensions = [".%s" % ext if not ext.startswith(".") else ext 
+        valid_file_extensions = [".%s" % ext if not ext.startswith(".") else ext
                                  for ext in self._app.get_setting("file_extensions", [])]
-        
+
         # get list of fields that should be ignored when comparing work files:
-        version_compare_ignore_fields = self._app.get_setting("version_compare_ignore_fields", [])    
+        version_compare_ignore_fields = self._app.get_setting("version_compare_ignore_fields", [])
 
         # find all work & publish files and filter out any that should be ignored:
         work_files = self._find_work_files(context, work_template, version_compare_ignore_fields)
         filtered_work_files = self._filter_work_files(work_files, valid_file_extensions)
-        
+
         published_files = self._find_publishes(publish_filters)
-        filtered_published_files = self._filter_publishes(published_files, 
-                                                          publish_template, 
+        filtered_published_files = self._filter_publishes(published_files,
+                                                          publish_template,
                                                           valid_file_extensions)
-        
+
         # turn these into FileItem instances:
         name_map = FileFinder._FileNameMap()
-        work_file_item_details = self._process_work_files(filtered_work_files, 
-                                                        work_template, 
-                                                        context, 
-                                                        name_map, 
-                                                        version_compare_ignore_fields, 
+        work_file_item_details = self._process_work_files(filtered_work_files,
+                                                        work_template,
+                                                        context,
+                                                        name_map,
+                                                        version_compare_ignore_fields,
                                                         filter_file_key)
         work_file_items = dict([(k, FileItem(**kwargs)) for k, kwargs in work_file_item_details.iteritems()])
 
-        publish_item_details = self._process_publish_files(filtered_published_files, 
-                                                         publish_template, 
-                                                         work_template, 
-                                                         context, 
-                                                         name_map, 
+        publish_item_details = self._process_publish_files(filtered_published_files,
+                                                         publish_template,
+                                                         work_template,
+                                                         context,
+                                                         name_map,
                                                          version_compare_ignore_fields,
                                                          filter_file_key)
         publish_items = dict([(k, FileItem(**kwargs)) for k, kwargs in publish_item_details.iteritems()])
@@ -205,7 +205,7 @@ class FileFinder(QtCore.QObject):
 
         return file_items
 
-    def _process_work_files(self, work_files, work_template, context, name_map, version_compare_ignore_fields, 
+    def _process_work_files(self, work_files, work_template, context, name_map, version_compare_ignore_fields,
                           filter_file_key=None):
         """
         :param work_files: A list of dictionaries with file details.
@@ -221,12 +221,12 @@ class FileFinder(QtCore.QObject):
                   :class:`FileItem`.
         """
         files = {}
-        
+
         for work_file in work_files:
-            
+
             # always have the work path:
             work_path = work_file["path"]
-            
+
             # get fields for work file:
             wf_fields = work_template.get_fields(work_path)
             wf_ctx = None
@@ -244,15 +244,15 @@ class FileFinder(QtCore.QObject):
             if filter_file_key and file_key != filter_file_key:
                 # we can ignore this file completely!
                 continue
-            
+
             # copy common fields from work_file:
             #
             file_details = dict([(k, v) for k, v in work_file.iteritems() if k != "path"])
-            
+
             # get version from fields if not specified in work file:
             if not file_details["version"]:
                 file_details["version"] = wf_fields.get("version", 0)
-            
+
             # if no task try to determine from context or path:
             if not file_details["task"]:
                 if context.task:
@@ -261,11 +261,11 @@ class FileFinder(QtCore.QObject):
                     # try to create a context from the path and see if that contains a task:
                     wf_ctx = self._app.sgtk.context_from_path(work_path, context)
                     if wf_ctx and wf_ctx.task:
-                        file_details["task"] = wf_ctx.task 
+                        file_details["task"] = wf_ctx.task
 
             # Add additional fields:
             #
-    
+
             # Entity:
             file_details["entity"] = context.entity
 
@@ -295,26 +295,26 @@ class FileFinder(QtCore.QObject):
                 "work_path": work_path,
                 "work_details": file_details
             }
-                
+
         return files
-        
-    def _process_publish_files(self, sg_publishes, publish_template, work_template, context, name_map, 
+
+    def _process_publish_files(self, sg_publishes, publish_template, work_template, context, name_map,
                              version_compare_ignore_fields, filter_file_key=None):
         """
         """
         files = {}
-        
+
         # and add in publish details:
         ctx_fields = context.as_template_fields(work_template)
-                    
+
         for sg_publish in sg_publishes:
             file_details = {}
-    
+
             # always have a path:
             publish_path = sg_publish["path"]
-            
+
             # determine the work path fields from the publish fields + ctx fields:
-            # The order is important as it ensures that the user is correct if the 
+            # The order is important as it ensures that the user is correct if the
             # publish file is in a user sandbox but we also need to be careful not
             # to overrwrite fields that are being ignored when comparing work files
             publish_fields = publish_template.get_fields(publish_path)
@@ -322,10 +322,10 @@ class FileFinder(QtCore.QObject):
             for k, v in ctx_fields.iteritems():
                 if k not in version_compare_ignore_fields:
                     wp_fields[k] = v
-            
+
             # build the unique file key for the publish path.  All files that share the same key are considered
             # to be different versions of the same file.
-            file_key = FileItem.build_file_key(wp_fields, work_template, 
+            file_key = FileItem.build_file_key(wp_fields, work_template,
                                                version_compare_ignore_fields)
             if filter_file_key and file_key != filter_file_key:
                 # we can ignore this file completely!
@@ -339,18 +339,18 @@ class FileFinder(QtCore.QObject):
                 # unable to generate a work path - this means we are probably missing a field so it's going to
                 # be a problem matching this publish up with its corresponding work file!
                 work_path = ""
-            
+
             # copy common fields from sg_publish:
             #
             file_details = dict([(k, v) for k, v in sg_publish.iteritems() if k != "path"])
-            
+
             # get version from fields if not specified in publish file:
             if file_details["version"] == None:
                 file_details["version"] = publish_fields.get("version", 0)
-            
+
             # entity
             file_details["entity"] = context.entity
-        
+
             # local file modified details:
             if os.path.exists(publish_path):
                 try:
@@ -371,7 +371,7 @@ class FileFinder(QtCore.QObject):
             # add new file item for this publish.  Note that we also keep track of the
             # work path even though we don't know if this publish has a corresponding
             # work file.
-            files[(file_key, file_details["version"])] = {"key":file_key, 
+            files[(file_key, file_details["version"])] = {"key":file_key,
                                                           "work_path":work_path,
                                                           "is_published":True,
                                                           "publish_path":publish_path,
@@ -397,14 +397,14 @@ class FileFinder(QtCore.QObject):
         """
         # build list of publishes to send to the filter_publishes hook:
         hook_publishes = [{"sg_publish":sg_publish} for sg_publish in sg_publishes]
-        
+
         # execute the hook - this will return a list of filtered publishes:
         hook_result = self._app.execute_hook("hook_filter_publishes", publishes = hook_publishes)
         if not isinstance(hook_result, list):
-            self._app.log_error("hook_filter_publishes returned an unexpected result type '%s' - ignoring!" 
+            self._app.log_error("hook_filter_publishes returned an unexpected result type '%s' - ignoring!"
                           % type(hook_result).__name__)
             hook_result = []
-        
+
         # split back out publishes:
         published_files = []
         for item in hook_result:
@@ -419,48 +419,48 @@ class FileFinder(QtCore.QObject):
             path = (sg_publish["path"] or {}).get("local_path")
             if not path:
                 continue
-            
+
             # skip file if it doesn't contain a valid file extension:
             if valid_file_extensions and os.path.splitext(path)[1] not in valid_file_extensions:
                 continue
-    
-            # make sure path matches the publish template:            
+
+            # make sure path matches the publish template:
             if not publish_template.validate(path):
                 continue
-    
+
             # build file details for this publish:
             file_details = {"path":path}
-            
+
             # add in details from sg record:
             file_details["version"] = sg_publish.get("version_number")
             file_details["name"] = sg_publish.get("name")
             file_details["task"] = sg_publish.get("task")
             file_details["publish_description"] = sg_publish.get("description")
             file_details["thumbnail"] = sg_publish.get("image")
-            
+
             file_details["published_at"] = sg_publish.get("created_at")
             file_details["published_by"] = sg_publish.get("created_by", {})
             file_details["published_file_entity_id"] = sg_publish.get("id")
-            
+
             # find additional information:
             editable_info = item.get("editable")
             if editable_info and isinstance(editable_info, dict):
                 file_details["editable"] = editable_info.get("can_edit", True)
                 file_details["editable_reason"] = editable_info.get("reason", "")
-            
+
             # append to published files list:
-            published_files.append(file_details)    
-            
+            published_files.append(file_details)
+
         return published_files
-    
-        
+
+
     def _find_work_files(self, context, work_template, version_compare_ignore_fields):
         """
         Find all work files for the specified context and work template.
-        
+
         :param context:                         The context to find work files for
         :param work_template:                   The work template to match found files against
-        :param version_compare_ignore_fields:   List of fields to ignore when comparing files in order to find 
+        :param version_compare_ignore_fields:   List of fields to ignore when comparing files in order to find
                                                 different versions of the same file
         :returns:                               A list of file paths.
         """
@@ -470,7 +470,7 @@ class FileFinder(QtCore.QObject):
             work_fields = context.as_template_fields(work_template, validate=True)
         except TankError as e:
             # could not resolve fields from this context. This typically happens
-            # when the context object does not have any corresponding objects on 
+            # when the context object does not have any corresponding objects on
             # disk / in the path cache. In this case, we cannot continue with any
             # file system resolution, so just exit early insted.
             return []
@@ -484,7 +484,7 @@ class FileFinder(QtCore.QObject):
         # ensure we find as wide a range of files as possible considering all optional keys.
         # Note, this may be better as a general change to the paths_from_template method...
         skip_fields += [n for n in work_fields.keys() if work_template.is_optional(n)]
-        
+
         # Find all versions so skip the 'version' key if it's present and not
         # already registered in our wildcards:
         if "version" not in skip_fields:
@@ -495,6 +495,14 @@ class FileFinder(QtCore.QObject):
             work_template,
             work_fields,
             skip_fields,
+            skip_missing_optional_keys=True
+        )
+        work_file_paths = self._app.execute_hook(
+            "hook_find_work_files",
+            work_files_paths=work_file_paths,
+            work_template=work_template,
+            work_fields=work_fields,
+            skip_fields=skip_fields,
             skip_missing_optional_keys=True
         )
         return work_file_paths
@@ -516,7 +524,7 @@ class FileFinder(QtCore.QObject):
         hook_work_files = [
             {"work_file":{"path":path}} for path in work_file_paths
         ]
-        
+
         # Execute the hook - this will return a list of filtered paths:
         hook_result = self._app.execute_hook(
             "hook_filter_work_files",
@@ -527,21 +535,21 @@ class FileFinder(QtCore.QObject):
                 "hook_filter_work_files returned an unexpected result type '%s' - ignoring..."
                           % type(hook_result).__name__)
             hook_result = []
-    
+
         # split back out work files:
         work_files = []
         for item in hook_result:
             work_file = item.get("work_file")
             if not work_file:
                 continue
-            
+
             path = work_file.get("path")
             if not path:
                 continue
-            
+
             if valid_file_extensions and os.path.splitext(path)[1] not in valid_file_extensions:
                 continue
-            
+
             # Build the dictionary with details for the filtered path.
             # Please note that unless the hook added additional details, we only
             # have a path key in the work_file dictionary.
@@ -555,15 +563,15 @@ class FileFinder(QtCore.QObject):
                 "modified_at": work_file.get("modified_at"),
                 "modified_by": work_file.get("modified_by", {}),
             }
-            
+
             # Find additional information:
             editable_info = item.get("editable")
             if editable_info and isinstance(editable_info, dict):
                 file_details["editable"] = editable_info.get("can_edit", True)
-                file_details["editable_reason"] = editable_info.get("reason", "")        
-            
+                file_details["editable_reason"] = editable_info.get("reason", "")
+
             work_files.append(file_details)
-            
+
         return work_files
 
 class AsyncFileFinder(FileFinder):
@@ -617,7 +625,7 @@ class AsyncFileFinder(FileFinder):
     def shut_down(self):
         """
         """
-        # clean up any publish models - not doing this will result in 
+        # clean up any publish models - not doing this will result in
         # severe instability!
         for search in self._searches:
             if search.publish_model:
@@ -714,7 +722,7 @@ class AsyncFileFinder(FileFinder):
             search.user_work_areas[user_id] = user_work_area
 
             # find work files:
-            find_work_files_task = self._bg_task_manager.add_task(self._task_find_work_files, 
+            find_work_files_task = self._bg_task_manager.add_task(self._task_find_work_files,
                                                                   group=search.id,
                                                                   priority=AsyncFileFinder._FIND_FILES_PRIORITY,
                                                                   task_kwargs = {"environment":user_work_area})
@@ -728,7 +736,7 @@ class AsyncFileFinder(FileFinder):
 
             # build work items:
             process_work_items_task = self._bg_task_manager.add_task(self._task_process_work_items,
-                                                                     group=search.id, 
+                                                                     group=search.id,
                                                                      priority=AsyncFileFinder._FIND_FILES_PRIORITY,
                                                                      upstream_task_ids = [filter_work_files_task],
                                                                      task_kwargs = {"environment":user_work_area,
@@ -811,7 +819,7 @@ class AsyncFileFinder(FileFinder):
                 search.aborted = True
                 return
 
-            # we have successfully constructed a work area that we can 
+            # we have successfully constructed a work area that we can
             # use for the next stage so begin searching for work files:
             self._begin_search_for_work_files(search, work_area)
             # and also add a task to process cached publishes:
@@ -871,7 +879,7 @@ class AsyncFileFinder(FileFinder):
         # be emitted multiple times for a single search so we need to check
         # that the search has actually finished!
         if search.users and not search.aborted:
-            if (search.find_publishes_tasks or search.find_work_files_tasks 
+            if (search.find_publishes_tasks or search.find_work_files_tasks
                 or search.load_cached_pubs_task or not search.publish_model_refreshed
                 ):
                 # we still have work outstanding!
@@ -959,20 +967,20 @@ class AsyncFileFinder(FileFinder):
                     created_at = datetime.fromtimestamp(created_at, sg_timezone.LocalTimezone())
                     sg_publish["created_at"] = created_at
 
-            filtered_publishes = self._filter_publishes(sg_publishes, 
-                                                        environment.publish_template, 
+            filtered_publishes = self._filter_publishes(sg_publishes,
+                                                        environment.publish_template,
                                                         environment.valid_file_extensions)
-        return {"sg_publishes":filtered_publishes}    
+        return {"sg_publishes":filtered_publishes}
 
     def _task_process_publish_items(self, sg_publishes, environment, name_map, **kwargs):
         """
         """
         publish_items = {}
-        if (sg_publishes and environment and environment.publish_template 
+        if (sg_publishes and environment and environment.publish_template
             and environment.work_template and environment.context and name_map):
-            publish_items = self._process_publish_files(sg_publishes, 
-                                                      environment.publish_template, 
-                                                      environment.work_template, 
+            publish_items = self._process_publish_files(sg_publishes,
+                                                      environment.publish_template,
+                                                      environment.work_template,
                                                       environment.context,
                                                       name_map,
                                                       environment.version_compare_ignore_fields)
@@ -983,8 +991,8 @@ class AsyncFileFinder(FileFinder):
         """
         work_files = []
         if (environment and environment.context and environment.work_template):
-            work_files = self._find_work_files(environment.context, 
-                                               environment.work_template, 
+            work_files = self._find_work_files(environment.context,
+                                               environment.work_template,
                                                environment.version_compare_ignore_fields)
         return {"work_files":work_files}
 
@@ -1001,10 +1009,10 @@ class AsyncFileFinder(FileFinder):
         """
         """
         work_items = {}
-        if (work_files and environment and environment.work_template 
+        if (work_files and environment and environment.work_template
             and environment.context and name_map):
-            work_items = self._process_work_files(work_files, 
-                                                  environment.work_template, 
+            work_items = self._process_work_files(work_files,
+                                                  environment.work_template,
                                                   environment.context,
                                                   name_map,
                                                   environment.version_compare_ignore_fields)
