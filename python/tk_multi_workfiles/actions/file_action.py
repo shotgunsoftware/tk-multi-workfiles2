@@ -119,8 +119,8 @@ class FileAction(Action):
         try:
             sgtk.platform.change_context(ctx)
         except Exception, e:
-            app.log_exception("Context change failed!")
-            raise TankError("Failed to change work area - %s" % e)
+            app.log_exception(e)
+            raise TankError("Context changed failed, see log for details.")
         finally:
             QtGui.QApplication.restoreOverrideCursor()
 
