@@ -49,7 +49,9 @@ class GetWorkFileBadge(HookClass):
                             }
 
 
-        :returns:            A QPixmap to use as the badge, if a badge should be applied, otherwise None
+        :returns:           A QPixmap or QColor to use for the badge, if a badge should be applied,
+                            otherwise None.  If a QColor is returned, a circular "dot" badge will be
+                            generated using that color.
         """
-        # the default implementation just returns None:
+        # the default implementation always returns None.
         return None

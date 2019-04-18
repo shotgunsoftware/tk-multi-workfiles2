@@ -127,13 +127,21 @@ class FileWidget(QtGui.QWidget):
 
     def set_badge(self, badge):
         if isinstance(badge, QtGui.QColor):
-            # if it's a color, we'll create a dot badge of that color.
-            badge = None
-        elif isinstance(badge, QtGui.QPixmap):
+            # If the hook returned a QColor, we'll create a dot badge of that color.
+            # We want to multiply the color onto the (white) badge_default dot to
+            # generate a nice looking badge.
+            badgeImage = QtGui.QPixmap(":/tk-multi-workfiles2/badge_default.png")
+            painter = QtGui.QPainter()
+            painter.begin(badgeImage)
+            painter.setCompositionMode(QtGui.QPainter.CompositionMode_SourceIn)
+            painter.fillRect(badgeImage.rect(), badge)
+            painter.end()
+            badge = badgeImage
+        if isinstance(badge, QtGui.QPixmap):
             self._badge_icon.setPixmap(badge)
             self._badge_icon.setVisible(True)
         else:
-            # if badge is not a QColor or QPixmap, clear the badge
+            # If we don't have a QPixmap badge, clear and hide the badge.
             self._badge_icon.clear()
             self._badge_icon.setVisible(False)
 
