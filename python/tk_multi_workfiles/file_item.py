@@ -89,7 +89,7 @@ class FileItem(object):
         return tuple(sorted(file_key.iteritems()))
 
     def __init__(self, key, is_work_file=False, work_path=None, work_details=None, 
-                 is_published=False, publish_path=None, publish_details=None):
+                 is_published=False, publish_path=None, publish_details=None, badge=None):
         """
         Construction
 
@@ -100,6 +100,7 @@ class FileItem(object):
         :param is_published:    True if this instance represents a published file
         :param publish_path:    Publish path on disk of this file
         :param publish_details: Dictionary containing additional information about this publish
+        :param badge:           QPixmap icon that should be displayed as a badge
         """
         self._key = key
 
@@ -113,6 +114,8 @@ class FileItem(object):
 
         self._thumbnail_path = None
         self._thumbnail_image = None
+
+        self._badge = badge
 
         self._versions = {}
 
@@ -212,6 +215,21 @@ class FileItem(object):
         """
         self._versions = value
     versions=property(_get_versions, _set_versions)
+
+    def _get_badge(self):
+        """
+        :returns:   The QPixmap to be used as a badge when displaying this file
+                    to the user.
+        """
+        return self._badge
+
+    def _set_badge(self, value):
+        """
+        :param value:   The QPixmap to be used as a badge when displaying this file
+                        to the user.
+        """
+        self._badge = value
+    badge = property(_get_badge, _set_badge)
 
     # ------------------------------------------------------------------------------------------
     # Work file properties

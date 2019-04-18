@@ -81,11 +81,13 @@ class FileListItemDelegate(GroupedListViewItemDelegate):
 
                 # retrieve the icon:
                 icon = file_item.thumbnail
+                badge = file_item.badge
                 is_publish = file_item.is_published
                 is_editable = file_item.editable
 
             widget.set_is_publish(is_publish)
             widget.set_is_editable(is_editable)
+            widget.set_badge(badge)
 
         elif item_type == FileModel.FOLDER_NODE_TYPE:
             # get the lavel from the index and use the default folder icon

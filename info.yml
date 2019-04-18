@@ -78,6 +78,18 @@ configuration:
         description: Specify a hook that, if needed, can filter the raw list of publishes returned
                      from Shotgun for the current Work area.
 
+    hook_get_publish_badge:
+        type: hook
+        default_value: "{self}/get_publish_badge.py"
+        description: Specify a hook that, if desired, provides a badge icon to include in the UI
+                     when displaying the publish.
+
+    hook_get_work_file_badge:
+        type: hook
+        default_value: "{self}/get_work_file_badge.py"
+        description: Specify a hook that, if desired, provides a badge icon to include in the UI
+                     when displaying the work file.
+
     custom_actions_hook:
         type: hook
         default_value: "{self}/custom_actions.py"
