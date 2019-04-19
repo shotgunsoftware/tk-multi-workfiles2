@@ -20,33 +20,24 @@ class GetWorkFileBadge(HookClass):
     Work area
     """
 
-    def execute(self, work_file, **kwargs):
+    def execute(self, work_file_details, work_file_path, **kwargs):
         """
         Main hook entry point
 
-        :param work_file:   Dictionary
-                            A dictionary for the work file to generate a badge for, in the form:
+        :param work_file:       Dictionary
+                                A dictionary for the work file to generate a badge for containing
+                                the following keys:
+                                    - task
+                                    - modified_by
+                                    - name
+                                    - modified_at
+                                    - entity
+                                    - version
+                                    - thumbnail
+                                    - description
 
-                            {
-                                "work_file" : {
-
-                                    Dictionary containing information about a single work file.  Valid entries in
-                                    this dicitionary are listed below but may not be populated when the hook is
-                                    executed!
-
-                                    It is intended that custom versions of this hook should populate these fields
-                                    if needed before returning the filtered list
-
-                                    version_number    - version of the work file
-                                    name              - name of the work file
-                                    task              - task the work file should be associated with
-                                    description       - description of the work file
-                                    thumbnail         - thumbnail that should be used for the work file
-                                    modified_at       - date & time the work file was last modified
-                                    modified_by       - Shotgun user entity dictionary for the person who
-                                                     last modified the work file
-                                }
-                            }
+        :param work_file_path:  String
+                                The path to the work file on disk.
 
 
         :returns:           A QPixmap or QColor to use for the badge, if a badge should be applied,

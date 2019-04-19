@@ -20,16 +20,27 @@ class GetPublishBadge(HookClass):
     Work area
     """
 
-    def execute(self, publish, **kwargs):
+    def execute(self, publish_details, publish_path, **kwargs):
         """
         Main hook entry point
 
-        :param publish:   Dictionary
-                            A dictionary for the publish to generate a badge for, in the form:
+        :param publish:         Dictionary
+                                A dictionary for the publish to generate a badge for, containing the
+                                following keys:
+                                    - task
+                                    - modified_by
+                                    - name
+                                    - modified_at
+                                    - published_at
+                                    - thumbnail
+                                    - publish_description
+                                    - published_by
+                                    - version
+                                    - entity
 
-                            {
-                                "sg_publish" : {Shotgun entity dictionary for a Published File entity}
-                            }
+        :param publish_path:    String
+                                The path to the publish on disk.
+
 
 
         :returns:           A QPixmap or QColor to use for the badge, if a badge should be applied,
