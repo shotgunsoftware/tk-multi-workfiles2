@@ -289,8 +289,9 @@ class FileFinder(QtCore.QObject):
             )
 
             # get the badge for the work file from the hook
-            badge = self._app.execute_hook(
-                "hook_get_work_file_badge",
+            badge = self._app.execute_hook_method(
+                "hook_get_badge",
+                "get_work_file_badge",
                 work_file_details=file_details,
                 work_file_path=work_path
             )
@@ -377,8 +378,9 @@ class FileFinder(QtCore.QObject):
             file_details["name"] = name_map.get_name(file_key, publish_path, publish_template, publish_fields)
 
             # get the badge for the publish from the hook
-            badge = self._app.execute_hook(
-                "hook_get_publish_badge",
+            badge = self._app.execute_hook_method(
+                "hook_get_badge",
+                "get_publish_badge",
                 publish_details=file_details,
                 publish_path=publish_path,
             )

@@ -26,7 +26,10 @@ class FileWidget(QtGui.QWidget):
         # set up the UI
         self._ui = Ui_FileWidget()
         self._ui.setupUi(self)
-        
+
+        # store the app to use when calling hooks
+        self._app = sgtk.platform.current_bundle()
+
         # create the status icons and add them to a layout over the main thumbnail:
         self._publish_icon = QtGui.QLabel(self)
         self._publish_icon.setMinimumSize(16, 16)
@@ -128,15 +131,11 @@ class FileWidget(QtGui.QWidget):
     def set_badge(self, badge):
         if isinstance(badge, QtGui.QColor):
             # If the hook returned a QColor, we'll create a dot badge of that color.
-            # We want to multiply the color onto the (white) badge_default dot to
-            # generate a nice looking badge.
-            badgeImage = QtGui.QPixmap(":/tk-multi-workfiles2/badge_default.png")
-            painter = QtGui.QPainter()
-            painter.begin(badgeImage)
-            painter.setCompositionMode(QtGui.QPainter.CompositionMode_SourceIn)
-            painter.fillRect(badgeImage.rect(), badge)
-            painter.end()
-            badge = badgeImage
+            badge = self._app.execute_hook_method(
+                "hook_get_badge",
+                "generate_badge_pixmap",
+                badge_color=badge
+            )
         if isinstance(badge, QtGui.QPixmap):
             self._badge_icon.setPixmap(badge)
             self._badge_icon.setVisible(True)
