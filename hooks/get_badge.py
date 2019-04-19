@@ -91,10 +91,10 @@ class GethBadge(HookClass):
         """
         # We want to multiply the color onto the (white) badge_default dot to
         # generate a nice looking badge.
-        badgeImage = QtGui.QPixmap(":/tk-multi-workfiles2/badge_default.png")
+        badge = QtGui.QPixmap(":/tk-multi-workfiles2/badge_default.png")
         painter = QtGui.QPainter()
-        painter.begin(badgeImage)
+        painter.begin(badge)
         painter.setCompositionMode(QtGui.QPainter.CompositionMode_SourceIn)
-        painter.fillRect(badgeImage.rect(), badge_color)
+        painter.fillRect(badge.rect(), badge_color)
         painter.end()
-        return badgeImage
+        return badge
