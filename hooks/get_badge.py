@@ -15,7 +15,7 @@ from sgtk.platform.qt import QtGui
 HookClass = sgtk.get_hook_baseclass()
 
 
-class GethBadge(HookClass):
+class GetBadge(HookClass):
     """
     Hook that can be used to generate badges for display on publishes and work files.
     """
