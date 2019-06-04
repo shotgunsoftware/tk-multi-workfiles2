@@ -297,8 +297,7 @@ class FileOpenForm(FileFormBase):
                 add_separators = True
             else:
                 q_action = QtGui.QAction(action.label, menu)
-                slot = lambda a=action: self._perform_action(a)
-                q_action.triggered[()].connect(slot)
+                q_action.triggered[()].connect(lambda a=action, checked=False: self._perform_action(a))
                 menu.addAction(q_action)
                 add_separators = True
 
