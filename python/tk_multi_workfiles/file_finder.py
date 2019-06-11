@@ -14,7 +14,7 @@ import copy
 import time
 
 import sgtk
-from sgtk.platform.qt import QtCore
+from sgtk.platform.qt import QtCore, QtGui
 from tank_vendor.shotgun_api3 import sg_timezone
 from sgtk import TankError
 
@@ -295,6 +295,13 @@ class FileFinder(QtCore.QObject):
                 work_file_details=file_details,
                 work_file_path=work_path
             )
+            if isinstance(badge, QtGui.QColor):
+                # If the hook returned a QColor, we'll create a dot badge of that color.
+                badge = self._app.execute_hook_method(
+                    "hook_get_badge",
+                    "generate_badge_pixmap",
+                    badge_color=badge
+                )
 
             # add to the list of files
             files[(file_key, file_details["version"])] = {
@@ -384,6 +391,13 @@ class FileFinder(QtCore.QObject):
                 publish_details=file_details,
                 publish_path=publish_path,
             )
+            if isinstance(badge, QtGui.QColor):
+                # If the hook returned a QColor, we'll create a dot badge of that color.
+                badge = self._app.execute_hook_method(
+                    "hook_get_badge",
+                    "generate_badge_pixmap",
+                    badge_color=badge
+                )
 
             # add new file item for this publish.  Note that we also keep track of the
             # work path even though we don't know if this publish has a corresponding

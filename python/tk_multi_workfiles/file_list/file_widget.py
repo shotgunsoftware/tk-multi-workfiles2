@@ -129,13 +129,6 @@ class FileWidget(QtGui.QWidget):
         self._ui.thumbnail.setPixmap(thumb)
 
     def set_badge(self, badge):
-        if isinstance(badge, QtGui.QColor):
-            # If the hook returned a QColor, we'll create a dot badge of that color.
-            badge = self._app.execute_hook_method(
-                "hook_get_badge",
-                "generate_badge_pixmap",
-                badge_color=badge
-            )
         if isinstance(badge, QtGui.QPixmap):
             self._badge_icon.setPixmap(badge)
             self._badge_icon.setVisible(True)
