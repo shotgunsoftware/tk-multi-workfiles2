@@ -24,7 +24,7 @@ class GetBadge(HookClass):
         """
         Generate a badge for a publish.
 
-        :param publish:         Dictionary
+        :param publish_details:         Dictionary
                                 A dictionary for the publish to generate a badge for, containing the
                                 following keys:
                                     - task
@@ -54,7 +54,7 @@ class GetBadge(HookClass):
         """
         Generate a badge for a work file.
 
-        :param work_file:       Dictionary
+        :param work_file_details:       Dictionary
                                 A dictionary for the work file to generate a badge for containing
                                 the following keys:
                                     - task
