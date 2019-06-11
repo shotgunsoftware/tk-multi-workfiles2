@@ -60,8 +60,8 @@ class FileWidget(QtGui.QWidget):
         lhs_layout = QtGui.QVBoxLayout()
         lhs_layout.setContentsMargins(0, 0, 0, 0)
         lhs_layout.setSpacing(0)
-        lhs_layout.addWidget(self._badge_icon)
         lhs_layout.addStretch(1)
+        lhs_layout.addWidget(self._badge_icon)
 
         thumb_layout = QtGui.QHBoxLayout(self._ui.thumbnail)
         thumb_layout.setContentsMargins(4, 4, 4, 4)
