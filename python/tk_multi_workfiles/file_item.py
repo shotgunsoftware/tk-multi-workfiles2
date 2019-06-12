@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import sgtk
+from sgtk.platform.qt import QtGui
 
 import os
 from datetime import datetime, timedelta
@@ -89,7 +90,7 @@ class FileItem(object):
         return tuple(sorted(file_key.iteritems()))
 
     def __init__(self, key, is_work_file=False, work_path=None, work_details=None, 
-                 is_published=False, publish_path=None, publish_details=None, badge=None):
+                 is_published=False, publish_path=None, publish_details=None):
         """
         Construction
 
@@ -115,7 +116,10 @@ class FileItem(object):
         self._thumbnail_path = None
         self._thumbnail_image = None
 
-        self._badge = badge
+        self._badge = None
+        # Generate the badge for this FileIte.  This needs to be done in the main thread
+        # since the badge is a QPixmap.
+        sgtk.platform.current_engine().async_execute_in_main_thread(self.generate_badge)
 
         self._versions = {}
 
@@ -215,6 +219,59 @@ class FileItem(object):
         """
         self._versions = value
     versions=property(_get_versions, _set_versions)
+
+    def generate_badge(self):
+        self._badge = None
+        app = sgtk.platform.current_bundle()
+        #TODO add exception handling around hook calls...
+        if self._is_local:
+            # We're a work file - get the badge for the work file from the hook:
+            try:
+                self._badge = app.execute_hook_method(
+                    "hook_get_badge",
+                    "get_work_file_badge",
+                    work_file_details=self._details,
+                    work_file_path=self._path
+                )
+            except:
+                # Capture exceptions raised here and log them, so as not to break
+                # the app if the hook fails.
+                app.logger.warning(
+                    "Exception raised when getting badge for work file at %s with details %s" % (self._path, self._details),
+                    exc_info=True
+                )
+        elif self._is_published:
+            # We're a publish - get the badge for the publish from the hook:
+            try:
+                self._badge = app.execute_hook_method(
+                    "hook_get_badge",
+                    "get_publish_badge",
+                    publish_details=self._publish_details,
+                    publish_path=self._publish_path
+                )
+            except:
+                # Capture exceptions raised here and log them, so as not to break
+                # the app if the hook fails.
+                app.logger.warning(
+                    "Exception raised when getting badge for publish at %s with details %s" % (self._publish_path, self._publish_details),
+                    exc_info=True
+                )
+
+        if isinstance(self._badge, QtGui.QColor):
+            # If the hook returned a QColor, we'll create a dot badge of that color.
+            try:
+                self._badge = app.execute_hook_method(
+                    "hook_get_badge",
+                    "generate_badge_pixmap",
+                    badge_color=self._badge
+                )
+            except:
+                # Capture exceptions raised here and log them, so as not to break
+                # the app if the hook fails.
+                app.logger.warning(
+                    "Exception raised in hook while executing generate_badge_pixmap.",
+                    exc_info=True
+                )
 
     def _get_badge(self):
         """

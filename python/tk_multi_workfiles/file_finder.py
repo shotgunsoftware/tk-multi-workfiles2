@@ -288,28 +288,12 @@ class FileFinder(QtCore.QObject):
                 file_key, work_path, work_template, wf_fields
             )
 
-            # get the badge for the work file from the hook
-            badge = self._app.execute_hook_method(
-                "hook_get_badge",
-                "get_work_file_badge",
-                work_file_details=file_details,
-                work_file_path=work_path
-            )
-            if isinstance(badge, QtGui.QColor):
-                # If the hook returned a QColor, we'll create a dot badge of that color.
-                badge = self._app.execute_hook_method(
-                    "hook_get_badge",
-                    "generate_badge_pixmap",
-                    badge_color=badge
-                )
-
             # add to the list of files
             files[(file_key, file_details["version"])] = {
                 "key": file_key,
                 "is_work_file": True,
                 "work_path": work_path,
                 "work_details": file_details,
-                "badge": badge,
             }
 
         return files
@@ -384,21 +368,6 @@ class FileFinder(QtCore.QObject):
             # make sure all files with the same key have the same name:
             file_details["name"] = name_map.get_name(file_key, publish_path, publish_template, publish_fields)
 
-            # get the badge for the publish from the hook
-            badge = self._app.execute_hook_method(
-                "hook_get_badge",
-                "get_publish_badge",
-                publish_details=file_details,
-                publish_path=publish_path,
-            )
-            if isinstance(badge, QtGui.QColor):
-                # If the hook returned a QColor, we'll create a dot badge of that color.
-                badge = self._app.execute_hook_method(
-                    "hook_get_badge",
-                    "generate_badge_pixmap",
-                    badge_color=badge
-                )
-
             # add new file item for this publish.  Note that we also keep track of the
             # work path even though we don't know if this publish has a corresponding
             # work file.
@@ -408,7 +377,6 @@ class FileFinder(QtCore.QObject):
                 "is_published": True,
                 "publish_path": publish_path,
                 "publish_details": file_details,
-                "badge": badge,
             }
         return files
 
