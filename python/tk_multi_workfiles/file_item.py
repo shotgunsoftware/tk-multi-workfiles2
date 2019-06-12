@@ -223,7 +223,6 @@ class FileItem(object):
     def generate_badge(self):
         self._badge = None
         app = sgtk.platform.current_bundle()
-        #TODO add exception handling around hook calls...
         if self._is_local:
             # We're a work file - get the badge for the work file from the hook:
             try:
@@ -233,7 +232,7 @@ class FileItem(object):
                     work_file_details=self._details,
                     work_file_path=self._path
                 )
-            except:
+            except Exception:
                 # Capture exceptions raised here and log them, so as not to break
                 # the app if the hook fails.
                 app.logger.warning(
@@ -249,7 +248,7 @@ class FileItem(object):
                     publish_details=self._publish_details,
                     publish_path=self._publish_path
                 )
-            except:
+            except Exception:
                 # Capture exceptions raised here and log them, so as not to break
                 # the app if the hook fails.
                 app.logger.warning(
@@ -265,7 +264,7 @@ class FileItem(object):
                     "generate_badge_pixmap",
                     badge_color=self._badge
                 )
-            except:
+            except Exception:
                 # Capture exceptions raised here and log them, so as not to break
                 # the app if the hook fails.
                 app.logger.warning(
