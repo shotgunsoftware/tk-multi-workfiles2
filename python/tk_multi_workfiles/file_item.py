@@ -336,6 +336,7 @@ class FileItem(object):
         self._is_published = publish._is_published
         self._publish_path = publish._publish_path
         self._publish_details = copy.deepcopy(publish._publish_details or {})
+        self._badge = publish._badge
 
     def update_from_work_file(self, work_file):
         """
