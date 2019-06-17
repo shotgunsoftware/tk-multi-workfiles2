@@ -196,6 +196,9 @@ class InteractiveOpenAction(OpenFileAction):
         src_path = None
         work_path = file.path
         
+        # the context that the workfile will be opened in
+        new_ctx = env.context
+
         # construct a context for this path to determine if it's in
         # a user sandbox or not:
         if env.context.user:
@@ -235,8 +238,11 @@ class InteractiveOpenAction(OpenFileAction):
 
                     src_path = work_path
                     work_path = local_path
+                    # resolve the new context from the work path as it is 
+                    # different from the previous user's sandbox context 
+                    new_ctx = env.context.sgtk.context_from_path(work_path)
 
-        return self._do_copy_and_open(src_path, work_path, None, not file.editable, env.context, parent_ui)
+        return self._do_copy_and_open(src_path, work_path, None, not file.editable, new_ctx, parent_ui)
 
     def _open_previous_publish(self, file, env, parent_ui):
         """
