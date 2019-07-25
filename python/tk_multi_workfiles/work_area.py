@@ -425,6 +425,11 @@ class WorkArea(object):
             # make sure it's still valid and has a user key in it:
             if not parent_template or not (user_keys & set(parent_template.keys)):
                 break
+            # if the Department key is used in the template path, defined as a HumanUser key
+            # and used before user login, the user sandboxes functionality won't work...
+            # so we need to be sure that the parent template doesn't contain just the Department key
+            if not (set(parent_template.keys) - set(["Department"])):
+                break
             search_template = parent_template
 
         # resolve context fields for this template:
@@ -460,7 +465,7 @@ class WorkArea(object):
             # from the path and then inspect the user from this
             path_ctx = app.sgtk.context_from_path(path)
             user = path_ctx.user
-            if user: 
+            if user:
                 user_ids.add(user["id"])
 
         # look these up in the user cache:
