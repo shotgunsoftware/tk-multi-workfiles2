@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'file_widget.ui'
 #
-#      by: pyside-uic 0.2.15 running on PySide 1.2.4
+#      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -40,6 +40,7 @@ class Ui_FileWidget(object):
         self.details_frame.setObjectName("details_frame")
         self.verticalLayout = QtGui.QVBoxLayout(self.details_frame)
         self.verticalLayout.setSpacing(2)
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.setObjectName("verticalLayout")
         spacerItem = QtGui.QSpacerItem(20, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem)
@@ -51,8 +52,6 @@ class Ui_FileWidget(object):
         self.verticalLayout.addWidget(self.subtitle)
         spacerItem1 = QtGui.QSpacerItem(20, 0, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem1)
-        self.verticalLayout.setStretch(0, 1)
-        self.verticalLayout.setStretch(3, 1)
         self.horizontalLayout_2.addWidget(self.details_frame)
         self.horizontalLayout_2.setStretch(1, 1)
         self.horizontalLayout.addWidget(self.background)
