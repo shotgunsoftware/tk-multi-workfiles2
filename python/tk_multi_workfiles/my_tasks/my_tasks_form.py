@@ -249,6 +249,10 @@ class MyTasksForm(EntityTreeForm):
             monitor_qobject_lifetime(self.sort_model, "My Tasks Sort model")
             self.sort_model.setSourceModel(tasks_model)
             self._ui.entity_tree.setModel(self.sort_model)
+            # connect to the selection model for the tree view:
+            selection_model = self._ui.entity_tree.selectionModel()
+            if selection_model:
+                selection_model.selectionChanged.connect(self._on_selection_changed)
 
             self._ui.sort_tbn.show()
 
