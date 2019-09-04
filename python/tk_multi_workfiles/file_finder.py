@@ -14,7 +14,7 @@ import copy
 import time
 
 import sgtk
-from sgtk.platform.qt import QtCore, QtGui
+from sgtk.platform.qt import QtCore
 from tank_vendor.shotgun_api3 import sg_timezone
 from sgtk import TankError
 
