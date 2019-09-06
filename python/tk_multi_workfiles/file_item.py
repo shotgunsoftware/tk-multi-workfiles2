@@ -272,20 +272,21 @@ class FileItem(object):
                     exc_info=True
                 )
 
-    def _get_badge(self):
+    @property
+    def badge(self):
         """
         :returns:   The QPixmap to be used as a badge when displaying this file
-                    to the user.
+                to the user.
         """
         return self._badge
 
-    def _set_badge(self, value):
+    @badge.setter
+    def badge(self, value):
         """
         :param value:   The QPixmap to be used as a badge when displaying this file
                         to the user.
         """
         self._badge = value
-    badge = property(_get_badge, _set_badge)
 
     # ------------------------------------------------------------------------------------------
     # Work file properties
