@@ -133,7 +133,9 @@ class FileWidget(QtGui.QWidget):
             self._badge_icon.setPixmap(badge)
             self._badge_icon.setVisible(True)
         else:
-            # If we don't have a QPixmap badge, clear and hide the badge.
+            # If we don't have a QPixmap badge, this means either no badge is
+            # set, or the badge has not been generated yet.  Clear and hide the
+            # badge.
             self._badge_icon.clear()
             self._badge_icon.setVisible(False)
 

@@ -24,28 +24,26 @@ class GetBadge(HookClass):
         """
         Generate a badge for a publish.
 
-        :param publish_details:         Dictionary
-                                A dictionary for the publish to generate a badge for, containing the
-                                following keys:
-                                    - task
-                                    - modified_by
-                                    - name
-                                    - modified_at
-                                    - published_at
-                                    - thumbnail
-                                    - publish_description
-                                    - published_by
-                                    - version
-                                    - entity
+        :param dict publish_details: A dictionary for the publish to generate a badge for,
+            containing the following keys:
+                - task
+                - modified_by
+                - name
+                - modified_at
+                - published_at
+                - thumbnail
+                - publish_description
+                - published_by
+                - version
+                - entity
 
-        :param publish_path:    String
-                                The path to the publish on disk.
+        :param str publish_path: The path to the publish on disk.
 
 
 
-        :returns:               A QPixmap or QColor to use for the badge, if a badge should be
-                                applied, otherwise None.  If a QColor is returned, a circular "dot"
-                                badge will be generated using that color.
+        :returns: A QPixmap or QColor to use for the badge, if a badge should be applied, otherwise
+            None.  If a QColor is returned, a circular "dot" badge will be generated using that
+            color.
         """
         # the default implementation always returns None.
         return None
@@ -54,25 +52,23 @@ class GetBadge(HookClass):
         """
         Generate a badge for a work file.
 
-        :param work_file_details:       Dictionary
-                                A dictionary for the work file to generate a badge for containing
-                                the following keys:
-                                    - task
-                                    - modified_by
-                                    - name
-                                    - modified_at
-                                    - entity
-                                    - version
-                                    - thumbnail
-                                    - description
+        :param dict work_file_details: A dictionary for the work file to generate a badge for
+            containing the following keys:
+                - task
+                - modified_by
+                - name
+                - modified_at
+                - entity
+                - version
+                - thumbnail
+                - description
 
-        :param work_file_path:  String
-                                The path to the work file on disk.
+        :param str work_file_path: The path to the work file on disk.
 
 
-        :returns:               A QPixmap or QColor to use for the badge, if a badge should be
-                                applied, otherwise None.  If a QColor is returned, a circular "dot"
-                                badge will be generated using that color.
+        :returns: A QPixmap or QColor to use for the badge, if a badge should be applied, otherwise
+            None.  If a QColor is returned, a circular "dot" badge will be generated using that
+            color.
         """
         # the default implementation always returns None.
         return None
@@ -84,10 +80,9 @@ class GetBadge(HookClass):
         customize what the generated badges will look like when get_work_file_badge or
         get_publish_badge return a QColor.
 
-        :param badge_color:     QColor
-                                The color of the badge to generate a pixmap for.
+        :param QColor badge_color: The color of the badge to generate a pixmap for.
 
-        :returns:               A QPixmap of the badge to be used.
+        :returns: A QPixmap of the badge to be used.
         """
         # We want to multiply the color onto the (white) badge_default dot to
         # generate a nice looking badge.
