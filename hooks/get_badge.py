@@ -89,7 +89,9 @@ class GetBadge(HookClass):
         badge = QtGui.QPixmap(":/tk-multi-workfiles2/badge_default.png")
         painter = QtGui.QPainter()
         painter.begin(badge)
-        painter.setCompositionMode(QtGui.QPainter.CompositionMode_SourceIn)
-        painter.fillRect(badge.rect(), badge_color)
-        painter.end()
+        try:
+            painter.setCompositionMode(QtGui.QPainter.CompositionMode_SourceIn)
+            painter.fillRect(badge.rect(), badge_color)
+        finally:
+            painter.end()
         return badge
