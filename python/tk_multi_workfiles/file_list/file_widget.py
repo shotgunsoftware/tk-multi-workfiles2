@@ -26,7 +26,10 @@ class FileWidget(QtGui.QWidget):
         # set up the UI
         self._ui = Ui_FileWidget()
         self._ui.setupUi(self)
-        
+
+        # store the app to use when calling hooks
+        self._app = sgtk.platform.current_bundle()
+
         # create the status icons and add them to a layout over the main thumbnail:
         self._publish_icon = QtGui.QLabel(self)
         self._publish_icon.setMinimumSize(16, 16)
@@ -48,9 +51,22 @@ class FileWidget(QtGui.QWidget):
         rhs_layout.addStretch(1)
         rhs_layout.addWidget(self._publish_icon)
 
+        # A hook-defined badge (upper left)
+        self._badge_icon = QtGui.QLabel(self)
+        self._badge_icon.setMinimumSize(16, 16)
+        self._badge_icon.setAlignment(QtCore.Qt.AlignCenter)
+        self._badge_icon.hide()
+
+        lhs_layout = QtGui.QVBoxLayout()
+        lhs_layout.setContentsMargins(0, 0, 0, 0)
+        lhs_layout.setSpacing(0)
+        lhs_layout.addStretch(1)
+        lhs_layout.addWidget(self._badge_icon)
+
         thumb_layout = QtGui.QHBoxLayout(self._ui.thumbnail)
         thumb_layout.setContentsMargins(4, 4, 4, 4)
         thumb_layout.setSpacing(0)
+        thumb_layout.addLayout(lhs_layout)
         thumb_layout.addStretch()
         thumb_layout.addLayout(rhs_layout)
 
@@ -111,6 +127,17 @@ class FileWidget(QtGui.QWidget):
         if not thumb or not isinstance(thumb, QtGui.QPixmap):
             thumb = QtGui.QPixmap(":/tk-multi-workfiles2/thumb_empty.png")
         self._ui.thumbnail.setPixmap(thumb)
+
+    def set_badge(self, badge):
+        if isinstance(badge, QtGui.QPixmap):
+            self._badge_icon.setPixmap(badge)
+            self._badge_icon.setVisible(True)
+        else:
+            # If we don't have a QPixmap badge, this means either no badge is
+            # set, or the badge has not been generated yet.  Clear and hide the
+            # badge.
+            self._badge_icon.clear()
+            self._badge_icon.setVisible(False)
 
     def _update_ui(self):
         """

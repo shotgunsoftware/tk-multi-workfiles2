@@ -293,11 +293,11 @@ class FileFinder(QtCore.QObject):
                 "key": file_key,
                 "is_work_file": True,
                 "work_path": work_path,
-                "work_details": file_details
+                "work_details": file_details,
             }
-                
+
         return files
-        
+
     def _process_publish_files(self, sg_publishes, publish_template, work_template, context, name_map, 
                              version_compare_ignore_fields, filter_file_key=None):
         """
@@ -371,11 +371,13 @@ class FileFinder(QtCore.QObject):
             # add new file item for this publish.  Note that we also keep track of the
             # work path even though we don't know if this publish has a corresponding
             # work file.
-            files[(file_key, file_details["version"])] = {"key":file_key, 
-                                                          "work_path":work_path,
-                                                          "is_published":True,
-                                                          "publish_path":publish_path,
-                                                          "publish_details":file_details}
+            files[(file_key, file_details["version"])] = {
+                "key": file_key,
+                "work_path": work_path,
+                "is_published": True,
+                "publish_path": publish_path,
+                "publish_details": file_details,
+            }
         return files
 
     def _find_publishes(self, publish_filters):

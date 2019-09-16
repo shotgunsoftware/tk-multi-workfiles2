@@ -59,7 +59,7 @@ configuration:
         default_value: "{self}/scene_operation_{engine_name}.py"
         description: All the application specific scene operations (open, save etc) that 
                      the app needs to carry out are collected together in this hook.
-        
+
     hook_copy_file:
         type: hook
         default_value: "{self}/copy_file.py"
@@ -77,6 +77,12 @@ configuration:
         default_value: "{self}/filter_publishes.py"
         description: Specify a hook that, if needed, can filter the raw list of publishes returned
                      from Shotgun for the current Work area.
+
+    hook_get_badge:
+        type: hook
+        default_value: "{self}/get_badge.py"
+        description: Specify a hook that, if desired, provides a badge icon to include in the UI
+                     when displaying a publish or work file.
 
     custom_actions_hook:
         type: hook
