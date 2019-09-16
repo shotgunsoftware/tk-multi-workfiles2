@@ -24,8 +24,8 @@ class GetBadge(HookClass):
         """
         Generate a badge for a publish.
 
-        :param dict publish_details: A dictionary for the publish to generate a badge for,
-            containing the following keys:
+        :param dict publish_details: A dictionary for the publish to generate a badge for.
+            Keys may include:
                 - task
                 - modified_by
                 - name
@@ -52,16 +52,18 @@ class GetBadge(HookClass):
         """
         Generate a badge for a work file.
 
-        :param dict work_file_details: A dictionary for the work file to generate a badge for
-            containing the following keys:
+        :param dict work_file_details: A dictionary for the work file to generate a badge for.
+            Keys may include:
                 - task
+                - step
                 - modified_by
                 - name
                 - modified_at
                 - entity
                 - version
                 - thumbnail
-                - description
+                - editable
+                - editable_reason
 
         :param str work_file_path: The path to the work file on disk.
 
