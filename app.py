@@ -24,6 +24,15 @@ class MultiWorkFiles(sgtk.platform.Application):
         """
         Called as the application is being initialized
         """
+        
+        if self.engine.name == "tk-houdini":
+            # When Houdini is bootstrapped on a renderfarm, hython is used which has no gui causing workfiles2 to fail.
+            # Prevent loading of this app if no gui is detected.
+
+            import hou
+            if not hasattr(hou, 'ui'):
+                return
+        
         self._tk_multi_workfiles = self.import_module("tk_multi_workfiles")
         self.__is_pyside_unstable = None
 
