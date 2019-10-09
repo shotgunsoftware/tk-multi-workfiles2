@@ -28,7 +28,7 @@ class MultiWorkFiles(sgtk.platform.Application):
         self.__is_pyside_unstable = None
 
         if not self.engine.has_ui:
-            self.log_debug("The engine reports that there is no UI. Workfiles2 will not continue initializing.")
+            self.logger.debug("The engine reports that there is no UI. Workfiles2 will not continue initializing.")
             return
 
         if self.engine.name == "tk-mari":
