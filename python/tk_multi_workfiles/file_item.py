@@ -74,8 +74,9 @@ class FileItem(object):
             if name not in template_keys:
                 # skip fields that aren't included in the template
                 continue
-
-            file_key[name] = value
+            
+            # Ensure we process the value before storing it
+            file_key[name] = template_keys[name].str_from_value(value)
 
         # add in any 'default' values from the template that aren't explicitely ignored
         # or weren't specified in the input fields:
