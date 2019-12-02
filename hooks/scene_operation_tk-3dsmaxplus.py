@@ -88,7 +88,7 @@ def _session_path():
     Return the path to the current session
     :return:
     """
-    if sgtk.platform.current_engine().supports_max_plus
+    if sgtk.platform.current_engine().supports_max_plus:
         return MaxPlus.FileManager.GetFileNameAndPath()
     elif pymxs.runtime.maxFilePath and pymxs.runtime.maxFileName:
         return os.path.join(
@@ -106,7 +106,7 @@ def _open_file(file_path):
         pymxs.runtime.loadMaxFile(file_path)
 
 
-def _save_file(file_path):
+def _save_file(file_path=None):
     if sgtk.platform.current_engine().supports_max_plus:
         if file_path is None:
             MaxPlus.FileManager.Save()
@@ -114,7 +114,7 @@ def _save_file(file_path):
             MaxPlus.FileManager.Save(file_path)
     else:
         if file_path is None:
-            pymxs.runtime.saveMaxFile()
+            pymxs.runtime.execute("max file saveas")
         else:
             pymxs.runtime.saveMaxFile(file_path)
 
@@ -123,4 +123,4 @@ def _reset_scene():
     if sgtk.platform.current_engine().supports_max_plus:
         MaxPlus.FileManager.Reset(True)
     else:
-        rt.resetMaxFile(rt.Name("noprompt"))
+        pymxs.runtime.resetMaxFile(pymxs.runtime.Name("noprompt"))
