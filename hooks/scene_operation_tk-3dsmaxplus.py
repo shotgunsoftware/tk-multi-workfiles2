@@ -9,16 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 
-try:
-    import MaxPlus
-except ImportError:
-    pass
-
-try:
-    import pymxs
-except ImportError:
-    pass
-
+import MaxPlus
 import sgtk
 
 HookClass = sgtk.get_hook_baseclass()
@@ -64,63 +55,23 @@ class SceneOperation(HookClass):
                                 all others     - None
         """
         if operation == "current_path":
-            # return the current scene path or an empty string.
-            return _session_path() or ""
+            # return the current scene path
+            file_path = MaxPlus.FileManager.GetFileNameAndPath()
+            if not file_path:
+                return ""
+            return file_path
         elif operation == "open":
             # open the specified scene
-            _open_file(file_path)
+            MaxPlus.FileManager.Open(file_path)
         elif operation == "save":
             # save the current scene:
-            _save_file()
+            MaxPlus.FileManager.Save()
         elif operation == "save_as":
             # save the scene as file_path:
-            _save_file(file_path)
+            MaxPlus.FileManager.Save(file_path)
         elif operation == "reset":
             """
             Reset the scene to an empty state
             """
-            _reset_scene()
+            MaxPlus.FileManager.Reset(True)
             return True
-
-
-def _session_path():
-    """
-    Return the path to the current session
-    :return:
-    """
-    if sgtk.platform.current_engine().supports_max_plus:
-        return MaxPlus.FileManager.GetFileNameAndPath()
-    elif pymxs.runtime.maxFilePath and pymxs.runtime.maxFileName:
-        return os.path.join(
-            pymxs.runtime.maxFilePath,
-            pymxs.runtime.maxFileName
-        )
-    else:
-        return None
-
-
-def _open_file(file_path):
-    if sgtk.platform.current_engine().supports_max_plus:
-        MaxPlus.FileManager.Open(file_path)
-    else:
-        pymxs.runtime.loadMaxFile(file_path)
-
-
-def _save_file(file_path=None):
-    if sgtk.platform.current_engine().supports_max_plus:
-        if file_path is None:
-            MaxPlus.FileManager.Save()
-        else:
-            MaxPlus.FileManager.Save(file_path)
-    else:
-        if file_path is None:
-            pymxs.runtime.execute("max file saveas")
-        else:
-            pymxs.runtime.saveMaxFile(file_path)
-
-
-def _reset_scene():
-    if sgtk.platform.current_engine().supports_max_plus:
-        MaxPlus.FileManager.Reset(True)
-    else:
-        pymxs.runtime.resetMaxFile(pymxs.runtime.Name("noprompt"))
