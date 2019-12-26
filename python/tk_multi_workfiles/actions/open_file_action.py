@@ -51,13 +51,6 @@ class OpenFileAction(FileAction):
         if not dst_path or not new_ctx:
             # can't do anything!
             return False
-           
-        if src_path and src_path != dst_path:
-            # check that the source path exists:        
-            if not os.path.exists(src_path):
-                QtGui.QMessageBox.critical(parent_ui, "File doesn't exist!", 
-                                           "The file\n\n%s\n\nCould not be found to open!" % src_path)
-                return False
             
         if new_ctx != self._app.context:
             # ensure folders exist.  This serves the
