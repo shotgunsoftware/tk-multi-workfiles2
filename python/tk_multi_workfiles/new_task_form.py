@@ -161,5 +161,5 @@ class NewTaskForm(QtGui.QWidget):
             )
             self._exit_code = QtGui.QDialog.Accepted
             self.close()
-        except sgtk.TankError, e:
+        except sgtk.TankError as e:
             self._set_warning(str(e))

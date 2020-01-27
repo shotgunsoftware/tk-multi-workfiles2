@@ -52,7 +52,7 @@ def _do_scene_operation(app, action, context, operation, path=None, version=0, r
                                   parent_action=action_str, 
                                   file_version=version, 
                                   read_only=read_only)     
-    except TankError, e:
+    except TankError as e:
         # deliberately filter out exception that used to be thrown 
         # from the scene operation hook but has since been removed
         if not str(e).startswith("Don't know how to perform scene operation '"):

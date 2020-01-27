@@ -117,7 +117,7 @@ class SceneOperation(HookClass):
 
                 # save script:
                 nuke.scriptSaveAs(file_path, -1)
-            except Exception, e:
+            except Exception as e:
                 # something went wrong so reset to old path:
                 nuke.root()["name"].setValue(old_path)
                 raise TankError("Failed to save scene %s", e)

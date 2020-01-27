@@ -118,7 +118,7 @@ class FileAction(Action):
         QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
             sgtk.platform.change_context(ctx)
-        except Exception, e:
+        except Exception as e:
             app.log_exception(e)
             raise TankError("Context changed failed, see log for details.")
         finally:
@@ -138,7 +138,7 @@ class FileAction(Action):
         app.log_debug("Restoring context.")
         try:
             FileAction.change_context(ctx)
-        except Exception, e:
+        except Exception as e:
             QtGui.QMessageBox.critical(
                 parent_ui,
                 "Unable to restore the original context",

@@ -290,7 +290,7 @@ class OpenOptionsForm(QtGui.QWidget):
         """
         try:
             path_to_cached_thumb = shotgun_data.ShotgunDataRetriever.download_thumbnail(url, self._app)
-        except Exception, e:
+        except Exception as e:
             self._app.log_debug("Could not get thumbnail for url '%s'. Error: %s" % (url, e))
             path_to_cached_thumb = None
         

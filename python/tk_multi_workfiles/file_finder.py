@@ -336,7 +336,7 @@ class FileFinder(QtCore.QObject):
             work_path = ""
             try:
                 work_path = work_template.apply_fields(wp_fields)
-            except TankError, e:
+            except TankError as e:
                 # unable to generate a work path - this means we are probably missing a field so it's going to
                 # be a problem matching this publish up with its corresponding work file!
                 work_path = ""

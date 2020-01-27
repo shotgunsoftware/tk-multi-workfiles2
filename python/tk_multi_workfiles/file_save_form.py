@@ -351,7 +351,7 @@ class FileSaveForm(FileFormBase):
         try:
             ctx_fields = env.context.as_template_fields(env.work_template, validate=True)
             fields = dict(chain(fields.iteritems(), ctx_fields.iteritems()))
-        except TankError, e:
+        except TankError as e:
             app.log_debug("Unable to generate preview path: %s" % e)
             if require_path:
                 # log the original exception (useful for tracking down the problem) 
@@ -383,7 +383,7 @@ class FileSaveForm(FileFormBase):
                                               env.publish_template, 
                                               env.context,
                                               file_key) or []
-                except TankError, e:
+                except TankError as e:
                     raise TankError("Failed to find files for this work area: %s" % e)
                 file_versions = [f.version for f in files]
 
@@ -401,7 +401,7 @@ class FileSaveForm(FileFormBase):
         path = None
         try:
             path = env.work_template.apply_fields(fields)
-        except TankError, e:
+        except TankError as e:
             if require_path:
                 # we need a path so re-raise the exception!
                 raise
@@ -474,7 +474,7 @@ class FileSaveForm(FileFormBase):
 
             try:
                 env = WorkArea(context)
-            except TankError, e:
+            except TankError as e:
                 app.log_debug(traceback.format_stack())
                 self._disable_save_and_warn(str(e))
             else:
@@ -677,7 +677,7 @@ class FileSaveForm(FileFormBase):
             # create folders if needed:
             try:
                 SaveAsFileAction.create_folders_if_needed(self._current_env.context, self._current_env.work_template)
-            except TankError, e:
+            except TankError as e:
                 app.log_exception("File Save - failed to create folders for context '%s'!" 
                                    % self._current_env.context)
                 raise TankError("Failed to create folders for context '%s' - %s" 
@@ -700,7 +700,7 @@ class FileSaveForm(FileFormBase):
                 if not path_to_save:
                     raise TankError("Path generation returned an empty path!")
                 version_to_save = result.get("version")
-            except TankError, e:
+            except TankError as e:
                 app.log_exception("File Save - failed to generate path to save to!")
                 raise TankError("Failed to generate a path to save to - %s" % e)
 
@@ -741,11 +741,11 @@ class FileSaveForm(FileFormBase):
             dir = os.path.dirname(path_to_save)
             if dir and not os.path.exists(dir):
                 app.ensure_folder_exists(dir)
-        except TankError, e:
+        except TankError as e:
             # oops, looks like something went wrong!
             QtGui.QMessageBox.critical(self, "Failed to save file!", "Failed to save file!\n\n%s" % e)
             return
-        except Exception, e:
+        except Exception as e:
             # also handle generic exception:
             QtGui.QMessageBox.critical(self, "Failed to save file!", "Failed to save file!\n\n%s" % e)
             app.log_exception("Failed to save file!")

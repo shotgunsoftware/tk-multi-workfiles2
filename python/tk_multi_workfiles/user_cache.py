@@ -143,7 +143,7 @@ class UserCache(Threaded):
                 sg_user = self._app.shotgun.find_one("HumanUser", [["login", "is", login_name]], self._sg_fields)
                 # handle sg_user being None
                 sg_user = sg_user or {}
-            except Exception, e:
+            except Exception as e:
                 # this isn't critical so just log as debug
                 self._app.log_debug("Failed to retrieve Shotgun user for login '%s': %s" % (login_name, e))
 

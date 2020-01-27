@@ -63,7 +63,7 @@ class NewFileAction(Action):
                 FileAction.create_folders_if_needed(self._environment.context, self._environment.work_template)
                 # and double check that we can get all context fields for the work template:
                 self._environment.context.as_template_fields(self._environment.work_template, validate=True)
-            except TankError, e:
+            except TankError as e:
                 # log the original exception (useful for tracking down the problem)
                 self._app.log_exception("Unable to resolve template fields after folder creation!")
                 # and raise a new, clearer exception for this specific use case:
@@ -83,7 +83,7 @@ class NewFileAction(Action):
                 # Change context
                 FileAction.change_context(self._environment.context)
 
-        except Exception, e:
+        except Exception as e:
             error_title = "Failed to complete '%s' action" % self.label
             QtGui.QMessageBox.information(parent_ui, "%s" % error_title, "%s:\n\n%s" % (error_title, e))
             self._app.log_exception(error_title)

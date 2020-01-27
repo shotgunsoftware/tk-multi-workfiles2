@@ -92,12 +92,12 @@ class ShowAreaInFileSystemAction(ShowInFileSystemAction):
             if file.is_local and environment.work_template:
                 try:
                     file_fields = environment.work_template.get_fields(file.path)
-                except TankError, e:
+                except TankError as e:
                     pass
             elif file.is_published and environment.publish_template:
                 try:
                     file_fields = environment.publish_template.get_fields(file.publish_path)
-                except TankError, e:
+                except TankError as e:
                     pass
             # combine with the context fields, preferring the context
             fields = dict(chain(fields.iteritems(), file_fields.iteritems()))

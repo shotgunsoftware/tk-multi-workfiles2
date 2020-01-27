@@ -37,7 +37,7 @@ class SaveAsFileAction(FileAction):
             try:
                 # Change the current context
                 FileAction.change_context(self.environment.context)
-            except Exception, e:
+            except Exception as e:
                 QtGui.QMessageBox.critical(parent_ui, "Failed to change the work area", 
                     "Failed to change the work area to '%s':\n\n%s\n\nUnable to continue!" 
                     % (self.environment.context, e))
@@ -47,7 +47,7 @@ class SaveAsFileAction(FileAction):
         # and save the current file as the new path:
         try:
             save_file(self._app, SAVE_FILE_AS_ACTION, self.environment.context, self.file.path)
-        except Exception, e:
+        except Exception as e:
             QtGui.QMessageBox.critical(None, "Failed to save file!", "Failed to save file:\n\n%s" % e)
             self._app.log_exception("Failed to save file!")
             FileAction.restore_context(parent_ui, previous_context)

@@ -66,7 +66,7 @@ class OpenFileAction(FileAction):
             # if we need to
             try:
                 FileAction.create_folders(new_ctx)
-            except Exception, e:
+            except Exception as e:
                 QtGui.QMessageBox.critical(parent_ui, "Failed to create folders!", 
                                            "Failed to create folders:\n\n%s!" % e)
                 self._app.log_exception("Failed to create folders")
@@ -77,7 +77,7 @@ class OpenFileAction(FileAction):
             if not reset_current_scene(self._app, OPEN_FILE_ACTION, new_ctx):
                 self._app.log_debug("Failed to reset the current scene!")
                 return False
-        except Exception, e:
+        except Exception as e:
             QtGui.QMessageBox.critical(parent_ui, "Failed to reset the scene", 
                                        "Failed to reset the scene:\n\n%s\n\nUnable to continue!" % e)
             self._app.log_exception("Failed to reset the scene!")
@@ -101,7 +101,7 @@ class OpenFileAction(FileAction):
                 self._app.ensure_folder_exists(dst_dir)
                 # copy file:
                 self._copy_file(src_path, dst_path)
-            except Exception, e:
+            except Exception as e:
                 QtGui.QMessageBox.critical(parent_ui, "Copy file failed!", 
                                            "Copy of file failed!\n\n%s!" % e)
                 self._app.log_exception("Copy file failed")
@@ -113,7 +113,7 @@ class OpenFileAction(FileAction):
             try:
                 # Change the curent context.
                 FileAction.change_context(new_ctx)
-            except Exception, e:
+            except Exception as e:
                 QtGui.QMessageBox.critical(parent_ui, "Failed to change the work area", 
                             "Failed to change the work area to '%s':\n\n%s\n\nUnable to continue!" % (new_ctx, e))
                 self._app.log_exception("Failed to change the work area to %s!" % new_ctx)
@@ -122,7 +122,7 @@ class OpenFileAction(FileAction):
         # open file
         try:
             is_file_opened = open_file(self._app, OPEN_FILE_ACTION, new_ctx, dst_path, version, read_only)
-        except Exception, e:
+        except Exception as e:
             QtGui.QMessageBox.critical(parent_ui, "Failed to open file", 
                                        "Failed to open file\n\n%s\n\n%s" % (dst_path, e))
             self._app.log_exception("Failed to open file %s!" % dst_path)
@@ -224,7 +224,7 @@ class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
         dst_file_path = ""
         try:
             dst_file_path = dst_work_area.work_template.apply_fields(fields)
-        except TankError, e:
+        except TankError as e:
             app.log_error("Unable to copy the file '%s' to the current work area as Toolkit is "
                           "unable to build the destination file path: %s" % (src_path, e))
             return False

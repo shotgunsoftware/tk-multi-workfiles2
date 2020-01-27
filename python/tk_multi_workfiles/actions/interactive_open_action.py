@@ -215,7 +215,7 @@ class InteractiveOpenAction(OpenFileAction):
 
                     # construct the local path from these fields:
                     local_path = env.work_template.apply_fields(fields)
-                except Exception, e:
+                except Exception as e:
                     QtGui.QMessageBox.critical(parent_ui, "Failed to resolve file path", 
                                            ("Failed to resolve the user sandbox file path:\n\n%s\n\nto the local "
                                            "path:\n\n%s\n\nUnable to open file!" % (work_path, e)))
@@ -321,7 +321,7 @@ class InteractiveOpenAction(OpenFileAction):
                 
                 # construct work path:
                 work_path = env.work_template.apply_fields(fields)
-            except Exception, e:
+            except Exception as e:
                 QtGui.QMessageBox.critical(parent_ui, "Failed to get work file path", 
                                        ("Failed to resolve work file path from publish path:\n\n%s\n\n%s\n\n"
                                        "Unable to open file!" % (src_path, e)))

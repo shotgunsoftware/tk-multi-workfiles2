@@ -1,5 +1,6 @@
 
 
+from __future__ import print_function
 import sgtk
 from sgtk.platform.qt import QtGui
 
@@ -68,7 +69,7 @@ class SgRunner(threading.Thread):
                                      sg_search["filters"],
                                      sg_search["fields"],
                                      sg_search["order"])
-        print len(res)
+        print(len(res))
 
 class CrashDbgForm(QtGui.QWidget):
     
@@ -100,10 +101,10 @@ class CrashDbgForm(QtGui.QWidget):
         """
         """
         for thread in self._sg_runner_threads:
-            print "Stopping sg runner thread..."
+            print("Stopping sg runner thread...")
             thread.stop()
             thread.join()
-            print " > Stopped!"
+            print(" > Stopped!")
 
         if self._model:
             self._model.deleteLater()

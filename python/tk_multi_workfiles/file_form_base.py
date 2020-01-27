@@ -299,13 +299,13 @@ class FileFormBase(QtGui.QWidget):
             # build environment details for this context:
             try:
                 work_area = WorkArea(app.context)
-            except Exception, e:
+            except Exception as e:
                 return None
 
             # get the current file path:
             try:
                 current_path = get_current_path(app, SAVE_FILE_AS_ACTION, work_area.context)
-            except Exception, e:
+            except Exception as e:
                 return None
 
             self._current_file = self._fileitem_from_path(current_path, work_area)
