@@ -123,11 +123,15 @@ class WorkArea(object):
         user_work_area.publish_template = self.publish_template
         user_work_area.save_as_default_name = self.save_as_default_name
         user_work_area.save_as_prefer_version_up = self.save_as_prefer_version_up
-        user_work_area.version_compare_ignore_fields = copy.deepcopy(self.version_compare_ignore_fields)
+        user_work_area.version_compare_ignore_fields = copy.deepcopy(
+            self.version_compare_ignore_fields
+        )
         user_work_area.valid_file_extensions = copy.deepcopy(self.valid_file_extensions)
         user_work_area._sandbox_users = copy.deepcopy(self._sandbox_users)
         user_work_area._work_template_contains_user = self._work_template_contains_user
-        user_work_area._publish_template_contains_user = self._publish_template_contains_user
+        user_work_area._publish_template_contains_user = (
+            self._publish_template_contains_user
+        )
         user_work_area._settings_loaded = self._settings_loaded
 
         return user_work_area
@@ -171,8 +175,7 @@ class WorkArea(object):
         """
         :returns: True if a sandbox is used.
         """
-        return (self._work_template_contains_user or
-                self._publish_template_contains_user)
+        return self._work_template_contains_user or self._publish_template_contains_user
 
     @property
     def work_area_sandbox_users(self):
@@ -229,24 +232,39 @@ class WorkArea(object):
 
         :returns The formatted string.
         """
-        return ("CTX: %s\n - Work Area: %s\n - Work: %s\n - Publish Area: %s\n - Publish: %s"
-                % (self._context,
-                   self.work_area_template, self.work_template,
-                   self.publish_area_template, self.publish_template)
-                )
+        return (
+            "CTX: %s\n - Work Area: %s\n - Work: %s\n - Publish Area: %s\n - Publish: %s"
+            % (
+                self._context,
+                self.work_area_template,
+                self.work_template,
+                self.publish_area_template,
+                self.publish_template,
+            )
+        )
 
     def _load_settings(self):
         """
         Extracts the settings from the environment file.
         """
         # attemps to load all settings for the context:
-        templates_to_find = ["template_work", "template_publish",
-                             "template_work_area", "template_publish_area"]
-        settings_to_find = ["saveas_default_name", "saveas_prefer_version_up",
-                            "version_compare_ignore_fields", "file_extensions"]
+        templates_to_find = [
+            "template_work",
+            "template_publish",
+            "template_work_area",
+            "template_publish_area",
+        ]
+        settings_to_find = [
+            "saveas_default_name",
+            "saveas_prefer_version_up",
+            "version_compare_ignore_fields",
+            "file_extensions",
+        ]
         resolved_settings = {}
         if self._context:
-            resolved_settings = self._get_settings_for_context(self._context, templates_to_find, settings_to_find)
+            resolved_settings = self._get_settings_for_context(
+                self._context, templates_to_find, settings_to_find
+            )
 
         if not resolved_settings:
             return
@@ -261,15 +279,25 @@ class WorkArea(object):
 
         # update other settings:
         self.save_as_default_name = resolved_settings.get("saveas_default_name", "")
-        self.save_as_prefer_version_up = resolved_settings.get("saveas_prefer_version_up", False)
-        self.version_compare_ignore_fields = resolved_settings.get("version_compare_ignore_fields", [])
+        self.save_as_prefer_version_up = resolved_settings.get(
+            "saveas_prefer_version_up", False
+        )
+        self.version_compare_ignore_fields = resolved_settings.get(
+            "version_compare_ignore_fields", []
+        )
         extensions = resolved_settings.get("file_extensions") or []
-        extensions = [ext if ext.startswith(".") else ".%s" % ext for ext in extensions if ext]
+        extensions = [
+            ext if ext.startswith(".") else ".%s" % ext for ext in extensions if ext
+        ]
         self.valid_file_extensions = extensions
 
         # test for user sandboxes:
-        self._work_template_contains_user = self.work_template and bool(get_template_user_keys(self.work_template))
-        self._publish_template_contains_user = self.publish_template and bool(get_template_user_keys(self.publish_template))
+        self._work_template_contains_user = self.work_template and bool(
+            get_template_user_keys(self.work_template)
+        )
+        self._publish_template_contains_user = self.publish_template and bool(
+            get_template_user_keys(self.publish_template)
+        )
 
     def get_missing_templates(self):
         """
@@ -290,7 +318,9 @@ class WorkArea(object):
 
         return missing_templates
 
-    def _get_settings_for_context(self, context, templates_to_find, settings_to_find=None):
+    def _get_settings_for_context(
+        self, context, templates_to_find, settings_to_find=None
+    ):
         """
         Find templates for the given context.
 
@@ -357,7 +387,11 @@ class WorkArea(object):
             try:
                 # find settings for all instances of app in the environment picked for the given context:
                 app_settings = sgtk.platform.find_app_settings(
-                    app.engine.name, app.name, app.sgtk, context, app.engine.instance_name
+                    app.engine.name,
+                    app.name,
+                    app.sgtk,
+                    context,
+                    app.engine.instance_name,
                 )
             finally:
                 # Ignore any errors while looking for the settings
@@ -380,10 +414,11 @@ class WorkArea(object):
 
         app.log_warning(
             "Looking for tk-multi-workfiles application settings in '%s' context"
-            " yielded too many results (%s), none named '%s'." % (
+            " yielded too many results (%s), none named '%s'."
+            % (
                 context,
                 ", ".join([s.get("app_instance") for s in app_settings]),
-                app.instance_name
+                app.instance_name,
             )
         )
 
@@ -433,7 +468,9 @@ class WorkArea(object):
             # Note, we deliberately don't perform validation here as the current user may not have created
             # any files yet and we don't want this to fail just because it can't resolve a field for the
             # user key.
-            ctx_fields = self._context.as_template_fields(search_template, validate=False)
+            ctx_fields = self._context.as_template_fields(
+                search_template, validate=False
+            )
         except TankError:
             # this probably means that there isn't anything in the path cache for this context
             # yet which also means no users have created folders therefore there are also no
@@ -443,9 +480,11 @@ class WorkArea(object):
         # make sure we have enough fields to perform a valid search - we should have all non-optional
         # keys apart from user keys:
         for key_name in search_template.keys.keys():
-            if (key_name not in user_keys and
-                    key_name not in ctx_fields and
-                    not search_template.is_optional(key_name)):
+            if (
+                key_name not in user_keys
+                and key_name not in ctx_fields
+                and not search_template.is_optional(key_name)
+            ):
                 # this is bad - assume we can't perform a search!
                 return []
 
@@ -460,11 +499,10 @@ class WorkArea(object):
             # from the path and then inspect the user from this
             path_ctx = app.sgtk.context_from_path(path)
             user = path_ctx.user
-            if user: 
+            if user:
                 user_ids.add(user["id"])
 
         # look these up in the user cache:
         users = g_user_cache.get_user_details_for_ids(user_ids).values()
         self._sandbox_users[template.definition] = users
         return users
-

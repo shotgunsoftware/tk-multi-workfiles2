@@ -90,4 +90,3 @@ FileWidget #background[selected=true] {
     background-color: rgb(0, 178, 236, 30);
     border-color: rgb(0, 178, 236);
 }
-

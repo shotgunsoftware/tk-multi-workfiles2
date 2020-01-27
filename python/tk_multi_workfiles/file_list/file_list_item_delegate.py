@@ -1,11 +1,11 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
@@ -20,14 +20,14 @@ from .file_widget import FileWidget
 from ..util import get_model_data, get_model_str
 from ..framework_qtwidgets import GroupedListViewItemDelegate
 
-class FileListItemDelegate(GroupedListViewItemDelegate):
 
+class FileListItemDelegate(GroupedListViewItemDelegate):
     def __init__(self, view):
         """
         :param view: The view this delegate is for.
         """
         GroupedListViewItemDelegate.__init__(self, view)
-        
+
         self._item_widget = None
         self._folder_icon = QtGui.QPixmap(":/tk-multi-workfiles2/folder_512x400.png")
 
@@ -102,16 +102,20 @@ class FileListItemDelegate(GroupedListViewItemDelegate):
         widget.subtitle = subtitle
         widget.set_show_subtitle(show_subtitle)
         widget.set_thumbnail(icon)
-        widget.selected = (style_options.state & QtGui.QStyle.State_Selected) == QtGui.QStyle.State_Selected
+        widget.selected = (
+            style_options.state & QtGui.QStyle.State_Selected
+        ) == QtGui.QStyle.State_Selected
 
     def sizeHint(self, style_options, model_index):
         """
         """
         if not model_index.isValid():
             return QtCore.QSize()
-        
+
         if model_index.parent() != self.view.rootIndex():
             return self._get_painter_widget(model_index, self.view).size()
         else:
             # call base class:
-            return GroupedListViewItemDelegate.sizeHint(self, style_options, model_index)
+            return GroupedListViewItemDelegate.sizeHint(
+                self, style_options, model_index
+            )

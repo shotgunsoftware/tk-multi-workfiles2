@@ -35,7 +35,7 @@ class CopyFile(HookClass):
         dirname = os.path.dirname(target_path)
         if not os.path.isdir(dirname):
             old_umask = os.umask(0)
-            os.makedirs(dirname, 0777)
+            os.makedirs(dirname, 0o777)
             os.umask(old_umask)
 
         shutil.copy(source_path, target_path)

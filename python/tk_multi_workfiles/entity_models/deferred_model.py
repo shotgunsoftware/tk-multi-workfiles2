@@ -11,11 +11,15 @@
 import sgtk
 from sgtk.platform.qt import QtGui, QtCore
 
-shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
+shotgun_model = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils", "shotgun_model"
+)
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 ShotgunDataHandlerCache = shotgun_model.data_handler_cache.ShotgunDataHandlerCache
 
-shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
+shotgun_globals = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils", "shotgun_globals"
+)
 
 from ..util import get_sg_entity_name_field
 from .extended_model import ShotgunExtendedEntityModel
@@ -60,7 +64,9 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             my_model.update_filters(["step.Step.code", "is", "Rig"])
     """
 
-    def __init__(self, entity_type, filters, hierarchy, fields, deferred_query, *args, **kwargs):
+    def __init__(
+        self, entity_type, filters, hierarchy, fields, deferred_query, *args, **kwargs
+    ):
         """
         Construct a ShotgunDeferredEntityModel.
 
@@ -89,12 +95,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         # in the event queue, to ensure there is only one at any given time.
         self._pending_delayed_data_refreshed = False
         super(ShotgunDeferredEntityModel, self).__init__(
-            entity_type,
-            filters,
-            hierarchy,
-            fields,
-            *args,
-            **kwargs
+            entity_type, filters, hierarchy, fields, *args, **kwargs
         )
         # Create a cache to handle results from deferred queries.
         self._deferred_cache = ShotgunDataHandlerCache()
@@ -152,10 +153,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         # Extra filter is not applied to the model containing top nodes
         # for deferred queries.
         self._load_data(
-            self._entity_type,
-            self._original_filters,
-            self._hierarchy,
-            self._fields
+            self._entity_type, self._original_filters, self._hierarchy, self._fields
         )
         self.async_refresh()
 
@@ -232,11 +230,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         """
         parent_uid = parent_item.data(self._SG_ITEM_UNIQUE_ID)
         self._deferred_cache.add_item(
-            parent_uid=None,
-            sg_data={},
-            field_name="",
-            is_leaf=False,
-            uid=parent_uid,
+            parent_uid=None, sg_data={}, field_name="", is_leaf=False, uid=parent_uid,
         )
         refreshed_uids = []
         current_item = parent_item
@@ -294,9 +288,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         :param parent_item: A :class:`ShotgunStandardItem` instance.
         :returns: A string.
         """
-        return "_dummy_item_uid_%s" % (
-            parent_item.data(cls._SG_ITEM_UNIQUE_ID)
-        )
+        return "_dummy_item_uid_%s" % (parent_item.data(cls._SG_ITEM_UNIQUE_ID))
 
     def _add_dummy_placeholder_item(self, parent_item, refreshing):
         """
@@ -310,11 +302,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         """
         parent_uid = parent_item.data(self._SG_ITEM_UNIQUE_ID)
         self._deferred_cache.add_item(
-            parent_uid=None,
-            sg_data={},
-            field_name="",
-            is_leaf=False,
-            uid=parent_uid,
+            parent_uid=None, sg_data={}, field_name="", is_leaf=False, uid=parent_uid,
         )
         uid = self._dummy_placeholder_item_uid(parent_item)
         display_name = shotgun_globals.get_type_display_name(
@@ -332,10 +320,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             # We need to use something which looks like a SG Entity dictionary.
             # By having a "text" key and using it for the field name, the tree
             # view will display its contents.
-            sg_data={
-                "text": text,
-                "type": ""
-            },
+            sg_data={"text": text, "type": ""},
             field_name="text",
             is_leaf=True,
             uid=uid,
@@ -354,10 +339,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         else:
             sub_item = self._get_item_by_unique_id(uid)
             if sub_item:
-                self._update_item(
-                    sub_item,
-                    self._deferred_cache.get_entry_by_uid(uid)
-                )
+                self._update_item(sub_item, self._deferred_cache.get_entry_by_uid(uid))
                 # We don't want an icon to appear in the view. Updating the item
                 # reset the icon, so we have to reset it after the update.
                 sub_item.setIcon(QtGui.QIcon())
@@ -389,10 +371,12 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                 parent=self,
             )
             self._deferred_models[sg_entity["id"]].data_refreshed.connect(
-                lambda changed : self._on_deferred_data_refreshed(sg_entity, changed)
+                lambda changed: self._on_deferred_data_refreshed(sg_entity, changed)
             )
             self._deferred_models[sg_entity["id"]].data_refresh_fail.connect(
-                lambda message : self._on_deferred_data_refresh_failed(sg_entity, message)
+                lambda message: self._on_deferred_data_refresh_failed(
+                    sg_entity, message
+                )
             )
             self._deferred_models[sg_entity["id"]].async_refresh()
         else:
@@ -431,10 +415,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                 # We need to use something which looks like a SG Entity dictionary.
                 # By having a "text" key and using it for the field name, the tree
                 # view will display its contents.
-                sg_data={
-                    "text": message,
-                    "type": ""
-                },
+                sg_data={"text": message, "type": ""},
                 field_name="text",
                 is_leaf=True,
                 uid=refreshing_uid,
@@ -466,7 +447,9 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         parent_uid = parent_item.data(self._SG_ITEM_UNIQUE_ID)
         if self._deferred_cache.item_exists(parent_uid):
             # Grab all entries from the iterator
-            existing_uids = set([x for x in self._deferred_cache.get_child_uids(parent_uid)])
+            existing_uids = set(
+                [x for x in self._deferred_cache.get_child_uids(parent_uid)]
+            )
         else:
             existing_uids = set()
 
@@ -479,8 +462,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         sg_deferred_entities = []
         for deferred_entity_id in deferred_model.entity_ids:
             deferred_item = deferred_model.item_from_entity(
-                deferred_entity_type,
-                deferred_entity_id
+                deferred_entity_type, deferred_entity_id
             )
             # In theory we should always have a matching item, but better to be
             # a bit cautious...
@@ -525,7 +507,10 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         # sets, then things changed.
         if existing_uids ^ refreshed_uids:
             self._post_delayed_data_refreshed()
-        elif len(refreshed_uids) == 1 and self._dummy_placeholder_item_uid(parent_item) in refreshed_uids:
+        elif (
+            len(refreshed_uids) == 1
+            and self._dummy_placeholder_item_uid(parent_item) in refreshed_uids
+        ):
             # Special case if we just have the dummy placeholder: the same item
             # is kept but its value changed, e.g. "Retrieving..." to "No xx found"
             # this value is used by the file browser tab so we need to notify it
@@ -678,12 +663,15 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         """
         # If dealing with the primary entity type this model represents, just
         # call the base implementation which only considers leaves.
-        if entity_type == self.get_entity_type() or self._deferred_query["entity_type"] != entity_type:
+        if (
+            entity_type == self.get_entity_type()
+            or self._deferred_query["entity_type"] != entity_type
+        ):
             return super(ShotgunDeferredEntityModel, self).item_from_entity(
                 entity_type, entity_id
             )
         return self._get_item_by_unique_id(
-            self._deferred_entity_uid({ "type": entity_type, "id" : entity_id})
+            self._deferred_entity_uid({"type": entity_type, "id": entity_id})
         )
 
     def item_from_field_value_path(self, field_value_list):

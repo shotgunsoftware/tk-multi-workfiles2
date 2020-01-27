@@ -25,9 +25,9 @@ class FileFilters(QtCore.QObject):
     # signal emitted whenever something in the filters is changed
     changed = QtCore.Signal()
     # signal emitted whenever the available users are changed
-    available_users_changed = QtCore.Signal(object)# list of users
+    available_users_changed = QtCore.Signal(object)  # list of users
     # signal emitted whenever the users changed:
-    users_changed = QtCore.Signal(object)# list of users
+    users_changed = QtCore.Signal(object)  # list of users
 
     def __init__(self, parent):
         """
@@ -80,7 +80,9 @@ class FileFilters(QtCore.QObject):
         self.available_users_changed.emit(self._available_users)
 
     def _reset_user_lists(self):
-        self._available_users = [g_user_cache.current_user] if g_user_cache.current_user else []
+        self._available_users = (
+            [g_user_cache.current_user] if g_user_cache.current_user else []
+        )
         self._users = [g_user_cache.current_user] if g_user_cache.current_user else []
 
     def add_users(self, users):
@@ -92,8 +94,10 @@ class FileFilters(QtCore.QObject):
         nb_users_before = len(self._available_users)
 
         # merge the two lists, discarding doubles.
-        new_users_by_id = dict((user["id"], user)for user in users)
-        available_users_by_id = dict((user["id"], user) for user in self._available_users)
+        new_users_by_id = dict((user["id"], user) for user in users)
+        available_users_by_id = dict(
+            (user["id"], user) for user in self._available_users
+        )
         available_users_by_id.update(new_users_by_id)
         self._available_users = available_users_by_id.values()
 

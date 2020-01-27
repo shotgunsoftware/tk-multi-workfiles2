@@ -1,11 +1,11 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
@@ -15,33 +15,37 @@ Cache used to store and find file search results.
 import sgtk
 from .util import Threaded
 
+
 class FileSearchCache(Threaded):
     """
     Implementation of FileSearchCache class
     """
+
     class _CachedFileInfo(object):
         """
-        Storage for file versions - encapsulates a dictionary if files indexed 
+        Storage for file versions - encapsulates a dictionary if files indexed
         by their version
         """
+
         def __init__(self):
             """
             Construction
             """
-            self.versions = {}# version:FileItem() 
+            self.versions = {}  # version:FileItem()
 
     class _CacheEntry(object):
         """
         A single cache entry - stores the work area the files were found in together with the
         list of files indexed by the unique file key.
         """
+
         def __init__(self):
             """
             Construction
             """
             self.work_area = None
             self.is_dirty = True
-            self.file_info = {}# FileItem.key:_CachedFileInfo()
+            self.file_info = {}  # FileItem.key:_CachedFileInfo()
 
     def __init__(self):
         """
@@ -55,7 +59,7 @@ class FileSearchCache(Threaded):
         """
         Add the specified files to the cache along with the work area they were found in
 
-        :param work_area:   A WorkArea instance containing information about the work area the 
+        :param work_area:   A WorkArea instance containing information about the work area the
                             files were found in
         :param files:       A list of the FileItem's representing the files found in the specified
                             work area
@@ -78,8 +82,9 @@ class FileSearchCache(Threaded):
         new_entry.work_area = work_area
         new_entry.is_dirty = is_dirty
         for file_item in files:
-            new_entry.file_info.setdefault(file_item.key, 
-                                           FileSearchCache._CachedFileInfo()).versions[file_item.version] = file_item
+            new_entry.file_info.setdefault(
+                file_item.key, FileSearchCache._CachedFileInfo()
+            ).versions[file_item.version] = file_item
 
         # add the new entry to the cache:
         self._cache[key] = new_entry
@@ -178,7 +183,7 @@ class FileSearchCache(Threaded):
         """
         if not work_area or not work_area.context:
             return (None, None)
-        
+
         ctx = work_area.context
         key_entity = ctx.task or ctx.step or ctx.entity or ctx.project
         key = self._construct_key(key_entity, ctx.user)
@@ -205,5 +210,3 @@ class FileSearchCache(Threaded):
 
         # key needs to be hashable to return a tuple of the key parts:
         return tuple(key_parts)
-
-

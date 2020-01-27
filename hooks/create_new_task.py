@@ -75,7 +75,7 @@ class CreateNewTaskHook(HookClass):
             "step": pipeline_step,
             "project": app.context.project,
             "entity": entity,
-            "content": name
+            "content": name,
         }
         if assigned_to:
             data["task_assignees"] = [assigned_to]

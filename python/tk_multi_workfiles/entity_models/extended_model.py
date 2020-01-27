@@ -11,7 +11,9 @@
 import sgtk
 from sgtk.platform.qt import QtGui, QtCore
 
-shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
+shotgun_model = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils", "shotgun_model"
+)
 ShotgunEntityModel = shotgun_model.ShotgunEntityModel
 
 
@@ -66,12 +68,7 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         self._entity_types = set()
 
         super(ShotgunExtendedEntityModel, self).__init__(
-            entity_type,
-            filters,
-            hierarchy,
-            fields,
-            *args,
-            **kwargs
+            entity_type, filters, hierarchy, fields, *args, **kwargs
         )
 
     @property
@@ -98,15 +95,10 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
                              to the initial filters list.
         """
         self._extra_filter = extra_filter
-        filters = self._original_filters[:] # Copy the list to not update the reference
+        filters = self._original_filters[:]  # Copy the list to not update the reference
         if extra_filter:
             filters.append(extra_filter)
-        self._load_data(
-            self._entity_type,
-            filters,
-            self._hierarchy,
-            self._fields
-        )
+        self._load_data(self._entity_type, filters, self._hierarchy, self._fields)
         self.async_refresh()
 
     def update_filters(self, extra_filter):
@@ -121,15 +113,10 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
                              to the initial filters list.
         """
         self._extra_filter = extra_filter
-        filters = self._original_filters[:] # Copy the list to not update the reference
+        filters = self._original_filters[:]  # Copy the list to not update the reference
         if extra_filter:
             filters.append(extra_filter)
-        self._load_data(
-            self._entity_type,
-            filters,
-            self._hierarchy,
-            self._fields
-        )
+        self._load_data(self._entity_type, filters, self._hierarchy, self._fields)
         # If we loaded something from the cache notify viewers that new data is
         # already available.
         if self.invisibleRootItem().rowCount():
@@ -280,9 +267,7 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         current_item = item
         values = []
         while current_item:
-            values.append(
-                current_item.data(self.SG_ASSOCIATED_FIELD_ROLE)
-            )
+            values.append(current_item.data(self.SG_ASSOCIATED_FIELD_ROLE))
             current_item = current_item.parent()
         # Reverse the list we return.
         return values[::-1]

@@ -31,9 +31,11 @@ class NewFileAction(Action):
         Do some validation to see if it's possible to
         start a new file with the selected context.
         """
-        can_do_new = (env.context is not None
-                      and (env.context.entity or env.context.project)
-                      and env.work_area_template is not None)
+        can_do_new = (
+            env.context is not None
+            and (env.context.entity or env.context.project)
+            and env.work_area_template is not None
+        )
         return can_do_new
 
     def __init__(self, environment):
@@ -60,20 +62,32 @@ class NewFileAction(Action):
             # create folders and validate that we can save using the work template:
             try:
                 # create folders if needed:
-                FileAction.create_folders_if_needed(self._environment.context, self._environment.work_template)
+                FileAction.create_folders_if_needed(
+                    self._environment.context, self._environment.work_template
+                )
                 # and double check that we can get all context fields for the work template:
-                self._environment.context.as_template_fields(self._environment.work_template, validate=True)
-            except TankError, e:
+                self._environment.context.as_template_fields(
+                    self._environment.work_template, validate=True
+                )
+            except TankError as e:
                 # log the original exception (useful for tracking down the problem)
-                self._app.log_exception("Unable to resolve template fields after folder creation!")
+                self._app.log_exception(
+                    "Unable to resolve template fields after folder creation!"
+                )
                 # and raise a new, clearer exception for this specific use case:
-                raise TankError("Unable to resolve template fields after folder creation!  This could mean "
-                                "there is a mismatch between your folder schema and templates.  Please email "
-                                "support@shotgunsoftware.com if you need help fixing this.")
+                raise TankError(
+                    "Unable to resolve template fields after folder creation!  This could mean "
+                    "there is a mismatch between your folder schema and templates.  Please email "
+                    "support@shotgunsoftware.com if you need help fixing this."
+                )
 
             # reset the current scene:
-            if not reset_current_scene(self._app, NEW_FILE_ACTION, self._environment.context):
-                self._app.log_debug("Unable to perform New Scene operation after failing to reset scene!")
+            if not reset_current_scene(
+                self._app, NEW_FILE_ACTION, self._environment.context
+            ):
+                self._app.log_debug(
+                    "Unable to perform New Scene operation after failing to reset scene!"
+                )
                 return False
 
             # prepare the new scene:
@@ -83,9 +97,11 @@ class NewFileAction(Action):
                 # Change context
                 FileAction.change_context(self._environment.context)
 
-        except Exception, e:
+        except Exception as e:
             error_title = "Failed to complete '%s' action" % self.label
-            QtGui.QMessageBox.information(parent_ui, "%s" % error_title, "%s:\n\n%s" % (error_title, e))
+            QtGui.QMessageBox.information(
+                parent_ui, "%s" % error_title, "%s:\n\n%s" % (error_title, e)
+            )
             self._app.log_exception(error_title)
             return False
         else:

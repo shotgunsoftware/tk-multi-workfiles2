@@ -1,11 +1,11 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
@@ -17,9 +17,11 @@ from sgtk import TankError
 from sgtk.platform.qt import QtGui, QtCore
 from .action import Action
 
+
 class FileAction(Action):
     """
     """
+
     @staticmethod
     def create_folders(ctx):
         """
@@ -52,8 +54,11 @@ class FileAction(Action):
             #
             # It may very well be that there's no solution that fits everyone and might warrant
             # a hook.
-            app.sgtk.create_filesystem_structure(ctx_entity.get("type"), ctx_entity.get("id"),
-                                                       engine=app.engine.instance_name)
+            app.sgtk.create_filesystem_structure(
+                ctx_entity.get("type"),
+                ctx_entity.get("id"),
+                engine=app.engine.instance_name,
+            )
         finally:
             QtGui.QApplication.restoreOverrideCursor()
 
@@ -73,19 +78,21 @@ class FileAction(Action):
             # try to get all context fields from the template.  If this raises a TankError then this
             # is a sign that we need to create folders.
             ctx_fields = ctx.as_template_fields(template, validate=True)
-            
+
             # ok, so we managed to get all fields but we still need to check that the context part
             # of the path exists on disk.  To do this, find the template that only contains context
             # keys:
             ctx_keys = set(ctx_fields.keys())
             ctx_template = template
             while ctx_template:
-                template_keys = set([k for k in ctx_template.keys if not ctx_template.is_optional(k)])
+                template_keys = set(
+                    [k for k in ctx_template.keys if not ctx_template.is_optional(k)]
+                )
                 if template_keys <= ctx_keys:
                     # we've found the longest template that contains only context fields
                     break
                 ctx_template = ctx_template.parent
-                
+
             if not ctx_template:
                 # couldn't figure out the path to test so assume that we need to create folders:
                 create_folders = True
@@ -118,7 +125,7 @@ class FileAction(Action):
         QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
             sgtk.platform.change_context(ctx)
-        except Exception, e:
+        except Exception as e:
             app.log_exception(e)
             raise TankError("Context changed failed, see log for details.")
         finally:
@@ -138,11 +145,12 @@ class FileAction(Action):
         app.log_debug("Restoring context.")
         try:
             FileAction.change_context(ctx)
-        except Exception, e:
+        except Exception as e:
             QtGui.QMessageBox.critical(
                 parent_ui,
                 "Unable to restore the original context",
-                "Failed to change the work area back to '%s':\n\n%s\n\nUnable to continue!" % (ctx, e)
+                "Failed to change the work area back to '%s':\n\n%s\n\nUnable to continue!"
+                % (ctx, e),
             )
             app.log_exception("Failed to change the work area back to %s!" % ctx)
 

@@ -1,11 +1,11 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
@@ -18,9 +18,11 @@ from sgtk.platform.qt import QtCore, QtGui
 from ..ui.task_widget import Ui_TaskWidget
 from ..util import set_widget_property
 
+
 class TaskWidget(QtGui.QWidget):
     """
     """
+
     def __init__(self, parent):
         """
         Construction
@@ -34,15 +36,20 @@ class TaskWidget(QtGui.QWidget):
     def set_selected(self, selected=True):
         """
         """
-        set_widget_property(self._ui.background, "selected", selected, 
-                            refresh_style=True, refresh_children=True)
+        set_widget_property(
+            self._ui.background,
+            "selected",
+            selected,
+            refresh_style=True,
+            refresh_children=True,
+        )
 
     def set_thumbnail(self, thumb):
         """
         """
         geom = self._ui.thumbnail.geometry()
         self._set_label_image(self._ui.thumbnail, thumb, geom.width(), geom.height())
-            
+
     def set_entity(self, name, typ, icon):
         """
         """
@@ -52,7 +59,7 @@ class TaskWidget(QtGui.QWidget):
         else:
             self._ui.entity_icon.show()
             self._set_label_image(self._ui.entity_icon, icon, 20, 20)
-    
+
     def set_task(self, name, icon):
         """
         """
@@ -80,13 +87,20 @@ class TaskWidget(QtGui.QWidget):
         pm = image
         if isinstance(pm, QtGui.QIcon):
             # extract the largest pixmap from the icon:
-            max_sz = max([(sz.width(), sz.height()) for sz in image.availableSizes()] or [(256, 256)])
+            max_sz = max(
+                [(sz.width(), sz.height()) for sz in image.availableSizes()]
+                or [(256, 256)]
+            )
             pm = image.pixmap(max_sz[0], max_sz[1])
 
         # and scale the pm if needed:
         scaled_pm = pm
         if pm.width() > w or pm.height() > h:
-            scaled_pm = pm.scaled(w, h, QtCore.Qt.KeepAspectRatioByExpanding, QtCore.Qt.SmoothTransformation)
+            scaled_pm = pm.scaled(
+                w,
+                h,
+                QtCore.Qt.KeepAspectRatioByExpanding,
+                QtCore.Qt.SmoothTransformation,
+            )
 
         label.setPixmap(scaled_pm)
-

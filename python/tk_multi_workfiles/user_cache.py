@@ -1,11 +1,11 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
@@ -17,10 +17,12 @@ import sgtk
 
 from .util import Threaded
 
+
 class UserCache(Threaded):
     """
     A cache of user information retrieved from Shotgun as needed
     """
+
     def __init__(self):
         """
         Construction
@@ -78,7 +80,9 @@ class UserCache(Threaded):
             # get user details from shotgun:
             sg_users = []
             try:
-                sg_users = self._app.shotgun.find("HumanUser", [["id", "in"] + list(users_to_fetch)], self._sg_fields)
+                sg_users = self._app.shotgun.find(
+                    "HumanUser", [["id", "in"] + list(users_to_fetch)], self._sg_fields
+                )
             except:
                 sg_users = []
 
@@ -118,6 +122,7 @@ class UserCache(Threaded):
         else:
             try:
                 from pwd import getpwuid
+
                 login_name = getpwuid(os.stat(path).st_uid).pw_name
             except:
                 pass
@@ -140,12 +145,17 @@ class UserCache(Threaded):
         if not sg_user:
             # have to do a Shotgun lookup:
             try:
-                sg_user = self._app.shotgun.find_one("HumanUser", [["login", "is", login_name]], self._sg_fields)
+                sg_user = self._app.shotgun.find_one(
+                    "HumanUser", [["login", "is", login_name]], self._sg_fields
+                )
                 # handle sg_user being None
                 sg_user = sg_user or {}
-            except Exception, e:
+            except Exception as e:
                 # this isn't critical so just log as debug
-                self._app.log_debug("Failed to retrieve Shotgun user for login '%s': %s" % (login_name, e))
+                self._app.log_debug(
+                    "Failed to retrieve Shotgun user for login '%s': %s"
+                    % (login_name, e)
+                )
 
             # cache the sg user so we don't have to look for it again
             self._cache_user(login_name, sg_user.get("id"), sg_user)
@@ -158,7 +168,7 @@ class UserCache(Threaded):
         Thread-safe mechanism to get the cached user for the specified user id
 
         :param user_id: Id of the user to find
-        :returns:       A Shotgun entity dictionary representing the user if found in the 
+        :returns:       A Shotgun entity dictionary representing the user if found in the
                         cache, otherwise None
         """
         return self._user_details_by_id.get(user_id)
@@ -169,7 +179,7 @@ class UserCache(Threaded):
         Thread-safe mechanism to get the cached user for the specified user login
 
         :param login:   Shotgun login of the user to find
-        :returns:       A Shotgun entity dictionary representing the user if found in the 
+        :returns:       A Shotgun entity dictionary representing the user if found in the
                         cache, otherwise None
         """
         return self._user_details_by_login.get(login)
@@ -188,6 +198,6 @@ class UserCache(Threaded):
         if user_id != None:
             self._user_details_by_id[user_id] = details
 
+
 # single global instance of the user cache
 g_user_cache = UserCache()
-    
