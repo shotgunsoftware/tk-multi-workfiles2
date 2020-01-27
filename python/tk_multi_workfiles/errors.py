@@ -33,7 +33,9 @@ class MissingTemplatesError(WorkfilesError):
 
         :param missing_templates: List of templates that are missing.
         """
-        WorkfilesError.__init__(self, self.generate_missing_templates_message(missing_templates))
+        WorkfilesError.__init__(
+            self, self.generate_missing_templates_message(missing_templates)
+        )
 
     @classmethod
     def generate_missing_templates_message(self, missing_templates):
@@ -50,7 +52,8 @@ class MissingTemplatesError(WorkfilesError):
             # If the string is not empty, we'll add the last missing template name.
             if comma_separated_string:
                 missing_templates_string = "%s and %s" % (
-                    comma_separated_string, missing_templates[-1]
+                    comma_separated_string,
+                    missing_templates[-1],
                 )
             else:
                 missing_templates_string = missing_templates[0]
@@ -60,5 +63,5 @@ class MissingTemplatesError(WorkfilesError):
             return "The template%s %s %s not been defined." % (
                 "s" if is_plural else "",
                 missing_templates_string,
-                "have" if is_plural else "has"
+                "have" if is_plural else "has",
             )

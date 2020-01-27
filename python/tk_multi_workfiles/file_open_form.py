@@ -25,7 +25,7 @@ from .file_form_base import FileFormBase
 from .ui.file_open_form import Ui_FileOpenForm
 
 from .work_area import WorkArea
-from .util import  get_template_user_keys
+from .util import get_template_user_keys
 
 
 class FileOpenForm(FileFormBase):
@@ -33,6 +33,7 @@ class FileOpenForm(FileFormBase):
     UI for opening a publish or work file.  Presents a list of available files to the user
     so that they can choose one to open in addition to any other user-definable actions.
     """
+
     @property
     def exit_code(self):
         return self._exit_code
@@ -80,11 +81,15 @@ class FileOpenForm(FileFormBase):
         self._ui.open_btn.clicked.connect(self._on_open)
         self._ui.new_file_btn.clicked.connect(self._on_new_file)
 
-        self._ui.browser.file_context_menu_requested.connect(self._on_browser_context_menu_requested)
+        self._ui.browser.file_context_menu_requested.connect(
+            self._on_browser_context_menu_requested
+        )
 
         self._ui.browser.create_new_task.connect(self._on_create_new_task)
         self._ui.browser.file_selected.connect(self._on_browser_file_selected)
-        self._ui.browser.file_double_clicked.connect(self._on_browser_file_double_clicked)
+        self._ui.browser.file_double_clicked.connect(
+            self._on_browser_file_double_clicked
+        )
         self._ui.browser.work_area_changed.connect(self._on_browser_work_area_changed)
         self._ui.browser.step_filter_changed.connect(self._apply_step_filtering)
 
@@ -94,14 +99,11 @@ class FileOpenForm(FileFormBase):
         # initialize the browser widget:
         self._ui.browser.show_user_filtering_widget(self._is_using_user_sandboxes())
         self._ui.browser.set_models(
-            self._my_tasks_model,
-            self._entity_models,
-            self._file_model,
+            self._my_tasks_model, self._entity_models, self._file_model,
         )
         current_file = self._get_current_file()
         self._ui.browser.select_work_area(app.context)
         self._ui.browser.select_file(current_file, app.context)
-
 
     def _is_using_user_sandboxes(self):
         """
@@ -116,7 +118,6 @@ class FileOpenForm(FileFormBase):
                 return True
 
         return False
-
 
     def closeEvent(self, event):
         """
@@ -272,7 +273,7 @@ class FileOpenForm(FileFormBase):
             env,
             self._file_model,
             workfiles_visible=self._ui.browser.work_files_visible,
-            publishes_visible=self._ui.browser.publishes_visible
+            publishes_visible=self._ui.browser.publishes_visible,
         ).get_actions(file_item)
         return file_actions
 
@@ -297,7 +298,9 @@ class FileOpenForm(FileFormBase):
                 add_separators = True
             else:
                 q_action = QtGui.QAction(action.label, menu)
-                q_action.triggered[()].connect(lambda a=action, checked=False: self._perform_action(a))
+                q_action.triggered[()].connect(
+                    lambda a=action, checked=False: self._perform_action(a)
+                )
                 menu.addAction(q_action)
                 add_separators = True
 
@@ -321,7 +324,9 @@ class FileOpenForm(FileFormBase):
     def _on_new_file(self):
         """
         """
-        if not self._new_file_env or not NewFileAction.can_do_new_file(self._new_file_env):
+        if not self._new_file_env or not NewFileAction.can_do_new_file(
+            self._new_file_env
+        ):
             return
 
         new_file_action = NewFileAction(self._new_file_env)
@@ -339,8 +344,10 @@ class FileOpenForm(FileFormBase):
         # some debug:
         app = sgtk.platform.current_bundle()
         if isinstance(action, FileAction) and action.file:
-            app.log_debug("Performing action '%s' on file '%s, v%03d'"
-                          % (action.label, action.file.name, action.file.version))
+            app.log_debug(
+                "Performing action '%s' on file '%s, v%03d'"
+                % (action.label, action.file.name, action.file.version)
+            )
         else:
             app.log_debug("Performing action '%s'" % action.label)
 

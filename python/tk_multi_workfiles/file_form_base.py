@@ -20,10 +20,14 @@ from itertools import chain
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-task_manager = sgtk.platform.import_framework("tk-framework-shotgunutils", "task_manager")
+task_manager = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils", "task_manager"
+)
 BackgroundTaskManager = task_manager.BackgroundTaskManager
 
-shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
+shotgun_globals = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils", "shotgun_globals"
+)
 
 from .entity_models import ShotgunExtendedEntityModel, ShotgunDeferredEntityModel
 from .file_model import FileModel
@@ -42,6 +46,7 @@ class FileFormBase(QtGui.QWidget):
     Implementation of file form base class.  Contains initialisation and functionality
     used by both the File Open & File Save dialogs.
     """
+
     def __init__(self, parent):
         """
         Construction
@@ -126,12 +131,14 @@ class FileFormBase(QtGui.QWidget):
         my_tasks_filters = app.get_setting("my_tasks_filters")
 
         # create the model:
-        model = MyTasksModel(app.context.project,
-                             g_user_cache.current_user,
-                             extra_display_fields,
-                             my_tasks_filters,
-                             parent=self,
-                             bg_task_manager=self._bg_task_manager)
+        model = MyTasksModel(
+            app.context.project,
+            g_user_cache.current_user,
+            extra_display_fields,
+            my_tasks_filters,
+            parent=self,
+            bg_task_manager=self._bg_task_manager,
+        )
         monitor_qobject_lifetime(model, "My Tasks Model")
         model.async_refresh()
         return model
@@ -161,7 +168,7 @@ class FileFormBase(QtGui.QWidget):
             sub_query = ent.get("sub_hierarchy", [])
             deferred_query = None
             if sub_query:
-                step_filter_on = entity_type # Ensure this is not wrongly set
+                step_filter_on = entity_type  # Ensure this is not wrongly set
                 # The target entity type for the sub query.
                 sub_entity_type = sub_query.get("entity_type", "Task")
                 # Optional filters for the sub query.
@@ -182,7 +189,8 @@ class FileFormBase(QtGui.QWidget):
                 app = sgtk.platform.current_bundle()
                 app.log_error(
                     "No hierarchy found for entity type '%s' - at least one level of "
-                    "hierarchy must be specified in the app configuration.  Skipping!" % entity_type
+                    "hierarchy must be specified in the app configuration.  Skipping!"
+                    % entity_type
                 )
                 continue
 
@@ -221,7 +229,7 @@ class FileFormBase(QtGui.QWidget):
                     fields,
                     deferred_query=deferred_query,
                     parent=self,
-                    bg_task_manager=self._bg_task_manager
+                    bg_task_manager=self._bg_task_manager,
                 )
             else:
                 model = ShotgunExtendedEntityModel(
@@ -230,7 +238,7 @@ class FileFormBase(QtGui.QWidget):
                     hierarchy,
                     fields,
                     parent=self,
-                    bg_task_manager=self._bg_task_manager
+                    bg_task_manager=self._bg_task_manager,
                 )
             monitor_qobject_lifetime(model, "Entity Model")
             entity_models.append((caption, step_filter_on, model))
@@ -304,7 +312,9 @@ class FileFormBase(QtGui.QWidget):
 
             # get the current file path:
             try:
-                current_path = get_current_path(app, SAVE_FILE_AS_ACTION, work_area.context)
+                current_path = get_current_path(
+                    app, SAVE_FILE_AS_ACTION, work_area.context
+                )
             except Exception as e:
                 return None
 
@@ -335,12 +345,15 @@ class FileFormBase(QtGui.QWidget):
         # build fields dictionary and construct key:
         fields = work_area.context.as_template_fields(work_area.work_template)
 
-        base_template = work_area.publish_template if is_publish else work_area.work_template
+        base_template = (
+            work_area.publish_template if is_publish else work_area.work_template
+        )
         template_fields = base_template.get_fields(path)
         fields = dict(chain(template_fields.iteritems(), fields.iteritems()))
 
-        file_key = FileItem.build_file_key(fields, work_area.work_template,
-                                           work_area.version_compare_ignore_fields)
+        file_key = FileItem.build_file_key(
+            fields, work_area.work_template, work_area.version_compare_ignore_fields
+        )
 
         # extract details from the fields:
         details = {}
@@ -349,13 +362,15 @@ class FileFormBase(QtGui.QWidget):
                 details[key_name] = fields[key_name]
 
         # build the file item (note that this will be a very minimal FileItem instance)!
-        file_item = FileItem(key = file_key,
-                             is_work_file = not is_publish,
-                             work_path = path if not is_publish else None,
-                             work_details = fields if not is_publish else None,
-                             is_published = is_publish,
-                             publish_path = path if is_publish else None,
-                             publish_details = fields if is_publish else None)
+        file_item = FileItem(
+            key=file_key,
+            is_work_file=not is_publish,
+            work_path=path if not is_publish else None,
+            work_details=fields if not is_publish else None,
+            is_published=is_publish,
+            publish_path=path if is_publish else None,
+            publish_details=fields if is_publish else None,
+        )
 
         return file_item
 

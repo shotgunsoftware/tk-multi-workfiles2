@@ -19,6 +19,7 @@ class ActionBase(object):
     """
     Base class for Actions.
     """
+
     def __init__(self, label):
         """
         Constructor.
@@ -48,7 +49,9 @@ class Action(ActionBase):
 
         :raises NotImplementedError: Thrown if a derived class doesn't implement this method and the client invokes it.
         """
-        raise NotImplementedError("Implementation of _execute() method missing for action '%s'" % self.label)
+        raise NotImplementedError(
+            "Implementation of _execute() method missing for action '%s'" % self.label
+        )
 
 
 class ActionGroup(ActionBase):
@@ -78,6 +81,7 @@ class SeparatorAction(ActionBase):
     """
     Not an actual action but a hint to the UI that a separation should be shown.
     """
+
     def __init__(self):
         """
         Constructor.

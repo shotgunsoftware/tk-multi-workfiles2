@@ -22,7 +22,16 @@ class SceneOperation(HookClass):
     current scene
     """
 
-    def execute(self, operation, file_path, context, parent_action, file_version, read_only, **kwargs):
+    def execute(
+        self,
+        operation,
+        file_path,
+        context,
+        parent_action,
+        file_version,
+        read_only,
+        **kwargs
+    ):
         """
         Main hook entry point
 
@@ -65,14 +74,14 @@ class SceneOperation(HookClass):
         elif operation == "open":
             # do new scene as Maya doesn't like opening
             # the scene it currently has open!
-            fb_app.FileOpen( file_path )
+            fb_app.FileOpen(file_path)
         elif operation == "save":
             # save the current scene:
             # Note - have to pass the current scene name to
             # avoid showing the save-as dialog
             fb_app.FileSave(fb_app.FBXFileName)
         elif operation == "save_as":
-            fb_app.FileSave( file_path )
+            fb_app.FileSave(file_path)
         elif operation == "reset":
             """
             Reset the scene to an empty state
@@ -83,10 +92,14 @@ class SceneOperation(HookClass):
                 # there are unsaved changes through the MotionBuilder
                 # Python API.  Therefore we just assume there are and
                 # prompt the user anyway!
-                res = QtGui.QMessageBox.question(None,
-                                     "Save your scene?",
-                                     "Your scene has unsaved changes. Save before proceeding?",
-                                     QtGui.QMessageBox.Yes|QtGui.QMessageBox.No|QtGui.QMessageBox.Cancel)
+                res = QtGui.QMessageBox.question(
+                    None,
+                    "Save your scene?",
+                    "Your scene has unsaved changes. Save before proceeding?",
+                    QtGui.QMessageBox.Yes
+                    | QtGui.QMessageBox.No
+                    | QtGui.QMessageBox.Cancel,
+                )
 
                 if res == QtGui.QMessageBox.Cancel:
                     # stop now!

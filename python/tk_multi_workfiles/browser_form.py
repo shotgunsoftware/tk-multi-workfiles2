@@ -27,7 +27,11 @@ from .framework_qtwidgets import Breadcrumb
 
 from .file_filters import FileFilters
 from .util import monitor_qobject_lifetime, get_template_user_keys
-from .step_list_filter import StepListWidget, get_filter_from_filter_list, get_saved_step_filter
+from .step_list_filter import (
+    StepListWidget,
+    get_filter_from_filter_list,
+    get_saved_step_filter,
+)
 
 logger = sgtk.platform.get_logger(__name__)
 
@@ -49,18 +53,18 @@ class BrowserForm(QtGui.QWidget):
         "all": {
             "search_label": "All Files",
             "show_work_files": True,
-            "show_publishes": True
+            "show_publishes": True,
         },
         "working": {
             "search_label": "Work Files",
             "show_work_files": True,
-            "show_publishes": False
+            "show_publishes": False,
         },
         "publishes": {
             "search_label": "Publishes",
             "show_work_files": False,
-            "show_publishes": True
-        }
+            "show_publishes": True,
+        },
     }
 
     class _EntityTabBreadcrumb(Breadcrumb):
@@ -68,14 +72,16 @@ class BrowserForm(QtGui.QWidget):
             Breadcrumb.__init__(self, label)
             self.tab_index = tab_index
 
-    create_new_task = QtCore.Signal(object, object)# entity, step
-    work_area_changed = QtCore.Signal(object, list)# entity, breadcrumbs
-    breadcrumbs_dropped = QtCore.Signal(list)# breadcrumbs
-    file_selected = QtCore.Signal(object, object)# file, env
-    file_double_clicked = QtCore.Signal(object, object)# file, env
-    file_context_menu_requested = QtCore.Signal(object, object, QtCore.QPoint)# file, env, pnt
-    entity_type_focus_changed = QtCore.Signal(object) # entity type
-    step_filter_changed = QtCore.Signal(list) # SG filter
+    create_new_task = QtCore.Signal(object, object)  # entity, step
+    work_area_changed = QtCore.Signal(object, list)  # entity, breadcrumbs
+    breadcrumbs_dropped = QtCore.Signal(list)  # breadcrumbs
+    file_selected = QtCore.Signal(object, object)  # file, env
+    file_double_clicked = QtCore.Signal(object, object)  # file, env
+    file_context_menu_requested = QtCore.Signal(
+        object, object, QtCore.QPoint
+    )  # file, env, pnt
+    entity_type_focus_changed = QtCore.Signal(object)  # entity type
+    step_filter_changed = QtCore.Signal(list)  # SG filter
 
     def __init__(self, parent):
         """
@@ -205,9 +211,7 @@ class BrowserForm(QtGui.QWidget):
         if my_tasks_model:
             # create my tasks form:
             self._my_tasks_form = MyTasksForm(
-                my_tasks_model,
-                allow_task_creation,
-                parent=self
+                my_tasks_model, allow_task_creation, parent=self
             )
             self._my_tasks_form.entity_selected.connect(self._on_entity_selected)
             self._ui.task_browser_tabs.addTab(self._my_tasks_form, "My Tasks")
@@ -231,7 +235,7 @@ class BrowserForm(QtGui.QWidget):
                 allow_task_creation,
                 [],
                 parent=self,
-                step_entity_filter=step_entity_filter
+                step_entity_filter=step_entity_filter,
             )
             entity_form.entity_selected.connect(self._on_entity_selected)
             self._ui.task_browser_tabs.addTab(entity_form, caption)
@@ -246,8 +250,7 @@ class BrowserForm(QtGui.QWidget):
             self._file_model.set_users(self._file_filters.users)
 
             # lowercase tabs to display as configured for the app
-            tabs_to_display = [
-                t.lower() for t in app.get_setting("file_browser_tabs")]
+            tabs_to_display = [t.lower() for t in app.get_setting("file_browser_tabs")]
 
             tab_count = 0
 
@@ -268,7 +271,7 @@ class BrowserForm(QtGui.QWidget):
                         tab_name,
                         search_label,
                         show_work_files=show_work_files,
-                        show_publishes=show_publishes
+                        show_publishes=show_publishes,
                     )
                     tab_count += 1
                 else:
@@ -276,21 +279,23 @@ class BrowserForm(QtGui.QWidget):
                     logger.warning(
                         "An invalid tab name was used when configuring the "
                         "workfiles2 app. The tab name '%s' is not one of the "
-                        "valid tabs (%s)." %
-                        (tab, ", ".join(self.TAB_INFO.keys()))
+                        "valid tabs (%s)." % (tab, ", ".join(self.TAB_INFO.keys()))
                     )
 
             # no valid tabs. raise an error
             if tab_count < 1:
                 raise sgtk.TankError(
                     "No valid tabs configured for workfiles2. Configured tabs: "
-                    "%s. Valid tabs: %s" % (
+                    "%s. Valid tabs: %s"
+                    % (
                         ", ".join(app.get_setting("file_browser_tabs")),
-                        ", ".join(self.TAB_INFO.keys())
+                        ", ".join(self.TAB_INFO.keys()),
                     )
                 )
 
-    def _add_file_list_form(self, tab_name, search_label, show_work_files, show_publishes):
+    def _add_file_list_form(
+        self, tab_name, search_label, show_work_files, show_publishes
+    ):
         """
         Adds a file tab to the browser.
 
@@ -299,7 +304,9 @@ class BrowserForm(QtGui.QWidget):
         :param show_work_files: True is this tab will show workfiles.
         :param show_publishes: True is this tab will show publishes.
         """
-        file_form = FileListForm(self, search_label, self._file_filters, show_work_files, show_publishes)
+        file_form = FileListForm(
+            self, search_label, self._file_filters, show_work_files, show_publishes
+        )
         self._ui.file_browser_tabs.addTab(file_form, tab_name)
         file_form.enable_show_all_versions(self._enable_show_all_versions)
         # Do not show the button by default, it will be revealed when the first
@@ -308,7 +315,9 @@ class BrowserForm(QtGui.QWidget):
         file_form.set_model(self._file_model)
         file_form.file_selected.connect(self._on_file_selected)
         file_form.file_double_clicked.connect(self.file_double_clicked)
-        file_form.file_context_menu_requested.connect(self._on_file_context_menu_requested)
+        file_form.file_context_menu_requested.connect(
+            self._on_file_context_menu_requested
+        )
         self._file_browser_forms.append(file_form)
 
     def select_work_area(self, context):
@@ -334,9 +343,7 @@ class BrowserForm(QtGui.QWidget):
             return
 
         self._update_selected_entity(
-            ctx_entity["type"],
-            ctx_entity["id"],
-            skip_current=False
+            ctx_entity["type"], ctx_entity["id"], skip_current=False
         )
 
         if self._file_model:
@@ -368,7 +375,9 @@ class BrowserForm(QtGui.QWidget):
 
         :param breadcrumb_trail: Breadcrumb trail.
         """
-        if not breadcrumb_trail or not isinstance(breadcrumb_trail[0], BrowserForm._EntityTabBreadcrumb):
+        if not breadcrumb_trail or not isinstance(
+            breadcrumb_trail[0], BrowserForm._EntityTabBreadcrumb
+        ):
             return
 
         # change the entity tabs to the correct index:
@@ -388,7 +397,9 @@ class BrowserForm(QtGui.QWidget):
         :param users: Array of user entity dictionary.
         """
         app = sgtk.platform.current_bundle()
-        app.log_debug("Sandbox users found: %s" % [u["name"].split()[0] for u in users if u])
+        app.log_debug(
+            "Sandbox users found: %s" % [u["name"].split()[0] for u in users if u]
+        )
         self._file_filters.add_users(users)
 
     def _on_file_filters_users_changed(self, users):
@@ -399,7 +410,9 @@ class BrowserForm(QtGui.QWidget):
         :param users: Array of user entity dictionary.
         """
         app = sgtk.platform.current_bundle()
-        app.log_debug("File filter users: %s" % [u["name"].split()[0] for u in users if u])
+        app.log_debug(
+            "File filter users: %s" % [u["name"].split()[0] for u in users if u]
+        )
         if self._file_model:
             self._file_model.set_users(users)
 
@@ -467,8 +480,7 @@ class BrowserForm(QtGui.QWidget):
             return
 
         selected_entity = self._on_selected_entity_changed(
-            selection_details,
-            breadcrumb_trail
+            selection_details, breadcrumb_trail
         )
         if selected_entity:
             self._update_selected_entity(selected_entity["type"], selected_entity["id"])
@@ -522,7 +534,7 @@ class BrowserForm(QtGui.QWidget):
                 # which will be displayed as folders in the UI.
                 if entity["type"] != "Task":
                     primary_search.child_entities.append(
-                        {"name":label, "entity":entity}
+                        {"name": label, "entity": entity}
                     )
                 else:
                     child_search = FileModel.SearchDetails(label)
@@ -553,7 +565,10 @@ class BrowserForm(QtGui.QWidget):
             # Turn the filtering button on if it uses sandboxes.
             if form.work_files_visible and work_area.work_area_contains_user_sandboxes:
                 form.enable_user_filtering_widget(True)
-            elif form.publishes_visible and work_area.publish_area_contains_user_sandboxes:
+            elif (
+                form.publishes_visible
+                and work_area.publish_area_contains_user_sandboxes
+            ):
                 form.enable_user_filtering_widget(True)
 
     def _on_file_selected(self, file, env, selection_mode):

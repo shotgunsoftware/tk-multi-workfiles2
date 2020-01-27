@@ -1,11 +1,11 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import sgtk
@@ -13,16 +13,17 @@ from sgtk.platform.qt import QtCore, QtGui
 
 from ..ui.file_widget import Ui_FileWidget
 
+
 class FileWidget(QtGui.QWidget):
     """
     """
-    
+
     def __init__(self, parent):
         """
         Construction
         """
         QtGui.QWidget.__init__(self, parent)
-        
+
         # set up the UI
         self._ui = Ui_FileWidget()
         self._ui.setupUi(self)
@@ -34,7 +35,9 @@ class FileWidget(QtGui.QWidget):
         self._publish_icon = QtGui.QLabel(self)
         self._publish_icon.setMinimumSize(16, 16)
         self._publish_icon.setAlignment(QtCore.Qt.AlignCenter)
-        self._publish_icon.setPixmap(QtGui.QPixmap(":/tk-multi-workfiles2/publish_icon.png"))
+        self._publish_icon.setPixmap(
+            QtGui.QPixmap(":/tk-multi-workfiles2/publish_icon.png")
+        )
         self._publish_icon.hide()
 
         # not sure I like this - think I preferred it when it was over on the right of the tile!
@@ -71,32 +74,37 @@ class FileWidget(QtGui.QWidget):
         thumb_layout.addLayout(rhs_layout)
 
         self._ui.thumbnail.setLayout(thumb_layout)
-        
+
         self._is_selected = False
         self._update_ui()
 
-    #@property
+    # @property
     def _get_title(self):
         return self._ui.label.text()
-    #@title.setter
+
+    # @title.setter
     def _set_title(self, value):
         self._ui.label.setText(value)
-    title=property(_get_title, _set_title)
 
-    #@property
+    title = property(_get_title, _set_title)
+
+    # @property
     def _get_selected(self):
         return self._is_selected
-    #@selected.setter
+
+    # @selected.setter
     def _set_selected(self, value):
         self._is_selected = value
         self._update_ui()
-    selected=property(_get_selected, _set_selected)
+
+    selected = property(_get_selected, _set_selected)
 
     def _get_subtitle(self):
         return self._ui.subtitle.text()
 
     def _set_subtitle(self, value):
         self._ui.subtitle.setText(value)
+
     subtitle = property(_get_subtitle, _set_subtitle)
 
     def set_show_subtitle(self, show_subtitle):
@@ -114,7 +122,7 @@ class FileWidget(QtGui.QWidget):
 
     def set_is_editable(self, editable):
         """
-        Set if the file this item represents is editable - if not editable 
+        Set if the file this item represents is editable - if not editable
         then an additional padlock icon is shown on the thumbnail for this item
 
         :param editable:    True if the file is editable, otherwise False

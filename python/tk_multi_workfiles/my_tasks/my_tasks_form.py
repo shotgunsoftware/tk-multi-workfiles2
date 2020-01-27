@@ -31,7 +31,12 @@ class MyTasksForm(EntityTreeForm):
         :param parent:  The parent QWidget for this control
         """
         EntityTreeForm.__init__(
-            self, tasks_model, "My Tasks", allow_task_creation, tasks_model.extra_display_fields, parent
+            self,
+            tasks_model,
+            "My Tasks",
+            allow_task_creation,
+            tasks_model.extra_display_fields,
+            parent,
         )
 
         # There is no need for the my tasks toggle.
@@ -41,7 +46,9 @@ class MyTasksForm(EntityTreeForm):
         self._item_delegate = None
         # create the item delegate - make sure we keep a reference to the delegate otherwise
         # things may crash later on!
-        self._item_delegate = MyTaskItemDelegate(tasks_model.extra_display_fields, self._ui.entity_tree)
+        self._item_delegate = MyTaskItemDelegate(
+            tasks_model.extra_display_fields, self._ui.entity_tree
+        )
         monitor_qobject_lifetime(self._item_delegate)
         self._ui.entity_tree.setItemDelegate(self._item_delegate)
 

@@ -25,7 +25,16 @@ class SceneOperation(HookClass):
     current scene
     """
 
-    def execute(self, operation, file_path, context, parent_action, file_version, read_only, **kwargs):
+    def execute(
+        self,
+        operation,
+        file_path,
+        context,
+        parent_action,
+        file_version,
+        read_only,
+        **kwargs
+    ):
         """
         Main hook entry point
 
@@ -73,7 +82,9 @@ class SceneOperation(HookClass):
         # studio_enabled cases that call through to Nuke Studio and Hiero
         # specific methods.
         engine = self.parent.engine
-        if hasattr(engine, "hiero_enabled") and (engine.hiero_enabled or engine.studio_enabled):
+        if hasattr(engine, "hiero_enabled") and (
+            engine.hiero_enabled or engine.studio_enabled
+        ):
             return self._scene_operation_hiero_nukestudio(
                 operation,
                 file_path,
@@ -128,10 +139,14 @@ class SceneOperation(HookClass):
             """
             while nuke.root().modified():
                 # changes have been made to the scene
-                res = QtGui.QMessageBox.question(None,
-                                                 "Save your script?",
-                                                 "Your script has unsaved changes. Save before proceeding?",
-                                                 QtGui.QMessageBox.Yes|QtGui.QMessageBox.No|QtGui.QMessageBox.Cancel)
+                res = QtGui.QMessageBox.question(
+                    None,
+                    "Save your script?",
+                    "Your script has unsaved changes. Save before proceeding?",
+                    QtGui.QMessageBox.Yes
+                    | QtGui.QMessageBox.No
+                    | QtGui.QMessageBox.Cancel,
+                )
 
                 if res == QtGui.QMessageBox.Cancel:
                     return False
@@ -157,7 +172,7 @@ class SceneOperation(HookClass):
         if len(selection) != 1:
             raise TankError("Please select a single Project!")
 
-        if not isinstance(selection[0] , hiero.core.Bin):
+        if not isinstance(selection[0], hiero.core.Bin):
             raise TankError("Please select a Hiero Project!")
 
         project = selection[0].project()
@@ -179,8 +194,10 @@ class SceneOperation(HookClass):
         # only need to forceably reset the write node render paths if the app version
         # is less than or equal to v0.1.11
         from distutils.version import LooseVersion
-        if (write_node_app.version == "Undefined"
-            or LooseVersion(write_node_app.version) > LooseVersion("v0.1.11")):
+
+        if write_node_app.version == "Undefined" or LooseVersion(
+            write_node_app.version
+        ) > LooseVersion("v0.1.11"):
             return False
 
         write_nodes = write_node_app.get_write_nodes()
@@ -190,7 +207,14 @@ class SceneOperation(HookClass):
         return len(write_nodes) > 0
 
     def _scene_operation_hiero_nukestudio(
-        self, operation, file_path, context, parent_action, file_version, read_only, **kwargs
+        self,
+        operation,
+        file_path,
+        context,
+        parent_action,
+        file_version,
+        read_only,
+        **kwargs
     ):
         """
         Scene operation logic for Hiero and Nuke Studio modes of Nuke.
@@ -286,9 +310,8 @@ def _update_save_menu_items(project):
     # get the basename of the path without the extension
     file_base = os.path.splitext(os.path.basename(project_path))[0]
 
-    save_action = hiero.ui.findMenuAction('foundry.project.save')
+    save_action = hiero.ui.findMenuAction("foundry.project.save")
     save_action.setText("Save Project (%s)" % (file_base,))
 
-    save_as_action = hiero.ui.findMenuAction('foundry.project.saveas')
+    save_as_action = hiero.ui.findMenuAction("foundry.project.saveas")
     save_as_action.setText("Save Project As (%s)..." % (file_base,))
-

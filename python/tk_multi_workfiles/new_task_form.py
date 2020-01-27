@@ -58,13 +58,14 @@ class NewTaskForm(QtGui.QWidget):
 
         # set up the UI
         from .ui.new_task_form import Ui_NewTaskForm
+
         self._ui = Ui_NewTaskForm()
         self._ui.setupUi(self)
 
         # populate entity name
         entity_name = "%s %s" % (
             get_type_display_name(self._entity["type"]),
-            self._entity.get("code") or entity.get("name")
+            self._entity.get("code") or entity.get("name"),
         )
         self._ui.entity.setText(entity_name)
 
@@ -73,7 +74,9 @@ class NewTaskForm(QtGui.QWidget):
         self._ui.assigned_to.setText(username or "<unassigned>")
 
         # populate pipeline steps for this entity type:
-        sg_result = self._app.shotgun.find("Step", [["entity_type", "is", self._entity["type"]]], ["code", "id"])
+        sg_result = self._app.shotgun.find(
+            "Step", [["entity_type", "is", self._entity["type"]]], ["code", "id"]
+        )
         self._pipeline_step_dict = {}
         for item in sg_result:
             step_name = item.get("code")
@@ -100,8 +103,7 @@ class NewTaskForm(QtGui.QWidget):
         self._ui.task_name.selectAll()
 
         validator = self._app.execute_hook_method(
-            "create_new_task_hook",
-            "create_task_name_validator"
+            "create_new_task_hook", "create_task_name_validator"
         )
         if validator:
             # Take ownership since the widget doesn't.
@@ -114,7 +116,10 @@ class NewTaskForm(QtGui.QWidget):
         # initialize line to be plain and the same colour as the text:
         self._ui.break_line.setFrameShadow(QtGui.QFrame.Plain)
         clr = QtGui.QApplication.palette().text().color()
-        self._ui.break_line.setStyleSheet("#break_line{color: rgb(%d,%d,%d);}" % (clr.red() * 0.75, clr.green() * 0.75, clr.blue() * 0.75))
+        self._ui.break_line.setStyleSheet(
+            "#break_line{color: rgb(%d,%d,%d);}"
+            % (clr.red() * 0.75, clr.green() * 0.75, clr.blue() * 0.75)
+        )
 
     def _get_pipeline_step(self):
         """
@@ -140,7 +145,10 @@ class NewTaskForm(QtGui.QWidget):
 
         :param msg: Message to display.
         """
-        self._ui.warning.setText("<p style='color:rgb%s'>Failed to create a new task: %s</p>" % (self._app.warning_color, msg))
+        self._ui.warning.setText(
+            "<p style='color:rgb%s'>Failed to create a new task: %s</p>"
+            % (self._app.warning_color, msg)
+        )
 
     def _on_create_btn_clicked(self):
         """
@@ -157,7 +165,7 @@ class NewTaskForm(QtGui.QWidget):
                 name=self._get_task_name(),
                 pipeline_step=self._get_pipeline_step(),
                 entity=self._entity,
-                assigned_to=self._user
+                assigned_to=self._user,
             )
             self._exit_code = QtGui.QDialog.Accepted
             self.close()

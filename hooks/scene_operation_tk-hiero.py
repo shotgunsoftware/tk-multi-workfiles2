@@ -23,7 +23,16 @@ class SceneOperation(HookClass):
     current scene
     """
 
-    def execute(self, operation, file_path, context, parent_action, file_version, read_only, **kwargs):
+    def execute(
+        self,
+        operation,
+        file_path,
+        context,
+        parent_action,
+        file_version,
+        read_only,
+        **kwargs
+    ):
         """
         Main hook entry point
 
@@ -99,7 +108,6 @@ class SceneOperation(HookClass):
             # add a new project to hiero
             hiero.core.newProject()
 
-
     def _get_current_project(self):
         """
         Returns the current project based on where in the UI the user clicked
@@ -111,7 +119,7 @@ class SceneOperation(HookClass):
         if len(selection) != 1:
             raise TankError("Please select a single Project!")
 
-        if not isinstance(selection[0] , hiero.core.Bin):
+        if not isinstance(selection[0], hiero.core.Bin):
             raise TankError("Please select a Hiero Project!")
 
         project = selection[0].project()

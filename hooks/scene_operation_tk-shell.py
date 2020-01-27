@@ -21,7 +21,16 @@ class SceneOperation(HookClass):
     Hook called to perform an operation with the current scene.
     """
 
-    def execute(self, operation, file_path, context, parent_action, file_version, read_only, **kwargs):
+    def execute(
+        self,
+        operation,
+        file_path,
+        context,
+        parent_action,
+        file_version,
+        read_only,
+        **kwargs
+    ):
         """
         Main hook entry point.
 
@@ -69,6 +78,12 @@ class SceneOperation(HookClass):
         elif operation == "reset":
             return True
         elif operation == "open":
-            return QtGui.QMessageBox.question(
-                None, "", "Are you sure you want to open?", QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
-            ) == QtGui.QMessageBox.Yes
+            return (
+                QtGui.QMessageBox.question(
+                    None,
+                    "",
+                    "Are you sure you want to open?",
+                    QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
+                )
+                == QtGui.QMessageBox.Yes
+            )

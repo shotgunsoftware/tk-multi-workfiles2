@@ -1,11 +1,11 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
@@ -22,6 +22,7 @@ from ..user_cache import g_user_cache
 from ..errors import MissingTemplatesError
 from ..actions.new_file_action import NewFileAction
 
+
 class FileGroupWidget(GroupWidgetBase):
     """
     """
@@ -35,19 +36,21 @@ class FileGroupWidget(GroupWidgetBase):
         # set up the UI
         self._ui = Ui_FileGroupWidget()
         self._ui.setupUi(self)
-        
+
         self.setFocusProxy(self._ui.expand_check_box)
-        
-        self._ui.expand_check_box.stateChanged.connect(self._on_expand_checkbox_state_changed)
-        
+
+        self._ui.expand_check_box.stateChanged.connect(
+            self._on_expand_checkbox_state_changed
+        )
+
         # replace the spinner widget with our SpinnerWidget widget:
         proxy_widget = self._ui.spinner
         proxy_size = proxy_widget.geometry()
         proxy_min_size = proxy_widget.minimumSize()
-        
+
         spinner_widget = SpinnerWidget(self)
         spinner_widget.setMinimumSize(proxy_min_size)
-        spinner_widget.setGeometry(proxy_size)        
+        spinner_widget.setGeometry(proxy_size)
 
         layout = self._ui.horizontalLayout
         idx = layout.indexOf(proxy_widget)
@@ -70,13 +73,16 @@ class FileGroupWidget(GroupWidgetBase):
 
         # update group and user names:
         self._ui.title_label.setText(group_name)
-        display_user = (work_area and work_area.contains_user_sandboxes)
+        display_user = work_area and work_area.contains_user_sandboxes
         if display_user:
             user_name = "Unknown's"
             if work_area.context and work_area.context.user:
-                if g_user_cache.current_user and g_user_cache.current_user["id"] == work_area.context.user["id"]:
+                if (
+                    g_user_cache.current_user
+                    and g_user_cache.current_user["id"] == work_area.context.user["id"]
+                ):
                     user_name = "My"
-                else: 
+                else:
                     user_name = "%s's" % work_area.context.user.get("name", "Unknown")
             self._ui.user_label.setText("(%s Files)" % user_name)
             self._ui.user_label.show()
@@ -95,12 +101,18 @@ class FileGroupWidget(GroupWidgetBase):
         search_msg = ""
         if search_status == FileModel.SEARCHING and not idx_has_children:
             search_msg = "Searching for files..."
-        elif work_area and search_status == FileModel.SEARCH_COMPLETED and not idx_has_children:
+        elif (
+            work_area
+            and search_status == FileModel.SEARCH_COMPLETED
+            and not idx_has_children
+        ):
             templates = work_area.get_missing_templates()
             if not work_area.are_settings_loaded():
                 search_msg = "Shotgun Workfiles hasn't been setup."
             elif templates:
-                search_msg = MissingTemplatesError.generate_missing_templates_message(templates)
+                search_msg = MissingTemplatesError.generate_missing_templates_message(
+                    templates
+                )
             else:
                 search_msg = "No files found."
         elif search_status == FileModel.SEARCH_FAILED:
@@ -109,14 +121,19 @@ class FileGroupWidget(GroupWidgetBase):
 
         self._show_msg = bool(search_msg)
 
-        show_msg = self._show_msg and self._ui.expand_check_box.checkState() == QtCore.Qt.Checked
+        show_msg = (
+            self._show_msg
+            and self._ui.expand_check_box.checkState() == QtCore.Qt.Checked
+        )
         self._ui.msg_label.setVisible(show_msg)
 
     def set_expanded(self, expand=True):
         """
         """
         if (self._ui.expand_check_box.checkState() == QtCore.Qt.Checked) != expand:
-            self._ui.expand_check_box.setCheckState(QtCore.Qt.Checked if expand else QtCore.Qt.Unchecked)
+            self._ui.expand_check_box.setCheckState(
+                QtCore.Qt.Checked if expand else QtCore.Qt.Unchecked
+            )
 
     def mouseReleaseEvent(self, event):
         """
@@ -128,5 +145,5 @@ class FileGroupWidget(GroupWidgetBase):
         """
         show_msg = self._show_msg and state == QtCore.Qt.Checked
         self._ui.msg_label.setVisible(show_msg)
-        
+
         self.toggle_expanded.emit(state != QtCore.Qt.Unchecked)

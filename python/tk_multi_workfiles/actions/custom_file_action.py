@@ -1,11 +1,11 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
@@ -15,8 +15,8 @@ import sgtk
 
 from .file_action import FileAction
 
+
 class CustomFileAction(FileAction):
-    
     @staticmethod
     def _prepare_file_data_for_hook(file_versions):
         """
@@ -47,11 +47,13 @@ class CustomFileAction(FileAction):
         return work_file_versions, publish_versions
 
     @staticmethod
-    def get_action_details(file, file_versions, environment, workfiles_visible, publishes_visible):
+    def get_action_details(
+        file, file_versions, environment, workfiles_visible, publishes_visible
+    ):
         """
         """
         app = sgtk.platform.current_bundle()
-        
+
         # build hook-friendly data:
         work_file, publish = CustomFileAction._prepare_file_data_for_hook([file])
         hook_file = None
@@ -59,24 +61,36 @@ class CustomFileAction(FileAction):
             hook_file = work_file[0] if work_file else None
         if not hook_file and publishes_visible:
             hook_file = publish[0] if publish else None
-        work_versions, publish_versions = CustomFileAction._prepare_file_data_for_hook(file_versions.values())
+        work_versions, publish_versions = CustomFileAction._prepare_file_data_for_hook(
+            file_versions.values()
+        )
 
         # execute hook method to get actions:
         action_info = []
         try:
-            action_info = app.execute_hook_method("custom_actions_hook", 
-                                                  "generate_actions", 
-                                                  file = hook_file,
-                                                  work_versions = work_versions,
-                                                  publish_versions = publish_versions,
-                                                  context = environment.context)
+            action_info = app.execute_hook_method(
+                "custom_actions_hook",
+                "generate_actions",
+                file=hook_file,
+                work_versions=work_versions,
+                publish_versions=publish_versions,
+                context=environment.context,
+            )
         except:
             app.log_exception("Failed to retrieve custom actions from Hook!")
-            
+
         return action_info
-        
-    
-    def __init__(self, name, label, file, file_versions, environment, workfiles_visible, publishes_visible):
+
+    def __init__(
+        self,
+        name,
+        label,
+        file,
+        file_versions,
+        environment,
+        workfiles_visible,
+        publishes_visible,
+    ):
         """
         Construction
         """
@@ -84,13 +98,13 @@ class CustomFileAction(FileAction):
         self._name = name
         self._workfiles_visible = workfiles_visible
         self._publishes_visible = publishes_visible
-    
+
     def execute(self, parent_ui):
         """
         """
         # execute hook to perform the action
         app = sgtk.platform.current_bundle()
-        
+
         # build hook-friendly data:
         work_file, publish = CustomFileAction._prepare_file_data_for_hook([self.file])
         hook_file = None
@@ -98,20 +112,23 @@ class CustomFileAction(FileAction):
             hook_file = work_file[0] if work_file else None
         if not hook_file and self._publishes_visible:
             hook_file = publish[0] if publish else None
-        work_versions, publish_versions = CustomFileAction._prepare_file_data_for_hook(self.file_versions.values())
+        work_versions, publish_versions = CustomFileAction._prepare_file_data_for_hook(
+            self.file_versions.values()
+        )
 
         # execute hook method to execute action:
         result = False
         try:
-            result = app.execute_hook_method("custom_actions_hook", 
-                                              "execute_action",
-                                              action = self._name, 
-                                              file = hook_file,
-                                              work_versions = work_versions,
-                                              publish_versions = publish_versions,
-                                              context = self.environment.context)
+            result = app.execute_hook_method(
+                "custom_actions_hook",
+                "execute_action",
+                action=self._name,
+                file=hook_file,
+                work_versions=work_versions,
+                publish_versions=publish_versions,
+                context=self.environment.context,
+            )
         except:
             app.log_exception("Failed to execute custom action!")
 
         return result
-
