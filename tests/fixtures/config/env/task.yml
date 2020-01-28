@@ -1,0 +1,13 @@
+engines:
+  tk-testengine:
+    location: {'type': 'dev', 'path': '$SHOTGUN_TEST_ENGINE'}
+    debug_logging: false
+    apps:
+      tk-multi-workfiles2:
+        location: {'type': 'dev', 'path': '$SHOTGUN_CURRENT_REPO_ROOT'}
+
+frameworks:
+  tk-framework-shotgunutils_v5.x.x:
+    location: {type: path, path: '$SHOTGUN_REPOS_ROOT/tk-framework-shotgunutils' }
+  tk-framework-shotgunutils_v0.2.x:
+    location: {type: path, path: '$SHOTGUN_REPOS_ROOT/tk-framework-widget' }
