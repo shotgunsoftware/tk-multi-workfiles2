@@ -116,7 +116,7 @@ class UserCache(Threaded):
         """
 
         login_name = None
-        if sys.platform == "win32":
+        if sgtk.util.is_windows():
             # TODO: add windows support..
             pass
         else:

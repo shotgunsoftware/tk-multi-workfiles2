@@ -33,7 +33,7 @@ def dbg_info(func):
         # grab the pre-run memory info:
         num_objects_before = len(gc.get_objects())
         bytes_before = 0
-        if sys.platform == "Darwin":
+        if sgtk.util.is_macos():
             import resource
 
             bytes_before = (
@@ -51,7 +51,7 @@ def dbg_info(func):
         # cleanup and grab the post-run memory info:
         gc.collect()
         bytes_after = 0
-        if sys.platform == "Darwin":
+        if sgtk.util.is_macos():
             bytes_after = (
                 resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0 / 1024.0
             )
