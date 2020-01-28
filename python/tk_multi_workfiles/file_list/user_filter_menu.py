@@ -214,11 +214,7 @@ class UserFilterMenu(QtGui.QMenu):
                 self.removeAction(user_details.action)
 
         # sort list of users being displayed in the menu alphabetically:
-        user_names_and_ids.sort(
-            key=functools.cmp_to_key(
-                lambda x, y: cmp(x[0].lower(), y[0].lower()) or cmp(x[1], y[1])
-            )
-        )
+        user_names_and_ids.sort(key=lambda x: (x[0], x[1]))
 
         # add menu items for new users as needed:
         actions_to_insert = []
