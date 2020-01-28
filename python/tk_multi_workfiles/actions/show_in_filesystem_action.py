@@ -13,6 +13,7 @@
 
 import sgtk
 from sgtk import TankError
+from sgtk.platform.qt import QtGui
 from tank_vendor import six
 
 from .file_action import FileAction

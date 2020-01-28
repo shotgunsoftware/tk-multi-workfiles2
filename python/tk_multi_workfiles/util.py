@@ -15,6 +15,7 @@ import threading
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
+from tank_vendor import six
 
 
 class Threaded(object):
