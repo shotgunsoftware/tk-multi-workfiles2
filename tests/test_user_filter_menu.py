@@ -73,7 +73,6 @@ class TestUserFilterMenu(TankTestBase):
             self.tk_multi_workfiles.file_list.user_filter_menu.UserFilterMenu
         )
 
-    def test_menu(self):
         self._menu = self.UserFilterMenu(self._qapp.activeWindow())
 
         self._menu.available_users = [self.jeff, self.francis, self.rob]
@@ -92,21 +91,27 @@ class TestUserFilterMenu(TankTestBase):
         assert self._francis_action.text() == "Francis"
         assert self._rob_action.text() == "Rob"
 
+    def test_user_selection(self):
         # First, try to toggle the state of the UI via calls on the API.
+        # Selecting Jeff should set the current user selected attribute
+        # and select his menu item.
         self._menu.selected_users = [self.jeff]
-
         self._test_state(
             current=True, others=False, jeff=True, francis=False, rob=False
         )
 
+        # Selecting Rob should reset the current user selected attribute, set
+        # the other selected attribute and select the Rob menu item.
         self._menu.selected_users = [self.rob]
         self._test_state(
             current=False, others=True, jeff=False, francis=False, rob=True
         )
 
+        # Selecting Jeff and Rob should set both attributes and both users menu item.
         self._menu.selected_users = [self.rob, self.jeff]
         self._test_state(current=True, others=True, jeff=True, francis=False, rob=True)
 
+        # Clearing the selection should disable everything.
         self._menu.selected_users = []
         self._test_state(
             current=False, others=False, jeff=False, francis=False, rob=False
@@ -123,6 +128,9 @@ class TestUserFilterMenu(TankTestBase):
         self._assert_selected(self.jeff, self.francis)
 
         self._test_state(current=True, others=True, jeff=True, francis=True, rob=False)
+
+    def test_user_grayoutness(self):
+        pass
 
     def _test_state(self, current, others, jeff, francis, rob):
         assert self._menu.current_user_selected is current
