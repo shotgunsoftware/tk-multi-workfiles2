@@ -14,6 +14,7 @@ Cache used to store and find file search results.
 
 import sgtk
 from .util import Threaded
+import six
 
 
 class FileSearchCache(Threaded):
