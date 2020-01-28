@@ -349,7 +349,7 @@ class FileFormBase(QtGui.QWidget):
             work_area.publish_template if is_publish else work_area.work_template
         )
         template_fields = base_template.get_fields(path)
-        fields = dict(chain(template_fields.iteritems(), fields.iteritems()))
+        fields = dict(chain(template_fields.items(), fields.items()))
 
         file_key = FileItem.build_file_key(
             fields, work_area.work_template, work_area.version_compare_ignore_fields

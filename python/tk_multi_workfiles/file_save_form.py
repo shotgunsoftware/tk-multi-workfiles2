@@ -390,7 +390,7 @@ class FileSaveForm(FileFormBase):
             ctx_fields = env.context.as_template_fields(
                 env.work_template, validate=True
             )
-            fields = dict(chain(fields.iteritems(), ctx_fields.iteritems()))
+            fields = dict(chain(fields.items(), ctx_fields.items()))
         except TankError as e:
             app.log_debug("Unable to generate preview path: %s" % e)
             if require_path:

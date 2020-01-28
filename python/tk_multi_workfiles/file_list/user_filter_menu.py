@@ -85,7 +85,7 @@ class UserFilterMenu(QtGui.QMenu):
         available_user_ids = set(
             [
                 user_id
-                for user_id, details in self._available_users.iteritems()
+                for user_id, details in self._available_users.items()
                 if details.available
             ]
         )
@@ -100,7 +100,7 @@ class UserFilterMenu(QtGui.QMenu):
         available_user_ids = set(
             [
                 user_id
-                for user_id, details in self._available_users.iteritems()
+                for user_id, details in self._available_users.items()
                 if details.available
             ]
         )

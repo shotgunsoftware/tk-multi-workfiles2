@@ -113,7 +113,7 @@ class FileOpenForm(FileFormBase):
         """
         app = sgtk.platform.current_bundle()
 
-        for t in app.sgtk.templates.itervalues():
+        for t in app.sgtk.templates.values():
             if get_template_user_keys(t):
                 return True
 

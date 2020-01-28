@@ -13,6 +13,7 @@
 
 import sgtk
 from sgtk.platform.qt import QtGui, QtCore
+from tank_vendor import six
 
 from .file_action import FileAction
 
@@ -69,7 +70,7 @@ class ShowLatestPublishInShotgunAction(ShowInShotgunAction):
         """
         """
         publish_versions = [
-            v for v, f in self.file_versions.iteritems() if f.is_published
+            v for v, f in six.iteritems(self.file_versions) if f.is_published
         ]
         if not publish_versions:
             return

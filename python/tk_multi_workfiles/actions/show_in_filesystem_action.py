@@ -13,6 +13,7 @@
 
 import sgtk
 from sgtk import TankError
+from tank_vendor import six
 
 from .file_action import FileAction
 
@@ -113,7 +114,7 @@ class ShowAreaInFileSystemAction(ShowInFileSystemAction):
                 except TankError as e:
                     pass
             # combine with the context fields, preferring the context
-            fields = dict(chain(fields.iteritems(), file_fields.iteritems()))
+            fields = dict(chain(six.iteritems(fields), six.iteritems(file_fields)))
 
         # try to build a path from the template with these fields:
         while template and template.missing_keys(fields):

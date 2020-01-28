@@ -11,6 +11,7 @@
 """
 """
 import sgtk
+from tank_vendor import six
 from sgtk.platform.qt import QtCore, QtGui
 
 from .open_file_action import OpenFileAction
@@ -42,9 +43,9 @@ class InteractiveOpenAction(OpenFileAction):
         # print "Opening file '%s' which is in user sandbox '%s'" % (self.file.path, self.environment.context.user["name"])
 
         # get information about the max local & publish versions:
-        local_versions = [v for v, f in self.file_versions.iteritems() if f.is_local]
+        local_versions = [v for v, f in six.iteritems(self.file_versions) if f.is_local]
         publish_versions = [
-            v for v, f in self.file_versions.iteritems() if f.is_published
+            v for v, f in six.iteritems(self.file_versions) if f.is_published
         ]
         max_local_version = max(local_versions) if local_versions else None
         max_publish_version = max(publish_versions) if publish_versions else None

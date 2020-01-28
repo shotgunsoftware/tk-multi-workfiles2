@@ -16,6 +16,7 @@ import time
 import sgtk
 from sgtk.platform.qt import QtCore
 from tank_vendor.shotgun_api3 import sg_timezone
+from tank_vendor import six
 from sgtk import TankError
 
 from .file_item import FileItem
@@ -202,7 +203,7 @@ class FileFinder(QtCore.QObject):
         work_file_items = dict(
             [
                 (k, FileItem(**kwargs))
-                for k, kwargs in work_file_item_details.iteritems()
+                for k, kwargs in six.iteritems(work_file_item_details)
             ]
         )
 
@@ -216,12 +217,15 @@ class FileFinder(QtCore.QObject):
             filter_file_key,
         )
         publish_items = dict(
-            [(k, FileItem(**kwargs)) for k, kwargs in publish_item_details.iteritems()]
+            [
+                (k, FileItem(**kwargs))
+                for k, kwargs in six.iteritems(publish_item_details)
+            ]
         )
 
         # and aggregate the results:
         file_items = list(work_file_items.values())
-        for file_key_and_version, publish in publish_items.iteritems():
+        for file_key_and_version, publish in six.iteritems(publish_items):
             work_file = work_file_items.get(file_key_and_version)
             if not work_file:
                 file_items.append(publish)
@@ -279,7 +283,7 @@ class FileFinder(QtCore.QObject):
             # copy common fields from work_file:
             #
             file_details = dict(
-                [(k, v) for k, v in work_file.iteritems() if k != "path"]
+                [(k, v) for k, v in six.iteritems(work_file) if k != "path"]
             )
 
             # get version from fields if not specified in work file:
@@ -363,7 +367,7 @@ class FileFinder(QtCore.QObject):
             # to overrwrite fields that are being ignored when comparing work files
             publish_fields = publish_template.get_fields(publish_path)
             wp_fields = publish_fields.copy()
-            for k, v in ctx_fields.iteritems():
+            for k, v in ctx_fields.items():
                 if k not in version_compare_ignore_fields:
                     wp_fields[k] = v
 
@@ -388,7 +392,7 @@ class FileFinder(QtCore.QObject):
             # copy common fields from sg_publish:
             #
             file_details = dict(
-                [(k, v) for k, v in sg_publish.iteritems() if k != "path"]
+                [(k, v) for k, v in six.iteritems(sg_publish) if k != "path"]
             )
 
             # get version from fields if not specified in publish file:
