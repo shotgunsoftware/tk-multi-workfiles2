@@ -23,7 +23,7 @@ class Ui_TaskWidget(object):
 "}\n"
 "\n"
 "#background[selected=false] {\n"
-"    background-color: rgb(0, 0, 0,0);\n"
+"    background-color: rgb(0, 0, 0);\n"
 "}\n"
 "\n"
 "#background[selected=true] {\n"

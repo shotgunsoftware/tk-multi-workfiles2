@@ -12,6 +12,8 @@
 Menu that presents a list of users representing sandboxes in the file system (if used in the templates).
 """
 
+import functools
+
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 from ..user_cache import g_user_cache
@@ -213,7 +215,9 @@ class UserFilterMenu(QtGui.QMenu):
 
         # sort list of users being displayed in the menu alphabetically:
         user_names_and_ids.sort(
-            lambda x, y: cmp(x[0].lower(), y[0].lower()) or cmp(x[1], y[1])
+            key=functools.cmp_to_key(
+                lambda x, y: cmp(x[0].lower(), y[0].lower()) or cmp(x[1], y[1])
+            )
         )
 
         # add menu items for new users as needed:
