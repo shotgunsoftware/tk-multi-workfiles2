@@ -279,7 +279,7 @@ class BrowserForm(QtGui.QWidget):
                     logger.warning(
                         "An invalid tab name was used when configuring the "
                         "workfiles2 app. The tab name '%s' is not one of the "
-                        "valid tabs (%s)." % (tab, ", ".join(self.TAB_INFO.keys()))
+                        "valid tabs (%s)." % (tab, ", ".join(list(self.TAB_INFO)))
                     )
 
             # no valid tabs. raise an error
@@ -289,7 +289,7 @@ class BrowserForm(QtGui.QWidget):
                     "%s. Valid tabs: %s"
                     % (
                         ", ".join(app.get_setting("file_browser_tabs")),
-                        ", ".join(self.TAB_INFO.keys()),
+                        ", ".join(list(self.TAB_INFO)),
                     )
                 )
 

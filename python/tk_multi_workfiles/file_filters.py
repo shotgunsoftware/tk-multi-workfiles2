@@ -99,7 +99,7 @@ class FileFilters(QtCore.QObject):
             (user["id"], user) for user in self._available_users
         )
         available_users_by_id.update(new_users_by_id)
-        self._available_users = available_users_by_id.values()
+        self._available_users = list(available_users_by_id.values())
 
         # The updated dictionary has grown, so something new was added!
         if len(self._available_users) > nb_users_before:

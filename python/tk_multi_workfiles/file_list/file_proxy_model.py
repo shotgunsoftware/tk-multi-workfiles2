@@ -200,8 +200,8 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
             # items represent different files but we want to group all file versions together.
             # Therefore, we find the maximum version for each file and compare those instead.
             if left_item.versions and right_item.versions:
-                max_left_version = left_item.versions[max(left_item.versions.keys())]
-                max_right_version = right_item.versions[max(right_item.versions.keys())]
+                max_left_version = left_item.versions[max(left_item.versions)]
+                max_right_version = right_item.versions[max(right_item.versions)]
                 return max_left_version.compare(max_right_version) < 0
 
         # compare the two files!

@@ -555,7 +555,7 @@ class FileFinder(QtCore.QObject):
         # Skip any keys from work_fields that are _only_ optional in the template.  This is to
         # ensure we find as wide a range of files as possible considering all optional keys.
         # Note, this may be better as a general change to the paths_from_template method...
-        skip_fields += [n for n in work_fields.keys() if work_template.is_optional(n)]
+        skip_fields += [n for n in work_fields if work_template.is_optional(n)]
 
         # Find all versions so skip the 'version' key if it's present and not
         # already registered in our wildcards:

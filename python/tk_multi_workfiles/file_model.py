@@ -615,7 +615,7 @@ class FileModel(QtGui.QStandardItemModel):
         """
         Stop all in-progress searches
         """
-        search_ids = self._in_progress_searches.keys()
+        search_ids = list(self._in_progress_searches)
         self._in_progress_searches = {}
         for search_id in search_ids:
             self._finder.stop_search(search_id)
@@ -865,10 +865,8 @@ class FileModel(QtGui.QStandardItemModel):
                 )
 
         # figure out if any existing items are no longer needed:
-        valid_file_versions = set(valid_files.keys())
-        file_versions_to_remove = (
-            set(existing_file_item_map.keys()) - valid_file_versions
-        )
+        valid_file_versions = set(valid_files)
+        file_versions_to_remove = set(existing_file_item_map) - valid_file_versions
         rows_to_remove = set(
             [
                 v[1].row()
@@ -892,7 +890,7 @@ class FileModel(QtGui.QStandardItemModel):
                 file_item.set_not_published()
 
         # update the cache - it's important this is done _before_ adding/updating the model items:
-        self._search_cache.add(work_area, valid_files.values())
+        self._search_cache.add(work_area, list(valid_files.values()))
 
         # now lets remove, add and update items as needed:
         # 1. Remove items that are no longer needed:

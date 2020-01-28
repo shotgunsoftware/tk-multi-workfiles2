@@ -62,7 +62,7 @@ class CustomFileAction(FileAction):
         if not hook_file and publishes_visible:
             hook_file = publish[0] if publish else None
         work_versions, publish_versions = CustomFileAction._prepare_file_data_for_hook(
-            file_versions.values()
+            list(file_versions.values())
         )
 
         # execute hook method to get actions:
@@ -113,7 +113,7 @@ class CustomFileAction(FileAction):
         if not hook_file and self._publishes_visible:
             hook_file = publish[0] if publish else None
         work_versions, publish_versions = CustomFileAction._prepare_file_data_for_hook(
-            self.file_versions.values()
+            list(self.file_versions.values())
         )
 
         # execute hook method to execute action:

@@ -197,9 +197,7 @@ class UserFilterMenu(QtGui.QMenu):
         # add any users to the list that are in not in users list but are currently
         # checked in the menu - these will be disabled rather than removed.  Remove
         # all other unchecked users that aren't in the users list:
-        user_ids_to_remove = set(self._available_users.keys()) - set(
-            available_users.keys()
-        )
+        user_ids_to_remove = set(self._available_users) - set(available_users)
         for id in user_ids_to_remove:
             user_details = self._available_users[id]
             if user_details.action.isChecked():
