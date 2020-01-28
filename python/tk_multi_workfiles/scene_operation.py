@@ -146,5 +146,5 @@ def open_file(app, action, context, path, version, read_only):
         path,
         version,
         read_only,
-        result_types=(bool, types.NoneType),
+        result_types=(bool, type(None)),
     )
