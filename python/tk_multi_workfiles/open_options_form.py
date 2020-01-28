@@ -10,7 +10,6 @@
 
 import os
 import shutil
-import urlparse
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
