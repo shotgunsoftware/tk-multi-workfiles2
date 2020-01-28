@@ -49,7 +49,7 @@ class Ui_EntityTreeForm(object):
 "        border-image: none;\n"
 "        image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);\n"
 "}\n"
-" \n"
+"\n"
 "QTreeView::branch:open:has-children:!has-siblings,\n"
 "QTreeView::branch:open:has-children:has-siblings   {\n"
 "        border-image: none;\n"
