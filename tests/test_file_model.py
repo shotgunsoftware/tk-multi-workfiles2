@@ -22,6 +22,10 @@ from workfiles2_test_base import Workfiles2TestBase
 from workfiles2_test_base import tearDownModule  # noqa
 
 
+IS_PUBLISH = "publish"
+IS_WORKFILE = "workfile"
+
+
 class TestFileModel(Workfiles2TestBase):
     """
     Baseclass for all Workfiles2 unit tests.
@@ -109,7 +113,7 @@ class TestFileModel(Workfiles2TestBase):
             )
 
         # Make sure we have only found a single file in the context.
-        self._assert_model_contains([(self._concept_ctx_jeff, "scene", 1)])
+        self._assert_model_contains([(self._concept_ctx_jeff, "scene", 1, IS_WORKFILE)])
 
         # Create a new file and refresh
         self.create_work_file(self._concept_ctx_jeff, "scene", 2)
@@ -118,7 +122,10 @@ class TestFileModel(Workfiles2TestBase):
 
         # We should now see a second file.
         self._assert_model_contains(
-            [(self._concept_ctx_jeff, "scene", 1), (self._concept_ctx_jeff, "scene", 2)]
+            [
+                (self._concept_ctx_jeff, "scene", 1, IS_WORKFILE),
+                (self._concept_ctx_jeff, "scene", 2, IS_WORKFILE),
+            ]
         )
 
     def test_matches_specified_users(self):
@@ -138,8 +145,27 @@ class TestFileModel(Workfiles2TestBase):
 
         self._assert_model_contains(
             [
-                (self._concept_ctx_jeff, "scene", 1),
-                (self._concept_ctx_francis, "scene", 1),
+                (self._concept_ctx_jeff, "scene", 1, IS_WORKFILE),
+                (self._concept_ctx_francis, "scene", 1, IS_WORKFILE),
+            ]
+        )
+
+    def test_matches_publishes(self):
+        """
+        """
+        self.create_work_file(self._concept_ctx_jeff, "scene", 1)
+        self.create_publish_file(self._concept_ctx_jeff, "scene", 1)
+
+        with self._wait_for_groups(1):
+            self._model.set_entity_searches(
+                [self.FileModel.SearchDetails("Concept files", self._task_concept)]
+            )
+
+        # Make sure we have only found a single file in the context.
+        self._assert_model_contains(
+            [
+                (self._concept_ctx_jeff, "scene", 1, IS_WORKFILE),
+                (self._concept_ctx_jeff, "scene", 1, IS_PUBLISH),
             ]
         )
 
@@ -154,11 +180,18 @@ class TestFileModel(Workfiles2TestBase):
         for group_idx in range(self._model.rowCount()):
             group_item = self._model.item(group_idx)
             for file_idx in range(group_item.rowCount()):
-                file_item = group_item.child(file_idx)
-                contents.append(
-                    group_item.key
-                    + (file_item.file_item.name, file_item.file_item.version)
-                )
+                file_item = group_item.child(file_idx).file_item
+                assert file_item.is_local or file_item.is_published
+                if file_item.is_local:
+                    contents.append(
+                        group_item.key
+                        + (file_item.name, file_item.version, IS_WORKFILE,)
+                    )
+                if file_item.is_published:
+                    contents.append(
+                        group_item.key
+                        + (file_item.name, file_item.version, IS_PUBLISH,)
+                    )
         return contents
 
     def _assert_model_contains(self, expected):
@@ -177,6 +210,7 @@ class TestFileModel(Workfiles2TestBase):
                 ("HumanUser", match[0].user["id"]),
                 match[1],
                 match[2],
+                match[3],
             )
             for match in expected
         ]

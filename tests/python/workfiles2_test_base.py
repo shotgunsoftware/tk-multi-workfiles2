@@ -99,9 +99,7 @@ class Workfiles2TestBase(TankTestBase):
         return context
 
     @contextmanager
-    def wait_for(
-        self, predicate, assert_msg_cb, timeout=2000,
-    ):
+    def wait_for(self, predicate, assert_msg_cb, timeout=2000):
         """
         Wait for a given predicate to turn True.
 
