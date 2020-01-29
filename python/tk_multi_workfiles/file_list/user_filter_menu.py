@@ -31,6 +31,9 @@ class UserFilterMenu(QtGui.QMenu):
             self.action = action
             self.available = True
 
+        def __hash__(self):
+            return self.user["id"]
+
     def __init__(self, parent):
         """
         """
@@ -122,8 +125,8 @@ class UserFilterMenu(QtGui.QMenu):
     def _get_available_users(self):
         available_users = set(
             [
-                details.user
-                for details in self._available_users.values()
+                user_id
+                for user_id, details in self._available_users.items()
                 if details.available
             ]
         )
