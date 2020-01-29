@@ -40,12 +40,12 @@ class TestUserFilterMenu(Workfiles2TestBase):
 
         # This is specific to this test, everything above should be refactored
         # into a Workfiles2TestBase class.
-        self.UserFilterMenu = (
+        UserFilterMenu = (
             self.tk_multi_workfiles.file_list.user_filter_menu.UserFilterMenu
         )
 
         # Create the menu and set all available users, taken from the base class.
-        self._menu = self.UserFilterMenu(None)
+        self._menu = UserFilterMenu(None)
         self._menu.available_users = [self.jeff, self.francis, self.rob]
 
         # This should have build a menu with 8 items.
