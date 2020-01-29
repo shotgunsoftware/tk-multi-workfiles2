@@ -1029,14 +1029,11 @@ class FileModel(QtGui.QStandardItemModel):
         :param search_id:    The id of the search that the work area was found for
         :param work_area:    The WorkArea instance that was found
         """
-        print("oh")
         if search_id not in self._in_progress_searches:
             # ignore result
             return
 
-        print("yeah")
         if work_area.contains_user_sandboxes:
-            print("dude")
             self.uses_user_sandboxes.emit(work_area)
 
     def _on_finder_work_area_resolved(self, search_id, work_area):

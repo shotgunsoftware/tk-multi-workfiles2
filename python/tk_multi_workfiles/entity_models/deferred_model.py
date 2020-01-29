@@ -231,7 +231,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         """
         parent_uid = parent_item.data(self._SG_ITEM_UNIQUE_ID)
         self._deferred_cache.add_item(
-            parent_uid=None, sg_data={}, field_name="", is_leaf=False, uid=parent_uid,
+            parent_uid=None, sg_data={}, field_name="", is_leaf=False, uid=parent_uid
         )
         refreshed_uids = []
         current_item = parent_item
@@ -303,7 +303,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         """
         parent_uid = parent_item.data(self._SG_ITEM_UNIQUE_ID)
         self._deferred_cache.add_item(
-            parent_uid=None, sg_data={}, field_name="", is_leaf=False, uid=parent_uid,
+            parent_uid=None, sg_data={}, field_name="", is_leaf=False, uid=parent_uid
         )
         uid = self._dummy_placeholder_item_uid(parent_item)
         display_name = shotgun_globals.get_type_display_name(
@@ -329,8 +329,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         if not exists:
             # Create the item in the model
             sub_item = self._create_item(
-                parent=parent_item,
-                data_item=self._deferred_cache.get_entry_by_uid(uid),
+                parent=parent_item, data_item=self._deferred_cache.get_entry_by_uid(uid)
             )
             sub_item.setData(True, self._SG_ITEM_FETCHED_MORE)
             # This item can't be used.
@@ -480,10 +479,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         for sg_deferred_entity in sg_deferred_entities:
             # Update existing items or create new ones.
             uids = self._add_deferred_item_hierarchy(
-                parent_item,
-                deferred_query["hierarchy"],
-                name_field,
-                sg_deferred_entity,
+                parent_item, deferred_query["hierarchy"], name_field, sg_deferred_entity
             )
             refreshed_uids.update(uids)
         if not sg_deferred_entities:

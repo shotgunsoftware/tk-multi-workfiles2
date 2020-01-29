@@ -9,9 +9,9 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
+import pprint
 from contextlib import contextmanager
 
-from mock import patch
 from tank_test.tank_test_base import TankTestBase
 from tank_test.tank_test_base import setUpModule  # noqa
 
@@ -19,6 +19,7 @@ import sgtk
 from tank_test.tank_test_base import SealedMock
 
 from workfiles2_test_base import Workfiles2TestBase
+from workfiles2_test_base import tearDownModule  # noqa
 
 
 class TestFileModel(Workfiles2TestBase):
@@ -55,13 +56,10 @@ class TestFileModel(Workfiles2TestBase):
         self._model = self.FileModel(self._manager, None)
         self.addCleanup(self._model.destroy)
 
+        # Create an asset with a concept task.
         self._bunny = self.mockgun.create(
             "Asset",
             {"code": "Bunny", "sg_asset_type": "Character", "project": self.project},
-        )
-        self._squirrel = self.mockgun.create(
-            "Asset",
-            {"code": "Squirrel", "sg_asset_type": "Character", "project": self.project},
         )
         self._concept = self.mockgun.create(
             "Step", {"code": "Concept", "short_name": "concept"}
@@ -77,107 +75,122 @@ class TestFileModel(Workfiles2TestBase):
             },
         )
 
-        self._task_concept_ctx_jeff = self._create_context(self._task_concept)
-        self._task_concept_ctx_francis = self._create_context(
+        self._task_concept = self.mockgun.create(
+            "Task",
+            {
+                "content": "Bunny Concept",
+                "project": self.project,
+                "step": self._concept,
+                "entity": self._bunny,
+            },
+        )
+        self._task_rig = self.mockgun.create(
+            "Task",
+            {
+                "content": "Bunny Concept",
+                "project": self.project,
+                "step": self._concept,
+                "entity": self._bunny,
+            },
+        )
+
+        # Create a context with that task for both users.
+        self._concept_ctx_jeff = self.create_context(self._task_concept)
+        self._rig_ctx_jeff = self.create_context(self._task_rig)
+        self._concept_ctx_francis = self.create_context(
             self._task_concept, self.francis
         )
 
-        self._maya_asset_work = self.tk.templates["maya_asset_work"]
-        self._maya_asset_publish = self.tk.templates["maya_asset_publish"]
+    def test_default_match_user_files(self):
+        """
+        Ensure the model will match only files from a user by default.
+        """
+        # Create scene files for each user
+        self.create_work_file(self._concept_ctx_jeff, "scene", 1)
+        self.create_work_file(self._concept_ctx_francis, "scene", 1)
 
-    def _create_context(self, entity, user=None):
-        context = self.tk.context_from_entity(entity["type"], entity["id"])
-        if user:
-            context = context.create_copy_for_user(user)
-
-        # FIXME: This is really dirty. We're hacking into tk-core itself
-        # to fool it into creating a folder for another user.
-        with patch("tank.util.login.get_current_user", return_value=context.user):
-            self.tk.create_filesystem_structure(
-                entity["type"], entity["id"], engine="tk-testengine"
+        # Wait for the group to appear and be ready.
+        with self._wait_for_groups(1):
+            self._model.set_entity_searches(
+                [self.FileModel.SearchDetails("Concept files", self._task_concept)]
             )
 
-        return context
+        # Make sure we have only found a single file in the context.
+        self._assert_model_contains([(self._concept_ctx_jeff, "scene", 1)])
 
-    def _create_work_file(self, ctx, name, version):
-        return self._create_template_file(ctx, self._maya_asset_work, name, version)
+        # Create a new file and refresh
+        self.create_work_file(self._concept_ctx_jeff, "scene", 2)
+        with self._wait_for_groups(1):
+            self._model.async_refresh()
 
-    def _create_publish_file(self, ctx, name, version):
-        return self._create_template_file(ctx, self._maya_asset_publish, name, version)
+        # We should now see a second file.
+        self._assert_model_contains(
+            [(self._concept_ctx_jeff, "scene", 1), (self._concept_ctx_jeff, "scene", 2)]
+        )
 
-    def _create_template_file(self, ctx, template, name, version):
-        fields = ctx.as_template_fields(template)
-        fields["name"] = name
-        fields["version"] = version
-        file_path = template.apply_fields(fields)
-        # Touches the file
-        with open(file_path, "wb") as fh:
-            return file_path
+    def test_matches_specified_users(self):
 
-    def test_noop(self):
-        # Create scene files for each user
-        self._create_work_file(self._task_concept_ctx_jeff, "scene", 1)
-        self._create_work_file(self._task_concept_ctx_jeff, "scene", 2)
-        self._create_work_file(self._task_concept_ctx_jeff, "scene", 3)
-        self._create_work_file(self._task_concept_ctx_francis, "scene", 1)
-        self._create_work_file(self._task_concept_ctx_francis, "scene", 2)
-        self._create_work_file(self._task_concept_ctx_francis, "scene", 3)
+        self.create_work_file(self._concept_ctx_jeff, "scene", 1)
+        self.create_work_file(self._concept_ctx_francis, "scene", 1)
 
-        def jeff_files_are_found():
-            if self._model.item(0) is not None:
-                # print("not none", self._model.item(0).rowCount())
-                return self._model.item(0).rowCount() == 3
+        with self._wait_for_groups(2):
+            # The model always searches for the current user, so wait for
+            # two groups even if the user menu requested one.
+            self._model.set_users([self.francis])
+            self._model.set_entity_searches(
+                [self.FileModel.SearchDetails("Concept files", self._task_concept)]
+            )
+
+        self._assert_model_contains(
+            [
+                (self._concept_ctx_jeff, "scene", 1),
+                (self._concept_ctx_francis, "scene", 1),
+            ]
+        )
+
+    def _get_model_contents(self):
+        contents = []
+        for group_idx in range(self._model.rowCount()):
+            group_item = self._model.item(group_idx)
+            for file_idx in range(group_item.rowCount()):
+                file_item = group_item.child(file_idx)
+                contents.append(
+                    group_item.key
+                    + (file_item.file_item.name, file_item.file_item.version)
+                )
+        return contents
+
+    def _assert_model_contains(self, expected):
+        contents = self._get_model_contents()
+
+        expected = [
+            (
+                ("Task", match[0].task["id"]),
+                ("HumanUser", match[0].user["id"]),
+                match[1],
+                match[2],
+            )
+            for match in expected
+        ]
+
+        assert sorted(contents) == sorted(expected)
+
+    @contextmanager
+    def _wait_for_groups(self, nb_groups_expected):
+        def search_is_over():
+            if self._model.rowCount() == nb_groups_expected:
+                for i in range(nb_groups_expected):
+                    if (
+                        self._model.item(i).data(self.FileModel.SEARCH_STATUS_ROLE)
+                        != self.FileModel.SEARCH_COMPLETED
+                    ):
+                        return False
+                return True
             else:
                 return False
 
-        with self._wait_for_data_changes(jeff_files_are_found):
-            self._model.set_entity_searches(
-                [
-                    self.FileModel.SearchDetails(
-                        self._task_concept["content"], self._task_concept
-                    )
-                ]
-            )
+        with self.wait_for(search_is_over, self._get_model_contents):
+            yield
 
-        import pdb
-
-        pdb.set_trace()
-
-    @contextmanager
-    def _wait_for_data_changes(self, predicate):
-        # This loop will execute until the _data_changed_cb is called nb_events times.
-        loop = sgtk.platform.qt.QtCore.QEventLoop()
-
-        self._timed_out = False
-
-        def set_timeout_flag():
-            self._timed_out = True
-
-        # Give ourselves 2 seconds to wait for the data, then abort
-        sgtk.platform.qt.QtCore.QTimer.singleShot(2000, set_timeout_flag)
-
-        yield
-
-        while predicate() is False and self._timed_out is False:
-            loop.processEvents()
-
-        assert predicate(), "Waiting for data timed out."
-
-
-def tearDownModule():
-    # FIXME: Ensures the event loop is properly flushed. The finalization
-    # of the background task manager isn't really clean and threads
-    # it owned finish eventually some time after the manager
-    # itself was destroyed. These threads will emit events
-    # as they are ending, which means there needs to be some
-    # sort of message loop that consumes them so the threads
-    # can then end properly.
-    import time
-
-    time_since_last_event = time.time()
-    loop = sgtk.platform.qt.QtCore.QEventLoop()
-    # If it's been more than one second since we got an event
-    # we can quit.
-    while time_since_last_event + 1 > time.time():
-        if loop.processEvents():
-            time_single_last_event = time.time()
+    def _get_dbg_str(self):
+        "Timed out. Model Content:\n" + pprint.pformat(self._get_model_contents())

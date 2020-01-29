@@ -76,15 +76,15 @@ paths:
     asset_root: assets/{sg_asset_type}/{Asset}/{Step}
 
     asset_work_area_maya:
-        definition: '@asset_root/work/maya/{user}'
+        definition: '@asset_root/work/{user}'
     # define the location of a publish area
     asset_publish_area_maya:
-        definition: '@asset_root/publish/maya'
+        definition: '@asset_root/publish'
     # The location of WIP files
     maya_asset_work:
-        definition: '@asset_root/work/{user}/{name}.v{version}.{maya_extension}'
+        definition: '@asset_work_area_maya/{name}.v{version}.{maya_extension}'
     # The location of published maya files
     maya_asset_publish:
-        definition: '@asset_root/publish/maya/{name}.v{version}.{maya_extension}'
+        definition: '@asset_publish_area_maya/{name}.v{version}.{maya_extension}'
 
 strings: []
