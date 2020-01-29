@@ -75,12 +75,14 @@ class TestFileModel(Workfiles2TestBase):
             },
         )
 
-        self.tk.create_filesystem_structure(
-            self._task_concept["type"], self._task_concept["id"]
-        )
-        self._task_concept_ctx = self.tk.context_from_entity(
-            self._task_concept["type"], self._task_concept["id"]
-        )
+        self._task_concept_ctx = self._create_context(self._task_concept)
+
+        self._maya_asset_work = self.tk.templates["maya_asset_work"]
+        self._maya_asset_publish = self.tk.templates["maya_asset_publish"]
+
+    def _create_context(self, entity):
+        self.tk.create_filesystem_structure(entity["type"], entity["id"])
+        return self.tk.context_from_entity(entity["type"], entity["id"])
 
     def test_noop(self):
-        pass
+        self._task_concept_ctx.as_template_fields(self._maya_asset_work)

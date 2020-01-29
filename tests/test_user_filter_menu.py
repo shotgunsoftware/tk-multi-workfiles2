@@ -181,8 +181,6 @@ class TestUserFilterMenu(Workfiles2TestBase):
         """
         Ensure that removing users update the menu accordingly.
         """
-        self._menu = self.UserFilterMenu(None)
-        self._menu.available_users = [self.jeff, self.francis, self.rob]
         # Removing Francis from selected and available users should remove him
         # from the menu
         self._menu.selected_users = [self.rob]

@@ -80,7 +80,7 @@ paths:
     # asset pipeline - maya publishing and snapshotting locations
 
     # The location of WIP files
-    maya_asset_work: assets/{sg_asset_type}/{Asset}/{Step}/work/{name}.v{version}.ma
+    maya_asset_work: assets/{sg_asset_type}/{Asset}/{Step}/work/{user}/{name}.v{version}.ma
 
     # The location of published maya files
     maya_asset_publish: assets/{sg_asset_type}/{Asset}/{Step}/publish/{name}.v{version}.ma
