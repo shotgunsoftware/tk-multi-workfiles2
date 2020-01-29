@@ -42,15 +42,15 @@ class FileModel(QtGui.QStandardItemModel):
         of this class represents a single entity to be grouped in the model
         """
 
-        def __init__(self, name=None):
+        def __init__(self, name=None, entity=None, child_entities=None, is_leaf=False):
             """
             :param name:    The string name to be used for the search.  This is used when constructing
                             the group name in the model.
             """
             self.name = name
-            self.entity = None
-            self.child_entities = []
-            self.is_leaf = False  # TODO: this does not seem to be used anywhere?
+            self.entity = entity
+            self.child_entities = child_entities or []
+            self.is_leaf = is_leaf  # TODO: this does not seem to be used anywhere?
 
         def __repr__(self):
             """
@@ -1029,11 +1029,14 @@ class FileModel(QtGui.QStandardItemModel):
         :param search_id:    The id of the search that the work area was found for
         :param work_area:    The WorkArea instance that was found
         """
+        print("oh")
         if search_id not in self._in_progress_searches:
             # ignore result
             return
 
+        print("yeah")
         if work_area.contains_user_sandboxes:
+            print("dude")
             self.uses_user_sandboxes.emit(work_area)
 
     def _on_finder_work_area_resolved(self, search_id, work_area):

@@ -73,16 +73,18 @@ paths:
     # ------------------------------------------------------------------------------------
     # Asset pipeline
 
-    # define the location of a work area
-    asset_work_area: assets/{sg_asset_type}/{Asset}/{Step}/work
+    asset_root: assets/{sg_asset_type}/{Asset}/{Step}
 
-    # ------------------------------------------------------------------------------------
-    # asset pipeline - maya publishing and snapshotting locations
-
+    asset_work_area_maya:
+        definition: '@asset_root/work/maya/{user}'
+    # define the location of a publish area
+    asset_publish_area_maya:
+        definition: '@asset_root/publish/maya'
     # The location of WIP files
-    maya_asset_work: assets/{sg_asset_type}/{Asset}/{Step}/work/{user}/{name}.v{version}.ma
-
+    maya_asset_work:
+        definition: '@asset_root/work/{user}/{name}.v{version}.{maya_extension}'
     # The location of published maya files
-    maya_asset_publish: assets/{sg_asset_type}/{Asset}/{Step}/publish/{name}.v{version}.ma
+    maya_asset_publish:
+        definition: '@asset_root/publish/maya/{name}.v{version}.{maya_extension}'
 
 strings: []

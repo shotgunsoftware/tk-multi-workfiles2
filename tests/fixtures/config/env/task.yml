@@ -4,6 +4,10 @@ engines:
     debug_logging: false
     apps:
       tk-multi-workfiles2:
+        template_publish: maya_asset_publish
+        template_publish_area: asset_publish_area_maya
+        template_work: maya_asset_work
+        template_work_area: asset_work_area_maya
         location: {'type': 'dev', 'path': '$SHOTGUN_CURRENT_REPO_ROOT'}
 
 frameworks:

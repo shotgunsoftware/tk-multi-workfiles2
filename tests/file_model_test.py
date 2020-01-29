@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
+from contextlib import contextmanager
 
 from mock import patch
 from tank_test.tank_test_base import TankTestBase
@@ -48,10 +49,10 @@ class TestFileModel(Workfiles2TestBase):
 
         # This is specific to this test, everything above should be refactored
         # into a Workfiles2TestBase class.
-        FileModel = self.tk_multi_workfiles.file_model.FileModel
+        self.FileModel = self.tk_multi_workfiles.file_model.FileModel
 
         # Create the menu and set all available users, taken from the base class.
-        self._model = FileModel(self._manager, None)
+        self._model = self.FileModel(self._manager, None)
         self.addCleanup(self._model.destroy)
 
         self._bunny = self.mockgun.create(
@@ -76,8 +77,10 @@ class TestFileModel(Workfiles2TestBase):
             },
         )
 
-        self._task_concept_ctx = self._create_context(self._task_concept)
-        self._task_concept_ctx = self._create_context(self._task_concept, self.francis)
+        self._task_concept_ctx_jeff = self._create_context(self._task_concept)
+        self._task_concept_ctx_francis = self._create_context(
+            self._task_concept, self.francis
+        )
 
         self._maya_asset_work = self.tk.templates["maya_asset_work"]
         self._maya_asset_publish = self.tk.templates["maya_asset_publish"]
@@ -96,5 +99,74 @@ class TestFileModel(Workfiles2TestBase):
 
         return context
 
+    def _create_work_file(self, ctx, name, version):
+        return self._create_template_file(ctx, self._maya_asset_work, name, version)
+
+    def _create_publish_file(self, ctx, name, version):
+        return self._create_template_file(ctx, self._maya_asset_publish, name, version)
+
+    def _create_template_file(self, ctx, template, name, version):
+        fields = ctx.as_template_fields(template)
+        fields["name"] = name
+        fields["version"] = version
+        file_path = template.apply_fields(fields)
+        # Touches the file
+        with open(file_path, "wb") as fh:
+            return file_path
+
     def test_noop(self):
-        fields = self._task_concept_ctx.as_template_fields(self._maya_asset_work)
+        print(self._create_work_file(self._task_concept_ctx_jeff, "scene", 1))
+        print(self._create_work_file(self._task_concept_ctx_francis, "scene", 1))
+        # print(self._create_work_file(self._task_concept_ctx_francis, "scene", 1))
+
+        self._model.dataChanged.connect(self._data_changed_cb)
+
+        with self._wait_for_data_changes(7):
+            self._model.set_entity_searches(
+                [
+                    self.FileModel.SearchDetails(
+                        self._task_concept["content"], self._task_concept
+                    )
+                ]
+            )
+
+        import pdb
+
+        pdb.set_trace()
+
+    @contextmanager
+    def _wait_for_data_changes(self, nb_events):
+        # This loop will execute until the _data_changed_cb is called nb_events times.
+        self._nb_events_to_wait = nb_events
+        self._loop = sgtk.platform.qt.QtCore.QEventLoop()
+
+        # Give ourselves 2 seconds to wait for the data, then abort
+        sgtk.platform.qt.QtCore.QTimer.singleShot(2000, lambda: self._loop.exit(1))
+        yield
+        assert (
+            self._loop.exec_() == 0
+        ), "Waiting for data timed out, count = {0}".format(self._nb_events_to_wait)
+
+    def _data_changed_cb(self, x, y):
+        self._nb_events_to_wait -= 1
+        if self._nb_events_to_wait == 0:
+            self._loop.exit(0)
+
+
+def tearDownModule():
+    # FIXME: Ensures the event loop is properly flushed. The finalization
+    # of the background task manager isn't really clean and threads
+    # it owned finish eventually some time after the manager
+    # itself was destroyed. These threads will emit events
+    # as they are ending, which means there needs to be some
+    # sort of message loop that consumes them so the threads
+    # can then end properly.
+    import time
+
+    time_since_last_event = time.time()
+    loop = sgtk.platform.qt.QtCore.QEventLoop()
+    # If it's been more than one second since we got an event
+    # we can quit.
+    while time_since_last_event + 1 > time.time():
+        if loop.processEvents():
+            time_single_last_event = time.time()
