@@ -69,6 +69,13 @@ class Workfiles2TestBase(TankTestBase):
         self.app = self.engine.apps["tk-multi-workfiles2"]
         self.tk_multi_workfiles = self.app.import_module("tk_multi_workfiles")
 
+        self.bg_task_manager = (
+            self.app.frameworks["tk-framework-shotgunutils"]
+            .import_module("task_manager")
+            .BackgroundTaskManager(parent=None, start_processing=True)
+        )
+        self.addCleanup(self.bg_task_manager.shut_down)
+
         self.maya_asset_work = self.tk.templates["maya_asset_work"]
         self.maya_asset_publish = self.tk.templates["maya_asset_publish"]
 

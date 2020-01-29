@@ -41,19 +41,12 @@ class TestFileModel(Workfiles2TestBase):
         """
         super(TestFileModel, self).setUp()
 
-        self._manager = (
-            self.app.frameworks["tk-framework-shotgunutils"]
-            .import_module("task_manager")
-            .BackgroundTaskManager(parent=None, start_processing=True)
-        )
-        self.addCleanup(self._manager.shut_down)
-
         # This is specific to this test, everything above should be refactored
         # into a Workfiles2TestBase class.
         self.FileModel = self.tk_multi_workfiles.file_model.FileModel
 
         # Create the menu and set all available users, taken from the base class.
-        self._model = self.FileModel(self._manager, None)
+        self._model = self.FileModel(self.bg_task_manager, None)
         self.addCleanup(self._model.destroy)
 
         # Create an asset with a concept task.
@@ -129,7 +122,9 @@ class TestFileModel(Workfiles2TestBase):
         )
 
     def test_matches_specified_users(self):
-
+        """
+        Match files for a list of users.
+        """
         self.create_work_file(self._concept_ctx_jeff, "scene", 1)
         self.create_work_file(self._concept_ctx_francis, "scene", 1)
 
@@ -149,6 +144,12 @@ class TestFileModel(Workfiles2TestBase):
         )
 
     def _get_model_contents(self):
+        """
+        Dump a list of items found in the file model.
+
+        The list contains a series of tuple containing
+        ((HumanUser, id), (Task, id), file name, file version)
+        """
         contents = []
         for group_idx in range(self._model.rowCount()):
             group_item = self._model.item(group_idx)
@@ -161,8 +162,15 @@ class TestFileModel(Workfiles2TestBase):
         return contents
 
     def _assert_model_contains(self, expected):
+        """
+        Ensure the model contains the specified list of files.
+
+        The list of files is expected to follow this structure
+        (ctx, file name, version)
+        """
         contents = self._get_model_contents()
 
+        # Reformat the contents into something that is sortable.
         expected = [
             (
                 ("Task", match[0].task["id"]),
@@ -177,7 +185,17 @@ class TestFileModel(Workfiles2TestBase):
 
     @contextmanager
     def _wait_for_groups(self, nb_groups_expected):
+        """
+        Wait for the expected number of groups to show up.
+
+        The method will timeout if it takes too long.
+        """
+
         def search_is_over():
+            """
+            Ensures the expected number of groups was found
+            and that each has completed.
+            """
             if self._model.rowCount() == nb_groups_expected:
                 for i in range(nb_groups_expected):
                     if (
@@ -189,8 +207,10 @@ class TestFileModel(Workfiles2TestBase):
             else:
                 return False
 
-        with self.wait_for(search_is_over, self._get_model_contents):
-            yield
+        def on_error_cb():
+            return "Timed out. Model Content:\n" + pprint.pformat(
+                self._get_model_contents()
+            )
 
-    def _get_dbg_str(self):
-        "Timed out. Model Content:\n" + pprint.pformat(self._get_model_contents())
+        with self.wait_for(search_is_over, on_error_cb):
+            yield
