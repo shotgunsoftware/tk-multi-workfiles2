@@ -31,9 +31,6 @@ class UserFilterMenu(QtGui.QMenu):
             self.action = action
             self.available = True
 
-        def __hash__(self):
-            return self.user["id"]
-
     def __init__(self, parent):
         """
         """

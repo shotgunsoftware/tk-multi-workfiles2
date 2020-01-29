@@ -383,7 +383,7 @@ class FileModel(QtGui.QStandardItemModel):
     def get_cached_file_versions(self, key, work_area, clean_only=False):
         """
         Return the cached file versions for the specified file key and work area.  Note that this isn't
-        garunteed to find all versions of a file that exist if the cache hasn't been populated yet/is dirty
+        guaranteed to find all versions of a file that exist if the cache hasn't been populated yet/is dirty
         if clean_only is False.
 
         :param key:         The unique file key to find file versions for
