@@ -97,7 +97,4 @@ class TestFileModel(Workfiles2TestBase):
         return context
 
     def test_noop(self):
-        import pdb
-
-        pdb.set_trace()
         fields = self._task_concept_ctx.as_template_fields(self._maya_asset_work)
