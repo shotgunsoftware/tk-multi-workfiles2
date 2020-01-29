@@ -72,10 +72,10 @@ class TestFileModel(Workfiles2TestBase):
             },
         )
 
-        self._task_concept = self.mockgun.create(
+        self._task_concept_2 = self.mockgun.create(
             "Task",
             {
-                "content": "Bunny Concept",
+                "content": "Bunny Concept 2",
                 "project": self.project,
                 "step": self._concept,
                 "entity": self._bunny,
@@ -86,13 +86,16 @@ class TestFileModel(Workfiles2TestBase):
             {
                 "content": "Bunny Concept",
                 "project": self.project,
-                "step": self._concept,
+                "step": self._rig,
                 "entity": self._bunny,
             },
         )
+        print("Task concept: {0}".format(self._task_concept))
+        print("Task concept: {0}".format(self._task_rig))
 
         # Create a context with that task for both users.
         self._concept_ctx_jeff = self.create_context(self._task_concept)
+        self._concept_2_ctx_jeff = self.create_context(self._task_concept_2)
         self._rig_ctx_jeff = self.create_context(self._task_rig)
         self._concept_ctx_francis = self.create_context(
             self._task_concept, self.francis
@@ -107,9 +110,12 @@ class TestFileModel(Workfiles2TestBase):
         self.create_work_file(self._concept_ctx_francis, "scene", 1)
 
         # Wait for the group to appear and be ready.
-        with self._wait_for_groups(1):
+        with self._wait_for_groups(2):
             self._model.set_entity_searches(
-                [self.FileModel.SearchDetails("Concept files", self._task_concept)]
+                [
+                    self.FileModel.SearchDetails("Concept files", self._task_concept),
+                    self.FileModel.SearchDetails("Rig files", self._task_rig),
+                ]
             )
 
         # Make sure we have only found a single file in the context.
@@ -117,7 +123,7 @@ class TestFileModel(Workfiles2TestBase):
 
         # Create a new file and refresh
         self.create_work_file(self._concept_ctx_jeff, "scene", 2)
-        with self._wait_for_groups(1):
+        with self._wait_for_groups(2):
             self._model.async_refresh()
 
         # We should now see a second file.
@@ -152,9 +158,13 @@ class TestFileModel(Workfiles2TestBase):
 
     def test_matches_publishes(self):
         """
+        Match publishes as well as workfiles.
         """
         self.create_work_file(self._concept_ctx_jeff, "scene", 1)
+        self.create_work_file(self._concept_ctx_jeff, "scene", 2)
+        self.create_work_file(self._concept_ctx_jeff, "scene", 3)
         self.create_publish_file(self._concept_ctx_jeff, "scene", 1)
+        self.create_publish_file(self._concept_ctx_jeff, "scene", 2)
 
         with self._wait_for_groups(1):
             self._model.set_entity_searches(
@@ -166,6 +176,39 @@ class TestFileModel(Workfiles2TestBase):
             [
                 (self._concept_ctx_jeff, "scene", 1, IS_WORKFILE),
                 (self._concept_ctx_jeff, "scene", 1, IS_PUBLISH),
+                (self._concept_ctx_jeff, "scene", 2, IS_WORKFILE),
+                (self._concept_ctx_jeff, "scene", 2, IS_PUBLISH),
+                (self._concept_ctx_jeff, "scene", 3, IS_WORKFILE),
+            ]
+        )
+
+    def test_multi_task_match_same_workfiles_but_different_publishes(self):
+        """
+        Ensure a task context resolves the files for all tasks on a given
+        step, but that publishes are resolved per-task
+        """
+        self.create_work_file(self._concept_ctx_jeff, "scene", 1)
+        self.create_work_file(self._concept_ctx_jeff, "scene", 2)
+        self.create_publish_file(self._concept_ctx_jeff, "scene", 1)
+        self.create_publish_file(self._concept_2_ctx_jeff, "scene", 2)
+
+        # Wait for the group to appear and be ready.
+        with self._wait_for_groups(2):
+            self._model.set_entity_searches(
+                [
+                    self.FileModel.SearchDetails("Concept", self._task_concept),
+                    self.FileModel.SearchDetails("Concept 2", self._task_concept_2),
+                ]
+            )
+
+        self._assert_model_contains(
+            [
+                (self._concept_ctx_jeff, "scene", 1, IS_WORKFILE),
+                (self._concept_ctx_jeff, "scene", 2, IS_WORKFILE),
+                (self._concept_ctx_jeff, "scene", 1, IS_PUBLISH),
+                (self._concept_2_ctx_jeff, "scene", 1, IS_WORKFILE),
+                (self._concept_2_ctx_jeff, "scene", 2, IS_WORKFILE),
+                (self._concept_2_ctx_jeff, "scene", 2, IS_PUBLISH),
             ]
         )
 
@@ -185,12 +228,11 @@ class TestFileModel(Workfiles2TestBase):
                 if file_item.is_local:
                     contents.append(
                         group_item.key
-                        + (file_item.name, file_item.version, IS_WORKFILE,)
+                        + (file_item.name, file_item.version, IS_WORKFILE)
                     )
                 if file_item.is_published:
                     contents.append(
-                        group_item.key
-                        + (file_item.name, file_item.version, IS_PUBLISH,)
+                        group_item.key + (file_item.name, file_item.version, IS_PUBLISH)
                     )
         return contents
 
