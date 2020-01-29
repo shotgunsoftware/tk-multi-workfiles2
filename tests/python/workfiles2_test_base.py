@@ -43,7 +43,7 @@ class Workfiles2TestBase(TankTestBase):
 
         self.jeff = self.mockgun.create("HumanUser", {"name": "Jeff", "login": "jeff"})
         self.francis = self.mockgun.create(
-            "HumanUser", {"name": "Francis", "login": "Francis"}
+            "HumanUser", {"name": "Francis", "login": "francis"}
         )
         self.rob = self.mockgun.create("HumanUser", {"name": "Rob", "login": "rob"})
 

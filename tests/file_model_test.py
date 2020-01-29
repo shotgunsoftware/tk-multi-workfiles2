@@ -10,6 +10,7 @@
 
 import os
 
+from mock import patch
 from tank_test.tank_test_base import TankTestBase
 from tank_test.tank_test_base import setUpModule  # noqa
 
@@ -76,13 +77,27 @@ class TestFileModel(Workfiles2TestBase):
         )
 
         self._task_concept_ctx = self._create_context(self._task_concept)
+        self._task_concept_ctx = self._create_context(self._task_concept, self.francis)
 
         self._maya_asset_work = self.tk.templates["maya_asset_work"]
         self._maya_asset_publish = self.tk.templates["maya_asset_publish"]
 
-    def _create_context(self, entity):
-        self.tk.create_filesystem_structure(entity["type"], entity["id"])
-        return self.tk.context_from_entity(entity["type"], entity["id"])
+    def _create_context(self, entity, user=None):
+        context = self.tk.context_from_entity(entity["type"], entity["id"])
+        if user:
+            context = context.create_copy_for_user(user)
+
+        # FIXME: This is really dirty. We're hacking into tk-core itself
+        # to fool it into creating a folder for another user.
+        with patch("tank.util.login.get_current_user", return_value=context.user):
+            self.tk.create_filesystem_structure(
+                entity["type"], entity["id"], engine="tk-testengine"
+            )
+
+        return context
 
     def test_noop(self):
-        self._task_concept_ctx.as_template_fields(self._maya_asset_work)
+        import pdb
+
+        pdb.set_trace()
+        fields = self._task_concept_ctx.as_template_fields(self._maya_asset_work)
