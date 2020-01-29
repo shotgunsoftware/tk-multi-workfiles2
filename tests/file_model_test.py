@@ -115,13 +115,22 @@ class TestFileModel(Workfiles2TestBase):
             return file_path
 
     def test_noop(self):
-        print(self._create_work_file(self._task_concept_ctx_jeff, "scene", 1))
-        print(self._create_work_file(self._task_concept_ctx_francis, "scene", 1))
-        # print(self._create_work_file(self._task_concept_ctx_francis, "scene", 1))
+        # Create scene files for each user
+        self._create_work_file(self._task_concept_ctx_jeff, "scene", 1)
+        self._create_work_file(self._task_concept_ctx_jeff, "scene", 2)
+        self._create_work_file(self._task_concept_ctx_jeff, "scene", 3)
+        self._create_work_file(self._task_concept_ctx_francis, "scene", 1)
+        self._create_work_file(self._task_concept_ctx_francis, "scene", 2)
+        self._create_work_file(self._task_concept_ctx_francis, "scene", 3)
 
-        self._model.dataChanged.connect(self._data_changed_cb)
+        def jeff_files_are_found():
+            if self._model.item(0) is not None:
+                # print("not none", self._model.item(0).rowCount())
+                return self._model.item(0).rowCount() == 3
+            else:
+                return False
 
-        with self._wait_for_data_changes(7):
+        with self._wait_for_data_changes(jeff_files_are_found):
             self._model.set_entity_searches(
                 [
                     self.FileModel.SearchDetails(
@@ -135,22 +144,24 @@ class TestFileModel(Workfiles2TestBase):
         pdb.set_trace()
 
     @contextmanager
-    def _wait_for_data_changes(self, nb_events):
+    def _wait_for_data_changes(self, predicate):
         # This loop will execute until the _data_changed_cb is called nb_events times.
-        self._nb_events_to_wait = nb_events
-        self._loop = sgtk.platform.qt.QtCore.QEventLoop()
+        loop = sgtk.platform.qt.QtCore.QEventLoop()
+
+        self._timed_out = False
+
+        def set_timeout_flag():
+            self._timed_out = True
 
         # Give ourselves 2 seconds to wait for the data, then abort
-        sgtk.platform.qt.QtCore.QTimer.singleShot(2000, lambda: self._loop.exit(1))
-        yield
-        assert (
-            self._loop.exec_() == 0
-        ), "Waiting for data timed out, count = {0}".format(self._nb_events_to_wait)
+        sgtk.platform.qt.QtCore.QTimer.singleShot(2000, set_timeout_flag)
 
-    def _data_changed_cb(self, x, y):
-        self._nb_events_to_wait -= 1
-        if self._nb_events_to_wait == 0:
-            self._loop.exit(0)
+        yield
+
+        while predicate() is False and self._timed_out is False:
+            loop.processEvents()
+
+        assert predicate(), "Waiting for data timed out."
 
 
 def tearDownModule():
