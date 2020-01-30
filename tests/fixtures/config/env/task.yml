@@ -4,11 +4,18 @@ engines:
     debug_logging: false
     apps:
       tk-multi-workfiles2:
-        template_publish: maya_asset_publish
-        template_publish_area: asset_publish_area_maya
-        template_work: maya_asset_work
-        template_work_area: asset_work_area_maya
+        template_publish: publish_path
+        template_publish_area: publish_area
+        template_work: sandbox_path
+        template_work_area: work_area
         location: {'type': 'dev', 'path': '$SHOTGUN_CURRENT_REPO_ROOT'}
+    # apps:
+    #   tk-multi-workfiles2:
+    #     template_publish: publish_path
+    #     template_publish_area: publish_area
+    #     template_work: sandbox_work_area
+    #     template_work_area: sandbox_path
+    #     location: {'type': 'dev', 'path': '$SHOTGUN_CURRENT_REPO_ROOT'}
 
 frameworks:
   tk-framework-shotgunutils_v5.x.x:

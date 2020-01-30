@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Shotgun Software Inc.
+# Copyright (c) 2020 Shotgun Software Inc.
 #
 # CONFIDENTIAL AND PROPRIETARY
 #
@@ -21,47 +21,20 @@
 # this file. For more information, see the Tank Documentation.
 
 keys:
-    # Sequence:
-    #     type: str
-    Shot:
-        type: str
     Step:
         type: str
     name:
         type: str
-    # name_alpha:
-    #     type: str
-    #     filter_by: alphanumeric
-    #     alias: name
     version:
         type: int
         format_spec: "03"
-    # timestamp:
-    #     type: str
-    # width:
-    #     type: int
-    # height:
-    #     type: int
-    # channel:
-    #     type: str
-    #     filter_by: alphanumeric
-    # frame:
-    #     type: sequence
-    #     format_spec: "04"
-    # eye:
-    #     type: str
-    #     choices:
-    #         - Left
-    #         - Right
+    Task:
+        type: str
     sg_asset_type:
         type: str
     Asset:
         type: str
         exclusions: [Seq, Shot]
-    maya_extension:
-        type: str
-        choices: {'ma':'Maya Ascii (.ma)', 'mb':'Maya Binary (.mb)'}
-        default: ma
     user:
         type: str
         shotgun_entity_type: HumanUser
@@ -75,16 +48,20 @@ paths:
 
     asset_root: assets/{sg_asset_type}/{Asset}/{Step}
 
-    asset_work_area_maya:
-        definition: '@asset_root/work/{user}'
+    work_area:
+        definition: '@asset_root/work'
     # define the location of a publish area
-    asset_publish_area_maya:
+    publish_area:
         definition: '@asset_root/publish'
-    # The location of WIP files
-    maya_asset_work:
-        definition: '@asset_work_area_maya/{name}.v{version}.{maya_extension}'
+
     # The location of published maya files
-    maya_asset_publish:
-        definition: '@asset_publish_area_maya/{name}.v{version}.{maya_extension}'
+    publish_path:
+        definition: '@publish_area/{name}.v{version}.ma'
+
+    task_path:
+        definition: '@work_area/{Task}/{name}.v{version}.ma'
+
+    sandbox_path:
+        definition: '@work_area/{user}/{name}.v{version}.ma'
 
 strings: []

@@ -79,8 +79,11 @@ class Workfiles2TestBase(TankTestBase):
         )
         self.addCleanup(self.bg_task_manager.shut_down)
 
-        self.maya_asset_work = self.tk.templates["maya_asset_work"]
-        self.maya_asset_publish = self.tk.templates["maya_asset_publish"]
+        import pdb
+
+        pdb.set_trace()
+        self.work_template = self.tk.templates["sandbox_path"]
+        self.publish_template = self.tk.templates["publish_path"]
 
     def create_context(self, entity, user=None):
         """
@@ -135,7 +138,7 @@ class Workfiles2TestBase(TankTestBase):
 
         :returns: The path to the file.
         """
-        return self._create_template_file(ctx, self.maya_asset_work, name, version)
+        return self._create_template_file(ctx, self.work_template, name, version)
 
     def create_publish_file(self, ctx, name, version):
         """
@@ -143,7 +146,7 @@ class Workfiles2TestBase(TankTestBase):
 
         :returns: The path to the file.
         """
-        path = self._create_template_file(ctx, self.maya_asset_publish, name, version)
+        path = self._create_template_file(ctx, self.publish_template, name, version)
         sgtk.util.register_publish(
             self.tk,
             ctx,
