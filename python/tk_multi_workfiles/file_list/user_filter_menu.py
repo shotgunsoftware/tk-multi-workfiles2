@@ -122,8 +122,8 @@ class UserFilterMenu(QtGui.QMenu):
     def _get_available_users(self):
         available_users = set(
             [
-                user_id
-                for user_id, details in self._available_users.items()
+                details.user
+                for details in self._available_users.values()
                 if details.available
             ]
         )
