@@ -5,6 +5,8 @@ engines:
     apps:
       tk-multi-workfiles2:
         location: {'type': 'dev', 'path': '$SHOTGUN_CURRENT_REPO_ROOT'}
+      tk-multi-workfiles2-with-tasks:
+        location: {'type': 'dev', 'path': '$SHOTGUN_CURRENT_REPO_ROOT'}
 
 frameworks:
   tk-framework-shotgunutils_v5.x.x:

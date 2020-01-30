@@ -9,7 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 # the type of dynamic content
-type: "shotgun_step"
+type: "shotgun_task"
 
-# the shotgun field to use for the folder name
-name: "short_name"
+# the shotgun field to use for the folder name. This field needs to come from a task entity.
+name: "content"

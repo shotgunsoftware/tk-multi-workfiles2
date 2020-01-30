@@ -37,7 +37,12 @@ class Workfiles2TestBase(TankTestBase):
 
     _qapp = None
 
-    def setUp(self):
+    def setUp(
+        self,
+        app_instance="tk-multi-workfiles2",
+        work_template="sandbox_path",
+        publish_template="publish_path",
+    ):
         """
         Fixtures setup
         """
@@ -69,7 +74,7 @@ class Workfiles2TestBase(TankTestBase):
         # This ensures that the engine will always be destroyed.
         self.addCleanup(self.engine.destroy)
 
-        self.app = self.engine.apps["tk-multi-workfiles2"]
+        self.app = self.engine.apps[app_instance]
         self.tk_multi_workfiles = self.app.import_module("tk_multi_workfiles")
 
         self.bg_task_manager = (
@@ -78,12 +83,8 @@ class Workfiles2TestBase(TankTestBase):
             .BackgroundTaskManager(parent=None, start_processing=True)
         )
         self.addCleanup(self.bg_task_manager.shut_down)
-
-        import pdb
-
-        pdb.set_trace()
-        self.work_template = self.tk.templates["sandbox_path"]
-        self.publish_template = self.tk.templates["publish_path"]
+        self.work_template = self.tk.templates[work_template]
+        self.publish_template = self.tk.templates[publish_template]
 
     def create_context(self, entity, user=None):
         """

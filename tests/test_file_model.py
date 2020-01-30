@@ -26,7 +26,7 @@ IS_PUBLISH = "publish"
 IS_WORKFILE = "workfile"
 
 
-class TestFileModel(Workfiles2TestBase):
+class TestFileModelBase(Workfiles2TestBase):
     """
     Baseclass for all Workfiles2 unit tests.
 
@@ -39,11 +39,13 @@ class TestFileModel(Workfiles2TestBase):
 
     """
 
-    def setUp(self):
+    def setUp(self, app_instance, work_template, publish_template):
         """
         Fixtures setup
         """
-        super(TestFileModel, self).setUp()
+        super(TestFileModelBase, self).setUp(
+            app_instance, work_template, publish_template
+        )
 
         # This is specific to this test, everything above should be refactored
         # into a Workfiles2TestBase class.
@@ -90,8 +92,6 @@ class TestFileModel(Workfiles2TestBase):
                 "entity": self._bunny,
             },
         )
-        print("Task concept: {0}".format(self._task_concept))
-        print("Task concept: {0}".format(self._task_rig))
 
         # Create a context with that task for both users.
         self._concept_ctx_jeff = self.create_context(self._task_concept)
@@ -99,6 +99,96 @@ class TestFileModel(Workfiles2TestBase):
         self._rig_ctx_jeff = self.create_context(self._task_rig)
         self._concept_ctx_francis = self.create_context(
             self._task_concept, self.francis
+        )
+
+    def _get_model_contents(self):
+        """
+        Dump a list of items found in the file model.
+
+        The list contains a series of tuple containing
+        ((HumanUser, id), (Task, id), file name, file version)
+        """
+        contents = []
+        for group_idx in range(self._model.rowCount()):
+            group_item = self._model.item(group_idx)
+            for file_idx in range(group_item.rowCount()):
+                file_item = group_item.child(file_idx).file_item
+                assert file_item.is_local or file_item.is_published
+                if file_item.is_local:
+                    contents.append(
+                        group_item.key
+                        + (file_item.name, file_item.version, IS_WORKFILE)
+                    )
+                if file_item.is_published:
+                    contents.append(
+                        group_item.key + (file_item.name, file_item.version, IS_PUBLISH)
+                    )
+        return contents
+
+    def _assert_model_contains(self, expected):
+        """
+        Ensure the model contains the specified list of files.
+
+        The list of files is expected to follow this structure
+        (ctx, file name, version)
+        """
+        contents = self._get_model_contents()
+
+        # Reformat the contents into something that is sortable.
+        expected = [
+            (
+                ("Task", match[0].task["id"]),
+                ("HumanUser", match[0].user["id"]),
+                match[1],
+                match[2],
+                match[3],
+            )
+            for match in expected
+        ]
+
+        assert sorted(contents) == sorted(expected)
+
+    @contextmanager
+    def _wait_for_groups(self, nb_groups_expected):
+        """
+        Wait for the expected number of groups to show up.
+
+        The method will timeout if it takes too long.
+        """
+
+        def search_is_over():
+            """
+            Ensures the expected number of groups was found
+            and that each has completed.
+            """
+            if self._model.rowCount() == nb_groups_expected:
+                for i in range(nb_groups_expected):
+                    if (
+                        self._model.item(i).data(self.FileModel.SEARCH_STATUS_ROLE)
+                        != self.FileModel.SEARCH_COMPLETED
+                    ):
+                        return False
+                return True
+            else:
+                return False
+
+        def on_error_cb():
+            return "Timed out. Model Content:\n" + pprint.pformat(
+                self._get_model_contents()
+            )
+
+        with self.wait_for(search_is_over, on_error_cb):
+            yield
+
+
+class TestFileModelWithSandboxes(TestFileModelBase):
+    """
+    Test FileModel with user sandboxes.
+    """
+
+    def setUp(self):
+        super(TestFileModelWithSandboxes, self).setUp(
+            "tk-multi-workfiles2", "sandbox_path", "publish_path"
         )
 
     def test_default_match_user_files(self):
@@ -212,81 +302,42 @@ class TestFileModel(Workfiles2TestBase):
             ]
         )
 
-    def _get_model_contents(self):
+
+class TestFileModelWithTaskFolder(TestFileModelBase):
+    """
+    Test FileModel using task folders.
+    """
+
+    def setUp(self):
+        super(self.__class__, self).setUp(
+            "tk-multi-workfiles2-with-tasks", "task_path", "publish_path"
+        )
+
+    def test_task_sandboxing_isolates_workfiles_from_same_step(self):
         """
-        Dump a list of items found in the file model.
-
-        The list contains a series of tuple containing
-        ((HumanUser, id), (Task, id), file name, file version)
+        Ensure that using a task folder will associate a workfile with that
+        task even if another task with the same step is used.
         """
-        contents = []
-        for group_idx in range(self._model.rowCount()):
-            group_item = self._model.item(group_idx)
-            for file_idx in range(group_item.rowCount()):
-                file_item = group_item.child(file_idx).file_item
-                assert file_item.is_local or file_item.is_published
-                if file_item.is_local:
-                    contents.append(
-                        group_item.key
-                        + (file_item.name, file_item.version, IS_WORKFILE)
-                    )
-                if file_item.is_published:
-                    contents.append(
-                        group_item.key + (file_item.name, file_item.version, IS_PUBLISH)
-                    )
-        return contents
+        print(self.create_work_file(self._concept_ctx_jeff, "scene", 1))
+        print(self.create_publish_file(self._concept_ctx_jeff, "scene", 1))
 
-    def _assert_model_contains(self, expected):
-        """
-        Ensure the model contains the specified list of files.
+        print(self.create_work_file(self._concept_2_ctx_jeff, "scene", 2))
+        print(self.create_publish_file(self._concept_2_ctx_jeff, "scene", 2))
 
-        The list of files is expected to follow this structure
-        (ctx, file name, version)
-        """
-        contents = self._get_model_contents()
-
-        # Reformat the contents into something that is sortable.
-        expected = [
-            (
-                ("Task", match[0].task["id"]),
-                ("HumanUser", match[0].user["id"]),
-                match[1],
-                match[2],
-                match[3],
-            )
-            for match in expected
-        ]
-
-        assert sorted(contents) == sorted(expected)
-
-    @contextmanager
-    def _wait_for_groups(self, nb_groups_expected):
-        """
-        Wait for the expected number of groups to show up.
-
-        The method will timeout if it takes too long.
-        """
-
-        def search_is_over():
-            """
-            Ensures the expected number of groups was found
-            and that each has completed.
-            """
-            if self._model.rowCount() == nb_groups_expected:
-                for i in range(nb_groups_expected):
-                    if (
-                        self._model.item(i).data(self.FileModel.SEARCH_STATUS_ROLE)
-                        != self.FileModel.SEARCH_COMPLETED
-                    ):
-                        return False
-                return True
-            else:
-                return False
-
-        def on_error_cb():
-            return "Timed out. Model Content:\n" + pprint.pformat(
-                self._get_model_contents()
+        # Wait for the groups to appear and be ready.
+        with self._wait_for_groups(2):
+            self._model.set_entity_searches(
+                [
+                    self.FileModel.SearchDetails("Concept", self._task_concept),
+                    self.FileModel.SearchDetails("Concept 2", self._task_concept_2),
+                ]
             )
 
-        with self.wait_for(search_is_over, on_error_cb):
-            yield
+        self._assert_model_contains(
+            [
+                (self._concept_ctx_jeff, "scene", 1, IS_WORKFILE),
+                (self._concept_ctx_jeff, "scene", 1, IS_PUBLISH),
+                (self._concept_2_ctx_jeff, "scene", 2, IS_WORKFILE),
+                (self._concept_2_ctx_jeff, "scene", 2, IS_PUBLISH),
+            ]
+        )
