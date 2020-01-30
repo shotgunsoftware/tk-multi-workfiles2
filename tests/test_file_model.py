@@ -8,16 +8,10 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import os
 import pprint
 from contextlib import contextmanager
 
-from tank_test.tank_test_base import TankTestBase
 from tank_test.tank_test_base import setUpModule  # noqa
-
-import sgtk
-from tank_test.tank_test_base import SealedMock
-
 from workfiles2_test_base import Workfiles2TestBase
 from workfiles2_test_base import tearDownModule  # noqa
 
@@ -106,7 +100,7 @@ class TestFileModelBase(Workfiles2TestBase):
         Dump a list of items found in the file model.
 
         The list contains a series of tuple containing
-        ((HumanUser, id), (Task, id), file name, file version)
+        ((HumanUser, id), (Task, id), file name, file version, workfile|publish)
         """
         contents = []
         for group_idx in range(self._model.rowCount()):

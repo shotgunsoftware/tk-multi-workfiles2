@@ -113,24 +113,29 @@ class Workfiles2TestBase(TankTestBase):
         In between calls to predicates, the Qt message loop will be processed.
 
         :param callable predicate: Predicate to evaluate.
+        :param callable assert_msg_cb: On error, this callable will be invoked
+            to generate an error message.
         :param int timeout: Timeout
         """
-        # This loop will execute until the _data_changed_cb is called nb_events times.
         loop = sgtk.platform.qt.QtCore.QEventLoop()
 
+        # This will be used to indicate that we should stop looping because it
+        # took too long for the predicate to turn true.
         self._timed_out = False
 
         def set_timeout_flag():
             self._timed_out = True
 
-        # Give ourselves 2 seconds to wait for the data, then abort
-        sgtk.platform.qt.QtCore.QTimer.singleShot(timeout, set_timeout_flag)
-
         yield
 
+        # Launch the timer that will time us out.
+        sgtk.platform.qt.QtCore.QTimer.singleShot(timeout, set_timeout_flag)
+
+        # As soon as the predicate turns true, we can stop processing events.
         while predicate() is False and self._timed_out is False:
             loop.processEvents()
 
+        # Print out an error message if the predicate is False.
         assert predicate(), assert_msg_cb()
 
     def create_work_file(self, ctx, name, version):

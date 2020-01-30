@@ -15,15 +15,8 @@ from workfiles2_test_base import Workfiles2TestBase
 
 class TestUserFilterMenu(Workfiles2TestBase):
     """
-    Baseclass for all Workfiles2 unit tests.
-
-    This sets up the fixtures, starts an engine and provides
-    the following members:
-
-    - self.engine: The test engine running
-    - self.app: The test app running
-    - self.tk_multi_workfiles: The tk_multi_workfiles module
-
+    Test the user filter menu that allows to select which sandbox to display in the
+    file browser.
     """
 
     def setUp(self):
@@ -141,6 +134,27 @@ class TestUserFilterMenu(Workfiles2TestBase):
         self._assert_selected(self.jeff, self.francis)
         self._test_state(current=True, others=True, jeff=True, francis=True, rob=False)
 
+    def test_removing_users(self):
+        """
+        Ensure that removing users update the menu accordingly.
+        """
+        # Removing Francis from selected and available users should remove him
+        # from the menu
+        self._menu.selected_users = [self.rob]
+        self._menu.available_users = [self.rob]
+        # Current user is always present, but Francis is gone from the menu.
+        self._test_state(current=False, others=True, jeff=False, francis=None, rob=True)
+
+        # Removing Rob from available, but it was checked, so it should still
+        # be checked, but disabled.
+        self._menu.available_users = []
+        # ... so menu item remains, but is disabled.
+        self._test_state(
+            current=False, others=False, jeff=False, francis=None, rob=True
+        )
+        assert self._rob_action.isEnabled() is False
+        assert len(self._menu.actions()) == 7
+
     def _test_state(self, current, others, jeff, francis, rob):
         """
         Test the state of the menu.
@@ -170,24 +184,3 @@ class TestUserFilterMenu(Workfiles2TestBase):
         :params *args users: *args of user entity dict that should be selected.
         """
         assert [u["id"] for u in self._menu.selected_users] == [u["id"] for u in users]
-
-    def test_removing_users(self):
-        """
-        Ensure that removing users update the menu accordingly.
-        """
-        # Removing Francis from selected and available users should remove him
-        # from the menu
-        self._menu.selected_users = [self.rob]
-        self._menu.available_users = [self.rob]
-        # Current user is always present, but Francis is gone from the menu.
-        self._test_state(current=False, others=True, jeff=False, francis=None, rob=True)
-
-        # Removing Rob from available, but it was checked, so it should still
-        # be checked, but disabled.
-        self._menu.available_users = []
-        # ... so menu item remains, but is disabled.
-        self._test_state(
-            current=False, others=False, jeff=False, francis=None, rob=True
-        )
-        assert self._rob_action.isEnabled() is False
-        assert len(self._menu.actions()) == 7
