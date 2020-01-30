@@ -192,7 +192,7 @@ class TestFileModel(Workfiles2TestBase):
         self.create_publish_file(self._concept_ctx_jeff, "scene", 1)
         self.create_publish_file(self._concept_2_ctx_jeff, "scene", 2)
 
-        # Wait for the group to appear and be ready.
+        # Wait for the groups to appear and be ready.
         with self._wait_for_groups(2):
             self._model.set_entity_searches(
                 [
