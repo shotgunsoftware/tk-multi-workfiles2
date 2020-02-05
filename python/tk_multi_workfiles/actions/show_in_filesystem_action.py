@@ -13,14 +13,13 @@
 
 import sgtk
 from sgtk import TankError
-from sgtk.platform.qt import QtGui
-from tank_vendor import six
 
 from .file_action import FileAction
 
 import os
 import sys
 from itertools import chain
+from tank_vendor import six
 
 
 class ShowInFileSystemAction(FileAction):
@@ -37,10 +36,28 @@ class ShowInFileSystemAction(FileAction):
             return
 
         # ensure the slashes are correct:
-        if not QtGui.QDesktopServices.openUrl(
-            "file://{0}".format(path).replace("\\", "/")
-        ):
-            self._app.log_error("Failed to open '%s'!" % path)
+        path = path.replace("/", os.path.sep)
+
+        # build the command:
+        if sys.platform == "linux2":
+            # TODO - figure out how to open the parent and select the file/path
+            if os.path.isfile(path):
+                path = os.path.dirname(path)
+            cmd = 'xdg-open "%s"' % path
+        elif sys.platform.startswith("darwin"):
+            cmd = 'open -R "%s"' % path
+        elif sys.platform == "win32":
+            # TODO - figure out how to open the parent and select the file/path
+            if os.path.isfile(path):
+                path = os.path.dirname(path)
+            cmd = 'cmd.exe /C start "Folder" "%s"' % path
+        else:
+            raise TankError("Platform '%s' is not supported." % system)
+
+        # run the command:
+        exit_code = os.system(cmd)
+        if exit_code != 0:
+            self._app.log_error("Failed to launch '%s'!" % cmd)
 
 
 class ShowPublishInFileSystemAction(ShowInFileSystemAction):
