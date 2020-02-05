@@ -39,14 +39,14 @@ class ShowInFileSystemAction(FileAction):
         path = path.replace("/", os.path.sep)
 
         # build the command:
-        if sys.platform == "linux2":
+        if sgtk.util.is_linux():
             # TODO - figure out how to open the parent and select the file/path
             if os.path.isfile(path):
                 path = os.path.dirname(path)
             cmd = 'xdg-open "%s"' % path
-        elif sys.platform.startswith("darwin"):
+        elif sgtk.util.is_macos():
             cmd = 'open -R "%s"' % path
-        elif sys.platform == "win32":
+        elif sgtk.util.is_windows():
             # TODO - figure out how to open the parent and select the file/path
             if os.path.isfile(path):
                 path = os.path.dirname(path)
