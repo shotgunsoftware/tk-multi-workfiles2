@@ -49,7 +49,7 @@ class InteractiveOpenAction(OpenFileAction):
         ]
         max_local_version = max(local_versions) if local_versions else None
         max_publish_version = max(publish_versions) if publish_versions else None
-        max_version = max(0, max_local_version, max_publish_version)
+        max_version = max(0, max_local_version or 0, max_publish_version or 0)
 
         if (
             self._publishes_visible
