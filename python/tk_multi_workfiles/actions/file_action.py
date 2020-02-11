@@ -82,7 +82,7 @@ class FileAction(Action):
             # ok, so we managed to get all fields but we still need to check that the context part
             # of the path exists on disk.  To do this, find the template that only contains context
             # keys:
-            ctx_keys = set(ctx_fields.keys())
+            ctx_keys = set(ctx_fields)
             ctx_template = template
             while ctx_template:
                 template_keys = set(

@@ -479,7 +479,7 @@ class WorkArea(object):
 
         # make sure we have enough fields to perform a valid search - we should have all non-optional
         # keys apart from user keys:
-        for key_name in search_template.keys.keys():
+        for key_name in search_template.keys:
             if (
                 key_name not in user_keys
                 and key_name not in ctx_fields
@@ -503,6 +503,6 @@ class WorkArea(object):
                 user_ids.add(user["id"])
 
         # look these up in the user cache:
-        users = g_user_cache.get_user_details_for_ids(user_ids).values()
+        users = list(g_user_cache.get_user_details_for_ids(user_ids).values())
         self._sandbox_users[template.definition] = users
         return users

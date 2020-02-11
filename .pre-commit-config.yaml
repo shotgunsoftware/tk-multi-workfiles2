@@ -27,6 +27,8 @@ repos:
     - id: check-merge-conflict
     # Adds an empty line if missing at the end of a file.
     - id: end-of-file-fixer
+    # Makes sure yaml files are syntactically valid.
+    - id: check-yaml
     # Makes sure requirements.txt is properly formatted
     - id: requirements-txt-fixer
     # Removes trailing whitespaces.

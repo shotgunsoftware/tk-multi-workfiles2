@@ -12,6 +12,8 @@
 Menu that presents a list of users representing sandboxes in the file system (if used in the templates).
 """
 
+import functools
+
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 from ..user_cache import g_user_cache
@@ -85,7 +87,7 @@ class UserFilterMenu(QtGui.QMenu):
         available_user_ids = set(
             [
                 user_id
-                for user_id, details in self._available_users.iteritems()
+                for user_id, details in self._available_users.items()
                 if details.available
             ]
         )
@@ -100,7 +102,7 @@ class UserFilterMenu(QtGui.QMenu):
         available_user_ids = set(
             [
                 user_id
-                for user_id, details in self._available_users.iteritems()
+                for user_id, details in self._available_users.items()
                 if details.available
             ]
         )
@@ -197,9 +199,7 @@ class UserFilterMenu(QtGui.QMenu):
         # add any users to the list that are in not in users list but are currently
         # checked in the menu - these will be disabled rather than removed.  Remove
         # all other unchecked users that aren't in the users list:
-        user_ids_to_remove = set(self._available_users.keys()) - set(
-            available_users.keys()
-        )
+        user_ids_to_remove = set(self._available_users) - set(available_users)
         for id in user_ids_to_remove:
             user_details = self._available_users[id]
             if user_details.action.isChecked():
@@ -214,9 +214,7 @@ class UserFilterMenu(QtGui.QMenu):
                 self.removeAction(user_details.action)
 
         # sort list of users being displayed in the menu alphabetically:
-        user_names_and_ids.sort(
-            lambda x, y: cmp(x[0].lower(), y[0].lower()) or cmp(x[1], y[1])
-        )
+        user_names_and_ids.sort(key=lambda x: (x[0], x[1]))
 
         # add menu items for new users as needed:
         actions_to_insert = []

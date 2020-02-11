@@ -12,6 +12,7 @@
 File open menu factory.
 """
 import sgtk
+from tank_vendor import six
 
 from .action import SeparatorAction, ActionGroup
 
@@ -240,7 +241,7 @@ class FileActionFactory(object):
             # file isn't in a different sandbox so add regular open actions:
             if file_item.editable:
                 # determine if this version is the latest:
-                all_versions = [v for v, f in file_versions.iteritems()]
+                all_versions = [v for v, f in six.iteritems(file_versions)]
                 max_version = max(all_versions) if all_versions else 0
                 if file_item.version != max_version:
                     actions.append(
@@ -307,7 +308,7 @@ class FileActionFactory(object):
                 "Previous Work Files",
                 [
                     item
-                    for item in file_item.versions.itervalues()
+                    for item in six.itervalues(file_item.versions)
                     if file_item.version > item.version and item.is_local
                 ],
             )
@@ -318,7 +319,7 @@ class FileActionFactory(object):
                 "Previous Publishes",
                 [
                     item
-                    for item in file_item.versions.itervalues()
+                    for item in six.itervalues(file_item.versions)
                     if file_item.version > item.version and item.is_published
                 ],
             )
@@ -490,7 +491,7 @@ class FileActionFactory(object):
 
             # see if we have any publishes:
             publish_versions = [
-                v for v, f in file_versions.iteritems() if f.is_published
+                v for v, f in six.iteritems(file_versions) if f.is_published
             ]
             if publish_versions:
                 show_in_actions.append(

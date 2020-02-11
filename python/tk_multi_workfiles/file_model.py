@@ -11,6 +11,7 @@
 import weakref
 
 import sgtk
+from tank_vendor import six
 from sgtk.platform.qt import QtGui, QtCore
 
 from .file_finder import AsyncFileFinder
@@ -41,15 +42,15 @@ class FileModel(QtGui.QStandardItemModel):
         of this class represents a single entity to be grouped in the model
         """
 
-        def __init__(self, name=None):
+        def __init__(self, name=None, entity=None, child_entities=None, is_leaf=False):
             """
             :param name:    The string name to be used for the search.  This is used when constructing
                             the group name in the model.
             """
             self.name = name
-            self.entity = None
-            self.child_entities = []
-            self.is_leaf = False  # TODO: this does not seem to be used anywhere?
+            self.entity = entity
+            self.child_entities = child_entities or []
+            self.is_leaf = is_leaf  # TODO: this does not seem to be used anywhere?
 
         def __repr__(self):
             """
@@ -382,7 +383,7 @@ class FileModel(QtGui.QStandardItemModel):
     def get_cached_file_versions(self, key, work_area, clean_only=False):
         """
         Return the cached file versions for the specified file key and work area.  Note that this isn't
-        garunteed to find all versions of a file that exist if the cache hasn't been populated yet/is dirty
+        guaranteed to find all versions of a file that exist if the cache hasn't been populated yet/is dirty
         if clean_only is False.
 
         :param key:         The unique file key to find file versions for
@@ -615,7 +616,7 @@ class FileModel(QtGui.QStandardItemModel):
         """
         Stop all in-progress searches
         """
-        search_ids = self._in_progress_searches.keys()
+        search_ids = list(self._in_progress_searches)
         self._in_progress_searches = {}
         for search_id in search_ids:
             self._finder.stop_search(search_id)
@@ -705,7 +706,7 @@ class FileModel(QtGui.QStandardItemModel):
                         valid_group_keys.add(group_key)
 
         # remove any groups that are no longer needed:
-        for group_key, group_item in group_map.iteritems():
+        for group_key, group_item in six.iteritems(group_map):
             if group_key not in valid_group_keys:
                 self._safe_remove_row(group_item.row())
 
@@ -751,7 +752,7 @@ class FileModel(QtGui.QStandardItemModel):
         rows_to_remove = set(
             [
                 row
-                for key, row in current_entity_row_map.iteritems()
+                for key, row in six.iteritems(current_entity_row_map)
                 if key not in valid_gen_entity_keys
             ]
         )
@@ -817,7 +818,7 @@ class FileModel(QtGui.QStandardItemModel):
         valid_files = dict(
             [
                 (k, v[0])
-                for k, v in existing_file_item_map.iteritems()
+                for k, v in six.iteritems(existing_file_item_map)
                 if k in file_versions_to_keep
             ]
         )
@@ -865,14 +866,12 @@ class FileModel(QtGui.QStandardItemModel):
                 )
 
         # figure out if any existing items are no longer needed:
-        valid_file_versions = set(valid_files.keys())
-        file_versions_to_remove = (
-            set(existing_file_item_map.keys()) - valid_file_versions
-        )
+        valid_file_versions = set(valid_files)
+        file_versions_to_remove = set(existing_file_item_map) - valid_file_versions
         rows_to_remove = set(
             [
                 v[1].row()
-                for k, v in existing_file_item_map.iteritems()
+                for k, v in six.iteritems(existing_file_item_map)
                 if k in file_versions_to_remove
             ]
         )
@@ -892,7 +891,7 @@ class FileModel(QtGui.QStandardItemModel):
                 file_item.set_not_published()
 
         # update the cache - it's important this is done _before_ adding/updating the model items:
-        self._search_cache.add(work_area, valid_files.values())
+        self._search_cache.add(work_area, list(valid_files.values()))
 
         # now lets remove, add and update items as needed:
         # 1. Remove items that are no longer needed:
@@ -1007,11 +1006,11 @@ class FileModel(QtGui.QStandardItemModel):
         to the _FileModelItem is None.
         """
         new_item_map = {}
-        for group_key, file_map in self._current_item_map.iteritems():
+        for group_key, file_map in six.iteritems(self._current_item_map):
             new_file_map = {}
-            for file_key, version_map in file_map.iteritems():
+            for file_key, version_map in six.iteritems(file_map):
                 new_version_map = {}
-                for version, item_ref in version_map.iteritems():
+                for version, item_ref in six.iteritems(version_map):
                     if item_ref and item_ref():
                         new_version_map[version] = item_ref
                 if new_version_map:
@@ -1295,7 +1294,7 @@ class FileModel(QtGui.QStandardItemModel):
 
             # update thumbnail and versions for each version:
             thumb = None
-            for _, version in sorted(file_versions.iteritems(), reverse=False):
+            for _, version in sorted(six.iteritems(file_versions), reverse=False):
                 if version.thumbnail_path:
                     # this file version should have a thumbnail!
                     thumb = version.thumbnail
@@ -1331,7 +1330,7 @@ class FileModel(QtGui.QStandardItemModel):
         """
         file_versions = self._search_cache.find_file_versions(work_area, file_key) or {}
         thumb = None
-        for _, version in sorted(file_versions.iteritems(), reverse=False):
+        for _, version in sorted(six.iteritems(file_versions), reverse=False):
             if version.thumbnail_path:
                 # this file version should have a thumbnail!
                 thumb = version.thumbnail

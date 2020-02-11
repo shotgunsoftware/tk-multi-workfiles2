@@ -19,6 +19,7 @@ from .file_action import FileAction
 import os
 import sys
 from itertools import chain
+from tank_vendor import six
 
 
 class ShowInFileSystemAction(FileAction):
@@ -38,14 +39,14 @@ class ShowInFileSystemAction(FileAction):
         path = path.replace("/", os.path.sep)
 
         # build the command:
-        if sys.platform == "linux2":
+        if sgtk.util.is_linux():
             # TODO - figure out how to open the parent and select the file/path
             if os.path.isfile(path):
                 path = os.path.dirname(path)
             cmd = 'xdg-open "%s"' % path
-        elif sys.platform.startswith("darwin"):
+        elif sgtk.util.is_macos():
             cmd = 'open -R "%s"' % path
-        elif sys.platform == "win32":
+        elif sgtk.util.is_windows():
             # TODO - figure out how to open the parent and select the file/path
             if os.path.isfile(path):
                 path = os.path.dirname(path)
@@ -113,7 +114,7 @@ class ShowAreaInFileSystemAction(ShowInFileSystemAction):
                 except TankError as e:
                     pass
             # combine with the context fields, preferring the context
-            fields = dict(chain(fields.iteritems(), file_fields.iteritems()))
+            fields = dict(chain(six.iteritems(fields), six.iteritems(file_fields)))
 
         # try to build a path from the template with these fields:
         while template and template.missing_keys(fields):

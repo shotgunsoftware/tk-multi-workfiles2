@@ -15,6 +15,7 @@ import threading
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
+from tank_vendor import six
 
 
 class Threaded(object):
@@ -76,7 +77,8 @@ def value_to_str(value):
     if hasattr(QtCore, "QVariant") and isinstance(value, QtCore.QVariant):
         value = value.toPyObject()
 
-    if isinstance(value, unicode):
+    # Take unicode strings from Python 2 and utf-8 encode them.
+    if six.PY2 and isinstance(value, six.text_type):
         # encode to str utf-8
         return value.encode("utf-8")
     elif isinstance(value, str):

@@ -88,7 +88,7 @@ class StepListWidget(QtCore.QObject):
             # Settings were never saved before. Select all exsiting steps by
             # default.
             self._current_filter_step_ids = set()
-            for entity_type, step_list in self._step_list.iteritems():
+            for step_list in self._step_list.values():
                 self._current_filter_step_ids.update([x["id"] for x in step_list])
         else:
             self._current_filter_step_ids = set([x["id"] for x in load_step_filters()])

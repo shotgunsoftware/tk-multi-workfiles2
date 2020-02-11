@@ -390,7 +390,7 @@ class FileSaveForm(FileFormBase):
             ctx_fields = env.context.as_template_fields(
                 env.work_template, validate=True
             )
-            fields = dict(chain(fields.iteritems(), ctx_fields.iteritems()))
+            fields = dict(chain(fields.items(), ctx_fields.items()))
         except TankError as e:
             app.log_debug("Unable to generate preview path: %s" % e)
             if require_path:
@@ -492,7 +492,7 @@ class FileSaveForm(FileFormBase):
             self._ui.file_type_menu.clear()
             for label in extensions.values():
                 self._ui.file_type_menu.addItem(label)
-            self._extension_choices = extensions.keys()
+            self._extension_choices = list(extensions)
         finally:
             self._ui.file_type_menu.blockSignals(signals_blocked)
 
@@ -666,7 +666,7 @@ class FileSaveForm(FileFormBase):
                     self._extension_choices
                 ):
                     current_ext = self._extension_choices[current_ext_idx]
-                if current_ext in ext_choices.keys():
+                if current_ext in ext_choices:
                     ext = current_ext
 
                 self._populate_extension_menu(ext_choices)  # , ext_labels)

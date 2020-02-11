@@ -77,7 +77,7 @@ class FileFormBase(QtGui.QWidget):
         self.addAction(refresh_action)
 
         # on OSX, also add support for F5 (the default for OSX is Cmd+R)
-        if sys.platform == "darwin":
+        if sgtk.util.is_macos():
             osx_f5_refresh_action = QtGui.QAction("Refresh (F5)", self)
             osx_f5_refresh_action.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_F5))
             osx_f5_refresh_action.triggered.connect(self._on_refresh_triggered)
@@ -349,7 +349,7 @@ class FileFormBase(QtGui.QWidget):
             work_area.publish_template if is_publish else work_area.work_template
         )
         template_fields = base_template.get_fields(path)
-        fields = dict(chain(template_fields.iteritems(), fields.iteritems()))
+        fields = dict(chain(template_fields.items(), fields.items()))
 
         file_key = FileItem.build_file_key(
             fields, work_area.work_template, work_area.version_compare_ignore_fields

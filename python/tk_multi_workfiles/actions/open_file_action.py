@@ -15,6 +15,7 @@ import os
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 from sgtk import TankError
+from tank_vendor import six
 
 from .file_action import FileAction
 from ..scene_operation import reset_current_scene, open_file, OPEN_FILE_ACTION
@@ -305,7 +306,7 @@ class ContinueFromFileAction(OpenFileAction):
         """
         """
         # Q. should the next version include the current version?
-        all_versions = [v for v, f in file_versions.iteritems()] + [file.version]
+        all_versions = [v for v, f in six.iteritems(file_versions)] + [file.version]
         max_version = max(all_versions)
         self._version = max_version + 1
         label = "%s (as v%03d)" % (label, self._version)

@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import sgtk
+from tank_vendor import six
 from sgtk.platform.qt import QtGui
 
 import os
@@ -67,7 +68,7 @@ class FileItem(object):
         # the template, skipping the ignore fields:
         file_key = {}
         template_keys = template.keys
-        for name, value in fields.iteritems():
+        for name, value in fields.items():
             if name in ignore_fields:
                 # skip fields that are explicitly ignored
                 continue
@@ -90,7 +91,7 @@ class FileItem(object):
 
         # return an immutable representation of the sorted dictionary:
         # e.g. (('sequence', 'Sequence01'), ('shot', 'shot_010'), ('name', 'foo'))
-        return tuple(sorted(file_key.iteritems()))
+        return tuple(sorted(file_key.items()))
 
     def __init__(
         self,
@@ -528,12 +529,12 @@ class FileItem(object):
         latest_version = self
         latest_publish_version = self if self.is_published else None
         if self.versions:
-            max_version = max(self.versions.iterkeys())
+            max_version = max(self.versions)
             if max_version > latest_version.version:
                 latest_version = self.versions[max_version]
 
             publish_versions = [
-                f.version for f in self.versions.itervalues() if f.is_published
+                f.version for f in six.itervalues(self.versions) if f.is_published
             ]
             if publish_versions:
                 max_pub_version = max(publish_versions)

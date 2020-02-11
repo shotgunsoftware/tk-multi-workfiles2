@@ -10,6 +10,7 @@
 
 import types
 from sgtk import TankError
+from tank_vendor import six
 from sgtk.platform.qt import QtGui, QtCore
 
 OPEN_FILE_ACTION, SAVE_FILE_AS_ACTION, NEW_FILE_ACTION, VERSION_UP_FILE_ACTION = range(
@@ -98,7 +99,7 @@ def get_current_path(app, action, context):
     """
     app.log_debug("Retrieving current scene path...")
     return _do_scene_operation(
-        app, action, context, "current_path", result_types=(basestring,)
+        app, action, context, "current_path", result_types=(six.string_types,)
     )
 
 
@@ -145,5 +146,5 @@ def open_file(app, action, context, path, version, read_only):
         path,
         version,
         read_only,
-        result_types=(bool, types.NoneType),
+        result_types=(bool, type(None)),
     )

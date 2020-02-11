@@ -14,6 +14,7 @@ Cache used to store and find file search results.
 
 import sgtk
 from .util import Threaded
+from tank_vendor import six
 
 
 class FileSearchCache(Threaded):
@@ -114,7 +115,7 @@ class FileSearchCache(Threaded):
             return {}
 
         # return a dictionary of version:FileItem entries:
-        return dict([(v, f) for v, f in file_info.versions.iteritems()])
+        return dict([(v, f) for v, f in six.iteritems(file_info.versions)])
 
     @Threaded.exclusive
     def find(self, entity, user=None):
