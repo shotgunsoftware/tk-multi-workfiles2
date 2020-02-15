@@ -14,10 +14,10 @@ import sgtk
 HookClass = sgtk.get_hook_baseclass()
 
 
-class FilterWorkFiles(HookClass):
+class FindWorkFiles(HookClass):
     """
-    Hook that can be used to filter the list of work files found by the app for the current
-    Work area
+    Hook that can be used to provide more ways to files to open. One such option would be to list files from perforce that
+    aren't synced on the users machine yet.
     """
 
     def execute(self, work_files_paths, work_template, work_fields, skip_fields, skip_missing_optional_keys=True, **kwargs):
