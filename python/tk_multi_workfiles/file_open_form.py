@@ -13,6 +13,8 @@ Qt widget that presents the user with a list of work files and publishes
 so that they can choose one to open
 """
 
+from functools import partial
+
 import sgtk
 from sgtk.platform.qt import QtGui
 
@@ -299,7 +301,7 @@ class FileOpenForm(FileFormBase):
             else:
                 q_action = QtGui.QAction(action.label, menu)
                 q_action.triggered[()].connect(
-                    lambda a=action, checked=False: self._perform_action(a)
+                    partial(self._preform_action, action)
                 )
                 menu.addAction(q_action)
                 add_separators = True
