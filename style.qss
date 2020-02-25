@@ -78,8 +78,8 @@ FileWidget #background {
 }
 
 FileWidget #background[selected=false] {
-    background-color: rgb(0,0,0,0);
-    border-color: rgb(0,0,0,0);
+    background-color: rgba(0,0,0,0);
+    border-color: rgba(0,0,0,0);
 }
 
 FileWidget #background[selected=true] {
@@ -87,6 +87,6 @@ FileWidget #background[selected=true] {
     background-color: rgb(135, 166, 185, 50);
     border-color: rgb(135, 166, 185);
 */
-    background-color: rgb(0, 178, 236, 30);
     border-color: rgb(0, 178, 236);
+    background-color: rgba(0, 178, 236, 30);
 }

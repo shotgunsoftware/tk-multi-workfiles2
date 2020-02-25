@@ -82,7 +82,7 @@ border-radius: 4px;
 border-style: none;
 border-width: 1px;
 border-color: rgb(0,0,0);
-background-color: rgb(255,255,255,48);
+background-color: rgba(255,255,255,48);
 }</string>
        </property>
        <property name="frameShape">
@@ -157,7 +157,7 @@ background-color: rgb(255,255,255,48);
               </property>
               <property name="styleSheet">
                <string notr="true">#publish_thumbnail {
-background-color: rgb(0,0,0,32);
+background-color: rgba(0,0,0,32);
 border-radius: 2px;
 }</string>
               </property>
@@ -238,7 +238,7 @@ border-radius: 4px;
 border-style: none;
 border-width: 1px;
 border-color: rgb(0,0,0);
-background-color: rgb(255,255,255,48);
+background-color: rgba(255,255,255,48);
 }</string>
        </property>
        <property name="frameShape">
@@ -310,7 +310,7 @@ background-color: rgb(255,255,255,48);
               </property>
               <property name="styleSheet">
                <string notr="true">#work_file_thumbnail {
-background-color: rgb(0,0,0,32);
+background-color: rgba(0,0,0,32);
 border-radius: 2px;
 }</string>
               </property>
@@ -384,7 +384,7 @@ border-radius: 4px;
 border-style: none;
 border-width: 1px;
 border-color: rgb(0,0,0);
-background-color: rgb(255,255,255,48);
+background-color: rgba(255,255,255,48);
 }</string>
        </property>
        <property name="frameShape">
