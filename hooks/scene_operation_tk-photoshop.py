@@ -22,7 +22,16 @@ class SceneOperation(HookClass):
     current scene
     """
 
-    def execute(self, operation, file_path, context, parent_action, file_version, read_only, **kwargs):
+    def execute(
+        self,
+        operation,
+        file_path,
+        context,
+        parent_action,
+        file_version,
+        read_only,
+        **kwargs
+    ):
         """
         Main hook entry point
 
@@ -71,7 +80,7 @@ class SceneOperation(HookClass):
 
         elif operation == "open":
             # open the specified script
-            f = photoshop.RemoteObject('flash.filesystem::File', file_path)
+            f = photoshop.RemoteObject("flash.filesystem::File", file_path)
             photoshop.app.load(f)
 
         elif operation == "save":

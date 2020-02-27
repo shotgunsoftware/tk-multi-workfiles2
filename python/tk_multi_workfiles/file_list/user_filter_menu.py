@@ -1,38 +1,44 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
 Menu that presents a list of users representing sandboxes in the file system (if used in the templates).
 """
 
+import functools
+
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 from ..user_cache import g_user_cache
 
+
 class UserFilterMenu(QtGui.QMenu):
     """
     """
-    users_selected = QtCore.Signal(object)# list of users
-    
+
+    users_selected = QtCore.Signal(object)  # list of users
+
     class _User(object):
         def __init__(self, user, action=None):
             self.user = user
             self.action = action
             self.available = True
-    
+
     def __init__(self, parent):
         """
         """
         QtGui.QMenu.__init__(self, parent)
 
-        self._current_user_id = g_user_cache.current_user["id"] if g_user_cache.current_user else None
+        self._current_user_id = (
+            g_user_cache.current_user["id"] if g_user_cache.current_user else None
+        )
         self._available_users = {}
         self._checked_user_ids = set()
 
@@ -47,7 +53,9 @@ class UserFilterMenu(QtGui.QMenu):
 
         self._current_user_action = QtGui.QAction("Show My Files", self)
         self._current_user_action.setCheckable(True)
-        toggled_slot = lambda toggled: self._on_user_toggled(self._current_user_id, toggled)
+        toggled_slot = lambda toggled: self._on_user_toggled(
+            self._current_user_id, toggled
+        )
         self._current_user_action.toggled.connect(toggled_slot)
         self.addAction(self._current_user_action)
 
@@ -63,7 +71,7 @@ class UserFilterMenu(QtGui.QMenu):
         menu_action.setDefaultWidget(menu_label)
         self.addAction(menu_action)
         self.addSeparator()
-        
+
         self._no_other_users_action = self._add_no_other_users_action()
 
     @property
@@ -76,30 +84,54 @@ class UserFilterMenu(QtGui.QMenu):
     def other_users_selected(self):
         """
         """
-        available_user_ids = set([user_id for user_id, details in self._available_users.iteritems() if details.available])
+        available_user_ids = set(
+            [
+                user_id
+                for user_id, details in self._available_users.items()
+                if details.available
+            ]
+        )
         selected_user_ids = self._checked_user_ids & set(available_user_ids)
-        return (len(selected_user_ids) > 1 
-                or (len(selected_user_ids) == 1 and next(iter(selected_user_ids)) != self._current_user_id)) 
+        return len(selected_user_ids) > 1 or (
+            len(selected_user_ids) == 1
+            and next(iter(selected_user_ids)) != self._current_user_id
+        )
 
-    #@property
+    # @property
     def _get_selected_users(self):
-        available_user_ids = set([user_id for user_id, details in self._available_users.iteritems() if details.available])
+        available_user_ids = set(
+            [
+                user_id
+                for user_id, details in self._available_users.items()
+                if details.available
+            ]
+        )
         selected_user_ids = self._checked_user_ids & available_user_ids
         users = [self._available_users[id].user for id in selected_user_ids]
         if self._current_user_id in self._checked_user_ids:
             users = [g_user_cache.current_user] + users
         return users
-    #selected_users.setter
+
+    # selected_users.setter
     def _set_selected_users(self, users):
         self._update_selected_users(users)
+
     selected_users = property(_get_selected_users, _set_selected_users)
 
-    #@property
+    # @property
     def _get_available_users(self):
-        available_users = set([details.user for details in self._available_users.values() if details.available])
+        available_users = set(
+            [
+                details.user
+                for details in self._available_users.values()
+                if details.available
+            ]
+        )
         return available_users
+
     def _set_available_users(self, users):
         self._populate_available_users(users)
+
     available_users = property(_get_available_users, _set_available_users)
 
     def _update_selected_users(self, users):
@@ -113,13 +145,13 @@ class UserFilterMenu(QtGui.QMenu):
                 continue
             details.action.setChecked(True)
             new_checked_user_ids.add(uid)
-        
+
         if self._current_user_id in user_ids:
             self._current_user_action.setChecked(True)
             new_checked_user_ids.add(self._current_user_id)
         else:
             self._current_user_action.setChecked(False)
-        
+
         to_uncheck = self._checked_user_ids - new_checked_user_ids
         for uid in to_uncheck:
             details = self._available_users.get(uid)
@@ -128,7 +160,7 @@ class UserFilterMenu(QtGui.QMenu):
             details.action.setChecked(False)
 
         self._checked_user_ids = new_checked_user_ids
-        
+
     def _populate_available_users(self, users):
         """
         """
@@ -167,7 +199,7 @@ class UserFilterMenu(QtGui.QMenu):
         # add any users to the list that are in not in users list but are currently
         # checked in the menu - these will be disabled rather than removed.  Remove
         # all other unchecked users that aren't in the users list:
-        user_ids_to_remove = set(self._available_users.keys()) - set(available_users.keys())
+        user_ids_to_remove = set(self._available_users) - set(available_users)
         for id in user_ids_to_remove:
             user_details = self._available_users[id]
             if user_details.action.isChecked():
@@ -182,7 +214,7 @@ class UserFilterMenu(QtGui.QMenu):
                 self.removeAction(user_details.action)
 
         # sort list of users being displayed in the menu alphabetically:
-        user_names_and_ids.sort(lambda x, y: cmp(x[0].lower(), y[0].lower()) or cmp(x[1], y[1]))
+        user_names_and_ids.sort(key=lambda x: (x[0], x[1]))
 
         # add menu items for new users as needed:
         actions_to_insert = []
@@ -203,7 +235,9 @@ class UserFilterMenu(QtGui.QMenu):
             # need to create a new action:
             action = QtGui.QAction(user_name, self)
             action.setCheckable(True)
-            toggled_slot = lambda toggled, uid=user_id: self._on_user_toggled(uid, toggled)
+            toggled_slot = lambda toggled, uid=user_id: self._on_user_toggled(
+                uid, toggled
+            )
             action.toggled.connect(toggled_slot)
 
             # Figure out if the user should be checked:
@@ -321,23 +355,20 @@ class UserFilterMenu(QtGui.QMenu):
         """
         """
         signals_blocked = self.blockSignals(True)
-        #users_changed = False
+        # users_changed = False
         try:
             # toggle all other user actions:
             for user_details in self._available_users.values():
                 if user_details.action.isChecked() != toggled:
-                    #users_changed= True
+                    # users_changed= True
                     user_details.action.setChecked(toggled)
         finally:
             self.blockSignals(signals_blocked)
 
-        #if users_changed:
+        # if users_changed:
         self._emit_users_selected()
 
     def _emit_users_selected(self):
         """
         """
         self.users_selected.emit(self.selected_users)
-
-
-

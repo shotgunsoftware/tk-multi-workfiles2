@@ -26,10 +26,6 @@
 	border-bottom-color: rgb(64,64,64);
 }
 
-#background[selected=false] {
-	background-color: rgb(0, 0, 0,0);
-}
-
 #background[selected=true] {
 	background-color: rgb(0, 178, 236);
 }

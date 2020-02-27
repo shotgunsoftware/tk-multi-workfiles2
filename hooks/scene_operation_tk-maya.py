@@ -22,7 +22,16 @@ class SceneOperation(HookClass):
     current scene
     """
 
-    def execute(self, operation, file_path, context, parent_action, file_version, read_only, **kwargs):
+    def execute(
+        self,
+        operation,
+        file_path,
+        context,
+        parent_action,
+        file_version,
+        read_only,
+        **kwargs
+    ):
         """
         Main hook entry point
 
@@ -93,10 +102,14 @@ class SceneOperation(HookClass):
             """
             while cmds.file(query=True, modified=True):
                 # changes have been made to the scene
-                res = QtGui.QMessageBox.question(None,
-                                                 "Save your scene?",
-                                                 "Your scene has unsaved changes. Save before proceeding?",
-                                                 QtGui.QMessageBox.Yes|QtGui.QMessageBox.No|QtGui.QMessageBox.Cancel)
+                res = QtGui.QMessageBox.question(
+                    None,
+                    "Save your scene?",
+                    "Your scene has unsaved changes. Save before proceeding?",
+                    QtGui.QMessageBox.Yes
+                    | QtGui.QMessageBox.No
+                    | QtGui.QMessageBox.Cancel,
+                )
 
                 if res == QtGui.QMessageBox.Cancel:
                     return False

@@ -26,15 +26,19 @@ def dbg_info(func):
     Note that the list of QObjects is misleading if the QApplication is set to close when the last
     window is closed and the dialog is the last window.
     """
+
     def wrapper(*args, **kwargs):
         """
         """
         # grab the pre-run memory info:
         num_objects_before = len(gc.get_objects())
         bytes_before = 0
-        if sys.platform == "Darwin":
+        if sgtk.util.is_macos():
             import resource
-            bytes_before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0 / 1024.0
+
+            bytes_before = (
+                resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0 / 1024.0
+            )
 
         # run the function:
         res = func(*args, **kwargs)
@@ -47,20 +51,25 @@ def dbg_info(func):
         # cleanup and grab the post-run memory info:
         gc.collect()
         bytes_after = 0
-        if sys.platform == "Darwin":
-            bytes_after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0 / 1024.0
+        if sgtk.util.is_macos():
+            bytes_after = (
+                resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0 / 1024.0
+            )
         num_objects_after = len(gc.get_objects())
 
         # and report any difference in memory usage:
         bytes_diff = bytes_after - bytes_before
         obj_diff = num_objects_after - num_objects_before
-        msg = ("Memory before: %0.2fMb, current: %0.2fMb, leaked: %0.2fMb (%d new Python objects)"
-               % (bytes_before, bytes_after, bytes_diff, obj_diff))
+        msg = (
+            "Memory before: %0.2fMb, current: %0.2fMb, leaked: %0.2fMb (%d new Python objects)"
+            % (bytes_before, bytes_after, bytes_diff, obj_diff)
+        )
         app = sgtk.platform.current_bundle()
         app.log_debug(msg)
 
         # return the result:
         return res
+
     return wrapper
 
 
@@ -92,6 +101,7 @@ class WorkFiles(object):
         """
         handler = WorkFiles()
         from .file_open_form import FileOpenForm
+
         handler._show_file_dlg("File Open", FileOpenForm)
 
     @staticmethod
@@ -101,6 +111,7 @@ class WorkFiles(object):
         """
         handler = WorkFiles()
         from .file_save_form import FileSaveForm
+
         handler._show_file_dlg("File Save", FileSaveForm)
 
     def _show_file_dlg(self, dlg_name, form):

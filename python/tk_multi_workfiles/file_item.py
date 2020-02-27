@@ -1,18 +1,21 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import sgtk
+from tank_vendor import six
+from sgtk.platform.qt import QtGui
 
 import os
 from datetime import datetime, timedelta
 import copy
+
 
 class FileItem(object):
     """
@@ -22,9 +25,9 @@ class FileItem(object):
     """
 
     @staticmethod
-    def build_file_key(fields, template, ignore_fields = None):
+    def build_file_key(fields, template, ignore_fields=None):
         """
-        Build a unique key from the specified fields and template.  This will be used to determine 
+        Build a unique key from the specified fields and template.  This will be used to determine
         if multiple files are actually just versions of the same file.
 
         For example, the following inputs:
@@ -33,24 +36,24 @@ class FileItem(object):
             template: /assets/{sg_asset_type}/{Asset}/{Step}/work/maya/{Asset}_{Step}[_{name}]_v{version}.{maya_ext}
             ignore_fields: ["version"]
 
-            Notes: 
+            Notes:
             - The template key maya_ext has a default value of 'mb'
 
         Will generate the file key:
 
             (('Asset', 'Fred'), ('Step', 'Anm'), ('maya_ext':'mb'), ('name', 'test'), ('sg_asset_type', 'Character'))
 
-            Notes: 
+            Notes:
             - 'version' is skipped because it was specified in the ignore_fields
             - 'sub_name' is skipped because it isn't a valid key in the template
-            - Although 'maya_ext' wasn't included in the input fields, it is added to the file key as 
-              it has a default value in the template 
+            - Although 'maya_ext' wasn't included in the input fields, it is added to the file key as
+              it has a default value in the template
 
         :param fields:          A dictionary of fields extracted from a file path
-        :param template:        The template that represents the files this key will be 
+        :param template:        The template that represents the files this key will be
                                 used to compare.
         :param ignore_fields:   A list of fields to ignore when constructing the key.
-                                Typically this will contain at least 'version' but it 
+                                Typically this will contain at least 'version' but it
                                 may also contain other fields (e.g. user initials in
                                 the file name).
         :returns:               An immutable 'key' that can be used for comparison and
@@ -65,7 +68,7 @@ class FileItem(object):
         # the template, skipping the ignore fields:
         file_key = {}
         template_keys = template.keys
-        for name, value in fields.iteritems():
+        for name, value in fields.items():
             if name in ignore_fields:
                 # skip fields that are explicitly ignored
                 continue
@@ -79,17 +82,27 @@ class FileItem(object):
         # add in any 'default' values from the template that aren't explicitely ignored
         # or weren't specified in the input fields:
         for key in template_keys.values():
-            if (key.name not in ignore_fields
+            if (
+                key.name not in ignore_fields
                 and key.default != None
-                and key.name not in file_key):
-                file_key[key.name] = key.default 
+                and key.name not in file_key
+            ):
+                file_key[key.name] = key.default
 
         # return an immutable representation of the sorted dictionary:
         # e.g. (('sequence', 'Sequence01'), ('shot', 'shot_010'), ('name', 'foo'))
-        return tuple(sorted(file_key.iteritems()))
+        return tuple(sorted(file_key.items()))
 
-    def __init__(self, key, is_work_file=False, work_path=None, work_details=None, 
-                 is_published=False, publish_path=None, publish_details=None):
+    def __init__(
+        self,
+        key,
+        is_work_file=False,
+        work_path=None,
+        work_details=None,
+        is_published=False,
+        publish_path=None,
+        publish_details=None,
+    ):
         """
         Construction
 
@@ -100,6 +113,7 @@ class FileItem(object):
         :param is_published:    True if this instance represents a published file
         :param publish_path:    Publish path on disk of this file
         :param publish_details: Dictionary containing additional information about this publish
+        :param badge:           QPixmap icon that should be displayed as a badge
         """
         self._key = key
 
@@ -113,6 +127,11 @@ class FileItem(object):
 
         self._thumbnail_path = None
         self._thumbnail_image = None
+
+        self._badge = None
+        # Generate the badge for this FileIte.  This needs to be done in the main thread
+        # since the badge is a QPixmap.
+        sgtk.platform.current_engine().async_execute_in_main_thread(self.generate_badge)
 
         self._versions = {}
 
@@ -165,15 +184,18 @@ class FileItem(object):
         """
         return self._details.get("step") or self._publish_details.get("step")
 
-    #@property
+    # @property
     def _get_thumbnail_path(self):
         """
         :returns:   The path on disk of the thumbnail for this file
         """
         if self._thumbnail_path is None:
-            self._thumbnail_path = self._details.get("thumbnail") or self._publish_details.get("thumbnail")
+            self._thumbnail_path = self._details.get(
+                "thumbnail"
+            ) or self._publish_details.get("thumbnail")
         return self._thumbnail_path
-    #@thumbnail_path.setter
+
+    # @thumbnail_path.setter
     def _set_thumbnail_path(self, value):
         """
         :param value:   The path on disk that should be used to represent this file
@@ -181,37 +203,110 @@ class FileItem(object):
         if value != self.thumbnail_path:
             self._thumbnail_path = value
             self._thumbnail_image = None
-    thumbnail_path=property(_get_thumbnail_path, _set_thumbnail_path)
 
-    #@property
+    thumbnail_path = property(_get_thumbnail_path, _set_thumbnail_path)
+
+    # @property
     def _get_thumbnail(self):
         """
         :returns:   The thumbnail QPixmap for this file
         """
         return self._thumbnail_image
-    #@thumbnail.setter
+
+    # @thumbnail.setter
     def _set_thumbnail(self, value):
         """
         :param value:   The QPixmap that should be used to represent this file
         """
         self._thumbnail_image = value
-    thumbnail=property(_get_thumbnail, _set_thumbnail)
 
-    #@property
+    thumbnail = property(_get_thumbnail, _set_thumbnail)
+
+    # @property
     def _get_versions(self):
         """
         :returns:   A dictionary of {version:FileItem} containing a map of all other
                     versions of this file
         """
         return self._versions
-    #@versions.setter
+
+    # @versions.setter
     def _set_versions(self, value):
         """
         :param value:   A dictionary of {version:FileItem} pairs that represent all other
                         versions of this file
         """
         self._versions = value
-    versions=property(_get_versions, _set_versions)
+
+    versions = property(_get_versions, _set_versions)
+
+    def generate_badge(self):
+        self._badge = None
+        app = sgtk.platform.current_bundle()
+        if self._is_local:
+            # We're a work file - get the badge for the work file from the hook:
+            try:
+                self._badge = app.execute_hook_method(
+                    "hook_get_badge",
+                    "get_work_file_badge",
+                    work_file_details=self._details,
+                    work_file_path=self._path,
+                )
+            except Exception:
+                # Capture exceptions raised here and log them, so as not to break
+                # the app if the hook fails.
+                app.logger.warning(
+                    "Exception raised when getting badge for work file at %s with details %s"
+                    % (self._path, self._details),
+                    exc_info=True,
+                )
+        elif self._is_published:
+            # We're a publish - get the badge for the publish from the hook:
+            try:
+                self._badge = app.execute_hook_method(
+                    "hook_get_badge",
+                    "get_publish_badge",
+                    publish_details=self._publish_details,
+                    publish_path=self._publish_path,
+                )
+            except Exception:
+                # Capture exceptions raised here and log them, so as not to break
+                # the app if the hook fails.
+                app.logger.warning(
+                    "Exception raised when getting badge for publish at %s with details %s"
+                    % (self._publish_path, self._publish_details),
+                    exc_info=True,
+                )
+
+        if isinstance(self._badge, QtGui.QColor):
+            # If the hook returned a QColor, we'll create a dot badge of that color.
+            try:
+                self._badge = app.execute_hook_method(
+                    "hook_get_badge", "generate_badge_pixmap", badge_color=self._badge
+                )
+            except Exception:
+                # Capture exceptions raised here and log them, so as not to break
+                # the app if the hook fails.
+                app.logger.warning(
+                    "Exception raised in hook while executing generate_badge_pixmap.",
+                    exc_info=True,
+                )
+
+    @property
+    def badge(self):
+        """
+        :returns:   The QPixmap to be used as a badge when displaying this file
+                to the user.
+        """
+        return self._badge
+
+    @badge.setter
+    def badge(self, value):
+        """
+        :param value:   The QPixmap to be used as a badge when displaying this file
+                        to the user.
+        """
+        self._badge = value
 
     # ------------------------------------------------------------------------------------------
     # Work file properties
@@ -229,7 +324,7 @@ class FileItem(object):
         :returns:   A string representing the local/work file path of this file
         """
         return self._path
-    
+
     @property
     def modified_at(self):
         """
@@ -318,6 +413,7 @@ class FileItem(object):
         self._is_published = publish._is_published
         self._publish_path = publish._publish_path
         self._publish_details = copy.deepcopy(publish._publish_details or {})
+        self._badge = publish._badge
 
     def update_from_work_file(self, work_file):
         """
@@ -402,7 +498,7 @@ class FileItem(object):
         :returns:   A string containing the formatted publish description
         """
         if self.publish_description:
-            return ("%s" % self.publish_description)
+            return "%s" % self.publish_description
         else:
             return "<i>No description was entered for this publish</i>"
 
@@ -433,27 +529,38 @@ class FileItem(object):
         latest_version = self
         latest_publish_version = self if self.is_published else None
         if self.versions:
-            max_version = max(self.versions.iterkeys())
+            max_version = max(self.versions)
             if max_version > latest_version.version:
                 latest_version = self.versions[max_version]
 
-            publish_versions = [f.version for f in self.versions.itervalues() if f.is_published]
+            publish_versions = [
+                f.version for f in six.itervalues(self.versions) if f.is_published
+            ]
             if publish_versions:
                 max_pub_version = max(publish_versions)
-                if not latest_publish_version or max_pub_version > latest_publish_version.version:
-                    latest_publish_version = self.versions[max_pub_version] 
+                if (
+                    not latest_publish_version
+                    or max_pub_version > latest_publish_version.version
+                ):
+                    latest_publish_version = self.versions[max_pub_version]
 
         # add the file name and version:
-        tooltip += ("<b>%s, v%03d</b><br>" % (self.name, self.version))
+        tooltip += "<b>%s, v%03d</b><br>" % (self.name, self.version)
 
         # add in some text describing if this is the latest version or not.
         if latest_version == self:
             tooltip += "<i>This is the latest version of this file</i>"
         else:
             if latest_version.is_published:
-                tooltip += ("<i>A more recent Publish (v%03d) is available</i>" % latest_version.version) 
+                tooltip += (
+                    "<i>A more recent Publish (v%03d) is available</i>"
+                    % latest_version.version
+                )
             elif latest_version.is_local:
-                tooltip += ("<i>A more recent Work File (v%03d) is available</i>" % latest_version.version)
+                tooltip += (
+                    "<i>A more recent Work File (v%03d) is available</i>"
+                    % latest_version.version
+                )
 
         if self.is_published:
             # add in published info
@@ -461,7 +568,7 @@ class FileItem(object):
             tooltip += "<b>Published by:</b><br>"
             tooltip += self.format_published_by_details(single_line=True)
             tooltip += "<br>"
-            tooltip += ("<i>%s</i>" % self.format_publish_description())
+            tooltip += "<i>%s</i>" % self.format_publish_description()
         elif self.is_local:
             # add in local info:
             tooltip += "<hr>"
@@ -471,16 +578,23 @@ class FileItem(object):
             if latest_publish_version:
                 # also add some information about the most recent publish:
                 tooltip += "<hr>"
-                tooltip += ("<b>Last Published as v%03d by:</b><br>" % latest_publish_version.version)
-                tooltip += latest_publish_version.format_published_by_details(single_line=True)
+                tooltip += (
+                    "<b>Last Published as v%03d by:</b><br>"
+                    % latest_publish_version.version
+                )
+                tooltip += latest_publish_version.format_published_by_details(
+                    single_line=True
+                )
                 tooltip += "<br>"
-                tooltip += ("<i>%s</i>" % latest_publish_version.format_publish_description())
+                tooltip += (
+                    "<i>%s</i>" % latest_publish_version.format_publish_description()
+                )
 
         # if the file isn't editable then add this to the tooltip as well
         if not self.editable:
             tooltip += "<hr>"
-            tooltip += ("<b>The file is not editable</b><br>")
-            tooltip += (self.not_editable_reason)
+            tooltip += "<b>The file is not editable</b><br>"
+            tooltip += self.not_editable_reason
 
         return tooltip
 
@@ -566,7 +680,7 @@ class FileItem(object):
         # work file is favoured over the publish!
         local_is_latest = False
         if self.modified_at and published_file.published_at:
-            # check file modification time - we only consider a local version to be 'latest' 
+            # check file modification time - we only consider a local version to be 'latest'
             # if it has a more recent modification time than the published file (with 2mins
             # tollerance)
             if self.modified_at > published_file.published_at:
@@ -588,7 +702,12 @@ class FileItem(object):
         """
         :returns:   A string representation of this instance - useful for debugging
         """
-        return "%s (v%d), is_local:%s, is_publish: %s" % (self.name, self.version, self.is_local, self.is_published)
+        return "%s (v%d), is_local:%s, is_publish: %s" % (
+            self.name,
+            self.version,
+            self.is_local,
+            self.is_published,
+        )
 
     def _format_modified_date_time_str(self, date_time):
         """
@@ -605,43 +724,28 @@ class FileItem(object):
         elif time_diff < timedelta(days=2):
             date_str = "Yesterday"
         else:
-            date_str = "%d%s %s" % (modified_date.day, 
-                                    self._day_suffix(modified_date.day), 
-                                    modified_date.strftime("%b %Y"))
+            date_str = "%d%s %s" % (
+                modified_date.day,
+                self._day_suffix(modified_date.day),
+                modified_date.strftime("%b %Y"),
+            )
 
         # format the modified time into a 12-hour am/pm format
         modified_time = date_time.time()
         hour = modified_time.hour
         suffix = "am" if hour < 12 else "pm"
-        hour = hour if hour == 12 else hour % 12 # 0-11am, 12pm, 1-11pm
-        date_str += (", %d:%02d%s" % (hour, modified_time.minute, suffix))
+        hour = hour if hour == 12 else hour % 12  # 0-11am, 12pm, 1-11pm
+        date_str += ", %d:%02d%s" % (hour, modified_time.minute, suffix)
         return date_str
 
     def _day_suffix(self, day):
         """
-        Figure out the suffix to use for the specified day of the month (e.g. 1st, 3rd, 
+        Figure out the suffix to use for the specified day of the month (e.g. 1st, 3rd,
         15th, 32nd, etc.)
 
         :param day: The day of the month
         :returns:   A string containing the shorthand suffix for the day of the month
         """
-        return ["th", "st", "nd", "rd"][day%10 if not 11<=day<=13 and day%10 < 4 else 0]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
+        return ["th", "st", "nd", "rd"][
+            day % 10 if not 11 <= day <= 13 and day % 10 < 4 else 0
+        ]

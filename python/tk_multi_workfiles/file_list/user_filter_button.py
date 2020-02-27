@@ -23,7 +23,7 @@ class UserFilterButton(QtGui.QPushButton):
     Button that when pressed will show the list of user sandboxes available.
     """
 
-    users_selected = QtCore.Signal(object)# list of users
+    users_selected = QtCore.Signal(object)  # list of users
 
     _USER_STYLE_NONE = "none"
     _USER_STYLE_CURRENT = "current"
@@ -61,6 +61,7 @@ class UserFilterButton(QtGui.QPushButton):
         """
         self.menu().selected_users = users
         self._update()
+
     selected_users = property(_get_selected_users, _set_selected_users)
 
     # @property
@@ -81,6 +82,7 @@ class UserFilterButton(QtGui.QPushButton):
         """
         self.menu().available_users = users
         self._update()
+
     available_users = property(_get_available_users, _set_available_users)
 
     def _on_menu_users_selected(self, users):

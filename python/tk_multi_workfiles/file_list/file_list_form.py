@@ -1,11 +1,11 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
@@ -23,10 +23,12 @@ from .file_proxy_model import FileProxyModel
 from .file_list_item_delegate import FileListItemDelegate
 from ..util import get_model_data, map_to_source, get_source_model
 
+
 class FileListForm(QtGui.QWidget):
     """
     Main file list form class
     """
+
     # Selection mode.
     # - USER_SELECTED:   The user manually changed the selected file by clicking or navigating
     #                    using the mouse.
@@ -35,18 +37,27 @@ class FileListForm(QtGui.QWidget):
     (USER_SELECTED, SYSTEM_SELECTED) = range(2)
 
     # Signal emitted whenever the selected file changes in one of the file views
-    file_selected = QtCore.Signal(object, object, int)# file, env, selection mode
+    file_selected = QtCore.Signal(object, object, int)  # file, env, selection mode
 
     # Signal emitted whenever a file is double-clicked
-    file_double_clicked = QtCore.Signal(object, object)# file, env
+    file_double_clicked = QtCore.Signal(object, object)  # file, env
 
     # Signal emitted whenever a context menu is required for a file
-    file_context_menu_requested = QtCore.Signal(object, object, QtCore.QPoint)# file, env, pos
+    file_context_menu_requested = QtCore.Signal(
+        object, object, QtCore.QPoint
+    )  # file, env, pos
 
-    def __init__(self, parent, search_label, file_filters, show_work_files=True, show_publishes=False):
+    def __init__(
+        self,
+        parent,
+        search_label,
+        file_filters,
+        show_work_files=True,
+        show_publishes=False,
+    ):
         """
         Construction
-        
+
         :param search_label:    The hint label to be displayed on the search control
         :show_work_files:       True if work files should be displayed in this control, otherwise False
         :show_publishes:        True if publishes should be displayed in this control, otherwise False
@@ -62,7 +73,9 @@ class FileListForm(QtGui.QWidget):
         self._file_filters = file_filters
         if self._file_filters:
             self._file_filters.changed.connect(self._on_file_filters_changed)
-            self._file_filters.available_users_changed.connect(self._on_file_filters_available_users_changed)
+            self._file_filters.available_users_changed.connect(
+                self._on_file_filters_available_users_changed
+            )
 
         self._show_work_files = show_work_files
         self._show_publishes = show_publishes
@@ -79,13 +92,19 @@ class FileListForm(QtGui.QWidget):
 
         self._ui.user_filter_btn.available_users = self._file_filters.available_users
         self._ui.user_filter_btn.selected_users = self._file_filters.users
-        self._ui.user_filter_btn.users_selected.connect(self._on_user_filter_btn_users_selected)
+        self._ui.user_filter_btn.users_selected.connect(
+            self._on_user_filter_btn_users_selected
+        )
         # user filter button is hidden until needed
         self.enable_user_filtering_widget(False)
 
-        self._ui.file_list_view.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+        self._ui.file_list_view.setSelectionMode(
+            QtGui.QAbstractItemView.SingleSelection
+        )
         self._ui.file_list_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self._ui.file_list_view.customContextMenuRequested.connect(self._on_context_menu_requested)
+        self._ui.file_list_view.customContextMenuRequested.connect(
+            self._on_context_menu_requested
+        )
 
         # we want to handle double-click on items but we only want double-clicks to work when using
         # the left mouse button.  To achieve this we connect to the doubleClicked slot but also install
@@ -115,7 +134,9 @@ class FileListForm(QtGui.QWidget):
             # detach the filter model from the views.  Note, this code assumes the same filter view
             # has been applied to both the list and the details view - if this isn't the case then
             # this code will need updating.
-            view_model = self._ui.file_list_view.model() or self._ui.file_details_view.model()
+            view_model = (
+                self._ui.file_list_view.model() or self._ui.file_details_view.model()
+            )
             if view_model:
                 self._ui.file_list_view.setModel(None)
                 self._ui.file_details_view.setModel(None)
@@ -154,7 +175,7 @@ class FileListForm(QtGui.QWidget):
     @property
     def selected_file(self):
         """
-        Property to use to query the file and the environment details for that file 
+        Property to use to query the file and the environment details for that file
         that are currently selected in the control.
 
         :returns:   A tuple containing (FileItem, WorkArea) or (None, None)
@@ -167,8 +188,12 @@ class FileListForm(QtGui.QWidget):
         if selection_model:
             selected_indexes = selection_model.selectedIndexes()
             if len(selected_indexes) == 1:
-                selected_file = get_model_data(selected_indexes[0], FileModel.FILE_ITEM_ROLE)
-                env_details = get_model_data(selected_indexes[0], FileModel.WORK_AREA_ROLE)
+                selected_file = get_model_data(
+                    selected_indexes[0], FileModel.FILE_ITEM_ROLE
+                )
+                env_details = get_model_data(
+                    selected_indexes[0], FileModel.WORK_AREA_ROLE
+                )
 
         return (selected_file, env_details)
 
@@ -204,9 +229,14 @@ class FileListForm(QtGui.QWidget):
             sandbox_type = ""
 
         if is_enabled:
-            self._ui.user_filter_btn.setToolTip("Click to see the list of %ssandboxes available for this context." % sandbox_type)
+            self._ui.user_filter_btn.setToolTip(
+                "Click to see the list of %ssandboxes available for this context."
+                % sandbox_type
+            )
         else:
-            self._ui.user_filter_btn.setToolTip("There are no %ssandboxes available for this context." % sandbox_type)
+            self._ui.user_filter_btn.setToolTip(
+                "There are no %ssandboxes available for this context." % sandbox_type
+            )
 
         self._ui.user_filter_btn.setEnabled(is_enabled)
 
@@ -236,18 +266,20 @@ class FileListForm(QtGui.QWidget):
         """
         if True:
             # create a filter model around the source model:
-            filter_model = FileProxyModel(self,
-                                          filters = self._file_filters,
-                                          show_work_files=self._show_work_files,
-                                          show_publishes=self._show_publishes)
+            filter_model = FileProxyModel(
+                self,
+                filters=self._file_filters,
+                show_work_files=self._show_work_files,
+                show_publishes=self._show_publishes,
+            )
             filter_model.rowsInserted.connect(self._on_filter_model_rows_inserted)
             filter_model.setSourceModel(model)
-    
+
             # set automatic sorting on the model:
             filter_model.sort(0, QtCore.Qt.DescendingOrder)
             filter_model.setDynamicSortFilter(True)
-    
-            # connect the views to the filtered model:        
+
+            # connect the views to the filtered model:
             self._ui.file_list_view.setModel(filter_model)
             self._ui.file_details_view.setModel(filter_model)
         else:
@@ -265,18 +297,20 @@ class FileListForm(QtGui.QWidget):
 
     def eventFilter(self, obj, event):
         """
-        Overriden from base class - filters events on QObjects that this instance is installed as 
-        an event filter for.  Used to swallow non-left-mouse-button double-clicks in the file list 
+        Overriden from base class - filters events on QObjects that this instance is installed as
+        an event filter for.  Used to swallow non-left-mouse-button double-clicks in the file list
         view.
 
         :param obj:     The QObject that events are being filtered for
         :param event:   The QEvent to filter
         :returns:       True if the event should be consumed and blocked for further use otherwise
-                        False if this method ignores the event 
+                        False if this method ignores the event
         """
         if obj == self._ui.file_list_view.viewport():
-            if (event.type() == QtCore.QEvent.MouseButtonDblClick
-                and event.button() != QtCore.Qt.LeftButton):
+            if (
+                event.type() == QtCore.QEvent.MouseButtonDblClick
+                and event.button() != QtCore.Qt.LeftButton
+            ):
                 # supress double-clicks that aren't from the left mouse button as this
                 # can feel very odd to the user!
                 return True
@@ -285,16 +319,16 @@ class FileListForm(QtGui.QWidget):
 
     def _update_selection(self, prev_selected_item=None):
         """
-        Update the selection to either the to-be-selected file if set or the current item if known.  The 
-        current item is the item that was last selected but which may no longer be visible in the view due 
-        to filtering.  This allows it to be tracked so that the selection state is correctly restored when 
+        Update the selection to either the to-be-selected file if set or the current item if known.  The
+        current item is the item that was last selected but which may no longer be visible in the view due
+        to filtering.  This allows it to be tracked so that the selection state is correctly restored when
         it becomes visible again.
 
         :param prev_selected_item:  The item that was previously selected (if any).  If, at the end of this
                                     method the selection is different then a file_selected signal will be
                                     emitted
         """
-        # we want to make sure we don't emit any signals whilst we are 
+        # we want to make sure we don't emit any signals whilst we are
         # manipulating the selection:
         signals_blocked = self.blockSignals(True)
         try:
@@ -312,15 +346,22 @@ class FileListForm(QtGui.QWidget):
 
             if item:
                 idx = item.index()
-                if isinstance(self._ui.file_list_view.model(), QtGui.QAbstractProxyModel):
+                if isinstance(
+                    self._ui.file_list_view.model(), QtGui.QAbstractProxyModel
+                ):
                     idx = self._ui.file_list_view.model().mapFromSource(idx)
                 if idx.isValid():
                     # make sure the item is expanded and visible in the list:
                     self._ui.file_list_view.scrollTo(idx)
 
                     # select the item:
-                    selection_flags = QtGui.QItemSelectionModel.Clear | QtGui.QItemSelectionModel.SelectCurrent 
-                    self._ui.file_list_view.selectionModel().select(idx, selection_flags)
+                    selection_flags = (
+                        QtGui.QItemSelectionModel.Clear
+                        | QtGui.QItemSelectionModel.SelectCurrent
+                    )
+                    self._ui.file_list_view.selectionModel().select(
+                        idx, selection_flags
+                    )
         finally:
             self.blockSignals(signals_blocked)
 
@@ -333,11 +374,17 @@ class FileListForm(QtGui.QWidget):
                 env_details = None
                 if selected_item:
                     # extract the file item from the index:
-                    selected_file = get_model_data(selected_item, FileModel.FILE_ITEM_ROLE)
-                    env_details = get_model_data(selected_item, FileModel.WORK_AREA_ROLE)
+                    selected_file = get_model_data(
+                        selected_item, FileModel.FILE_ITEM_ROLE
+                    )
+                    env_details = get_model_data(
+                        selected_item, FileModel.WORK_AREA_ROLE
+                    )
 
                 # emit the signal
-                self.file_selected.emit(selected_file, env_details, FileListForm.SYSTEM_SELECTED)
+                self.file_selected.emit(
+                    selected_file, env_details, FileListForm.SYSTEM_SELECTED
+                )
 
     def _on_file_filters_changed(self):
         """
@@ -345,8 +392,11 @@ class FileListForm(QtGui.QWidget):
         """
         # update UI based on the new filter settings:
         self._ui.all_versions_cb.setChecked(self._file_filters.show_all_versions)
-        self._ui.search_ctrl.search_text = (self._file_filters.filter_reg_exp.pattern() 
-                                                if self._file_filters.filter_reg_exp else "")
+        self._ui.search_ctrl.search_text = (
+            self._file_filters.filter_reg_exp.pattern()
+            if self._file_filters.filter_reg_exp
+            else ""
+        )
 
         self._ui.user_filter_btn.selected_users = self._file_filters.users
 
@@ -441,7 +491,9 @@ class FileListForm(QtGui.QWidget):
         prev_selected_item = self._reset_selection()
         try:
             # update the proxy filter search text:
-            filter_reg_exp = QtCore.QRegExp(search_text, QtCore.Qt.CaseInsensitive, QtCore.QRegExp.FixedString)
+            filter_reg_exp = QtCore.QRegExp(
+                search_text, QtCore.Qt.CaseInsensitive, QtCore.QRegExp.FixedString
+            )
             self._file_filters.filter_reg_exp = filter_reg_exp
         finally:
             # and update the selection - this will restore the original selection if possible.
@@ -526,4 +578,3 @@ class FileListForm(QtGui.QWidget):
 
         # emit file selected signal:
         self.file_selected.emit(selected_file, env_details, FileListForm.USER_SELECTED)
-

@@ -12,6 +12,7 @@
 File open menu factory.
 """
 import sgtk
+from tank_vendor import six
 
 from .action import SeparatorAction, ActionGroup
 
@@ -27,9 +28,18 @@ from .open_publish_actions import CopyAndOpenPublishInCurrentWorkAreaAction
 
 from .new_file_action import NewFileAction
 
-from .show_in_filesystem_action import ShowWorkFileInFileSystemAction, ShowPublishInFileSystemAction
-from .show_in_filesystem_action import ShowWorkAreaInFileSystemAction, ShowPublishAreaInFileSystemAction
-from .show_in_shotgun_action import ShowPublishInShotgunAction, ShowLatestPublishInShotgunAction
+from .show_in_filesystem_action import (
+    ShowWorkFileInFileSystemAction,
+    ShowPublishInFileSystemAction,
+)
+from .show_in_filesystem_action import (
+    ShowWorkAreaInFileSystemAction,
+    ShowPublishAreaInFileSystemAction,
+)
+from .show_in_shotgun_action import (
+    ShowPublishInShotgunAction,
+    ShowLatestPublishInShotgunAction,
+)
 
 from .custom_file_action import CustomFileAction
 
@@ -46,7 +56,9 @@ class FileActionFactory(object):
 
     __nb_versions_in_menu = 10
 
-    def __init__(self, work_area, file_model, workfiles_visible=True, publishes_visible=True):
+    def __init__(
+        self, work_area, file_model, workfiles_visible=True, publishes_visible=True
+    ):
         """
         Constructor.
 
@@ -65,7 +77,8 @@ class FileActionFactory(object):
         # determine if this file is in a different users sandbox:
         self._in_other_users_sandbox = (
             work_area.contains_user_sandboxes
-            and work_area.context.user and g_user_cache.current_user
+            and work_area.context.user
+            and g_user_cache.current_user
             and work_area.context.user["id"] != g_user_cache.current_user["id"]
         )
 
@@ -75,10 +88,12 @@ class FileActionFactory(object):
         self._user_work_area = work_area
         # Change work area tracks if the current context is different than the context of the file
         # being opened.
-        self._change_work_area = (work_area.context != app.context)
+        self._change_work_area = work_area.context != app.context
         if self._change_work_area and self._in_other_users_sandbox:
-            self._user_work_area = work_area.create_copy_for_user(g_user_cache.current_user)
-            self._change_work_area = (self._user_work_area.context != app.context)
+            self._user_work_area = work_area.create_copy_for_user(
+                g_user_cache.current_user
+            )
+            self._change_work_area = self._user_work_area.context != app.context
 
         # and if it's possible to copy this file to the work area:
         self._can_copy_to_work_area = False
@@ -113,22 +128,30 @@ class FileActionFactory(object):
                 current_user_file_versions,
                 self._work_area,
                 self._workfiles_visible,
-                self._publishes_visible
+                self._publishes_visible,
             )
         )
 
         # Creates Open actions for a workfile.
-        actions.extend(self._create_local_file_actions(file_item, current_user_file_versions))
+        actions.extend(
+            self._create_local_file_actions(file_item, current_user_file_versions)
+        )
         # Creates open actions for publishes.
-        actions.extend(self._create_published_file_actions(file_item, current_user_file_versions))
+        actions.extend(
+            self._create_published_file_actions(file_item, current_user_file_versions)
+        )
         # Creates actions for previous versions of the current file.
         actions.extend(self._create_previous_versions_actions_menus(file_item))
         # Creates a New action.
         actions.extend(self._create_new_file_action())
         # Creates actions provided by the custom_ ctions hook.
-        actions.extend(self._create_custom_actions(file_item, current_user_file_versions))
+        actions.extend(
+            self._create_custom_actions(file_item, current_user_file_versions)
+        )
         # Creates actions that allow to shot the files the OS's file browser or in Shotgun.
-        actions.extend(self._create_show_in_actions(file_item, current_user_file_versions))
+        actions.extend(
+            self._create_show_in_actions(file_item, current_user_file_versions)
+        )
 
         return actions
 
@@ -147,10 +170,16 @@ class FileActionFactory(object):
             # build a file key by extracting fields from the path:
             template = None
             path = None
-            if file_item.path and self._user_work_area.work_area_contains_user_sandboxes:
+            if (
+                file_item.path
+                and self._user_work_area.work_area_contains_user_sandboxes
+            ):
                 path = file_item.path
                 template = self._user_work_area.work_template
-            elif file_item.publish_path and self._user_work_area.publish_area_contains_user_sandboxes:
+            elif (
+                file_item.publish_path
+                and self._user_work_area.publish_area_contains_user_sandboxes
+            ):
                 path = file_item.publish_path
                 template = self._user_work_area.publish_template
 
@@ -158,8 +187,15 @@ class FileActionFactory(object):
                 fields = template.get_fields(path)
                 ctx_fields = self._user_work_area.context.as_template_fields(template)
                 fields.update(ctx_fields)
-                file_key = FileItem.build_file_key(fields, template, self._user_work_area.version_compare_ignore_fields)
-                current_user_file_versions = self._file_model.get_cached_file_versions(file_key, self._user_work_area) or {}
+                file_key = FileItem.build_file_key(
+                    fields, template, self._user_work_area.version_compare_ignore_fields
+                )
+                current_user_file_versions = (
+                    self._file_model.get_cached_file_versions(
+                        file_key, self._user_work_area
+                    )
+                    or {}
+                )
         else:
             # not using sandboxes so the two lists of versions are the same
             current_user_file_versions = file_item.versions
@@ -190,22 +226,36 @@ class FileActionFactory(object):
 
         if self._in_other_users_sandbox:
             # file is in another user sandbox so add appropriate actions:
-            actions.append(ContinueFromWorkFileAction(file_item, file_versions, self._work_area))
+            actions.append(
+                ContinueFromWorkFileAction(file_item, file_versions, self._work_area)
+            )
 
             if self._change_work_area and self._can_copy_to_work_area:
-                actions.append(CopyAndOpenFileInCurrentWorkAreaAction(file_item, file_versions, self._work_area))
+                actions.append(
+                    CopyAndOpenFileInCurrentWorkAreaAction(
+                        file_item, file_versions, self._work_area
+                    )
+                )
 
         else:
             # file isn't in a different sandbox so add regular open actions:
             if file_item.editable:
                 # determine if this version is the latest:
-                all_versions = [v for v, f in file_versions.iteritems()]
+                all_versions = [v for v, f in six.iteritems(file_versions)]
                 max_version = max(all_versions) if all_versions else 0
                 if file_item.version != max_version:
-                    actions.append(ContinueFromWorkFileAction(file_item, file_versions, self._work_area))
+                    actions.append(
+                        ContinueFromWorkFileAction(
+                            file_item, file_versions, self._work_area
+                        )
+                    )
 
             if self._change_work_area and self._can_copy_to_work_area:
-                actions.append(CopyAndOpenFileInCurrentWorkAreaAction(file_item, file_versions, self._work_area))
+                actions.append(
+                    CopyAndOpenFileInCurrentWorkAreaAction(
+                        file_item, file_versions, self._work_area
+                    )
+                )
 
         return actions
 
@@ -228,10 +278,16 @@ class FileActionFactory(object):
         actions.append(OpenPublishAction(file_item, file_versions, self._work_area))
         if file_item.path:
             # file has a local path so it's possible to carry copy it to the local work area!
-            actions.append(ContinueFromPublishAction(file_item, file_versions, self._work_area))
+            actions.append(
+                ContinueFromPublishAction(file_item, file_versions, self._work_area)
+            )
 
             if self._change_work_area and self._can_copy_to_work_area:
-                actions.append(CopyAndOpenPublishInCurrentWorkAreaAction(file_item, file_versions, self._work_area))
+                actions.append(
+                    CopyAndOpenPublishInCurrentWorkAreaAction(
+                        file_item, file_versions, self._work_area
+                    )
+                )
 
         return actions
 
@@ -250,14 +306,22 @@ class FileActionFactory(object):
         actions.extend(
             self._create_previous_versions_actions_menu(
                 "Previous Work Files",
-                [item for item in file_item.versions.itervalues() if file_item.version > item.version and item.is_local]
+                [
+                    item
+                    for item in six.itervalues(file_item.versions)
+                    if file_item.version > item.version and item.is_local
+                ],
             )
         )
 
         actions.extend(
             self._create_previous_versions_actions_menu(
                 "Previous Publishes",
-                [item for item in file_item.versions.itervalues() if file_item.version > item.version and item.is_published],
+                [
+                    item
+                    for item in six.itervalues(file_item.versions)
+                    if file_item.version > item.version and item.is_published
+                ],
             )
         )
 
@@ -292,19 +356,41 @@ class FileActionFactory(object):
         previous_versions_actions = []
 
         # Gives us the last ten versions, from the latest to the earliest.
-        for previous_file_item in previous_versions[-1: -self.__nb_versions_in_menu - 1: -1]:
+        for previous_file_item in previous_versions[
+            -1 : -self.__nb_versions_in_menu - 1 : -1
+        ]:
 
-            current_user_file_versions = self._get_current_user_file_versions(previous_file_item)
+            current_user_file_versions = self._get_current_user_file_versions(
+                previous_file_item
+            )
 
             version_actions = []
             # Retrieve all the actions for a version submenu. We're not interested into New, the default Open or
             # previous version actions for this sub menu, so we won't add them here.
-            version_actions.extend(self._create_local_file_actions(previous_file_item, current_user_file_versions))
-            version_actions.extend(self._create_published_file_actions(previous_file_item, current_user_file_versions))
-            version_actions.extend(self._create_custom_actions(previous_file_item, current_user_file_versions))
-            version_actions.extend(self._create_show_in_actions(previous_file_item, current_user_file_versions))
+            version_actions.extend(
+                self._create_local_file_actions(
+                    previous_file_item, current_user_file_versions
+                )
+            )
+            version_actions.extend(
+                self._create_published_file_actions(
+                    previous_file_item, current_user_file_versions
+                )
+            )
+            version_actions.extend(
+                self._create_custom_actions(
+                    previous_file_item, current_user_file_versions
+                )
+            )
+            version_actions.extend(
+                self._create_show_in_actions(
+                    previous_file_item, current_user_file_versions
+                )
+            )
 
-            previous_versions_actions.append(ActionGroup("Version %d" % previous_file_item.version, version_actions))
+            previous_versions_actions.append(
+                ActionGroup("Version %d" % previous_file_item.version, version_actions)
+            )
 
         return previous_versions_actions
 
@@ -316,7 +402,9 @@ class FileActionFactory(object):
         """
         # You can't create files in other users sandbox. The work area also needs to be configured
         # accordingly.
-        if self._in_other_users_sandbox or not NewFileAction.can_do_new_file(self._work_area):
+        if self._in_other_users_sandbox or not NewFileAction.can_do_new_file(
+            self._work_area
+        ):
             return []
 
         actions = []
@@ -336,16 +424,28 @@ class FileActionFactory(object):
         """
         actions = []
         # query for any custom actions:
-        custom_actions = CustomFileAction.get_action_details(file_item, file_versions, self._work_area,
-                                                             self._workfiles_visible, self._publishes_visible)
+        custom_actions = CustomFileAction.get_action_details(
+            file_item,
+            file_versions,
+            self._work_area,
+            self._workfiles_visible,
+            self._publishes_visible,
+        )
         if custom_actions:
             # ------------------------------------------------------------------
             actions.append(SeparatorAction())
         for action_dict in custom_actions:
             name = action_dict.get("name")
             label = action_dict.get("caption") or name
-            custom_action = CustomFileAction(name, label, file_item, file_versions, self._work_area,
-                                             self._workfiles_visible, self._publishes_visible)
+            custom_action = CustomFileAction(
+                name,
+                label,
+                file_item,
+                file_versions,
+                self._work_area,
+                self._workfiles_visible,
+                self._publishes_visible,
+            )
             actions.append(custom_action)
 
         return actions
@@ -361,22 +461,44 @@ class FileActionFactory(object):
         """
         show_in_actions = []
         if file_item.is_local:
-            show_in_actions.append(ShowWorkFileInFileSystemAction(file_item, file_versions, self._work_area))
+            show_in_actions.append(
+                ShowWorkFileInFileSystemAction(
+                    file_item, file_versions, self._work_area
+                )
+            )
         else:
             if self._work_area.work_area_template:
-                show_in_actions.append(ShowWorkAreaInFileSystemAction(file_item, file_versions, self._work_area))
+                show_in_actions.append(
+                    ShowWorkAreaInFileSystemAction(
+                        file_item, file_versions, self._work_area
+                    )
+                )
 
         if file_item.is_published:
-            show_in_actions.append(ShowPublishInFileSystemAction(file_item, file_versions, self._work_area))
-            show_in_actions.append(ShowPublishInShotgunAction(file_item, file_versions, self._work_area))
+            show_in_actions.append(
+                ShowPublishInFileSystemAction(file_item, file_versions, self._work_area)
+            )
+            show_in_actions.append(
+                ShowPublishInShotgunAction(file_item, file_versions, self._work_area)
+            )
         else:
             if self._work_area.publish_area_template:
-                show_in_actions.append(ShowPublishAreaInFileSystemAction(file_item, file_versions, self._work_area))
+                show_in_actions.append(
+                    ShowPublishAreaInFileSystemAction(
+                        file_item, file_versions, self._work_area
+                    )
+                )
 
             # see if we have any publishes:
-            publish_versions = [v for v, f in file_versions.iteritems() if f.is_published]
+            publish_versions = [
+                v for v, f in six.iteritems(file_versions) if f.is_published
+            ]
             if publish_versions:
-                show_in_actions.append(ShowLatestPublishInShotgunAction(file_item, file_versions, self._work_area))
+                show_in_actions.append(
+                    ShowLatestPublishInShotgunAction(
+                        file_item, file_versions, self._work_area
+                    )
+                )
 
         actions = []
         if show_in_actions:

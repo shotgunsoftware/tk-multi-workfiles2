@@ -21,7 +21,9 @@ class CustomActions(HookBaseClass):
     Implementation of the CustomActions class
     """
 
-    def generate_actions(self, file, work_versions, publish_versions, context, **kwargs):
+    def generate_actions(
+        self, file, work_versions, publish_versions, context, **kwargs
+    ):
         """
         Generate a list of actions that should be made available via the right-click context menu on a work file or
         publish in the main file view.
@@ -67,7 +69,9 @@ class CustomActions(HookBaseClass):
         # return [{"name":"do_something", "caption":"Do Something"}]
         return []
 
-    def execute_action(self, action, file, work_versions, publish_versions, context, **kwargs):
+    def execute_action(
+        self, action, file, work_versions, publish_versions, context, **kwargs
+    ):
         """
         Execute the specified action on the specified file/file versions.
 

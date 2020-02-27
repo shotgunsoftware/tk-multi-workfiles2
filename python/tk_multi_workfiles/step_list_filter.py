@@ -62,8 +62,9 @@ class StepListWidget(QtCore.QObject):
     """
     A list widget of Shotgun Pipeline steps per entity type.
     """
+
     _step_list = None
-    step_filter_changed = QtCore.Signal(object) # List of SG step dictionaries
+    step_filter_changed = QtCore.Signal(object)  # List of SG step dictionaries
 
     def __init__(self, list_widget):
         """
@@ -87,7 +88,7 @@ class StepListWidget(QtCore.QObject):
             # Settings were never saved before. Select all exsiting steps by
             # default.
             self._current_filter_step_ids = set()
-            for entity_type, step_list in self._step_list.iteritems():
+            for step_list in self._step_list.values():
                 self._current_filter_step_ids.update([x["id"] for x in step_list])
         else:
             self._current_filter_step_ids = set([x["id"] for x in load_step_filters()])
@@ -104,7 +105,7 @@ class StepListWidget(QtCore.QObject):
                 "Step",
                 [],
                 ["code", "entity_type", "color"],
-                order=[{"field_name": "code", "direction": "asc"}]
+                order=[{"field_name": "code", "direction": "asc"}],
             )
             # Build a dictionary for indexing by the entity_type
             cls._step_list = defaultdict(list)
@@ -194,7 +195,9 @@ class StepListWidget(QtCore.QObject):
 
         :returns: A potentially empty list of Shotgun Step entity dictionaries.
         """
-        return [{ "type": "Step", "id": step_id} for step_id in self._current_filter_step_ids]
+        return [
+            {"type": "Step", "id": step_id} for step_id in self._current_filter_step_ids
+        ]
 
     def _retrieve_and_emit_selection(self):
         """
@@ -226,7 +229,11 @@ class StepListWidget(QtCore.QObject):
             # un-wanted signals.
             if step["id"] in self._current_filter_step_ids:
                 widget.setChecked(True)
-            widget.toggled.connect(lambda value, step_id=step["id"] : self._on_step_filter_toggled(step_id, checked=value))
+            widget.toggled.connect(
+                lambda value, step_id=step["id"]: self._on_step_filter_toggled(
+                    step_id, checked=value
+                )
+            )
             item = QtGui.QListWidgetItem("", self._list_widget)
             item.setData(QtCore.Qt.UserRole, step)
             self._list_widget.setItemWidget(item, widget)
@@ -246,4 +253,3 @@ class StepListWidget(QtCore.QObject):
         else:
             self._current_filter_step_ids.discard(step_id)
         self._retrieve_and_emit_selection()
-

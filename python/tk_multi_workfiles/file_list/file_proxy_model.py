@@ -1,25 +1,28 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 
 import sgtk
 from sgtk.platform.qt import QtCore
+from tank_vendor import six
 
 from ..file_model import FileModel
 from ..framework_qtwidgets import HierarchicalFilteringProxyModel
 from ..util import get_model_data, get_model_str
 
+
 class FileProxyModel(HierarchicalFilteringProxyModel):
     """
     Proxy model used to sort and filter the file model
     """
+
     filtering_changed = QtCore.Signal()
 
     def __init__(self, parent, filters, show_work_files=True, show_publishes=True):
@@ -30,12 +33,12 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
                                 filtering this proxy model
         :param show_work_files: True if work files should be shown, otherwise False
         :param show_publishes:  True if publishes should be shown, otherwise False
-        :param parent:          The parent QObject of this proxy model 
+        :param parent:          The parent QObject of this proxy model
         """
         HierarchicalFilteringProxyModel.__init__(self, parent)
 
         # debug - disable caching!
-        #self.enable_caching(False)
+        # self.enable_caching(False)
 
         self._filters = filters
         if self._filters:
@@ -44,29 +47,33 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
         self._show_publishes = show_publishes
         self._show_workfiles = show_work_files
 
-    #@property
+    # @property
     def _get_show_publishes(self):
         return self._show_publishes
-    #@show_publishes.setter
+
+    # @show_publishes.setter
     def _set_show_publishes(self, show):
         self._show_publishes = show
         self.invalidateFilter()
-    show_publishes=property(_get_show_publishes, _set_show_publishes)
 
-    #@property
+    show_publishes = property(_get_show_publishes, _set_show_publishes)
+
+    # @property
     def _get_show_work_files(self):
         return self._show_workfiles
-    #@show_work_files.setter
+
+    # @show_work_files.setter
     def _set_show_work_files(self, show):
         self._show_workfiles = show
         self.invalidateFilter()
-    show_work_files=property(_get_show_work_files, _set_show_work_files)
+
+    show_work_files = property(_get_show_work_files, _set_show_work_files)
 
     def setFilterRegExp(self, reg_exp):
         """
         Overriden from base class - sets the filter regular expression by
         updating the regex in the FileFilters instance.
-        
+
         :param reg_exp:    The QRegExp expression instance to set
         """
         # update the filter string in the filters instance.  This will result
@@ -80,7 +87,9 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
         the proxy model so that the filtering is re-run.
         """
         if self._filters.filter_reg_exp != self.filterRegExp():
-            HierarchicalFilteringProxyModel.setFilterRegExp(self, self._filters.filter_reg_exp)
+            HierarchicalFilteringProxyModel.setFilterRegExp(
+                self, self._filters.filter_reg_exp
+            )
         self.invalidateFilter()
 
     def _is_row_accepted(self, src_row, src_parent_idx, parent_accepted):
@@ -108,22 +117,25 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
         file_item = get_model_data(src_idx, FileModel.FILE_ITEM_ROLE)
         if file_item:
             ## Filter based on showing work files, publishes or both:
-            if (not (file_item.is_local and self._show_workfiles)
-                and not (file_item.is_published and self._show_publishes)):
+            if not (file_item.is_local and self._show_workfiles) and not (
+                file_item.is_published and self._show_publishes
+            ):
                 return False
 
             if not self._filters.show_all_versions:
-                # Filter based on latest version - need to check if this is the latest 
+                # Filter based on latest version - need to check if this is the latest
                 # version of the file:
                 all_versions = file_item.versions
 
-                visible_versions = [v for v, f in all_versions.iteritems() 
-                                        if (f.is_local and self._show_workfiles) 
-                                            or (f.is_published and self._show_publishes)]
+                visible_versions = [
+                    v
+                    for v, f in six.iteritems(all_versions)
+                    if (f.is_local and self._show_workfiles)
+                    or (f.is_published and self._show_publishes)
+                ]
 
                 if not visible_versions or file_item.version != max(visible_versions):
                     return False
-
 
         # now compare text for item:
         if parent_accepted:
@@ -147,24 +159,24 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
 
     def lessThan(self, left_src_idx, right_src_idx):
         """
-        Overriden from base class - called to compare two indexes when the model is being 
+        Overriden from base class - called to compare two indexes when the model is being
         sorted.
 
         :param left_src_idx:    The left index in the source model to compare
         :param right_src_idx:   The right index in the source model to compare
-        :returns:               True of the source item for the left index is considered 
+        :returns:               True of the source item for the left index is considered
                                 less than the source item for the right index, otherwise
                                 False
         """
         if not left_src_idx.parent().isValid():
-            # this is a root item so just leave the items in row 
+            # this is a root item so just leave the items in row
             # order they are in in the source model:
             if self.sortOrder() == QtCore.Qt.AscendingOrder:
                 return left_src_idx.row() < right_src_idx.row()
             else:
                 return right_src_idx.row() < left_src_idx.row()
 
-        # get the items:        
+        # get the items:
         left_item = get_model_data(left_src_idx, FileModel.FILE_ITEM_ROLE)
         right_item = get_model_data(right_src_idx, FileModel.FILE_ITEM_ROLE)
 
@@ -172,7 +184,10 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
         if not left_item:
             if not right_item:
                 # sort in alphabetical order:
-                is_less_than = get_model_str(left_src_idx).lower() < get_model_str(right_src_idx).lower()
+                is_less_than = (
+                    get_model_str(left_src_idx).lower()
+                    < get_model_str(right_src_idx).lower()
+                )
                 if self.sortOrder() == QtCore.Qt.AscendingOrder:
                     return is_less_than
                 else:
@@ -183,11 +198,11 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
             return True
 
         if left_item.key != right_item.key:
-            # items represent different files but we want to group all file versions together. 
+            # items represent different files but we want to group all file versions together.
             # Therefore, we find the maximum version for each file and compare those instead.
             if left_item.versions and right_item.versions:
-                max_left_version = left_item.versions[max(left_item.versions.keys())]
-                max_right_version = right_item.versions[max(right_item.versions.keys())]
+                max_left_version = left_item.versions[max(left_item.versions)]
+                max_right_version = right_item.versions[max(right_item.versions)]
                 return max_left_version.compare(max_right_version) < 0
 
         # compare the two files!
@@ -200,7 +215,3 @@ class FileProxyModel(HierarchicalFilteringProxyModel):
         # with exactly the same modified date & time (an edge case) to be in alphabetical
         # order.  Because of this we reverse this comparison.
         return not (left_item.name < right_item.name)
-
-
-
-

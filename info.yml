@@ -1,11 +1,11 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 # Metadata defining the behaviour and requirements for this app
@@ -19,8 +19,8 @@ configuration:
     launch_at_startup:
         type: bool
         description: A flag whether to launch the UI at application startup.
-                     This option is not supported on all engines because of 
-                     differences in the way some platforms start up. Currently, only maya 
+                     This option is not supported on all engines because of
+                     differences in the way some platforms start up. Currently, only maya
                      nuke and 3ds Max support this option.
         default_value: False
 
@@ -57,26 +57,32 @@ configuration:
     hook_scene_operation:
         type: hook
         default_value: "{self}/scene_operation_{engine_name}.py"
-        description: All the application specific scene operations (open, save etc) that 
+        description: All the application specific scene operations (open, save etc) that
                      the app needs to carry out are collected together in this hook.
-        
+
     hook_copy_file:
         type: hook
         default_value: "{self}/copy_file.py"
-        description: Specify a hook that will be used to copy the file 'source_path' 
+        description: Specify a hook that will be used to copy the file 'source_path'
                      to 'target_path'.
 
     hook_filter_work_files:
         type: hook
         default_value: "{self}/filter_work_files.py"
         description: Specify a hook that, if needed, can filter the raw list of work files found
-                     for the current work area 
+                     for the current work area
 
     hook_filter_publishes:
         type: hook
         default_value: "{self}/filter_publishes.py"
         description: Specify a hook that, if needed, can filter the raw list of publishes returned
                      from Shotgun for the current Work area.
+
+    hook_get_badge:
+        type: hook
+        default_value: "{self}/get_badge.py"
+        description: Specify a hook that, if desired, provides a badge icon to include in the UI
+                     when displaying a publish or work file.
 
     custom_actions_hook:
         type: hook
@@ -190,10 +196,10 @@ configuration:
     version_compare_ignore_fields:
       type: list
       description:  A list of fields that should be ignored when comparing files to
-                    determine if they are different versions of the same file.  If 
+                    determine if they are different versions of the same file.  If
                     this is left empty then only the version field will be ignored.
-                    Care should be taken when specifying fields to ignore as Toolkit 
-                    will expect the version to be unique across files that have 
+                    Care should be taken when specifying fields to ignore as Toolkit
+                    will expect the version to be unique across files that have
                     different values for those fields and will error if this isn't the
                     case.
       values:
@@ -228,30 +234,29 @@ configuration:
 
     saveas_prefer_version_up:
       type: bool
-      description: Control how the save-as command determines the inital name to be used.  If 
-                   set to True then the name from the current scene will be used and the version 
-                   incremented.  If False then a new unique name will be used and the version 
+      description: Control how the save-as command determines the inital name to be used.  If
+                   set to True then the name from the current scene will be used and the version
+                   incremented.  If False then a new unique name will be used and the version
                    reset
       default_value: False
 
 # the Shotgun fields that this app needs in order to operate correctly
 requires_shotgun_fields:
 
-# More verbose description of this item 
+# More verbose description of this item
 display_name: "Shotgun Workfiles"
 description: "Using this app you can browse, open and save your Work Files and Publishes."
-              
+
 # Required minimum versions for this item to run
 requires_shotgun_version:
-requires_core_version: "v0.17.0"
+requires_core_version: "v0.19.1"
 requires_engine_version:
 
 # the engines that this app can operate in:
-supported_engines: 
+supported_engines:
 
 # the frameworks required to run this app
 frameworks:
     # We need a version of tk-framework-shotgunutils with a fix for deleting items.
     - {"name": "tk-framework-shotgunutils", "version": "v5.x.x", "minimum_version": "v5.3.5"}
-    - {"name": "tk-framework-qtwidgets", "version": "v2.x.x"}    
-    
+    - {"name": "tk-framework-qtwidgets", "version": "v2.x.x"}

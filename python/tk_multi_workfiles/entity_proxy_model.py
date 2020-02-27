@@ -1,24 +1,26 @@
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
+from tank_vendor import six
 
 from .framework_qtwidgets import HierarchicalFilteringProxyModel
 
 from .util import get_model_str
 
+
 class EntityProxyModel(HierarchicalFilteringProxyModel):
     """
     """
-    
+
     def __init__(self, parent, compare_sg_fields=None):
         """
         """
@@ -105,7 +107,7 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
             for cf in compare_fields:
                 if isinstance(cf, dict):
                     # e.g. {"three":"four", "five":["six", "seven"]}
-                    for key, value in cf.iteritems():
+                    for key, value in six.iteritems(cf):
                         data = sg_data.get(key)
                         if data:
                             if self._sg_data_matches_r(data, value, reg_exp):
@@ -119,5 +121,5 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
             val = sg_data.get(compare_fields)
             if val != None and reg_exp.indexIn(str(val)) != -1:
                 return True
-            
+
         return False

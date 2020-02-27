@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# 
+#
 # Copyright (c) 2015 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-# The path to output all built .py files to: 
+# The path to output all built .py files to:
 UI_PYTHON_PATH=../python/tk_multi_workfiles/ui
 
 # The path to where the PySide binaries are installed
@@ -35,7 +35,7 @@ function build_ui {
 }
 
 function build_res {
-    build_qt "${PYTHON_BASE}/pyside-rcc" "$1.qrc" "$1_rc"
+    build_qt "${PYTHON_BASE}/pyside-rcc -py3" "$1.qrc" "$1_rc"
 }
 
 

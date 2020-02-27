@@ -27,7 +27,16 @@ class SceneOperation(HookClass):
     current scene
     """
 
-    def execute(self, operation, file_path, context, parent_action, file_version, read_only, **kwargs):
+    def execute(
+        self,
+        operation,
+        file_path,
+        context,
+        parent_action,
+        file_version,
+        read_only,
+        **kwargs
+    ):
         """
         Main hook entry point
 
@@ -73,7 +82,10 @@ class SceneOperation(HookClass):
             # is 'new'.  However, if the file name is "Untitled.scn" and the scene
             # name is "Scene" rather than "Untitled", then we can be reasonably sure
             # that we haven't opened a file called Untitled.scn
-            if scene_name == "Scene" and os.path.basename(scene_filepath) == "Untitled.scn":
+            if (
+                scene_name == "Scene"
+                and os.path.basename(scene_filepath) == "Untitled.scn"
+            ):
                 return ""
             return scene_filepath
 
@@ -113,4 +125,3 @@ class SceneOperation(HookClass):
                 return False
             else:
                 return True
-
