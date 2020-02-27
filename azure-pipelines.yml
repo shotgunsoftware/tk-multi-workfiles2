@@ -42,6 +42,5 @@ jobs:
   parameters:
     additional_repositories:
       - name: tk-framework-shotgunutils
-        ref: SG-13276-workfiles2-python3-port
       - name: tk-framework-widget
       - name: tk-framework-qtwidgets
