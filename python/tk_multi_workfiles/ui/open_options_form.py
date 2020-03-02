@@ -46,7 +46,7 @@ class Ui_OpenOptionsForm(object):
 "border-style: none;\n"
 "border-width: 1px;\n"
 "border-color: rgb(0,0,0);\n"
-"background-color: rgb(255,255,255,48);\n"
+"background-color: rgba(255,255,255,48);\n"
 "}")
         self.publish_frame.setFrameShape(QtGui.QFrame.StyledPanel)
         self.publish_frame.setFrameShadow(QtGui.QFrame.Raised)
@@ -80,7 +80,7 @@ class Ui_OpenOptionsForm(object):
         self.publish_thumbnail.setMinimumSize(QtCore.QSize(130, 90))
         self.publish_thumbnail.setMaximumSize(QtCore.QSize(130, 90))
         self.publish_thumbnail.setStyleSheet("#publish_thumbnail {\n"
-"background-color: rgb(0,0,0,32);\n"
+"background-color: rgba(0,0,0,32);\n"
 "border-radius: 2px;\n"
 "}")
         self.publish_thumbnail.setFrameShape(QtGui.QFrame.NoFrame)
@@ -113,7 +113,7 @@ class Ui_OpenOptionsForm(object):
 "border-style: none;\n"
 "border-width: 1px;\n"
 "border-color: rgb(0,0,0);\n"
-"background-color: rgb(255,255,255,48);\n"
+"background-color: rgba(255,255,255,48);\n"
 "}")
         self.work_file_frame.setFrameShape(QtGui.QFrame.StyledPanel)
         self.work_file_frame.setFrameShadow(QtGui.QFrame.Raised)
@@ -146,7 +146,7 @@ class Ui_OpenOptionsForm(object):
         self.work_file_thumbnail.setMinimumSize(QtCore.QSize(130, 90))
         self.work_file_thumbnail.setMaximumSize(QtCore.QSize(130, 90))
         self.work_file_thumbnail.setStyleSheet("#work_file_thumbnail {\n"
-"background-color: rgb(0,0,0,32);\n"
+"background-color: rgba(0,0,0,32);\n"
 "border-radius: 2px;\n"
 "}")
         self.work_file_thumbnail.setFrameShape(QtGui.QFrame.NoFrame)
@@ -176,7 +176,7 @@ class Ui_OpenOptionsForm(object):
 "border-style: none;\n"
 "border-width: 1px;\n"
 "border-color: rgb(0,0,0);\n"
-"background-color: rgb(255,255,255,48);\n"
+"background-color: rgba(255,255,255,48);\n"
 "}")
         self.publish_ro_frame.setFrameShape(QtGui.QFrame.StyledPanel)
         self.publish_ro_frame.setFrameShadow(QtGui.QFrame.Raised)

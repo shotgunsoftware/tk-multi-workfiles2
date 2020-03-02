@@ -77,11 +77,11 @@ class OpenOptionsForm(QtGui.QWidget):
 
         ss = (
             "#%%s {"
-            "background-color: rgb(%d,%d,%d,32);"
+            "background-color: rgba(%d,%d,%d,32);"
             "border-radius: 4px;"
             "border-style: Solid;"
             "border-width: 1px;"
-            "border-color: rgb(%d,%d,%d,32);"
+            "border-color: rgba(%d,%d,%d,32);"
             "}"
             % (
                 bg_clr.red(),
@@ -94,8 +94,8 @@ class OpenOptionsForm(QtGui.QWidget):
         )
         ss += (
             "#%%s:hover {"
-            "background-color: rgb(%d,%d,%d,255);"
-            "border-color: rgb(%d,%d,%d,255);"
+            "background-color: rgb(%d,%d,%d);"
+            "border-color: rgb(%d,%d,%d);"
             "}"
             % (
                 hl_clr.red(),
@@ -108,7 +108,7 @@ class OpenOptionsForm(QtGui.QWidget):
         )
         ss += (
             "#%%s:focus {"
-            "border-color: rgb(%d,%d,%d,255);"
+            "border-color: rgb(%d,%d,%d);"
             "}" % (hl_clr.red(), hl_clr.green(), hl_clr.blue())
         )
         self._ui.publish_frame.setStyleSheet(

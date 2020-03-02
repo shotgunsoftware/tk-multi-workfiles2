@@ -158,7 +158,7 @@ class MultiWorkFiles(sgtk.platform.Application):
         :returns: An RGBA tuple of int (0-255).
         """
         color = sgtk.platform.qt.QtGui.QColor(self.style_constants["SG_ALERT_COLOR"])
-        return color.red(), color.green(), color.blue(), color.alpha()
+        return color.red(), color.green(), color.blue()
 
 
 class DebugWrapperShotgun(object):
