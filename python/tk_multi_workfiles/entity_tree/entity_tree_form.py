@@ -29,6 +29,10 @@ from ..util import (
 from ..util import get_sg_entity_name_field
 from ..entity_models import ShotgunDeferredEntityModel
 
+shotgun_globals = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils", "shotgun_globals"
+)
+
 
 class EntityTreeForm(QtGui.QWidget):
     """
@@ -846,7 +850,8 @@ class EntityTreeForm(QtGui.QWidget):
                 # expected key is present, use "name" if not.
                 if name_token not in entity:
                     name_token = "name"
-                label = "<b>%s</b> %s" % (entity["type"], entity.get(name_token))
+                display_type = shotgun_globals.get_type_display_name(entity["type"])
+                label = "<b>%s</b> %s" % (display_type, entity.get(name_token))
                 breadcrumbs.append(EntityTreeForm._EntityBreadcrumb(label, entity))
             else:
                 label = get_model_str(src_index)
