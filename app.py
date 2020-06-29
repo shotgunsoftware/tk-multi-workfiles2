@@ -81,7 +81,14 @@ class MultiWorkFiles(sgtk.platform.Application):
         # the behaviour can be very different.
         #
         # currently, we have done QA on the following engines:
-        SUPPORTED_ENGINES = ["tk-nuke", "tk-maya", "tk-3dsmax", "tk-alias", "tk-vred", "tk-sketchbook"]
+        SUPPORTED_ENGINES = [
+            "tk-nuke",
+            "tk-maya",
+            "tk-3dsmax",
+            "tk-alias",
+            "tk-vred",
+            "tk-sketchbook",
+        ]
 
         if not hasattr(sgtk, "_tk_multi_workfiles2_launch_at_startup"):
 
