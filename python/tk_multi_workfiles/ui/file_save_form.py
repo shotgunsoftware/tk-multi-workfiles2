@@ -123,6 +123,7 @@ class Ui_FileSaveForm(object):
         self.horizontalLayout_2.setSpacing(-1)
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.version_spinner = QtGui.QSpinBox(FileSaveForm)
+        self.version_spinner.setMaximum(9999)
         self.version_spinner.setObjectName("version_spinner")
         self.horizontalLayout_2.addWidget(self.version_spinner)
         self.use_next_available_cb = QtGui.QCheckBox(FileSaveForm)
