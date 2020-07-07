@@ -236,7 +236,7 @@ background-color: rgb(255, 128, 0);
          <item>
           <widget class="QSpinBox" name="version_spinner">
            <property name="maximum">
-            <number>9999</number>
+            <number>9999999</number>
            </property>
           </widget>
          </item>
