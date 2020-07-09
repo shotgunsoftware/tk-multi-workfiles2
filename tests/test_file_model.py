@@ -15,6 +15,10 @@ from tank_test.tank_test_base import setUpModule  # noqa
 from workfiles2_test_base import Workfiles2TestBase
 from workfiles2_test_base import tearDownModule  # noqa
 
+import pytest
+import sgtk
+import sys
+import os
 
 IS_PUBLISH = "publish"
 IS_WORKFILE = "workfile"
@@ -185,10 +189,15 @@ class TestFileModelWithSandboxes(TestFileModelBase):
             "tk-multi-workfiles2", "sandbox_path", "publish_path"
         )
 
+    @pytest.mark.skipif(
+        sys.version_info.major == 2 and sgtk.util.is_windows() and "CI" in os.environ,
+        reason="This test is flaky on Windows, Python 2.7.",
+    )
     def test_default_match_user_files(self):
         """
         Ensure the model will match only files from a user by default.
         """
+
         # Create scene files for each user
         self.create_work_file(self._concept_ctx_jeff, "scene", 1)
         self.create_work_file(self._concept_ctx_francis, "scene", 1)
@@ -218,6 +227,10 @@ class TestFileModelWithSandboxes(TestFileModelBase):
             ]
         )
 
+    @pytest.mark.skipif(
+        sys.version_info.major == 2 and sgtk.util.is_windows() and "CI" in os.environ,
+        reason="This test is flaky on Windows, Python 2.7.",
+    )
     def test_matches_specified_users(self):
         """
         Match files for a list of users.
@@ -240,6 +253,10 @@ class TestFileModelWithSandboxes(TestFileModelBase):
             ]
         )
 
+    @pytest.mark.skipif(
+        sys.version_info.major == 2 and sgtk.util.is_windows() and "CI" in os.environ,
+        reason="This test is flaky on Windows, Python 2.7.",
+    )
     def test_matches_publishes(self):
         """
         Match publishes as well as workfiles.
@@ -266,6 +283,10 @@ class TestFileModelWithSandboxes(TestFileModelBase):
             ]
         )
 
+    @pytest.mark.skipif(
+        sys.version_info.major == 2 and sgtk.util.is_windows() and "CI" in os.environ,
+        reason="This test is flaky on Windows, Python 2.7.",
+    )
     def test_multi_task_match_same_workfiles_but_different_publishes(self):
         """
         Ensure a task context resolves the files for all tasks on a given
@@ -307,6 +328,10 @@ class TestFileModelWithTaskFolder(TestFileModelBase):
             "tk-multi-workfiles2-with-tasks", "task_path", "publish_path"
         )
 
+    @pytest.mark.skipif(
+        sys.version_info.major == 2 and sgtk.util.is_windows() and "CI" in os.environ,
+        reason="This test is flaky on Windows, Python 2.7.",
+    )
     def test_task_sandboxing_isolates_workfiles_from_same_step(self):
         """
         Ensure that using a task folder will associate a workfile with that
