@@ -292,6 +292,8 @@ class BrowserForm(QtGui.QWidget):
                         ", ".join(list(self.TAB_INFO)),
                     )
                 )
+        else:
+            self._ui.file_browser_tabs.hide()
 
     def _add_file_list_form(
         self, tab_name, search_label, show_work_files, show_publishes

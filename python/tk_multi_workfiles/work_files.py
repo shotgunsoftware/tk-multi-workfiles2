@@ -102,7 +102,19 @@ class WorkFiles(object):
         handler = WorkFiles()
         from .file_open_form import FileOpenForm
 
-        handler._show_file_dlg("File Open", FileOpenForm)
+        handler._show_file_dlg("", FileOpenForm, FileOpenForm.FILE_MODE)
+
+    @staticmethod
+    def show_context_change_dlg():
+        """
+        Show the file open dialog
+        """
+        handler = WorkFiles()
+        from .file_open_form import FileOpenForm
+
+        handler._show_file_dlg(
+            "Change Context", FileOpenForm, FileOpenForm.CONTEXT_MODE
+        )
 
     @staticmethod
     def show_file_save_dlg():
@@ -114,7 +126,7 @@ class WorkFiles(object):
 
         handler._show_file_dlg("File Save", FileSaveForm)
 
-    def _show_file_dlg(self, dlg_name, form):
+    def _show_file_dlg(self, dlg_name, form, *args):
         """
         Shows the file dialog modally or not depending on the current DCC and settings.
 
@@ -123,6 +135,6 @@ class WorkFiles(object):
         """
         app = sgtk.platform.current_bundle()
         try:
-            self._dialog_launcher(dlg_name, app, form)
+            self._dialog_launcher(dlg_name, app, form, *args)
         except:
             app.log_exception("Failed to create %s dialog!" % dlg_name)

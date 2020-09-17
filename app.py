@@ -56,6 +56,24 @@ class MultiWorkFiles(sgtk.platform.Application):
             },
         )
 
+        self.engine.register_command(
+            "Change Context...",
+            self.show_context_change_dlg,
+            {
+                "short_name": "change_context",
+                # dark themed icon for engines that recognize this format
+                "icons": {
+                    "dark": {
+                        "png": os.path.join(
+                            os.path.dirname(__file__),
+                            "resources",
+                            "file_open_menu_icon.png",
+                        )
+                    }
+                },
+            },
+        )
+
         # register the file save command
         self.engine.register_command(
             "File Save...",
@@ -114,6 +132,12 @@ class MultiWorkFiles(sgtk.platform.Application):
         Launch the main File Open UI
         """
         self._tk_multi_workfiles.WorkFiles.show_file_open_dlg()
+
+    def show_context_change_dlg(self):
+        """
+        Launch the main File Open UI
+        """
+        self._tk_multi_workfiles.WorkFiles.show_context_change_dlg()
 
     def show_file_save_dlg(self):
         """

@@ -34,14 +34,18 @@ class FileOpenForm(FileFormBase):
     so that they can choose one to open in addition to any other user-definable actions.
     """
 
+    FILE_MODE = 0
+    CONTEXT_MODE = 1
+
     @property
     def exit_code(self):
         return self._exit_code
 
-    def __init__(self, parent=None):
+    def __init__(self, open_mode, parent=None):
         """
         Construction
         """
+        print(open_mode, parent)
         app = sgtk.platform.current_bundle()
 
         FileFormBase.__init__(self, parent)
@@ -56,11 +60,11 @@ class FileOpenForm(FileFormBase):
         try:
             # doing this inside a try-except to ensure any exceptions raised don't
             # break the UI and crash the dcc horribly!
-            self._do_init()
+            self._do_init(open_mode)
         except:
             app.log_exception("Unhandled exception during File Open Form construction!")
 
-    def _do_init(self):
+    def _do_init(self, open_mode):
         """
         """
         app = sgtk.platform.current_bundle()
@@ -79,7 +83,11 @@ class FileOpenForm(FileFormBase):
         # hook up signals on controls:
         self._ui.cancel_btn.clicked.connect(self._on_cancel)
         self._ui.open_btn.clicked.connect(self._on_open)
-        self._ui.new_file_btn.clicked.connect(self._on_new_file)
+
+        if open_mode == self.FILE_MODE:
+            self._ui.new_file_btn.clicked.connect(self._on_new_file)
+        else:
+            self._ui.new_file_btn.hide()
 
         self._ui.browser.file_context_menu_requested.connect(
             self._on_browser_context_menu_requested
@@ -99,7 +107,9 @@ class FileOpenForm(FileFormBase):
         # initialize the browser widget:
         self._ui.browser.show_user_filtering_widget(self._is_using_user_sandboxes())
         self._ui.browser.set_models(
-            self._my_tasks_model, self._entity_models, self._file_model
+            self._my_tasks_model,
+            self._entity_models,
+            self._file_model if open_mode == self.FILE_MODE else None,
         )
         current_file = self._get_current_file()
         self._ui.browser.select_work_area(app.context)
