@@ -42,6 +42,7 @@ jobs:
 - template: build-pipeline.yml@templates
   parameters:
     has_ui_tests: true
+    tk_toolchain_ref: automation_helpers
     additional_repositories:
       - name: tk-framework-shotgunutils
       - name: tk-framework-widget

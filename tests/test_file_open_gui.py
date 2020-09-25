@@ -18,7 +18,6 @@ from tk_toolchain.authentication import get_toolkit_user
 
 try:
     from MA.UI import topwindows
-    from MA.UI import first
 except ImportError:
     pytestmark = pytest.mark.skip()
 
@@ -92,10 +91,7 @@ def context():
 
     # File to publish
     file_to_publish = os.path.join(
-        os.path.expandvars("${TK_TEST_FIXTURES}"),
-        "files",
-        "images",
-        "sven.png"
+        os.path.expandvars("${TK_TEST_FIXTURES}"), "files", "images", "sven.png"
     )
 
     # Create a published file
@@ -291,7 +287,7 @@ def test_assets_tab(app_dialog):
     # Select the Assets tab
     app_dialog.root.tabs["Assets"].mouseClick()
 
-    #Make sure all expected UI is showing up
+    # Make sure all expected UI is showing up
     assert app_dialog.root.captions[
         "Filter by Pipeline Step"
     ].exists(), "Pipeline Step filters are missing"
@@ -394,7 +390,7 @@ def test_shots_tab(app_dialog):
     # Select the Shots tab
     app_dialog.root.tabs["Shots"].mouseClick()
 
-    #Make sure all expected UI is showing up
+    # Make sure all expected UI is showing up
     assert app_dialog.root.captions[
         "Filter by Pipeline Step"
     ].exists(), "Pipeline Step filters are missing"
