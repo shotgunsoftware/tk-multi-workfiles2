@@ -1,4 +1,4 @@
-# Copyright (c) 2019 Shotgun Software Inc.
+# Copyright (c) 2020 Shotgun Software Inc.
 #
 # CONFIDENTIAL AND PROPRIETARY
 #
@@ -37,9 +37,11 @@ pr:
 variables:
 - group: deploy-secrets
 
+# Launch into the build pipeline.
 jobs:
 - template: build-pipeline.yml@templates
   parameters:
+    has_ui_tests: true
     additional_repositories:
       - name: tk-framework-shotgunutils
       - name: tk-framework-widget
