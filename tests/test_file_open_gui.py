@@ -293,21 +293,11 @@ def test_assets_tab(app_dialog):
     app_dialog.root.outlineitems["Model"].waitExist(timeout=30)
 
     # Validate content dialog
-    assert app_dialog.root.cells[
-        "AssetAutomation"
-    ].exists(), "AssetAutomation is missing in content dialog"
-    assert app_dialog.root.cells[
-        "Art - Art"
-    ].exists(), "Art task is missing in content dialog"
-    assert app_dialog.root.cells[
-        "Model - Model"
-    ].exists(), "Model task is missing in content dialog"
-    assert app_dialog.root.cells[
-        "Rig - Rig"
-    ].exists(), "Rig task is missing in content dialog"
-    assert app_dialog.root.cells[
-        "Texture - Texture"
-    ].exists(), "Texture task is missing in content dialog"
+    app_dialog.root.cells["AssetAutomation"].waitExist(timeout=30)
+    app_dialog.root.cells["Art - Art"].waitExist(timeout=30)
+    app_dialog.root.cells["Model - Model"].waitExist(timeout=30)
+    app_dialog.root.cells["Rig - Rig"].waitExist(timeout=30)
+    app_dialog.root.cells["Texture - Texture"].waitExist(timeout=30)
 
     # Search in the content dialog for Rig and make sure Model is not showing up anymore
     app_dialog.root.textfields[0].typeIn("Rig" "{ENTER}")
@@ -384,15 +374,9 @@ def test_shots_tab(app_dialog):
     app_dialog.root.outlineitems["Comp"].waitExist(timeout=30)
 
     # Validate content dialog
-    assert app_dialog.root.cells[
-        "shot_001"
-    ].exists(), "shot_001 is missing in content dialog"
-    assert app_dialog.root.cells[
-        "Comp - Comp"
-    ].exists(), "Comp task is missing in content dialog"
-    assert app_dialog.root.cells[
-        "Light - Lighting"
-    ].exists(), "Light task is missing in content dialog"
+    app_dialog.root.cells["shot_001"].waitExist(timeout=30)
+    app_dialog.root.cells["Comp - Comp"].waitExist(timeout=30)
+    app_dialog.root.cells["Light - Lighting"].waitExist(timeout=30)
     app_dialog.root.outlineitems["Comp"].mouseDoubleClick()
     app_dialog.root.outlineitems["Comp"][1].waitExist(timeout=30)
     app_dialog.root.outlineitems["Comp"][1].mouseClick()
