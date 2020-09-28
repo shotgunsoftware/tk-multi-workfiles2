@@ -293,11 +293,11 @@ def test_assets_tab(app_dialog):
     app_dialog.root.outlineitems["Model"].waitExist(timeout=30)
 
     # Validate content dialog
-    app_dialog.root.cells["AssetAutomation"].waitExist(timeout=30)
+    # app_dialog.root.cells["AssetAutomation"].waitExist(timeout=30)
     # app_dialog.root.cells["Art - Art"].waitExist(timeout=30)
-    app_dialog.root.cells["Model - Model"].waitExist(timeout=30)
-    app_dialog.root.cells["Rig - Rig"].waitExist(timeout=30)
-    app_dialog.root.cells["Texture - Texture"].waitExist(timeout=30)
+    # app_dialog.root.cells["Model - Model"].waitExist(timeout=30)
+    # app_dialog.root.cells["Rig - Rig"].waitExist(timeout=30)
+    # app_dialog.root.cells["Texture - Texture"].waitExist(timeout=30)
 
     # Search in the content dialog for Rig and make sure Model is not showing up anymore
     app_dialog.root.textfields[0].typeIn("Rig" "{ENTER}")
