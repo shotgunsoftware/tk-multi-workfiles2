@@ -214,9 +214,7 @@ class AppDialogAppWrapper(object):
 
 def test_ui_validation(app_dialog, context):
     # Make Sure the File Open dialog is showing up in the right context
-    assert app_dialog.root.captions[
-        "File Open"
-    ].exists(), "Not the File Open dialog"
+    assert app_dialog.root.captions["File Open"].exists(), "Not the File Open dialog"
     assert app_dialog.root.captions[
         "*Project " + context["name"]
     ].exists(), "Not the right context"
@@ -231,29 +229,15 @@ def test_ui_validation(app_dialog, context):
     assert app_dialog.root.buttons[
         "nav_next_btn"
     ].exists(), "Nav next button is missing"
-    assert app_dialog.root.captions[
-        "My Tasks"
-    ].exists(), "Not the right breadcrumb"
+    assert app_dialog.root.captions["My Tasks"].exists(), "Not the right breadcrumb"
 
     # Make sure the all tabs are showing up.
-    assert app_dialog.root.tabs[
-        "My Tasks"
-    ].exists(), "My Tasks tab is missing"
-    assert app_dialog.root.tabs[
-        "Assets"
-    ].exists(), "Assets tab is missing"
-    assert app_dialog.root.tabs[
-        "Shots"
-    ].exists(), "Shots tab is missing"
-    assert app_dialog.root.tabs[
-        "All"
-    ].exists(), "All tab is missing"
-    assert app_dialog.root.tabs[
-        "Working"
-    ].exists(), "Working tab is missing"
-    assert app_dialog.root.tabs[
-        "Publishes"
-    ].exists(), "Publishes tab is missing"
+    assert app_dialog.root.tabs["My Tasks"].exists(), "My Tasks tab is missing"
+    assert app_dialog.root.tabs["Assets"].exists(), "Assets tab is missing"
+    assert app_dialog.root.tabs["Shots"].exists(), "Shots tab is missing"
+    assert app_dialog.root.tabs["All"].exists(), "All tab is missing"
+    assert app_dialog.root.tabs["Working"].exists(), "Working tab is missing"
+    assert app_dialog.root.tabs["Publishes"].exists(), "Publishes tab is missing"
 
     # Make sure all buttons are showing up
     assert app_dialog.root.buttons[
@@ -262,12 +246,8 @@ def test_ui_validation(app_dialog, context):
     assert app_dialog.root.buttons[
         "+ New File"
     ].exists(), "+ New File button is missing"
-    assert app_dialog.root.buttons[
-        "Cancel"
-    ].exists(), "Cancel button is missing"
-    assert app_dialog.root.buttons[
-        "Open"
-    ].exists(), "Open button is missing"
+    assert app_dialog.root.buttons["Cancel"].exists(), "Cancel button is missing"
+    assert app_dialog.root.buttons["Open"].exists(), "Open button is missing"
 
     # Make sure all test fields are showing up
     assert app_dialog.root.textfields[
@@ -303,22 +283,14 @@ def test_assets_tab(app_dialog):
     assert app_dialog.root.buttons[
         "+ New Task"
     ].exists(), "+ New Task button is missing"
-    assert app_dialog.root.textfields[
-        1
-    ].exists(), "Search Assets text field is missing"
+    assert app_dialog.root.textfields[1].exists(), "Search Assets text field is missing"
 
     # Got to the model task and validate breadcrumb
-    app_dialog.root.outlineitems["Character"].waitExist(
-        timeout=30
-    )
+    app_dialog.root.outlineitems["Character"].waitExist(timeout=30)
     app_dialog.root.outlineitems["Character"].mouseDoubleClick()
-    app_dialog.root.outlineitems["AssetAutomation"].waitExist(
-        timeout=30
-    )
+    app_dialog.root.outlineitems["AssetAutomation"].waitExist(timeout=30)
     app_dialog.root.outlineitems["AssetAutomation"].mouseDoubleClick()
-    app_dialog.root.outlineitems["Model"].waitExist(
-        timeout=30
-    )
+    app_dialog.root.outlineitems["Model"].waitExist(timeout=30)
 
     # Validate content dialog
     assert app_dialog.root.cells[
@@ -342,9 +314,9 @@ def test_assets_tab(app_dialog):
     assert app_dialog.root.cells[
         "Rig - Rig"
     ].exists(), "Rig task should be visible in content dialog"
-    assert app_dialog.root.cells[
-        "Model - Model"
-    ].exists() is False, "Model task shouldn't be visible in content dialog"
+    assert (
+        app_dialog.root.cells["Model - Model"].exists() is False
+    ), "Model task shouldn't be visible in content dialog"
 
     # Remove test in the search field and make sure Modal task is back
     app_dialog.root.textfields[0].buttons.mouseClick()
@@ -354,15 +326,11 @@ def test_assets_tab(app_dialog):
 
     # Select Model task
     app_dialog.root.outlineitems["Model"].mouseDoubleClick()
-    app_dialog.root.outlineitems["Model"][1].waitExist(
-        timeout=30
-    )
+    app_dialog.root.outlineitems["Model"][1].waitExist(timeout=30)
     app_dialog.root.outlineitems["Model"][1].mouseClick()
 
     # Validate content dialog
-    assert app_dialog.root.cells[
-        "Model - Model"
-    ].exists(), "Not on the right tasks"
+    assert app_dialog.root.cells["Model - Model"].exists(), "Not on the right tasks"
 
     # Validate breadcrumb
     assert app_dialog.root.captions[
@@ -381,9 +349,9 @@ def test_assets_tab(app_dialog):
 
     # Enable My Tasks Only and make sure Art task is not showing up anymore
     app_dialog.root.checkboxes["My Tasks Only"].mouseClick()
-    assert app_dialog.root.outlineitems[
-        "Art"
-    ].exists() is False, "Art task shouldn't be visible"
+    assert (
+        app_dialog.root.outlineitems["Art"].exists() is False
+    ), "Art task shouldn't be visible"
 
 
 def test_shots_tab(app_dialog):
@@ -406,22 +374,14 @@ def test_shots_tab(app_dialog):
     assert app_dialog.root.buttons[
         "+ New Task"
     ].exists(), "+ New Task button is missing"
-    assert app_dialog.root.textfields[
-        1
-    ].exists(), "Search Shots text field is missing"
+    assert app_dialog.root.textfields[1].exists(), "Search Shots text field is missing"
 
     # Got to the model task and validate breadcrumb
-    app_dialog.root.outlineitems["seq_001"].waitExist(
-        timeout=30
-    )
+    app_dialog.root.outlineitems["seq_001"].waitExist(timeout=30)
     app_dialog.root.outlineitems["seq_001"].mouseDoubleClick()
-    app_dialog.root.outlineitems["shot_001"].waitExist(
-        timeout=30
-    )
+    app_dialog.root.outlineitems["shot_001"].waitExist(timeout=30)
     app_dialog.root.outlineitems["shot_001"].mouseDoubleClick()
-    app_dialog.root.outlineitems["Comp"].waitExist(
-        timeout=30
-    )
+    app_dialog.root.outlineitems["Comp"].waitExist(timeout=30)
 
     # Validate content dialog
     assert app_dialog.root.cells[
@@ -434,15 +394,11 @@ def test_shots_tab(app_dialog):
         "Light - Lighting"
     ].exists(), "Light task is missing in content dialog"
     app_dialog.root.outlineitems["Comp"].mouseDoubleClick()
-    app_dialog.root.outlineitems["Comp"][1].waitExist(
-        timeout=30
-    )
+    app_dialog.root.outlineitems["Comp"][1].waitExist(timeout=30)
     app_dialog.root.outlineitems["Comp"][1].mouseClick()
 
     # Validate content dialog
-    assert app_dialog.root.cells[
-        "Comp - Comp"
-    ].exists(), "Not on the right tasks"
+    assert app_dialog.root.cells["Comp - Comp"].exists(), "Not on the right tasks"
 
     # Validate breadcrumb
     assert app_dialog.root.captions[
@@ -461,27 +417,23 @@ def test_shots_tab(app_dialog):
 
     # Unselect all Pipeline Step filters and make sure Comp task is no more showing up
     app_dialog.root.buttons["Select None"].mouseClick()
-    assert app_dialog.root.outlineitems[
-        "Comp"
-    ].exists() is False, "Comp task shouldn't be visible"
-    assert app_dialog.root.cells[
-        "Comp - Comp"
-    ].exists() is False, "Comp task shouldn't be visible in content dialog"
+    assert (
+        app_dialog.root.outlineitems["Comp"].exists() is False
+    ), "Comp task shouldn't be visible"
+    assert (
+        app_dialog.root.cells["Comp - Comp"].exists() is False
+    ), "Comp task shouldn't be visible in content dialog"
 
     # Select all Pipeline Step filters and make sure Comp task is showing up
     app_dialog.root.buttons["Select All"].mouseClick()
-    app_dialog.root.outlineitems["Comp"].waitExist(
-        timeout=30
-    )
-    assert app_dialog.root.outlineitems[
-        "Comp"
-    ].exists(), "Comp task should be visible"
+    app_dialog.root.outlineitems["Comp"].waitExist(timeout=30)
+    assert app_dialog.root.outlineitems["Comp"].exists(), "Comp task should be visible"
 
     # Search for Anm and make sure Comp is not showing up anymore
     app_dialog.root.textfields[1].typeIn("Light" "{ENTER}")
     assert app_dialog.root.outlineitems[
         "Light"
     ].exists(), "Light task should be visible"
-    assert app_dialog.root.outlineitems[
-        "Comp"
-    ].exists() is False, "Comp task shouldn't be visible"
+    assert (
+        app_dialog.root.outlineitems["Comp"].exists() is False
+    ), "Comp task shouldn't be visible"
