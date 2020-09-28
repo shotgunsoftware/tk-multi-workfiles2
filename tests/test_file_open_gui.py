@@ -277,9 +277,9 @@ def test_assets_tab(app_dialog):
     assert app_dialog.root.buttons[
         "Select None"
     ].exists(), "Pipeline Step filters Select None button is missing"
-    assert app_dialog.root.checkboxes[
-        "My Tasks Only"
-    ].exists(), "My Tasks Only checkbox is missing"
+    # assert app_dialog.root.checkboxes[
+    #     "My Tasks Only"
+    # ].exists(), "My Tasks Only checkbox is missing"
     assert app_dialog.root.buttons[
         "+ New Task"
     ].exists(), "+ New Task button is missing"
@@ -348,10 +348,10 @@ def test_assets_tab(app_dialog):
     ].exists(), "Breadcrumb widget is not set correctly"
 
     # Enable My Tasks Only and make sure Art task is not showing up anymore
-    app_dialog.root.checkboxes["My Tasks Only"].mouseClick()
-    assert (
-        app_dialog.root.outlineitems["Art"].exists() is False
-    ), "Art task shouldn't be visible"
+    # app_dialog.root.checkboxes["My Tasks Only"].mouseClick()
+    # assert (
+    #     app_dialog.root.outlineitems["Art"].exists() is False
+    # ), "Art task shouldn't be visible"
 
 
 def test_shots_tab(app_dialog):
@@ -368,9 +368,9 @@ def test_shots_tab(app_dialog):
     assert app_dialog.root.buttons[
         "Select None"
     ].exists(), "Pipeline Step filters Select None button is missing"
-    assert app_dialog.root.checkboxes[
-        "My Tasks Only"
-    ].exists(), "My Tasks Only checkbox is missing"
+    # assert app_dialog.root.checkboxes[
+    #     "My Tasks Only"
+    # ].exists(), "My Tasks Only checkbox is missing"
     assert app_dialog.root.buttons[
         "+ New Task"
     ].exists(), "+ New Task button is missing"
