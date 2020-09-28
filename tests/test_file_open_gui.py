@@ -310,9 +310,9 @@ def test_assets_tab(app_dialog):
 
     # Remove test in the search field and make sure Modal task is back
     app_dialog.root.textfields[0].buttons.mouseClick()
-    assert app_dialog.root.cells[
-        "Model - Model"
-    ].exists(), "Model task should be visible in content dialog"
+    # assert app_dialog.root.cells[
+    #     "Model - Model"
+    # ].exists(), "Model task should be visible in content dialog"
 
     # Select Model task
     app_dialog.root.outlineitems["Model"].mouseDoubleClick()
@@ -320,7 +320,7 @@ def test_assets_tab(app_dialog):
     app_dialog.root.outlineitems["Model"][1].mouseClick()
 
     # Validate content dialog
-    assert app_dialog.root.cells["Model - Model"].exists(), "Not on the right tasks"
+    # assert app_dialog.root.cells["Model - Model"].exists(), "Not on the right tasks"
 
     # Validate breadcrumb
     assert app_dialog.root.captions[
