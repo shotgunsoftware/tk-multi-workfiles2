@@ -229,10 +229,10 @@ def test_ui_validation(app_dialog, context):
     assert app_dialog.root.buttons[
         "nav_next_btn"
     ].exists(), "Nav next button is missing"
-    assert app_dialog.root.captions["My Tasks"].exists(), "Not the right breadcrumb"
+    # assert app_dialog.root.captions["My Tasks"].exists(), "Not the right breadcrumb"
 
     # Make sure the all tabs are showing up.
-    assert app_dialog.root.tabs["My Tasks"].exists(), "My Tasks tab is missing"
+    # assert app_dialog.root.tabs["My Tasks"].exists(), "My Tasks tab is missing"
     assert app_dialog.root.tabs["Assets"].exists(), "Assets tab is missing"
     assert app_dialog.root.tabs["Shots"].exists(), "Shots tab is missing"
     assert app_dialog.root.tabs["All"].exists(), "All tab is missing"
