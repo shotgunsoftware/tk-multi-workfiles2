@@ -296,7 +296,7 @@ def test_assets_tab(app_dialog):
     assert app_dialog.root.cells[
         "AssetAutomation"
     ].exists(), "AssetAutomation is missing in content dialog"
-    ### These tests are failing on Azure but succeed locally. Need more investigation
+    # These tests are failing on Azure but succeed locally. Need more investigation
     # assert app_dialog.root.cells[
     #     "Art - Art"
     # ].exists(), "Art task is missing in content dialog"
