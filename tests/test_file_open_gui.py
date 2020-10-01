@@ -49,7 +49,7 @@ def context():
     if existed_project is not None:
         sg.delete(existed_project["type"], existed_project["id"])
 
-    # Create a new project with the Film VFX Template
+    # Create a new project without template. This mean it will use the default one.
     project_data = {
         "sg_description": "Project Created by Automation",
         "name": "Toolkit File Open UI Automation",
@@ -58,7 +58,7 @@ def context():
 
     # Create a Sequence to be used by the Shot creation
     sequence_data = {
-        "project": {"type": new_project["type"], "id": new_project["id"]},
+        "project": new_project,
         "code": "seq_001",
         "sg_status_list": "ip",
     }
@@ -66,9 +66,10 @@ def context():
 
     # Create a new shot
     shot_data = {
-        "project": {"type": new_project["type"], "id": new_project["id"]},
-        "sg_sequence": {"type": new_sequence["type"], "id": new_sequence["id"]},
+        "project": new_project,
+        "sg_sequence": new_sequence,
         "code": "shot_001",
+        "description": "This shot was created by the File Open UI automation",
         "sg_status_list": "ip",
         "task_template": {"type": "TaskTemplate", "id": 5},
     }
@@ -76,7 +77,7 @@ def context():
 
     # Create a new asset
     asset_data = {
-        "project": {"type": new_project["type"], "id": new_project["id"]},
+        "project": new_project,
         "code": "AssetAutomation",
         "description": "This asset was created by the File Open UI automation",
         "sg_status_list": "ip",
@@ -96,14 +97,11 @@ def context():
 
     # Create a published file
     publish_data = {
-        "project": {"type": new_project["type"], "id": new_project["id"]},
+        "project": new_project,
         "code": "sven.png",
         "name": "sven.png",
         "description": "This file was published by the File Open UI automation",
-        "published_file_type": {
-            "type": published_file_type["type"],
-            "id": published_file_type["id"],
-        },
+        "published_file_type": published_file_type,
         "path": {"local_path": file_to_publish},
         "entity": asset,
         "version_number": 1,
@@ -297,35 +295,38 @@ def test_assets_tab(app_dialog):
         "AssetAutomation"
     ].exists(), "AssetAutomation is missing in content dialog"
     # These tests are failing on Azure but succeed locally. Need more investigation
-    # assert app_dialog.root.cells[
-    #     "Art - Art"
-    # ].exists(), "Art task is missing in content dialog"
-    # assert app_dialog.root.cells[
-    #     "Model - Model"
-    # ].exists(), "Model task is missing in content dialog"
-    # assert app_dialog.root.cells[
-    #     "Rig - Rig"
-    # ].exists(), "Rig task is missing in content dialog"
-    # assert app_dialog.root.cells[
-    #     "Texture - Texture"
-    # ].exists(), "Texture task is missing in content dialog"
+    if "CI" not in os.environ:
+        assert app_dialog.root.cells[
+            "Art - Art"
+        ].exists(), "Art task is missing in content dialog"
+        assert app_dialog.root.cells[
+            "Model - Model"
+        ].exists(), "Model task is missing in content dialog"
+        assert app_dialog.root.cells[
+            "Rig - Rig"
+        ].exists(), "Rig task is missing in content dialog"
+        assert app_dialog.root.cells[
+            "Texture - Texture"
+        ].exists(), "Texture task is missing in content dialog"
 
     # Search in the content dialog for Rig and make sure Model is not showing up anymore
     app_dialog.root.textfields[0].typeIn("Rig" "{ENTER}")
     # These tests are failing on Azure but succeed locally. Need more investigation
-    # assert app_dialog.root.cells[
-    #     "Rig - Rig"
-    # ].exists(), "Rig task should be visible in content dialog"
-    # assert (
-    #     app_dialog.root.cells["Model - Model"].exists() is False
-    # ), "Model task shouldn't be visible in content dialog"
+    if "CI" not in os.environ:
+        assert app_dialog.root.cells[
+            "Rig - Rig"
+        ].exists(), "Rig task should be visible in content dialog"
+        assert (
+            app_dialog.root.cells["Model - Model"].exists() is False
+        ), "Model task shouldn't be visible in content dialog"
 
     # Remove test in the search field and make sure Modal task is back
     app_dialog.root.textfields[0].buttons.mouseClick()
     # This test is failing on Azure but succeed locally. Need more investigation
-    # assert app_dialog.root.cells[
-    #     "Model - Model"
-    # ].exists(), "Model task should be visible in content dialog"
+    if "CI" not in os.environ:
+        assert app_dialog.root.cells[
+            "Model - Model"
+        ].exists(), "Model task should be visible in content dialog"
 
     # Select Model task
     app_dialog.root.outlineitems["Model"].mouseDoubleClick()
@@ -334,7 +335,8 @@ def test_assets_tab(app_dialog):
 
     # Validate content dialog
     # This test is failing on Azure but succeed locally. Need more investigation
-    # assert app_dialog.root.cells["Model - Model"].exists(), "Not on the right tasks"
+    if "CI" not in os.environ:
+        assert app_dialog.root.cells["Model - Model"].exists(), "Not on the right tasks"
 
     # Validate breadcrumb
     assert app_dialog.root.captions[
