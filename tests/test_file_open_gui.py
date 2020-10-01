@@ -64,6 +64,71 @@ def context():
     }
     new_sequence = sg.create("Sequence", sequence_data)
 
+    # Validate if Automation shot task template exists
+    shot_template_filters = [["code", "is", "Automation Shot Task Template"]]
+    existed_shot_template = sg.find_one("TaskTemplate", shot_template_filters)
+    if existed_shot_template is not None:
+        sg.delete(existed_shot_template["type"], existed_shot_template["id"])
+    # Create a shot task templates
+    shot_template_data = {
+        "code": "Automation Shot Task Template",
+        "description": "This shot task template was created by the File Open UI automation",
+        "entity_type": "Shot",
+    }
+    shot_task_template = sg.create("TaskTemplate", shot_template_data)
+    # Get the Comp Pipeline step ID
+    comp_pipeline_step_filter = [["code", "is", "Comp"]]
+    comp_pipeline_step = sg.find_one("Step", comp_pipeline_step_filter)
+    # Create Comp task
+    comp_task_data = {
+        "content": "Comp",
+        "step": comp_pipeline_step,
+        "task_template": shot_task_template,
+    }
+    sg.create("Task", comp_task_data)
+    # Get the Light Pipeline step ID
+    light_pipeline_step_filter = [["code", "is", "Light"]]
+    light_pipeline_step = sg.find_one("Step", light_pipeline_step_filter)
+    # Create Light task
+    light_task_data = {
+        "content": "Light",
+        "step": light_pipeline_step,
+        "task_template": shot_task_template,
+    }
+    sg.create("Task", light_task_data)
+    # Validate if Automation asset task template exists
+    asset_template_filters = [["code", "is", "Automation Asset Task Template"]]
+    existed_asset_template = sg.find_one("TaskTemplate", asset_template_filters)
+    if existed_asset_template is not None:
+        sg.delete(existed_asset_template["type"], existed_asset_template["id"])
+    # Create an asset task templates
+    asset_template_data = {
+        "code": "Automation Asset Task Template",
+        "description": "This asset task template was created by the File Open UI automation",
+        "entity_type": "Asset",
+    }
+    asset_task_template = sg.create("TaskTemplate", asset_template_data)
+    # Get the Model Pipeline step ID
+    model_pipeline_step_filter = [["code", "is", "Model"]]
+    model_pipeline_step = sg.find_one("Step", model_pipeline_step_filter)
+    # Create Model task
+    model_task_data = {
+        "content": "Model",
+        "step": model_pipeline_step,
+        "task_template": asset_task_template,
+    }
+    sg.create("Task", model_task_data)
+    # Get the Rig Pipeline step ID
+    rig_pipeline_step_filter = [["code", "is", "Rig"]]
+    rig_pipeline_step = sg.find_one("Step", rig_pipeline_step_filter)
+    # Create Rig task
+    rig_task_data = {
+        "content": "Rig",
+        "step": rig_pipeline_step,
+        "task_template": asset_task_template,
+    }
+    sg.create("Task", rig_task_data)
+
     # Create a new shot
     shot_data = {
         "project": new_project,
@@ -71,7 +136,7 @@ def context():
         "code": "shot_001",
         "description": "This shot was created by the File Open UI automation",
         "sg_status_list": "ip",
-        "task_template": {"type": "TaskTemplate", "id": 5},
+        "task_template": shot_task_template,
     }
     sg.create("Shot", shot_data)
 
@@ -82,7 +147,7 @@ def context():
         "description": "This asset was created by the File Open UI automation",
         "sg_status_list": "ip",
         "sg_asset_type": "Character",
-        "task_template": {"type": "TaskTemplate", "id": 1},
+        "task_template": asset_task_template,
     }
     asset = sg.create("Asset", asset_data)
 
@@ -297,17 +362,11 @@ def test_assets_tab(app_dialog):
     # These tests are failing on Azure but succeed locally. Need more investigation
     if "CI" not in os.environ:
         assert app_dialog.root.cells[
-            "Art - Art"
-        ].exists(), "Art task is missing in content dialog"
-        assert app_dialog.root.cells[
             "Model - Model"
         ].exists(), "Model task is missing in content dialog"
         assert app_dialog.root.cells[
             "Rig - Rig"
         ].exists(), "Rig task is missing in content dialog"
-        assert app_dialog.root.cells[
-            "Texture - Texture"
-        ].exists(), "Texture task is missing in content dialog"
 
     # Search in the content dialog for Rig and make sure Model is not showing up anymore
     app_dialog.root.textfields[0].typeIn("Rig" "{ENTER}")
@@ -353,11 +412,11 @@ def test_assets_tab(app_dialog):
         "Assets"
     ].exists(), "Breadcrumb widget is not set correctly"
 
-    # Enable My Tasks Only and make sure Art task is not showing up anymore
+    # Enable My Tasks Only and make sure Model task is not showing up anymore
     app_dialog.root.checkboxes["My Tasks Only"].mouseClick()
     assert (
-        app_dialog.root.outlineitems["Art"].exists() is False
-    ), "Art task shouldn't be visible"
+        app_dialog.root.outlineitems["Model"].exists() is False
+    ), "Model task shouldn't be visible"
 
 
 def test_shots_tab(app_dialog):
@@ -394,17 +453,11 @@ def test_shots_tab(app_dialog):
         "shot_001"
     ].exists(), "shot_001 is missing in content dialog"
     assert app_dialog.root.cells[
-        "Animation - Animation"
-    ].exists(), "Animation task is missing in content dialog"
-    assert app_dialog.root.cells[
         "Comp - Comp"
     ].exists(), "Comp task is missing in content dialog"
     assert app_dialog.root.cells[
-        "Light - Lighting"
+        "Light - Light"
     ].exists(), "Light task is missing in content dialog"
-    assert app_dialog.root.cells[
-        "Online - Plates online"
-    ].exists(), "Plates online task is missing in content dialog"
     app_dialog.root.outlineitems["Comp"].mouseDoubleClick()
     app_dialog.root.outlineitems["Comp"][1].waitExist(timeout=30)
     app_dialog.root.outlineitems["Comp"][1].mouseClick()
