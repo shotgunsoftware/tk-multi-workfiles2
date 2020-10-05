@@ -359,8 +359,6 @@ def test_assets_tab(app_dialog):
     assert app_dialog.root.cells[
         "AssetAutomation"
     ].exists(), "AssetAutomation is missing in content dialog"
-    # These tests are failing on Azure but succeed locally. Need more investigation
-    # if "CI" not in os.environ:
     assert app_dialog.root.cells[
         "Model - Model"
     ].exists(), "Model task is missing in content dialog"
@@ -370,8 +368,6 @@ def test_assets_tab(app_dialog):
 
     # Search in the content dialog for Rig and make sure Model is not showing up anymore
     app_dialog.root.textfields[0].typeIn("Rig" "{ENTER}")
-    # These tests are failing on Azure but succeed locally. Need more investigation
-    # if "CI" not in os.environ:
     assert app_dialog.root.cells[
         "Rig - Rig"
     ].exists(), "Rig task should be visible in content dialog"
@@ -381,8 +377,6 @@ def test_assets_tab(app_dialog):
 
     # Remove test in the search field and make sure Modal task is back
     app_dialog.root.textfields[0].buttons.mouseClick()
-    # This test is failing on Azure but succeed locally. Need more investigation
-    # if "CI" not in os.environ:
     assert app_dialog.root.cells[
         "Model - Model"
     ].exists(), "Model task should be visible in content dialog"
@@ -393,8 +387,6 @@ def test_assets_tab(app_dialog):
     app_dialog.root.outlineitems["Model"][1].mouseClick()
 
     # Validate content dialog
-    # This test is failing on Azure but succeed locally. Need more investigation
-    # if "CI" not in os.environ:
     assert app_dialog.root.cells["Model - Model"].exists(), "Not on the right tasks"
 
     # Validate breadcrumb
