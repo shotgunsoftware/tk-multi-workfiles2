@@ -37,61 +37,64 @@ class MultiWorkFiles(sgtk.platform.Application):
             # provide any commands!
             return
 
-        # register the file open command
-        self.engine.register_command(
-            "File Open...",
-            self.show_file_open_dlg,
-            {
-                "short_name": "file_open",
-                # dark themed icon for engines that recognize this format
-                "icons": {
-                    "dark": {
-                        "png": os.path.join(
-                            os.path.dirname(__file__),
-                            "resources",
-                            "file_open_menu_icon.png",
-                        )
-                    }
+        if self.get_setting("context_change_only_mode"):
+            # This will only show the context change dialog and not register the save of open dialogs.
+            self.engine.register_command(
+                "Change Context...",
+                self.show_context_change_dlg,
+                {
+                    "short_name": "change_context",
+                    # dark themed icon for engines that recognize this format
+                    "icons": {
+                        "dark": {
+                            "png": os.path.join(
+                                os.path.dirname(__file__),
+                                "resources",
+                                "file_open_menu_icon.png",
+                            )
+                        }
+                    },
                 },
-            },
-        )
+            )
+            # else:
+            # This show the open and save dialogs and not the context change dialog.
+            # register the file open command
+            self.engine.register_command(
+                "File Open...",
+                self.show_file_open_dlg,
+                {
+                    "short_name": "file_open",
+                    # dark themed icon for engines that recognize this format
+                    "icons": {
+                        "dark": {
+                            "png": os.path.join(
+                                os.path.dirname(__file__),
+                                "resources",
+                                "file_open_menu_icon.png",
+                            )
+                        }
+                    },
+                },
+            )
 
-        self.engine.register_command(
-            "Change Context...",
-            self.show_context_change_dlg,
-            {
-                "short_name": "change_context",
-                # dark themed icon for engines that recognize this format
-                "icons": {
-                    "dark": {
-                        "png": os.path.join(
-                            os.path.dirname(__file__),
-                            "resources",
-                            "file_open_menu_icon.png",
-                        )
-                    }
+            # register the file save command
+            self.engine.register_command(
+                "File Save...",
+                self.show_file_save_dlg,
+                {
+                    "short_name": "file_save",
+                    # dark themed icon for engines that recognize this format
+                    "icons": {
+                        "dark": {
+                            "png": os.path.join(
+                                os.path.dirname(__file__),
+                                "resources",
+                                "file_save_menu_icon.png",
+                            )
+                        }
+                    },
                 },
-            },
-        )
-
-        # register the file save command
-        self.engine.register_command(
-            "File Save...",
-            self.show_file_save_dlg,
-            {
-                "short_name": "file_save",
-                # dark themed icon for engines that recognize this format
-                "icons": {
-                    "dark": {
-                        "png": os.path.join(
-                            os.path.dirname(__file__),
-                            "resources",
-                            "file_save_menu_icon.png",
-                        )
-                    }
-                },
-            },
-        )
+            )
 
         # Process auto startup options - but only on certain supported platforms
         # because of the way QT inits and connects to different host applications

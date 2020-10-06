@@ -53,6 +53,9 @@ class Ui_FileOpenForm(object):
 "}")
         self.open_btn.setObjectName("open_btn")
         self.horizontalLayout.addWidget(self.open_btn)
+        self.change_ctx_btn = QtGui.QPushButton(FileOpenForm)
+        self.change_ctx_btn.setObjectName("change_ctx_btn")
+        self.horizontalLayout.addWidget(self.change_ctx_btn)
         self.open_options_btn = QtGui.QPushButton(FileOpenForm)
         self.open_options_btn.setFlat(False)
         self.open_options_btn.setObjectName("open_options_btn")
@@ -68,6 +71,7 @@ class Ui_FileOpenForm(object):
         self.new_file_btn.setText(QtGui.QApplication.translate("FileOpenForm", "+ New File", None, QtGui.QApplication.UnicodeUTF8))
         self.cancel_btn.setText(QtGui.QApplication.translate("FileOpenForm", "Cancel", None, QtGui.QApplication.UnicodeUTF8))
         self.open_btn.setText(QtGui.QApplication.translate("FileOpenForm", "Open", None, QtGui.QApplication.UnicodeUTF8))
+        self.change_ctx_btn.setText(QtGui.QApplication.translate("FileOpenForm", "Change Context", None, QtGui.QApplication.UnicodeUTF8))
         self.open_options_btn.setText(QtGui.QApplication.translate("FileOpenForm", "...", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..framework_qtwidgets import NavigationWidget, BreadcrumbWidget

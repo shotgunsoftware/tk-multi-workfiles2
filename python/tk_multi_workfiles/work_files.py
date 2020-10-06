@@ -102,7 +102,7 @@ class WorkFiles(object):
         handler = WorkFiles()
         from .file_open_form import FileOpenForm
 
-        handler._show_file_dlg("", FileOpenForm, FileOpenForm.FILE_MODE)
+        handler._show_file_dlg("", FileOpenForm)
 
     @staticmethod
     def show_context_change_dlg():
@@ -110,11 +110,9 @@ class WorkFiles(object):
         Show the file open dialog
         """
         handler = WorkFiles()
-        from .file_open_form import FileOpenForm
+        from .file_open_form import ContextChangeForm
 
-        handler._show_file_dlg(
-            "Change Context", FileOpenForm, FileOpenForm.CONTEXT_MODE
-        )
+        handler._show_file_dlg("Change Context", ContextChangeForm)
 
     @staticmethod
     def show_file_save_dlg():

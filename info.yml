@@ -16,6 +16,14 @@ configuration:
     # Startup options
     #
 
+    context_change_only_mode:
+      type: bool
+      description: A flag to enable context change mode for the app. When true the open and save windows
+                   will not be available, and instead a context change window is provided where the user
+                   can pick an entity to change context to without opening a file.
+
+      default_value: False
+
     launch_at_startup:
         type: bool
         description: A flag whether to launch the UI at application startup.
