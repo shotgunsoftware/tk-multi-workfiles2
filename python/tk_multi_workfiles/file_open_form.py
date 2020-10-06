@@ -18,9 +18,7 @@ from sgtk.platform.qt import QtGui
 
 from .actions.file_action_factory import FileActionFactory
 from .actions.action import SeparatorAction, ActionGroup
-from .actions.file_action import FileAction
 from .actions.new_file_action import NewFileAction
-from .actions.context_change_action import ContextChangeAction
 
 from .file_form_base import FileFormBase
 from .ui.file_open_form import Ui_FileOpenForm
@@ -29,215 +27,31 @@ from .work_area import WorkArea
 from .util import get_template_user_keys
 
 
-class ChangeFormBase(FileFormBase):
+class FileOpenForm(FileFormBase):
+    """
+    UI for opening a publish or work file.  Presents a list of available files to the user
+    so that they can choose one to open in addition to any other user-definable actions.
+    """
+
     def __init__(self, parent=None):
         """
         Construction
         """
-        app = sgtk.platform.current_bundle()
+        super(FileOpenForm, self).__init__(parent)
 
-        FileFormBase.__init__(self, parent)
-
-        self._exit_code = QtGui.QDialog.Rejected
-        self._navigating = False
+        self._new_file_env = None
+        self._default_open_action = None
 
         try:
             # doing this inside a try-except to ensure any exceptions raised don't
             # break the UI and crash the dcc horribly!
             self._do_init()
         except:
-            app.log_exception(
-                "Unhandled exception during Context Change Form construction!"
-            )
-
-    def _do_init(self):
-        """
-        """
-        app = sgtk.platform.current_bundle()
-
-        # set up the UI
-        self._ui = Ui_FileOpenForm()
-        self._ui.setupUi(self)
-
-        # tmp - disable some controls that currently don't work!
-        self._ui.open_options_btn.hide()
-
-        # hook up signals on controls:
-        self._ui.cancel_btn.clicked.connect(self._on_cancel)
-        self._ui.browser.create_new_task.connect(self._on_create_new_task)
-        self._ui.browser.work_area_changed.connect(self._on_browser_work_area_changed)
-        self._ui.browser.step_filter_changed.connect(self._apply_step_filtering)
-        self._ui.nav.navigate.connect(self._on_navigate)
-        self._ui.nav.home_clicked.connect(self._on_navigate_home)
-
-    def _on_cancel(self):
-        """
-        Called when the cancel button is clicked
-        """
-        self._exit_code = QtGui.QDialog.Rejected
-        self.close()
-
-    def _on_navigate(self, breadcrumb_trail):
-        """
-        """
-        if not breadcrumb_trail:
-            return
-
-        # awesome, just navigate to the breadcrumbs:
-        self._ui.breadcrumbs.set(breadcrumb_trail)
-        self._navigating = True
-        try:
-            self._ui.browser.navigate_to(breadcrumb_trail)
-        finally:
-            self._navigating = False
-
-    def _on_navigate_home(self):
-        """
-        Navigate to the current work area
-        """
-        # navigate to the current work area in the browser:
-        app = sgtk.platform.current_bundle()
-        self._ui.browser.select_work_area(app.context)
-
-    def _on_browser_work_area_changed(self, entity, breadcrumbs):
-        """
-        Slot triggered whenever the work area is changed in the browser.
-        """
-        env_details = None
-        if entity:
-            # (AD) - we need to build a context and construct the environment details
-            # instance for it but this may be slow enough that we should cache it!
-            # Keep an eye on it and consider threading if it's noticeably slow!
             app = sgtk.platform.current_bundle()
-            context = app.sgtk.context_from_entity_dictionary(entity)
-            try:
-                env_details = WorkArea(context)
-            except sgtk.TankError:
-                # We can ignore the error reporting here. The browser is already
-                # updating it's various file views and they will display the same
-                # error. Which is good, because file open dialog doesn't have a
-                # widget dedicated to error reporting.
-                env_details = None
+            app.log_exception("Unhandled exception during Form construction!")
 
-        if not self._navigating:
-            destination_label = breadcrumbs[-1].label if breadcrumbs else "..."
-            self._ui.nav.add_destination(destination_label, breadcrumbs)
-        self._ui.breadcrumbs.set(breadcrumbs)
-
-        return env_details
-
-    def closeEvent(self, event):
-        """
-        Called when the widget is being closed - do as much as possible here to help the GC
-
-        :param event:   The close event
-        """
-        # clean up the browser:
-        self._ui.browser.shut_down()
-
-        # be sure to call the base clase implementation
-        return FileFormBase.closeEvent(self, event)
-
-    def _perform_action(self, action):
-        """
-        """
-        if not action:
-            return
-
-        # some debug:
-        app = sgtk.platform.current_bundle()
-        if isinstance(action, FileAction) and action.file:
-            app.log_debug(
-                "Performing action '%s' on file '%s, v%03d'"
-                % (action.label, action.file.name, action.file.version)
-            )
-        else:
-            app.log_debug("Performing action '%s'" % action.label)
-
-        # execute the action:
-        close_dialog = action.execute(self)
-
-        # if this is successful then close the form:
-        if close_dialog:
-            self._exit_code = QtGui.QDialog.Accepted
-            self.close()
-        else:
-            # refresh all models in case something changed as a result of
-            # the action (especially important with custom actions):
-            self._refresh_all_async()
-
-
-class ContextChangeForm(ChangeFormBase):
-    def __init__(self, parent=None):
-
-        super(ContextChangeForm, self).__init__(parent)
-
-        self._context_change_env = None
-
-    def _do_init(self):
-        """
-        """
-        super(ContextChangeForm, self)._do_init()
-
-        app = sgtk.platform.current_bundle()
-
-        # start by disabling buttons:
-        self._ui.open_btn.hide()
-        self._ui.new_file_btn.hide()
-        self._ui.change_ctx_btn.setEnabled(False)
-
-        # hook up signals on controls:
-        self._ui.change_ctx_btn.clicked.connect(self._on_context_change)
-
-        self._ui.browser.set_models(
-            self._my_tasks_model, self._entity_models, None,
-        )
-
-        # initialize the browser widget:
-        self._ui.browser.select_work_area(app.context)
-
-    def _on_browser_work_area_changed(self, entity, breadcrumbs):
-        """
-        Slot triggered whenever the work area is changed in the browser.
-        """
-        env_details = super(ContextChangeForm, self)._on_browser_work_area_changed(
-            entity, breadcrumbs
-        )
-
-        self._update_change_context_btn(env_details)
-
-    def _update_change_context_btn(self, env):
-        self._context_change_env = env
-        if env:
-            self._ui.change_ctx_btn.setEnabled(True)
-        else:
-            self._ui.change_ctx_btn.setEnabled(False)
-
-    def _on_context_change(self):
-        context_change_action = ContextChangeAction(self._context_change_env)
-
-        self._perform_action(context_change_action)
-
-
-class FileOpenForm(ChangeFormBase):
-    """
-    UI for opening a publish or work file.  Presents a list of available files to the user
-    so that they can choose one to open in addition to any other user-definable actions.
-    """
-
-    @property
-    def exit_code(self):
-        return self._exit_code
-
-    def __init__(self, parent=None):
-        """
-        Construction
-        """
-        self._exit_code = QtGui.QDialog.Rejected
-        self._new_file_env = None
-        self._default_open_action = None
-        self._navigating = False
-        super(FileOpenForm, self).__init__(parent)
+    def init_ui_file(self):
+        return Ui_FileOpenForm()
 
     def _do_init(self):
         """
@@ -248,6 +62,8 @@ class FileOpenForm(ChangeFormBase):
         self._ui.change_ctx_btn.hide()
         self._ui.open_btn.setEnabled(False)
         self._ui.open_options_btn.setEnabled(False)
+        # tmp - disable some controls that currently don't work!
+        self._ui.open_options_btn.hide()
 
         self._ui.open_btn.clicked.connect(self._on_open)
         self._ui.new_file_btn.clicked.connect(self._on_new_file)

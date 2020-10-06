@@ -110,7 +110,7 @@ class WorkFiles(object):
         Show the file open dialog
         """
         handler = WorkFiles()
-        from .file_open_form import ContextChangeForm
+        from .context_change_form import ContextChangeForm
 
         handler._show_file_dlg("Change Context", ContextChangeForm)
 
