@@ -78,7 +78,7 @@ class WorkFiles(object):
     Main entry point for all commands in the app.
     """
 
-    def __init__(self):
+    def __init__(self, use_modal_dialog=False):
         """
         Constructor.
         """
@@ -91,25 +91,27 @@ class WorkFiles(object):
         # with memory leak-detection code.
         if app.use_debug_dialog:
             self._dialog_launcher = dbg_info(app.engine.show_modal)
+        elif use_modal_dialog:
+            self._dialog_launcher = app.engine.show_modal
         else:
             self._dialog_launcher = app.engine.show_dialog
 
     @staticmethod
-    def show_file_open_dlg():
+    def show_file_open_dlg(use_modal_dialog=False):
         """
         Show the file open dialog
         """
-        handler = WorkFiles()
+        handler = WorkFiles(use_modal_dialog)
         from .file_open_form import FileOpenForm
 
         handler._show_file_dlg("File Open", FileOpenForm)
 
     @staticmethod
-    def show_file_save_dlg():
+    def show_file_save_dlg(use_modal_dialog=False):
         """
         Show the file save dialog
         """
-        handler = WorkFiles()
+        handler = WorkFiles(use_modal_dialog)
         from .file_save_form import FileSaveForm
 
         handler._show_file_dlg("File Save", FileSaveForm)
