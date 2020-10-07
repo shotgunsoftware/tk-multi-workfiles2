@@ -49,7 +49,7 @@ class ContextChangeAction(Action):
                 )
                 # and double check that we can get all context fields for the work template:
 
-            except TankError as e:
+            except TankError:
                 # log the original exception (useful for tracking down the problem)
                 self._app.log_exception("Unable to run folder creation!")
 
