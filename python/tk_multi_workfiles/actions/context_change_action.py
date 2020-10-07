@@ -35,7 +35,7 @@ class ContextChangeAction(Action):
 
     def execute(self, parent_ui):
         """
-        Perform a new-scene operation initialized with the current context.
+        Perform a context change operation.
 
         :param parent_ui: Parent dialog executing this action.
         """
