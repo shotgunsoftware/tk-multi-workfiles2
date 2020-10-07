@@ -102,7 +102,7 @@ class WorkFiles(object):
         handler = WorkFiles()
         from .file_open_form import FileOpenForm
 
-        handler._show_file_dlg("", FileOpenForm)
+        handler._show_file_dlg("File Open", FileOpenForm)
 
     @staticmethod
     def show_context_change_dlg():

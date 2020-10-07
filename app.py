@@ -37,7 +37,7 @@ class MultiWorkFiles(sgtk.platform.Application):
             # provide any commands!
             return
 
-        if self.get_setting("context_change_only_mode"):
+        if self.get_setting("show_change_context"):
             # This will only show the context change dialog and not register the save of open dialogs.
             self.engine.register_command(
                 "Change Context...",
@@ -56,7 +56,7 @@ class MultiWorkFiles(sgtk.platform.Application):
                     },
                 },
             )
-        else:
+        if self.get_setting("show_file_open"):
             # This show the open and save dialogs and not the context change dialog.
             # register the file open command
             self.engine.register_command(
@@ -77,6 +77,7 @@ class MultiWorkFiles(sgtk.platform.Application):
                 },
             )
 
+        if self.get_setting("show_file_save"):
             # register the file save command
             self.engine.register_command(
                 "File Save...",
