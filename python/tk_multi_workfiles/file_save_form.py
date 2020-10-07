@@ -72,12 +72,15 @@ class FileSaveForm(FileFormBase):
             # Manually invoke the preview update here so it is only called once due to the
             # _allow_preview_update flag.
             self._start_preview_update()
-        except:
+        except Exception:
             self._allow_preview_update = True
             app = sgtk.platform.current_bundle()
             app.log_exception("Unhandled exception during File Save Form construction!")
 
     def init_ui_file(self):
+        """
+        Returns the ui class to use, required by the base class.
+        """
         return Ui_FileSaveForm()
 
     def _do_init(self):

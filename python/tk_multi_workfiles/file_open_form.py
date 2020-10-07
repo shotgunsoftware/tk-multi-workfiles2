@@ -46,11 +46,14 @@ class FileOpenForm(FileFormBase):
             # doing this inside a try-except to ensure any exceptions raised don't
             # break the UI and crash the dcc horribly!
             self._do_init()
-        except:
+        except Exception:
             app = sgtk.platform.current_bundle()
             app.log_exception("Unhandled exception during Form construction!")
 
     def init_ui_file(self):
+        """
+        Returns the ui class to use, required by the base class.
+        """
         return Ui_FileOpenForm()
 
     def _do_init(self):

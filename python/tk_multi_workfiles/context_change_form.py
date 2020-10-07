@@ -29,11 +29,14 @@ class ContextChangeForm(FileFormBase):
             # doing this inside a try-except to ensure any exceptions raised don't
             # break the UI and crash the dcc horribly!
             self._do_init()
-        except:
+        except Exception:
             app = sgtk.platform.current_bundle()
             app.log_exception("Unhandled exception during Form construction!")
 
     def init_ui_file(self):
+        """
+        Returns the ui class to use, required by the base class.
+        """
         return Ui_FileOpenForm()
 
     def _do_init(self):
@@ -51,6 +54,7 @@ class ContextChangeForm(FileFormBase):
 
         # hook up signals on controls:
         self._ui.change_ctx_btn.clicked.connect(self._on_context_change)
+        self._ui.browser.task_double_clicked.connect(self._on_context_change)
 
         self._ui.browser.set_models(
             self._my_tasks_model, self._entity_models, None,
@@ -70,13 +74,20 @@ class ContextChangeForm(FileFormBase):
         self._update_change_context_btn(env_details)
 
     def _update_change_context_btn(self, env):
+        """
+        Updates the current selected context, and updates the context change button state.
+        When no environment is gathered from the context change button is disabled.
+        """
         self._context_change_env = env
         if env:
             self._ui.change_ctx_btn.setEnabled(True)
         else:
             self._ui.change_ctx_btn.setEnabled(False)
 
-    def _on_context_change(self):
+    def _on_context_change(self, *_args):
+        """
+        Calls the context change action which will change the current engine's context and close the dialog.
+        """
         context_change_action = ContextChangeAction(self._context_change_env)
 
         self._perform_action(context_change_action)

@@ -86,8 +86,6 @@ class FileFormBase(QtGui.QWidget):
             osx_f5_refresh_action.triggered.connect(self._on_refresh_triggered)
             self.addAction(osx_f5_refresh_action)
 
-        app = sgtk.platform.current_bundle()
-
     def _do_init(self):
         """
         """
