@@ -28,7 +28,7 @@ class ContextChangeAction(Action):
         """
         Constructor.
 
-        :param environment: A WorkArea instance of where the new file will go.
+        :param environment: A WorkArea instance containing the context we will switch to.
         """
         Action.__init__(self, "Change Context")
         self._environment = environment
@@ -47,7 +47,6 @@ class ContextChangeAction(Action):
                 FileAction.create_folders_if_needed(
                     self._environment.context, self._environment.work_template
                 )
-                # and double check that we can get all context fields for the work template:
 
             except TankError:
                 # log the original exception (useful for tracking down the problem)
