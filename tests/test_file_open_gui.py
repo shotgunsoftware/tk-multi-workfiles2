@@ -38,7 +38,9 @@ def context():
         local_storage = sg.create("LocalStorage", {"code": storage_name})
 
     # Always update local storage path
-    local_storage["path"] = os.path.expandvars("${SHOTGUN_CURRENT_REPO_ROOT}")
+    local_storage["path"] = os.path.join(
+        os.path.expandvars("${SHOTGUN_CURRENT_REPO_ROOT}"), "tests", "fixtures", "files"
+    )
     sg.update(
         "LocalStorage", local_storage["id"], {"windows_path": local_storage["path"]}
     )
@@ -53,6 +55,7 @@ def context():
     project_data = {
         "sg_description": "Project Created by Automation",
         "name": "Toolkit File Open UI Automation",
+        "tank_name": "Toolkit File Open UI Automation",
     }
     new_project = sg.create("Project", project_data)
 
