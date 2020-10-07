@@ -56,7 +56,7 @@ class MultiWorkFiles(sgtk.platform.Application):
                     },
                 },
             )
-            # else:
+        else:
             # This show the open and save dialogs and not the context change dialog.
             # register the file open command
             self.engine.register_command(
