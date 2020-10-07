@@ -9,7 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
-Action to create a new file.
+Action to create a change context.
 """
 
 from sgtk import TankError
