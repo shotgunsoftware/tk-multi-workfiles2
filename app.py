@@ -32,11 +32,6 @@ class MultiWorkFiles(sgtk.platform.Application):
             )
             return
 
-        if self.engine.name == "tk-mari":
-            # Mari doesn't have the concept of a current scene so this app shouldn't
-            # provide any commands!
-            return
-
         if self.get_setting("show_change_context"):
             # This will only show the context change dialog and not register the save of open dialogs.
             self.engine.register_command(

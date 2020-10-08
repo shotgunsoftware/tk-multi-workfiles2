@@ -44,9 +44,7 @@ class ContextChangeAction(Action):
             # create folders and validate that we can save using the work template:
             try:
                 # create folders if needed:
-                FileAction.create_folders_if_needed(
-                    self._environment.context, self._environment.work_template
-                )
+                FileAction.create_folders(self._environment.context)
 
             except TankError:
                 # log the original exception (useful for tracking down the problem)
