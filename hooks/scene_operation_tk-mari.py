@@ -8,10 +8,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import maya.cmds as cmds
-
 import sgtk
-from sgtk.platform.qt import QtGui
 
 HookClass = sgtk.get_hook_baseclass()
 
@@ -66,4 +63,5 @@ class SceneOperation(HookClass):
                                 all others     - None
         """
 
+        # Mari doesn't have any scene operations.
         pass
