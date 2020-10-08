@@ -63,5 +63,6 @@ class SceneOperation(HookClass):
                                 all others     - None
         """
 
-        # Mari doesn't have any scene operations.
+        # Mari doesn't have any scene operations, since it only works with the context change mode.
+        # However workfiles does require that it can find the hook, so this is a placeholder hook.
         pass
