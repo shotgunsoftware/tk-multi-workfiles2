@@ -116,17 +116,17 @@ class MultiWorkFiles(sgtk.platform.Application):
         """
         self.log_debug("Destroying tk-multi-workfiles2")
 
-    def show_file_open_dlg(self):
+    def show_file_open_dlg(self, use_modal_dialog=False):
         """
         Launch the main File Open UI
         """
-        self._tk_multi_workfiles.WorkFiles.show_file_open_dlg()
+        self._tk_multi_workfiles.WorkFiles.show_file_open_dlg(use_modal_dialog)
 
-    def show_file_save_dlg(self):
+    def show_file_save_dlg(self, use_modal_dialog=False):
         """
         Launch the main File Save UI
         """
-        self._tk_multi_workfiles.WorkFiles.show_file_save_dlg()
+        self._tk_multi_workfiles.WorkFiles.show_file_save_dlg(use_modal_dialog)
 
     @property
     def context_change_allowed(self):

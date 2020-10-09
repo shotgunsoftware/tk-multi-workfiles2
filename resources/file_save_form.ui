@@ -234,7 +234,11 @@ background-color: rgb(255, 128, 0);
           <number>-1</number>
          </property>
          <item>
-          <widget class="QSpinBox" name="version_spinner"/>
+          <widget class="QSpinBox" name="version_spinner">
+           <property name="maximum">
+            <number>9999999</number>
+           </property>
+          </widget>
          </item>
          <item>
           <widget class="QCheckBox" name="use_next_available_cb">
