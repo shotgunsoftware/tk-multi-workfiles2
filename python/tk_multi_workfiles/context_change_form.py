@@ -44,8 +44,6 @@ class ContextChangeForm(FileFormBase):
         """
         super(ContextChangeForm, self)._do_init()
 
-        app = sgtk.platform.current_bundle()
-
         # start by disabling buttons:
         self._ui.open_btn.hide()
         self._ui.new_file_btn.hide()
@@ -61,6 +59,7 @@ class ContextChangeForm(FileFormBase):
         )
 
         # initialize the browser widget:
+        app = sgtk.platform.current_bundle()
         self._ui.browser.select_work_area(app.context)
 
     def _on_browser_work_area_changed(self, entity, breadcrumbs):

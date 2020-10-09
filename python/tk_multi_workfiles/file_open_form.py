@@ -87,6 +87,8 @@ class FileOpenForm(FileFormBase):
             self._my_tasks_model, self._entity_models, self._file_model,
         )
         current_file = self._get_current_file()
+        app = sgtk.platform.current_bundle()
+        self._ui.browser.select_work_area(app.context)
         self._ui.browser.select_file(current_file, app.context)
 
     def _is_using_user_sandboxes(self):
