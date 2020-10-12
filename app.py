@@ -32,48 +32,65 @@ class MultiWorkFiles(sgtk.platform.Application):
             )
             return
 
-        if self.engine.name == "tk-mari":
-            # Mari doesn't have the concept of a current scene so this app shouldn't
-            # provide any commands!
-            return
-
-        # register the file open command
-        self.engine.register_command(
-            "File Open...",
-            self.show_file_open_dlg,
-            {
-                "short_name": "file_open",
-                # dark themed icon for engines that recognize this format
-                "icons": {
-                    "dark": {
-                        "png": os.path.join(
-                            os.path.dirname(__file__),
-                            "resources",
-                            "file_open_menu_icon.png",
-                        )
-                    }
+        if self.get_setting("show_change_context"):
+            # This will only show the context change dialog and not register the save of open dialogs.
+            self.engine.register_command(
+                "Change Context...",
+                self.show_context_change_dlg,
+                {
+                    "short_name": "change_context",
+                    # dark themed icon for engines that recognize this format
+                    "icons": {
+                        "dark": {
+                            "png": os.path.join(
+                                os.path.dirname(__file__),
+                                "resources",
+                                "file_open_menu_icon.png",
+                            )
+                        }
+                    },
                 },
-            },
-        )
-
-        # register the file save command
-        self.engine.register_command(
-            "File Save...",
-            self.show_file_save_dlg,
-            {
-                "short_name": "file_save",
-                # dark themed icon for engines that recognize this format
-                "icons": {
-                    "dark": {
-                        "png": os.path.join(
-                            os.path.dirname(__file__),
-                            "resources",
-                            "file_save_menu_icon.png",
-                        )
-                    }
+            )
+        if self.get_setting("show_file_open"):
+            # This show the open and save dialogs and not the context change dialog.
+            # register the file open command
+            self.engine.register_command(
+                "File Open...",
+                self.show_file_open_dlg,
+                {
+                    "short_name": "file_open",
+                    # dark themed icon for engines that recognize this format
+                    "icons": {
+                        "dark": {
+                            "png": os.path.join(
+                                os.path.dirname(__file__),
+                                "resources",
+                                "file_open_menu_icon.png",
+                            )
+                        }
+                    },
                 },
-            },
-        )
+            )
+
+        if self.get_setting("show_file_save"):
+            # register the file save command
+            self.engine.register_command(
+                "File Save...",
+                self.show_file_save_dlg,
+                {
+                    "short_name": "file_save",
+                    # dark themed icon for engines that recognize this format
+                    "icons": {
+                        "dark": {
+                            "png": os.path.join(
+                                os.path.dirname(__file__),
+                                "resources",
+                                "file_save_menu_icon.png",
+                            )
+                        }
+                    },
+                },
+            )
 
         # Process auto startup options - but only on certain supported platforms
         # because of the way QT inits and connects to different host applications
@@ -114,6 +131,12 @@ class MultiWorkFiles(sgtk.platform.Application):
         Launch the main File Open UI
         """
         self._tk_multi_workfiles.WorkFiles.show_file_open_dlg(use_modal_dialog)
+
+    def show_context_change_dlg(self, use_modal_dialog=False):
+        """
+        Launch the main File Open UI
+        """
+        self._tk_multi_workfiles.WorkFiles.show_context_change_dlg(use_modal_dialog)
 
     def show_file_save_dlg(self, use_modal_dialog=False):
         """

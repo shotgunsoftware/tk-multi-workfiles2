@@ -95,6 +95,13 @@ background-color: rgb(255, 128, 0);
       </widget>
      </item>
      <item>
+      <widget class="QPushButton" name="change_ctx_btn">
+       <property name="text">
+        <string>Change Context</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="open_options_btn">
        <property name="text">
         <string>...</string>
