@@ -16,6 +16,24 @@ configuration:
     # Startup options
     #
 
+    show_change_context:
+      type: bool
+      description: A flag to enable the context change dialog. A context change window is provided where the user
+                   can pick an entity to change context to without opening a file.
+      default_value: False
+
+    show_file_open:
+      type: bool
+      description: A flag to enable the open file dialog. A open file window is provided where the user
+        can pick an entity and select the files associated with that context to open run other actions on.
+      default_value: True
+
+    show_file_save:
+      type: bool
+      description: A flag to enable the save file dialog. A save file window is provided where the user
+        can save the current workfile to the Toolkit templated folder structure.
+      default_value: True
+
     launch_at_startup:
         type: bool
         description: A flag whether to launch the UI at application startup.
