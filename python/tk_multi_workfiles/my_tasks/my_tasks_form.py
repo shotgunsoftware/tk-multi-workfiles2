@@ -17,11 +17,16 @@ from .my_task_item_delegate import MyTaskItemDelegate
 from ..util import monitor_qobject_lifetime
 from ..entity_tree.entity_tree_form import EntityTreeForm
 
+from sgtk.platform.qt import QtCore
+
 
 class MyTasksForm(EntityTreeForm):
     """
     My Tasks widget class
     """
+
+    # emitted when an entity is double clicked
+    task_double_clicked = QtCore.Signal(object)
 
     def __init__(self, tasks_model, allow_task_creation, parent):
         """
@@ -52,6 +57,8 @@ class MyTasksForm(EntityTreeForm):
         monitor_qobject_lifetime(self._item_delegate)
         self._ui.entity_tree.setItemDelegate(self._item_delegate)
 
+        self._ui.entity_tree.doubleClicked.connect(self._on_double_clicked)
+
     def shut_down(self):
         """
         Clean up as much as we can to help the gc once the widget is finished with.
@@ -67,3 +74,10 @@ class MyTasksForm(EntityTreeForm):
                 self._item_delegate = None
         finally:
             self.blockSignals(signals_blocked)
+
+    def _on_double_clicked(self, idx):
+        """
+        Emits the entity that was double clicked.
+        """
+        entity_details = self._get_entity_details(idx)
+        self.task_double_clicked.emit(entity_details)

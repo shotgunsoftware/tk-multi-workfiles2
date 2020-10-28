@@ -38,26 +38,17 @@ class FileSaveForm(FileFormBase):
     UI for saving a work file
     """
 
-    @property
-    def exit_code(self):
-        return self._exit_code
-
     def __init__(self, parent=None):
         """
         Construction
         """
-        app = sgtk.platform.current_bundle()
-
-        FileFormBase.__init__(self, parent)
+        super(FileSaveForm, self).__init__(parent)
 
         self._expanded_size = QtCore.QSize(930, 700)
         self._collapsed_size = None
-
-        self._exit_code = QtGui.QDialog.Rejected
         self._current_env = None
         self._extension_choices = []
         self._preview_task = None
-        self._navigating = False
 
         font_colour = self.palette().text().color()
         if font_colour.value() < 0.5:
@@ -81,9 +72,16 @@ class FileSaveForm(FileFormBase):
             # Manually invoke the preview update here so it is only called once due to the
             # _allow_preview_update flag.
             self._start_preview_update()
-        except:
+        except Exception:
             self._allow_preview_update = True
+            app = sgtk.platform.current_bundle()
             app.log_exception("Unhandled exception during File Save Form construction!")
+
+    def init_ui_file(self):
+        """
+        Returns the ui class to use, required by the base class.
+        """
+        return Ui_FileSaveForm()
 
     def _do_init(self):
         """
@@ -91,9 +89,7 @@ class FileSaveForm(FileFormBase):
         """
         app = sgtk.platform.current_bundle()
 
-        # set up the UI
-        self._ui = Ui_FileSaveForm()
-        self._ui.setupUi(self)
+        super(FileSaveForm, self)._do_init()
 
         self._ui.preview_label.setText(
             "<p style='color:rgb%s'><b>Preview:</b></p>" % (self._preview_colour,)
@@ -130,7 +126,6 @@ class FileSaveForm(FileFormBase):
         self._ui.version_spinner.setEnabled(False)
 
         # hook up signals on controls:
-        self._ui.cancel_btn.clicked.connect(self._on_cancel)
         self._ui.save_btn.clicked.connect(self._on_save)
         self._ui.expand_checkbox.toggled.connect(self._on_expand_toggled)
         self._ui.name_edit.textEdited.connect(self._on_name_edited)
@@ -143,15 +138,10 @@ class FileSaveForm(FileFormBase):
             self._on_use_next_available_version_toggled
         )
 
-        self._ui.browser.create_new_task.connect(self._on_create_new_task)
         self._ui.browser.file_selected.connect(self._on_browser_file_selected)
         self._ui.browser.file_double_clicked.connect(
             self._on_browser_file_double_clicked
         )
-        self._ui.browser.work_area_changed.connect(self._on_browser_work_area_changed)
-        self._ui.browser.step_filter_changed.connect(self._apply_step_filtering)
-        self._ui.nav.navigate.connect(self._on_navigate)
-        self._ui.nav.home_clicked.connect(self._on_navigate_home)
 
         # initialize the browser:
         self._ui.browser.enable_show_all_versions(False)
@@ -175,18 +165,6 @@ class FileSaveForm(FileFormBase):
         if not env or not env.work_template:
             self._ui.expand_checkbox.setChecked(True)
             self._on_expand_toggled(True)
-
-    def closeEvent(self, event):
-        """
-        Called when the widget is being closed - do as much as possible here to help the GC
-
-        :param event:   The close event
-        """
-        # clean up the browser:
-        self._ui.browser.shut_down()
-
-        # be sure to call the base clase implementation
-        return FileFormBase.closeEvent(self, event)
 
     # ------------------------------------------------------------------------------------------
     # protected methods
@@ -517,7 +495,8 @@ class FileSaveForm(FileFormBase):
         """
         Invoked when the selection changes in My Tasks or one of the entity views.
         """
-        env = None
+        # This overrides the base implementation since we need to change the state of the preview
+        # when an environment can't be found
         if entity:
             app = sgtk.platform.current_bundle()
             context = app.sgtk.context_from_entity_dictionary(entity)
@@ -535,27 +514,6 @@ class FileSaveForm(FileFormBase):
             destination_label = breadcrumbs[-1].label if breadcrumbs else "..."
             self._ui.nav.add_destination(destination_label, breadcrumbs)
         self._ui.breadcrumbs.set(breadcrumbs)
-
-    def _on_navigate(self, breadcrumb_trail):
-        """
-        """
-        if not breadcrumb_trail:
-            return
-
-        # awesome, just navigate to the breadcrumbs:
-        self._ui.breadcrumbs.set(breadcrumb_trail)
-        self._navigating = True
-        try:
-            self._ui.browser.navigate_to(breadcrumb_trail)
-        finally:
-            self._navigating = False
-
-    def _on_navigate_home(self):
-        """
-        Navigate to the current work area
-        """
-        app = sgtk.platform.current_bundle()
-        self._ui.browser.select_work_area(app.context)
 
     def _on_selected_file_changed(self, file):
         """
@@ -713,13 +671,6 @@ class FileSaveForm(FileFormBase):
 
             # resize the window to the collapsed size:
             self.window().resize(self._collapsed_size)
-
-    def _on_cancel(self):
-        """
-        Called when the cancel button is clicked
-        """
-        self._exit_code = QtGui.QDialog.Rejected
-        self.close()
 
     def _on_save(self):
         """
