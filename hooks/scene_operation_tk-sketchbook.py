@@ -10,6 +10,7 @@
 #
 
 import sgtk
+from sgtk.platform.qt import QtCore, QtGui
 
 import sketchbook_api
 
@@ -18,8 +19,7 @@ HookClass = sgtk.get_hook_baseclass()
 
 class SceneOperation(HookClass):
     """
-    Hook called to perform an operation with the
-    current scene
+    Hook called to perform an operation with the current scene
     """
 
     def execute(
@@ -63,7 +63,8 @@ class SceneOperation(HookClass):
                                                  file path as a String
                                 'reset'        - True if scene was reset to an empty
                                                  state, otherwise False
-                                all others     - None
+                                all others     - True if operation was successfully completed,
+                                                 otherwise False
         """
         if operation == "current_path":
             """
@@ -75,8 +76,12 @@ class SceneOperation(HookClass):
             """
             File Open
             """
-            sketchbook_api.open_file(file_path)
-            return True
+            # The reset operation should have been called before open, but just incase
+            # make sure to check that the user will not lose any of their changes.
+            success = self.check_unsaved_changes()
+            if success:
+                sketchbook_api.open_file(file_path)
+            return success
 
         elif operation == "save":
             """
@@ -96,5 +101,47 @@ class SceneOperation(HookClass):
             """
             Reset the scene to an empty state
             """
-            sketchbook_api.reset()
+            success = self.check_unsaved_changes()
+            if success:
+                # Force the document to reset (e.g. changes will be discarded)
+                sketchbook_api.reset(True)
+            return success
+
+        elif operation == "prepare_new":
+            # Nothing to do
             return True
+
+    def check_unsaved_changes(self):
+        """
+        Check if the current SketchBook document has any changes. Open a dialog to ask the user
+        to save their changes, if any, or proceed with discarding any changes.
+        """
+
+        result = True
+        restore_cursor = False
+
+        while sketchbook_api.is_current_document_dirty():
+            if not restore_cursor:
+                restore_cursor = True
+                QtGui.QApplication.setOverrideCursor(QtCore.Qt.ArrowCursor)
+
+            answer = QtGui.QMessageBox.question(
+                None,
+                "Save",
+                "Your document has unsaved changes. Save before proceeding?",
+                QtGui.QMessageBox.Yes | QtGui.QMessageBox.No | QtGui.QMessageBox.Cancel,
+            )
+
+            if answer == QtGui.QMessageBox.Cancel:
+                result = False
+                break
+
+            if answer == QtGui.QMessageBox.No:
+                break
+
+            self.parent.engine.show_save_dialog()
+
+        if restore_cursor:
+            QtGui.QApplication.restoreOverrideCursor()
+
+        return result
