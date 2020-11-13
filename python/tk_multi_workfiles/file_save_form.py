@@ -31,7 +31,7 @@ from .util import value_to_str
 from .errors import MissingTemplatesError
 
 from .actions.save_as_file_action import SaveAsFileAction
-
+from .scene_operation import SAVE_FILE_AS_ACTION
 
 class FileSaveForm(FileFormBase):
     """
@@ -150,7 +150,7 @@ class FileSaveForm(FileFormBase):
         self._ui.browser.set_models(
             self._my_tasks_model, self._entity_models, self._file_model
         )
-        current_file = self._get_current_file()
+        current_file = self._get_current_file(SAVE_FILE_AS_ACTION)
         self._ui.browser.select_work_area(app.context)
         self._ui.browser.select_file(current_file, app.context)
 

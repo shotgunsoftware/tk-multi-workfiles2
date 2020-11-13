@@ -26,6 +26,7 @@ from .ui.file_open_form import Ui_FileOpenForm
 from .work_area import WorkArea
 from .util import get_template_user_keys
 
+from .scene_operation import OPEN_FILE_ACTION
 
 class FileOpenForm(FileFormBase):
     """
@@ -86,7 +87,7 @@ class FileOpenForm(FileFormBase):
         self._ui.browser.set_models(
             self._my_tasks_model, self._entity_models, self._file_model,
         )
-        current_file = self._get_current_file()
+        current_file = self._get_current_file(OPEN_FILE_ACTION)
         app = sgtk.platform.current_bundle()
         self._ui.browser.select_work_area(app.context)
         self._ui.browser.select_file(current_file, app.context)

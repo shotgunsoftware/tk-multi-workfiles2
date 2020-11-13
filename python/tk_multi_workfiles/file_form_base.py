@@ -32,7 +32,7 @@ shotgun_globals = sgtk.platform.import_framework(
 from .entity_models import ShotgunExtendedEntityModel, ShotgunDeferredEntityModel
 from .file_model import FileModel
 from .my_tasks.my_tasks_model import MyTasksModel
-from .scene_operation import get_current_path, SAVE_FILE_AS_ACTION
+from .scene_operation import get_current_path
 from .file_item import FileItem
 from .work_area import WorkArea
 from .actions.new_task_action import NewTaskAction
@@ -376,7 +376,7 @@ class FileFormBase(QtGui.QWidget):
         if self._file_model:
             self._file_model.async_refresh()
 
-    def _get_current_file(self):
+    def _get_current_file(self, parent_action):
         """
         Get a FileItem representing the currently open file/scene
 
@@ -394,7 +394,7 @@ class FileFormBase(QtGui.QWidget):
             # get the current file path:
             try:
                 current_path = get_current_path(
-                    app, SAVE_FILE_AS_ACTION, work_area.context
+                    app, parent_action, work_area.context
                 )
             except Exception as e:
                 return None
