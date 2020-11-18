@@ -83,6 +83,8 @@ class BrowserForm(QtGui.QWidget):
     entity_type_focus_changed = QtCore.Signal(object)  # entity type
     step_filter_changed = QtCore.Signal(list)  # SG filter
 
+    task_double_clicked = QtCore.Signal(object)  # My tasks task double clicked
+
     def __init__(self, parent):
         """
         Construction
@@ -214,6 +216,7 @@ class BrowserForm(QtGui.QWidget):
                 my_tasks_model, allow_task_creation, parent=self
             )
             self._my_tasks_form.entity_selected.connect(self._on_entity_selected)
+            self._my_tasks_form.task_double_clicked.connect(self.task_double_clicked)
             self._ui.task_browser_tabs.addTab(self._my_tasks_form, "My Tasks")
             self._my_tasks_form.create_new_task.connect(self.create_new_task)
 
@@ -292,6 +295,8 @@ class BrowserForm(QtGui.QWidget):
                         ", ".join(list(self.TAB_INFO)),
                     )
                 )
+        else:
+            self._ui.file_browser_tabs.hide()
 
     def _add_file_list_form(
         self, tab_name, search_label, show_work_files, show_publishes
