@@ -38,7 +38,7 @@ def sg_project(shotgun):
     Generates a fresh Shotgun Project to use with the Shotgun Python Console UI Automation.
     """
     # Create or update the integration_tests local storage with the current test run
-    storage_name = "File Open UI Tests"
+    storage_name = "File Save UI Tests"
     local_storage = shotgun.find_one(
         "LocalStorage", [["code", "is", storage_name]], ["code"]
     )
@@ -54,7 +54,7 @@ def sg_project(shotgun):
     )
 
     # Make sure there is not already an automation project created
-    filters = [["name", "is", "Toolkit File Open UI Automation"]]
+    filters = [["name", "is", "Toolkit File Save UI Automation"]]
     existed_project = shotgun.find_one("Project", filters)
     if existed_project is not None:
         shotgun.delete(existed_project["type"], existed_project["id"])
@@ -62,8 +62,8 @@ def sg_project(shotgun):
     # Create a new project without template. This mean it will use the default one.
     project_data = {
         "sg_description": "Project Created by Automation",
-        "name": "Toolkit File Open UI Automation",
-        "tank_name": "Toolkit File Open UI Automation",
+        "name": "Toolkit File Save UI Automation",
+        "tank_name": "Toolkit File Save UI Automation",
     }
     new_project = shotgun.create("Project", project_data)
 
@@ -84,6 +84,9 @@ def sg_entities(sg_project, shotgun):
     new_sequence = shotgun.create("Sequence", sequence_data)
 
     # Validate if Automation shot task template exists
+    import pdb
+
+    pdb.set_trace()
     shot_template_filters = [["code", "is", "Automation Shot Task Template"]]
     existed_shot_template = shotgun.find_one("TaskTemplate", shot_template_filters)
     if existed_shot_template is not None:
@@ -91,23 +94,23 @@ def sg_entities(sg_project, shotgun):
     # Create a shot task templates
     shot_template_data = {
         "code": "Automation Shot Task Template",
-        "description": "This shot task template was created by the File Open UI automation",
+        "description": "This shot task template was created by the File Save UI automation",
         "entity_type": "Shot",
     }
     shot_task_template = shotgun.create("TaskTemplate", shot_template_data)
 
     # Create Comp and Light tasks
-    for shot_task_name in ["Comp", "Light"]:
+    for task_name in ["Comp", "Light"]:
         # Get the Pipeline step task name
-        shot_pipeline_step_filter = [["code", "is", shot_task_name]]
-        shot_pipeline_step = shotgun.find_one("Step", shot_pipeline_step_filter)
+        pipeline_step_filter = [["code", "is", task_name]]
+        pipeline_step = shotgun.find_one("Step", pipeline_step_filter)
         # Create task
-        shot_task_data = {
-            "content": shot_task_name,
-            "step": shot_pipeline_step,
+        task_data = {
+            "content": task_name,
+            "step": pipeline_step,
             "task_template": shot_task_template,
         }
-        shotgun.create("Task", shot_task_data)
+        shotgun.create("Task", task_data)
 
     # Validate if Automation asset task template exists
     asset_template_filters = [["code", "is", "Automation Asset Task Template"]]
@@ -117,30 +120,30 @@ def sg_entities(sg_project, shotgun):
     # Create an asset task templates
     asset_template_data = {
         "code": "Automation Asset Task Template",
-        "description": "This asset task template was created by the File Open UI automation",
+        "description": "This asset task template was created by the File Save UI automation",
         "entity_type": "Asset",
     }
     asset_task_template = shotgun.create("TaskTemplate", asset_template_data)
 
     # Create Model and Rig tasks
-    for asset_task_name in ["Model", "Rig"]:
+    for task_name in ["Model", "Rig"]:
         # Get the Pipeline step task name
-        asset_pipeline_step_filter = [["code", "is", asset_task_name]]
-        asset_pipeline_step = shotgun.find_one("Step", asset_pipeline_step_filter)
+        pipeline_step_filter = [["code", "is", task_name]]
+        pipeline_step = shotgun.find_one("Step", pipeline_step_filter)
         # Create task
-        asset_task_data = {
-            "content": asset_task_name,
-            "step": asset_pipeline_step,
+        task_data = {
+            "content": task_name,
+            "step": pipeline_step,
             "task_template": asset_task_template,
         }
-        shotgun.create("Task", asset_task_data)
+        shotgun.create("Task", task_data)
 
     # Create a new shot
     shot_data = {
         "project": sg_project,
         "sg_sequence": new_sequence,
         "code": "shot_001",
-        "description": "This shot was created by the File Open UI automation",
+        "description": "This shot was created by the File Save UI automation",
         "sg_status_list": "ip",
         "task_template": shot_task_template,
     }
@@ -150,7 +153,7 @@ def sg_entities(sg_project, shotgun):
     asset_data = {
         "project": sg_project,
         "code": "AssetAutomation",
-        "description": "This asset was created by the File Open UI automation",
+        "description": "This asset was created by the File Save UI automation",
         "sg_status_list": "ip",
         "sg_asset_type": "Character",
         "task_template": asset_task_template,
@@ -173,7 +176,7 @@ def sg_entities(sg_project, shotgun):
         "project": sg_project,
         "code": "sven.png",
         "name": "sven.png",
-        "description": "This file was published by the File Open UI automation",
+        "description": "This file was published by the File Save UI automation",
         "published_file_type": published_file_type,
         "path": {"local_path": file_to_publish},
         "entity": asset,
@@ -211,7 +214,7 @@ def host_application(sg_project, sg_entities):
             "--context-entity-id",
             str(sg_project["id"]),
             "--commands",
-            "file_open",
+            "file_save",
         ]
     )
     try:
@@ -261,7 +264,7 @@ class AppDialogAppWrapper(object):
         """
         :param root:
         """
-        self.root = parent["Shotgun: File Open"].get()
+        self.root = parent["Shotgun: File Save"].get()
 
     def exists(self):
         """
@@ -274,8 +277,8 @@ class AppDialogAppWrapper(object):
 
 
 def test_ui_validation(app_dialog, sg_project):
-    # Make Sure the File Open dialog is showing up in the right context
-    assert app_dialog.root.captions["File Open"].exists(), "Not the File Open dialog"
+    # Make Sure the File Save dialog is showing up in the right context
+    assert app_dialog.root.captions["File Save"].exists(), "Not the File Save dialog"
     assert app_dialog.root.captions[
         "*Project " + sg_project["name"]
     ].exists(), "Not the right context"
@@ -304,24 +307,27 @@ def test_ui_validation(app_dialog, sg_project):
     assert app_dialog.root.buttons[
         "+ New Task"
     ].exists(), "+ New Task button is missing"
-    assert app_dialog.root.buttons[
-        "+ New File"
-    ].exists(), "+ New File button is missing"
     assert app_dialog.root.buttons["Cancel"].exists(), "Cancel button is missing"
-    assert app_dialog.root.buttons["Open"].exists(), "Open button is missing"
+    assert app_dialog.root.buttons["Save"].exists(), "Save button is missing"
+    assert app_dialog.root.buttons["Open"].exists(), "Open file type button is missing"
 
-    # Make sure all test fields are showing up
+    # Make sure all text fields are showing up
+    assert app_dialog.root.textfields[0].exists(), "Name text field is missing"
+    assert app_dialog.root.textfields[1].exists(), "Version text field is missing"
     assert app_dialog.root.textfields[
-        0
+        2
     ].exists(), "Search All Files text field is missing"
     assert app_dialog.root.textfields[
-        1
+        3
     ].exists(), "Search My Tasks text field is missing"
 
-    # Make sure all checkboxes are showing up
+    # Make sure checkbox is showing up and selected
     assert app_dialog.root.checkboxes[
-        "All Versions"
-    ].exists(), "All Versions checkbox is missing"
+        "Use Next Available Version Number"
+    ].exists(), "Use Next Available Version Number checkbox is missing"
+    assert app_dialog.root.checkboxes[
+        "Use Next Available Version Number"
+    ].checked, "Use Next Available Version Number checkbox should be checked by default"
 
 
 def test_assets_tab(app_dialog):
@@ -344,7 +350,7 @@ def test_assets_tab(app_dialog):
     assert app_dialog.root.buttons[
         "+ New Task"
     ].exists(), "+ New Task button is missing"
-    assert app_dialog.root.textfields[1].exists(), "Search Assets text field is missing"
+    assert app_dialog.root.textfields[3].exists(), "Search Assets text field is missing"
 
     # Got to the model task and validate breadcrumb
     app_dialog.root.outlineitems["Character"].waitExist(timeout=30)
@@ -365,7 +371,7 @@ def test_assets_tab(app_dialog):
     ].exists(), "Rig task is missing in content dialog"
 
     # Search in the content dialog for Rig and make sure Model is not showing up anymore
-    app_dialog.root.textfields[0].typeIn("Rig" "{ENTER}")
+    app_dialog.root.textfields[2].typeIn("Rig" "{ENTER}")
     assert app_dialog.root.cells[
         "Rig - Rig"
     ].exists(), "Rig task should be visible in content dialog"
@@ -374,7 +380,7 @@ def test_assets_tab(app_dialog):
     ), "Model task shouldn't be visible in content dialog"
 
     # Remove test in the search field and make sure Modal task is back
-    app_dialog.root.textfields[0].buttons.mouseClick()
+    app_dialog.root.textfields[2].buttons.mouseClick()
     assert app_dialog.root.cells[
         "Model - Model"
     ].exists(), "Model task should be visible in content dialog"
@@ -387,13 +393,22 @@ def test_assets_tab(app_dialog):
     # Validate content dialog
     assert app_dialog.root.cells["Model - Model"].exists(), "Not on the right tasks"
 
+    # Create a new task and select it
+    app_dialog.root.buttons["+ New Task"].mouseClick()
+    app_dialog.root.dialogs["Shotgun: Create New Task"].waitExist(timeout=30)
+    app_dialog.root.dialogs["Shotgun: Create New Task"].textfields[0].pasteIn(
+        "New Task"
+    )
+    app_dialog.root.dialogs["Shotgun: Create New Task"].buttons["Create"].mouseClick()
+    app_dialog.root.outlineitems["New Task"].waitExist(timeout=30)
+
     # Validate breadcrumb
     assert app_dialog.root.captions[
         "Assets * Character * Asset AssetAutomation * Step Model * Task Model"
     ].exists(), "Breadcrumb not on the right task"
 
     # Click on the back navigation button until back to the Assets context
-    for _i in range(0, 4):
+    for _i in range(0, 5):
         # Click on the back navigation button
         app_dialog.root.buttons["nav_prev_btn"].mouseClick()
 
@@ -404,9 +419,9 @@ def test_assets_tab(app_dialog):
 
     # Enable My Tasks Only and make sure Model task is not showing up anymore
     app_dialog.root.checkboxes["My Tasks Only"].mouseClick()
-    assert (
-        app_dialog.root.outlineitems["Model"].exists() is False
-    ), "Model task shouldn't be visible"
+    assert app_dialog.root.outlineitems[
+        "New Task"
+    ].exists(), "New Task task should be visible"
 
 
 def test_shots_tab(app_dialog):
@@ -429,7 +444,7 @@ def test_shots_tab(app_dialog):
     assert app_dialog.root.buttons[
         "+ New Task"
     ].exists(), "+ New Task button is missing"
-    assert app_dialog.root.textfields[1].exists(), "Search Shots text field is missing"
+    assert app_dialog.root.textfields[3].exists(), "Search Shots text field is missing"
 
     # Got to the model task and validate breadcrumb
     app_dialog.root.outlineitems["seq_001"].waitExist(timeout=30)
@@ -485,7 +500,7 @@ def test_shots_tab(app_dialog):
     assert app_dialog.root.outlineitems["Comp"].exists(), "Comp task should be visible"
 
     # Search for Anm and make sure Comp is not showing up anymore
-    app_dialog.root.textfields[1].typeIn("Light" "{ENTER}")
+    app_dialog.root.textfields[3].typeIn("Light" "{ENTER}")
     assert app_dialog.root.outlineitems[
         "Light"
     ].exists(), "Light task should be visible"
