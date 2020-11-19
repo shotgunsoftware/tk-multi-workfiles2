@@ -212,6 +212,8 @@ def host_application(sg_project, sg_entities):
             str(sg_project["id"]),
             "--commands",
             "file_open",
+            "--config",
+            "tests/fixtures/configWF2ui",
         ]
     )
     try:
@@ -274,6 +276,9 @@ class AppDialogAppWrapper(object):
 
 
 def test_ui_validation(app_dialog, sg_project):
+    """
+    Basic UI validation to make sure all buttons, tabs and fields are available
+    """
     # Make Sure the File Open dialog is showing up in the right context
     assert app_dialog.root.captions["File Open"].exists(), "Not the File Open dialog"
     assert app_dialog.root.captions[
@@ -325,6 +330,9 @@ def test_ui_validation(app_dialog, sg_project):
 
 
 def test_assets_tab(app_dialog):
+    """
+    Asset tab validation
+    """
     # Select the Assets tab
     app_dialog.root.tabs["Assets"].mouseClick()
 
@@ -373,7 +381,7 @@ def test_assets_tab(app_dialog):
         app_dialog.root.cells["Model - Model"].exists() is False
     ), "Model task shouldn't be visible in content dialog"
 
-    # Remove test in the search field and make sure Modal task is back
+    # Remove text in the search field and make sure Modal task is back
     app_dialog.root.textfields[0].buttons.mouseClick()
     assert app_dialog.root.cells[
         "Model - Model"
@@ -410,6 +418,9 @@ def test_assets_tab(app_dialog):
 
 
 def test_shots_tab(app_dialog):
+    """
+    Shot tab validation
+    """
     # Select the Shots tab
     app_dialog.root.tabs["Shots"].mouseClick()
 

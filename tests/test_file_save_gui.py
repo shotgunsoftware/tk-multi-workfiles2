@@ -84,9 +84,6 @@ def sg_entities(sg_project, shotgun):
     new_sequence = shotgun.create("Sequence", sequence_data)
 
     # Validate if Automation shot task template exists
-    import pdb
-
-    pdb.set_trace()
     shot_template_filters = [["code", "is", "Automation Shot Task Template"]]
     existed_shot_template = shotgun.find_one("TaskTemplate", shot_template_filters)
     if existed_shot_template is not None:
@@ -215,6 +212,8 @@ def host_application(sg_project, sg_entities):
             str(sg_project["id"]),
             "--commands",
             "file_save",
+            "--config",
+            "tests/fixtures/configWF2ui",
         ]
     )
     try:
@@ -277,6 +276,9 @@ class AppDialogAppWrapper(object):
 
 
 def test_ui_validation(app_dialog, sg_project):
+    """
+    Basic UI validation to make sure all buttons, tabs and fields are available
+    """
     # Make Sure the File Save dialog is showing up in the right context
     assert app_dialog.root.captions["File Save"].exists(), "Not the File Save dialog"
     assert app_dialog.root.captions[
@@ -331,6 +333,9 @@ def test_ui_validation(app_dialog, sg_project):
 
 
 def test_assets_tab(app_dialog):
+    """
+    Asset tab UI validation.
+    """
     # Select the Assets tab
     app_dialog.root.tabs["Assets"].mouseClick()
 
@@ -379,7 +384,7 @@ def test_assets_tab(app_dialog):
         app_dialog.root.cells["Model - Model"].exists() is False
     ), "Model task shouldn't be visible in content dialog"
 
-    # Remove test in the search field and make sure Modal task is back
+    # Remove text in the search field and make sure Modal task is back
     app_dialog.root.textfields[2].buttons.mouseClick()
     assert app_dialog.root.cells[
         "Model - Model"
@@ -425,6 +430,9 @@ def test_assets_tab(app_dialog):
 
 
 def test_shots_tab(app_dialog):
+    """
+    Shot tab UI validation
+    """
     # Select the Shots tab
     app_dialog.root.tabs["Shots"].mouseClick()
 
@@ -444,7 +452,7 @@ def test_shots_tab(app_dialog):
     assert app_dialog.root.buttons[
         "+ New Task"
     ].exists(), "+ New Task button is missing"
-    assert app_dialog.root.textfields[3].exists(), "Search Shots text field is missing"
+    assert app_dialog.root.textfields[2].exists(), "Search Shots text field is missing"
 
     # Got to the model task and validate breadcrumb
     app_dialog.root.outlineitems["seq_001"].waitExist(timeout=30)
@@ -500,7 +508,7 @@ def test_shots_tab(app_dialog):
     assert app_dialog.root.outlineitems["Comp"].exists(), "Comp task should be visible"
 
     # Search for Anm and make sure Comp is not showing up anymore
-    app_dialog.root.textfields[3].typeIn("Light" "{ENTER}")
+    app_dialog.root.textfields[2].typeIn("Light" "{ENTER}")
     assert app_dialog.root.outlineitems[
         "Light"
     ].exists(), "Light task should be visible"
