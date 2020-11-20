@@ -316,11 +316,11 @@ def test_ui_validation(app_dialog, sg_project):
     assert app_dialog.root.buttons["Open"].exists(), "Open button is missing"
 
     # Make sure all test fields are showing up
-    assert app_dialog.root.textfields[
-        0
+    assert app_dialog.root[
+        "Search All Files"
     ].exists(), "Search All Files text field is missing"
-    assert app_dialog.root.textfields[
-        1
+    assert app_dialog.root[
+        "Search Entity"
     ].exists(), "Search My Tasks text field is missing"
 
     # Make sure all checkboxes are showing up
@@ -352,7 +352,9 @@ def test_assets_tab(app_dialog):
     assert app_dialog.root.buttons[
         "+ New Task"
     ].exists(), "+ New Task button is missing"
-    assert app_dialog.root.textfields[1].exists(), "Search Assets text field is missing"
+    assert app_dialog.root[
+        "Search Entity"
+    ].exists(), "Search Assets text field is missing"
 
     # Got to the model task and validate breadcrumb
     app_dialog.root.outlineitems["Character"].waitExist(timeout=30)
@@ -373,7 +375,7 @@ def test_assets_tab(app_dialog):
     ].exists(), "Rig task is missing in content dialog"
 
     # Search in the content dialog for Rig and make sure Model is not showing up anymore
-    app_dialog.root.textfields[0].typeIn("Rig" "{ENTER}")
+    app_dialog.root["Search All Files"].typeIn("Rig" "{ENTER}")
     assert app_dialog.root.cells[
         "Rig - Rig"
     ].exists(), "Rig task should be visible in content dialog"
@@ -382,7 +384,7 @@ def test_assets_tab(app_dialog):
     ), "Model task shouldn't be visible in content dialog"
 
     # Remove text in the search field and make sure Modal task is back
-    app_dialog.root.textfields[0].buttons.mouseClick()
+    app_dialog.root["Search All Files"].buttons.mouseClick()
     assert app_dialog.root.cells[
         "Model - Model"
     ].exists(), "Model task should be visible in content dialog"
@@ -440,7 +442,9 @@ def test_shots_tab(app_dialog):
     assert app_dialog.root.buttons[
         "+ New Task"
     ].exists(), "+ New Task button is missing"
-    assert app_dialog.root.textfields[1].exists(), "Search Shots text field is missing"
+    assert app_dialog.root[
+        "Search Entity"
+    ].exists(), "Search Shots text field is missing"
 
     # Got to the model task and validate breadcrumb
     app_dialog.root.outlineitems["seq_001"].waitExist(timeout=30)
@@ -496,7 +500,7 @@ def test_shots_tab(app_dialog):
     assert app_dialog.root.outlineitems["Comp"].exists(), "Comp task should be visible"
 
     # Search for Anm and make sure Comp is not showing up anymore
-    app_dialog.root.textfields[1].typeIn("Light" "{ENTER}")
+    app_dialog.root["Search Entity"].typeIn("Light" "{ENTER}")
     assert app_dialog.root.outlineitems[
         "Light"
     ].exists(), "Light task should be visible"
