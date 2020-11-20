@@ -123,6 +123,9 @@
          <height>0</height>
         </size>
        </property>
+       <property name="accessibleName">
+        <string>Search All Files</string>
+       </property>
        <property name="styleSheet">
         <string notr="true">#search_ctrl {
 background-color: rgb(255, 128, 0);
