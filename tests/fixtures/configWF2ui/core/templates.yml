@@ -49,10 +49,10 @@ paths:
     asset_root: assets/{sg_asset_type}/{Asset}/{Step}
 
     work_area:
-        definition: '@asset_root/work'
+        definition: '@asset_root/work/images'
     # define the location of a publish area
     publish_area:
-        definition: '@asset_root/publish'
+        definition: '@asset_root/publish/images'
 
     # The location of published maya files
     publish_path:

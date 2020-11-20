@@ -15,6 +15,7 @@ engines:
     apps:
       tk-multi-run-this-app:
         location: {'type': 'path', 'path': '$SHOTGUN_TK_APP_LOCATION'}
+        show_change_context: true
 
 frameworks:
   tk-framework-shotgunutils_v5.x.x:
