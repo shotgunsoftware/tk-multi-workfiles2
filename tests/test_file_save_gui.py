@@ -407,7 +407,7 @@ def test_assets_tab(app_dialog):
     # Create a new task and select it
     app_dialog.root.buttons["+ New Task"].mouseClick()
     app_dialog.root.dialogs["Shotgun: Create New Task"].waitExist(timeout=30)
-    app_dialog.root.dialogs["Shotgun: Create New Task"].textfields[0].pasteIn(
+    app_dialog.root.dialogs["Shotgun: Create New Task"].textfields["Task Name"].pasteIn(
         "New Task"
     )
     app_dialog.root.dialogs["Shotgun: Create New Task"].buttons["Create"].mouseClick()
