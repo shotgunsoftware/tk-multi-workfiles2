@@ -26,7 +26,7 @@ def shotgun():
 @pytest.fixture(scope="session")
 def sg_project(shotgun):
     """
-    Generates a fresh Shotgun Project to use with the Shotgun Python Console UI Automation.
+    Generates a fresh Shotgun Project to use with the WF2 UI Automation.
     """
     # Create or update the integration_tests local storage with the current test run
     storage_name = "WF2 UI Tests"
@@ -82,7 +82,7 @@ def sg_entities(sg_project, shotgun):
     # Create a shot task templates
     shot_template_data = {
         "code": "Automation Shot Task Template",
-        "description": "This shot task template was created by the Change Context UI automation",
+        "description": "This shot task template was created by the WF2 UI automation",
         "entity_type": "Shot",
     }
     shot_task_template = shotgun.create("TaskTemplate", shot_template_data)
@@ -108,7 +108,7 @@ def sg_entities(sg_project, shotgun):
     # Create an asset task templates
     asset_template_data = {
         "code": "Automation Asset Task Template",
-        "description": "This asset task template was created by the Change Context UI automation",
+        "description": "This asset task template was created by the WF2 UI automation",
         "entity_type": "Asset",
     }
     asset_task_template = shotgun.create("TaskTemplate", asset_template_data)
@@ -131,7 +131,7 @@ def sg_entities(sg_project, shotgun):
         "project": sg_project,
         "sg_sequence": new_sequence,
         "code": "shot_001",
-        "description": "This shot was created by the Change Context UI automation",
+        "description": "This shot was created by the WF2 UI automation",
         "sg_status_list": "ip",
         "task_template": shot_task_template,
     }
@@ -141,7 +141,7 @@ def sg_entities(sg_project, shotgun):
     asset_data = {
         "project": sg_project,
         "code": "AssetAutomation",
-        "description": "This asset was created by the Change Context UI automation",
+        "description": "This asset was created by the WF2 UI automation",
         "sg_status_list": "ip",
         "sg_asset_type": "Character",
         "task_template": asset_task_template,
@@ -159,15 +159,25 @@ def sg_entities(sg_project, shotgun):
         os.path.expandvars("${TK_TEST_FIXTURES}"), "files", "images", "sven.png"
     )
 
+    # Find the model task to publish to
+    filters = [
+        ["project", "is", sg_project],
+        ["entity.Asset.code", "is", asset["code"]],
+        ["step.Step.code", "is", "model"],
+    ]
+    fields = ["sg_status_list"]
+    model_task = shotgun.find_one("Task", filters, fields)
+
     # Create a published file
     publish_data = {
         "project": sg_project,
         "code": "sven.png",
         "name": "sven.png",
-        "description": "This file was published by the Change Context UI automation",
+        "description": "This file was published by the WF2 UI automation",
         "published_file_type": published_file_type,
         "path": {"local_path": file_to_publish},
         "entity": asset,
+        "task": model_task,
         "version_number": 1,
     }
     shotgun.create("PublishedFile", publish_data)
