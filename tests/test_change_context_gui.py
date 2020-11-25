@@ -90,138 +90,14 @@ def test_ui_validation(app_dialog, sg_project):
     topwindows.listitems["Texture"].mouseClick()
     app_dialog.root.dialogs["Shotgun: Create New Task"].buttons["Create"].mouseClick()
     app_dialog.root.outlineitems["Texture"].waitExist(timeout=30)
+    # Enable My Tasks Only and make sure Model task is not showing up anymore
+    app_dialog.root.checkboxes["My Tasks Only"].mouseClick()
+    assert app_dialog.root.outlineitems[
+        "Texture"
+    ].exists(), "New Texture task should be visible"
 
     # Go back to My Tasks and make sure New Texture Task is showing up and select it
     app_dialog.root.tabs["My Tasks"].mouseClick()
     app_dialog.root.outlineitems["New Texture Task"].waitExist(timeout=30)
     app_dialog.root.outlineitems["New Texture Task"].mouseClick()
     assert app_dialog.root.outlineitems["New Texture Task"].selected is True
-
-
-def test_assets_tab(app_dialog):
-    """
-    Asset tab validation
-    """
-    # Select the Assets tab
-    app_dialog.root.tabs["Assets"].mouseClick()
-
-    # Make sure all expected UI is showing up
-    assert app_dialog.root.captions[
-        "Filter by Pipeline Step"
-    ].exists(), "Pipeline Step filters are missing"
-    assert app_dialog.root.buttons[
-        "Select All"
-    ].exists(), "Pipeline Step filters Select All button is missing"
-    assert app_dialog.root.buttons[
-        "Select None"
-    ].exists(), "Pipeline Step filters Select None button is missing"
-    assert app_dialog.root.checkboxes[
-        "My Tasks Only"
-    ].exists(), "My Tasks Only checkbox is missing"
-    assert app_dialog.root.buttons[
-        "+ New Task"
-    ].exists(), "+ New Task button is missing"
-    assert app_dialog.root[
-        "Search Entity"
-    ].exists(), "Search Assets text field is missing"
-
-    # Got to the model task and validate breadcrumb
-    app_dialog.root.outlineitems["Character"].waitExist(timeout=30)
-    if app_dialog.root.outlineitems["Model"].exixts() is False:
-        app_dialog.root.outlineitems["Character"].mouseDoubleClick()
-        app_dialog.root.outlineitems["AssetAutomation"].waitExist(timeout=30)
-        app_dialog.root.outlineitems["AssetAutomation"].mouseDoubleClick()
-        app_dialog.root.outlineitems["Model"].waitExist(timeout=30)
-
-    # Select Model task
-    app_dialog.root.outlineitems["Model"].mouseDoubleClick()
-    app_dialog.root.outlineitems["Model"][1].waitExist(timeout=30)
-    app_dialog.root.outlineitems["Model"][1].mouseClick()
-
-    # Validate breadcrumb
-    assert app_dialog.root.captions[
-        "Assets * Character * Asset AssetAutomation * Step Model * Task Model"
-    ].exists(), "Breadcrumb not on the right task"
-
-    # Enable My Tasks Only and make sure Model task is not showing up anymore
-    app_dialog.root.checkboxes["My Tasks Only"].mouseClick()
-    assert (
-        app_dialog.root.outlineitems["Model"].exists() is False
-    ), "Model task shouldn't be visible"
-
-
-def test_shots_tab(app_dialog):
-    """
-    Shot tab validation
-    """
-    # Select the Shots tab
-    app_dialog.root.tabs["Shots"].mouseClick()
-
-    # Make sure all expected UI is showing up
-    assert app_dialog.root.captions[
-        "Filter by Pipeline Step"
-    ].exists(), "Pipeline Step filters are missing"
-    assert app_dialog.root.buttons[
-        "Select All"
-    ].exists(), "Pipeline Step filters Select All button is missing"
-    assert app_dialog.root.buttons[
-        "Select None"
-    ].exists(), "Pipeline Step filters Select None button is missing"
-    assert app_dialog.root.checkboxes[
-        "My Tasks Only"
-    ].exists(), "My Tasks Only checkbox is missing"
-    assert app_dialog.root.buttons[
-        "+ New Task"
-    ].exists(), "+ New Task button is missing"
-    assert app_dialog.root[
-        "Search Entity"
-    ].exists(), "Search Shots text field is missing"
-
-    # Got to the model task and validate breadcrumb
-    app_dialog.root.outlineitems["seq_001"].waitExist(timeout=30)
-    app_dialog.root.outlineitems["seq_001"].mouseDoubleClick()
-    app_dialog.root.outlineitems["shot_001"].waitExist(timeout=30)
-    app_dialog.root.outlineitems["shot_001"].mouseDoubleClick()
-    app_dialog.root.outlineitems["Comp"].waitExist(timeout=30)
-    # Select Comp task
-    app_dialog.root.outlineitems["Comp"].mouseDoubleClick()
-    app_dialog.root.outlineitems["Comp"][1].waitExist(timeout=30)
-    app_dialog.root.outlineitems["Comp"][1].mouseClick()
-
-    # Validate breadcrumb
-    assert app_dialog.root.captions[
-        "Shots * Sequence seq_001 * Shot shot_001 * Step Comp * Task Comp"
-    ].exists(), "Breadcrumb not on the right task"
-
-    # Click on the back navigation button until back to the Assets context
-    for _i in range(0, 4):
-        # Click on the back navigation button
-        app_dialog.root.buttons["nav_prev_btn"].mouseClick()
-
-    # Validate Breadcrumb widget is only showing the project context
-    assert app_dialog.root.captions[
-        "Shots"
-    ].exists(), "Breadcrumb widget is not set correctly"
-
-    # Unselect all Pipeline Step filters and make sure Comp task is no more showing up
-    app_dialog.root.buttons["Select None"].mouseClick()
-    assert (
-        app_dialog.root.outlineitems["Comp"].exists() is False
-    ), "Comp task shouldn't be visible"
-    assert (
-        app_dialog.root.cells["Comp - Comp"].exists() is False
-    ), "Comp task shouldn't be visible in content dialog"
-
-    # Select all Pipeline Step filters and make sure Comp task is showing up
-    app_dialog.root.buttons["Select All"].mouseClick()
-    app_dialog.root.outlineitems["Comp"].waitExist(timeout=30)
-    assert app_dialog.root.outlineitems["Comp"].exists(), "Comp task should be visible"
-
-    # Search for Anm and make sure Comp is not showing up anymore
-    app_dialog.root["Search Entity"].typeIn("Light" "{ENTER}")
-    assert app_dialog.root.outlineitems[
-        "Light"
-    ].exists(), "Light task should be visible"
-    assert (
-        app_dialog.root.outlineitems["Comp"].exists() is False
-    ), "Comp task shouldn't be visible"
