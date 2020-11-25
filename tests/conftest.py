@@ -255,7 +255,7 @@ def app_dialog(host_application, window_name):
         if sgtk.util.is_windows():
             app_dialog = AppDialogAppWrapper(topwindows[window_name].get())
         else:
-            app_dialog = AppDialogAppWrapper(topwindows["python"])
+            app_dialog = AppDialogAppWrapper(topwindows["python"][window_name].get())
 
         if app_dialog.exists():
             yield app_dialog
