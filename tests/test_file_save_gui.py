@@ -9,7 +9,6 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import pytest
-import time
 
 
 @pytest.fixture(scope="module")

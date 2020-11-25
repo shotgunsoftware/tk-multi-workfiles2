@@ -24,7 +24,7 @@ except ImportError:
 @pytest.fixture(scope="session")
 def shotgun():
     """
-    Getting credentials from TK_TOOLCHAIN
+    Provides a connection to Shotgun.
     """
     sg = get_toolkit_user().create_sg_connection()
 
