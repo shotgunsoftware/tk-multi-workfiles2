@@ -10,6 +10,11 @@
 
 import pytest
 
+try:
+    from MA.UI import topwindows
+except ImportError:
+    pytestmark = pytest.mark.skip()
+
 
 @pytest.fixture(scope="module")
 def commands():
