@@ -287,60 +287,6 @@ class AppDialogAppWrapper(object):
         self.root.buttons["Close"].get().mouseClick()
 
 
-def test_ui_validation(app_dialog, sg_project):
-    """
-    Basic UI validation to make sure all buttons, tabs and fields are available
-    """
-    # Make Sure the File Open dialog is showing up in the right context
-    assert app_dialog.root.captions["File Open"].exists(), "Not the File Open dialog"
-    assert app_dialog.root.captions[
-        "*Project " + sg_project["name"]
-    ].exists(), "Not the right context"
-
-    # Make sure the breadcrumb UI is fine.
-    assert app_dialog.root.buttons[
-        "nav_home_btn"
-    ].exists(), "Nav home button is missing"
-    assert app_dialog.root.buttons[
-        "nav_prev_btn"
-    ].exists(), "Nav previous button is missing"
-    assert app_dialog.root.buttons[
-        "nav_next_btn"
-    ].exists(), "Nav next button is missing"
-    assert app_dialog.root.captions["My Tasks"].exists(), "Not the right breadcrumb"
-
-    # Make sure the all tabs are showing up.
-    assert app_dialog.root.tabs["My Tasks"].exists(), "My Tasks tab is missing"
-    assert app_dialog.root.tabs["Assets"].exists(), "Assets tab is missing"
-    assert app_dialog.root.tabs["Shots"].exists(), "Shots tab is missing"
-    assert app_dialog.root.tabs["All"].exists(), "All tab is missing"
-    assert app_dialog.root.tabs["Working"].exists(), "Working tab is missing"
-    assert app_dialog.root.tabs["Publishes"].exists(), "Publishes tab is missing"
-
-    # Make sure all buttons are showing up
-    assert app_dialog.root.buttons[
-        "+ New Task"
-    ].exists(), "+ New Task button is missing"
-    assert app_dialog.root.buttons[
-        "+ New File"
-    ].exists(), "+ New File button is missing"
-    assert app_dialog.root.buttons["Cancel"].exists(), "Cancel button is missing"
-    assert app_dialog.root.buttons["Open"].exists(), "Open button is missing"
-
-    # Make sure all text fields are showing up
-    assert app_dialog.root[
-        "Search All Files"
-    ].exists(), "Search All Files text field is missing"
-    assert app_dialog.root[
-        "Search Entity"
-    ].exists(), "Search My Tasks text field is missing"
-
-    # Make sure all checkboxes are showing up
-    assert app_dialog.root.checkboxes[
-        "All Versions"
-    ].exists(), "All Versions checkbox is missing"
-
-
 @pytest.fixture(scope="module")
 def test_my_tasks_tab(app_dialog, sg_project, file_dialog):
     """
