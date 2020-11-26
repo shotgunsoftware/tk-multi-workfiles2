@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import pytest
+from workfiles2_functions import _test_my_tasks_tab, _test_tab
 
 try:
     from MA.UI import topwindows
@@ -35,12 +36,36 @@ def window_name():
 @pytest.fixture(scope="module")
 def file_dialog():
     """
-    Return the window app name
+    Return the file dialog name
     """
     return ("File Open", "Open")
 
 
-def test_tabs(test_my_tasks_tab, test_assets_tab, test_shots_tab):
+def test_my_tasks(app_dialog, sg_project, file_dialog):
     """
-    Assets and Shots tabs validation
+    Basic My Tasks tab UI validation to make sure all buttons, tabs and fields are available
     """
+    _test_my_tasks_tab(app_dialog, sg_project, file_dialog)
+
+
+# Parametrize decorator to run the same functions for Assets and Shots tabs.
+@pytest.mark.parametrize(
+    "tab_name, selection_hierarchy, entities",
+    [
+        (
+            "Assets",
+            ("Character", "AssetAutomation", "Model"),
+            ("Asset", "AssetAutomation", "Model", "Rig"),
+        ),
+        (
+            "Shots",
+            ("seq_001", "shot_001", "Comp"),
+            ("Shot", "shot_001", "Comp", "Light"),
+        ),
+    ],
+)
+def test_tabs(app_dialog, tab_name, selection_hierarchy, entities):
+    """
+    Assets/Shots tabs UI validation.
+    """
+    _test_tab(app_dialog, tab_name, selection_hierarchy, entities)
