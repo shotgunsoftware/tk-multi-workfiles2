@@ -20,7 +20,8 @@ except ImportError:
 @pytest.fixture(scope="module")
 def commands():
     """
-    Return the command to run to launch Workfiles2 in different state
+    Return the command to launch Workfiles2 in different mode.
+    This fixture is used by the host_application fixture in conftest.py
     """
     return "file_open"
 
@@ -28,24 +29,32 @@ def commands():
 @pytest.fixture(scope="module")
 def window_name():
     """
-    Return the window app name
+    Return the window app name.
+    This fixture is used by the app_dialog fixture in conftest.py
     """
     return "Shotgun: File Open"
 
 
-@pytest.fixture(scope="module")
-def file_dialog():
-    """
-    Return the file dialog name
-    """
-    return ("File Open", "Open")
-
-
-def test_my_tasks(app_dialog, sg_project, file_dialog):
+def test_my_tasks(app_dialog, sg_project):
     """
     Basic My Tasks tab UI validation to make sure all buttons, tabs and fields are available
     """
-    _test_my_tasks_tab(app_dialog, sg_project, file_dialog)
+    # Validate the the right Workfiles 2 dialog mode is launched
+    assert app_dialog.root.captions["File Open"].exists(), "Not the File Open dialog"
+
+    # Validate File Open dialog buttons
+    assert app_dialog.root.buttons[
+        "+ New File"
+    ].exists(), "+ New File button is missing"
+    assert app_dialog.root.buttons["Open"].exists(), "Open button is missing"
+
+    # Validate File Open dialog checkboxes
+    assert app_dialog.root.checkboxes[
+        "All Versions"
+    ].exists(), "All Versions checkbox is missing"
+
+    # My Tasks tab general UI validation
+    _test_my_tasks_tab(app_dialog, sg_project)
 
 
 # Parametrize decorator to run the same functions for Assets and Shots tabs.

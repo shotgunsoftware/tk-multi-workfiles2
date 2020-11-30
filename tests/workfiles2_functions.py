@@ -16,14 +16,11 @@ except ImportError:
     pytestmark = pytest.mark.skip()
 
 
-def _test_my_tasks_tab(app_dialog, sg_project, file_dialog):
+def _test_my_tasks_tab(app_dialog, sg_project):
     """
     Basic My Tasks tab UI validation to make sure all buttons, tabs and fields are available
     """
     # Make Sure the File dialog is showing up in the right context
-    assert app_dialog.root.captions[
-        file_dialog[0]
-    ].exists(), "Not the right File dialog"
     assert app_dialog.root.captions[
         "*Project " + sg_project["name"]
     ].exists(), "Not the right context"
@@ -48,25 +45,11 @@ def _test_my_tasks_tab(app_dialog, sg_project, file_dialog):
     assert app_dialog.root.tabs["Working"].exists(), "Working tab is missing"
     assert app_dialog.root.tabs["Publishes"].exists(), "Publishes tab is missing"
 
-    # Make sure all buttons are showing up
-    # Button only in File Open dialog
-    if file_dialog[1] == "Open":
-        assert app_dialog.root.buttons[
-            "+ New File"
-        ].exists(), "+ New File button is missing"
-    # Button only in File Save dialog
-    elif file_dialog[1] == "Save":
-        assert app_dialog.root.buttons[
-            "Open"
-        ].exists(), "Open file type button is missing"
+    # Buttons in both, File Open and File Save dialogs
     assert app_dialog.root.buttons[
         "+ New Task"
     ].exists(), "+ New Task button is missing"
-    # Buttons in both, File Open and File Save dialogs
     assert app_dialog.root.buttons["Cancel"].exists(), "Cancel button is missing"
-    assert app_dialog.root.buttons[
-        file_dialog[1]
-    ].exists(), "Open/Save button is missing"
 
     # Make sure all text fields are showing up
     # text fields in both, File Open and File Save dialogs
@@ -76,29 +59,6 @@ def _test_my_tasks_tab(app_dialog, sg_project, file_dialog):
     assert app_dialog.root[
         "Search Entity"
     ].exists(), "Search My Tasks text field is missing"
-    # text fields only in File Save dialog
-    if file_dialog[1] == "Save":
-        assert app_dialog.root.textfields[
-            "Name Edit"
-        ].exists(), "Name text field is missing"
-        assert app_dialog.root.textfields[
-            "Version Number"
-        ].exists(), "Version text field is missing"
-
-    # Make sure all checkboxes are showing up
-    if file_dialog[1] == "Open":
-        assert app_dialog.root.checkboxes[
-            "All Versions"
-        ].exists(), "All Versions checkbox is missing"
-    elif file_dialog[1] == "Save":
-        assert app_dialog.root.checkboxes[
-            "Use Next Available Version Number"
-        ].exists(), "Use Next Available Version Number checkbox is missing"
-        assert app_dialog.root.checkboxes[
-            "Use Next Available Version Number"
-        ].checked, (
-            "Use Next Available Version Number checkbox should be checked by default"
-        )
 
 
 def _test_expected_ui_showing(app_dialog, tab_name):

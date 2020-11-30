@@ -20,7 +20,8 @@ except ImportError:
 @pytest.fixture(scope="module")
 def commands():
     """
-    Return the command to run to launch Workfiles2 in different state
+    Return the command to launch Workfiles2 in different mode.
+    This fixture is used by the host_application fixture in conftest.py
     """
     return "file_save"
 
@@ -28,24 +29,41 @@ def commands():
 @pytest.fixture(scope="module")
 def window_name():
     """
-    Return the window app name
+    Return the window app name.
+    This fixture is used by the app_dialog fixture in conftest.py
     """
     return "Shotgun: File Save"
 
 
-@pytest.fixture(scope="module")
-def file_dialog():
-    """
-    Return the file dialog name
-    """
-    return ("File Save", "Save")
-
-
-def test_my_tasks(app_dialog, sg_project, file_dialog):
+def test_my_tasks(app_dialog, sg_project):
     """
     Basic My Tasks tab UI validation to make sure all buttons, tabs and fields are available
     """
-    _test_my_tasks_tab(app_dialog, sg_project, file_dialog)
+    # Validate that the right Workfiles 2 dialog mode is launched
+    assert app_dialog.root.captions["File Save"].exists(), "Not the File Open dialog"
+
+    # Validate File Save dialog buttons
+    assert app_dialog.root.buttons["Open"].exists(), "Open file type button is missing"
+    assert app_dialog.root.buttons["Save"].exists(), "Save button is missing"
+
+    # Validate File Save dialog text fields
+    assert app_dialog.root.textfields[
+        "Name Edit"
+    ].exists(), "Name text field is missing"
+    assert app_dialog.root.textfields[
+        "Version Number"
+    ].exists(), "Version text field is missing"
+
+    # Validate File Save dialog checkboxes
+    assert app_dialog.root.checkboxes[
+        "Use Next Available Version Number"
+    ].exists(), "Use Next Available Version Number checkbox is missing"
+    assert app_dialog.root.checkboxes[
+        "Use Next Available Version Number"
+    ].checked, "Use Next Available Version Number checkbox should be checked by default"
+
+    # My Tasks tab general UI validation
+    _test_my_tasks_tab(app_dialog, sg_project)
 
 
 # Parametrize decorator to run the same functions for Assets and Shots tabs.

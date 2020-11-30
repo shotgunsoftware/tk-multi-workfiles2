@@ -19,7 +19,8 @@ except ImportError:
 @pytest.fixture(scope="module")
 def commands():
     """
-    Return the command to run to launch Workfiles2 in different state
+    Return the command to launch Workfiles2 in different mode.
+    This fixture is used by the host_application fixture in conftest.py
     """
     return "change_context"
 
@@ -27,7 +28,8 @@ def commands():
 @pytest.fixture(scope="module")
 def window_name():
     """
-    Return the window app name
+    Return the window app name.
+    This fixture is used by the app_dialog fixture in conftest.py
     """
     return "Shotgun: Change Context"
 
