@@ -343,7 +343,7 @@ background-color: rgb(255, 128, 0);
             <number>14</number>
            </property>
            <property name="verticalSpacing">
-            <number>6</number>
+            <number>1</number>
            </property>
            <item row="0" column="0">
             <widget class="QLabel" name="preview_label">
@@ -434,6 +434,12 @@ background-color: rgb(255, 128, 0);
            </property>
            <item row="0" column="1">
             <widget class="QLabel" name="warning">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>45</height>
+              </size>
+             </property>
              <property name="text">
               <string>warning</string>
              </property>
@@ -448,6 +454,9 @@ background-color: rgb(255, 128, 0);
              </property>
              <property name="indent">
               <number>-1</number>
+             </property>
+             <property name="textInteractionFlags">
+              <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
              </property>
             </widget>
            </item>
