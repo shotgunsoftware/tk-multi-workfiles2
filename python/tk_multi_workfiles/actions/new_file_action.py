@@ -79,8 +79,9 @@ class NewFileAction(Action):
                 raise TankError(
                     "Unable to resolve template fields after folder creation!  This could mean "
                     "there is a mismatch between your folder schema and templates.  Please "
-                    "<a href='{}'>contact support</a> if you need help fixing this."
-                    .format(support_url)
+                    "<a href='{}'>contact support</a> if you need help fixing this.".format(
+                        support_url
+                    )
                 )
 
             # reset the current scene:

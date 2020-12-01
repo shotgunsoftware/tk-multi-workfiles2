@@ -782,11 +782,15 @@ class FileSaveForm(FileFormBase):
                 app.ensure_folder_exists(dir)
         except TankError as e:
             # oops, looks like something went wrong!
-            TKMessageBox.critical("Failed to save file!", "Failed to save file!\n\n%s" % e)
+            TKMessageBox.critical(
+                "Failed to save file!", "Failed to save file!\n\n%s" % e
+            )
             return
         except Exception as e:
             # also handle generic exception:
-            TKMessageBox.critical("Failed to save file!", "Failed to save file!\n\n%s" % e)
+            TKMessageBox.critical(
+                "Failed to save file!", "Failed to save file!\n\n%s" % e
+            )
             app.log_exception("Failed to save file!")
             return
 
