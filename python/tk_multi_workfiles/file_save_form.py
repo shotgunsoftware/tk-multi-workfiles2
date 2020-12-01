@@ -20,6 +20,7 @@ from itertools import chain
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
+from sgtk.platform.qt.message_box import TKMessageBox
 from sgtk import TankError
 
 from .file_form_base import FileFormBase
@@ -29,6 +30,7 @@ from .file_item import FileItem
 from .file_finder import FileFinder
 from .util import value_to_str
 from .errors import MissingTemplatesError
+
 
 from .actions.save_as_file_action import SaveAsFileAction
 
@@ -90,6 +92,9 @@ class FileSaveForm(FileFormBase):
         app = sgtk.platform.current_bundle()
 
         super(FileSaveForm, self)._do_init()
+
+        # Make sure hyperlinks in warning messages open correctly
+        self._ui.warning.setOpenExternalLinks(True)
 
         self._ui.preview_label.setText(
             "<p style='color:rgb%s'><b>Preview:</b></p>" % (self._preview_colour,)
@@ -777,15 +782,11 @@ class FileSaveForm(FileFormBase):
                 app.ensure_folder_exists(dir)
         except TankError as e:
             # oops, looks like something went wrong!
-            QtGui.QMessageBox.critical(
-                self, "Failed to save file!", "Failed to save file!\n\n%s" % e
-            )
+            TKMessageBox.critical("Failed to save file!", "Failed to save file!\n\n%s" % e)
             return
         except Exception as e:
             # also handle generic exception:
-            QtGui.QMessageBox.critical(
-                self, "Failed to save file!", "Failed to save file!\n\n%s" % e
-            )
+            TKMessageBox.critical("Failed to save file!", "Failed to save file!\n\n%s" % e)
             app.log_exception("Failed to save file!")
             return
 

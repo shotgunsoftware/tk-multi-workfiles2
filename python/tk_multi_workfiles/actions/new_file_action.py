@@ -13,7 +13,8 @@ Action to create a new file.
 """
 
 from sgtk import TankError
-from sgtk.platform.qt import QtGui
+from sgtk import support_url
+from sgtk.platform.qt.message_box import TKMessageBox
 
 from .file_action import FileAction
 from .action import Action
@@ -77,8 +78,9 @@ class NewFileAction(Action):
                 # and raise a new, clearer exception for this specific use case:
                 raise TankError(
                     "Unable to resolve template fields after folder creation!  This could mean "
-                    "there is a mismatch between your folder schema and templates.  Please email "
-                    "support@shotgunsoftware.com if you need help fixing this."
+                    "there is a mismatch between your folder schema and templates.  Please "
+                    "<a href='{}'>contact support</a> if you need help fixing this."
+                    .format(support_url)
                 )
 
             # reset the current scene:
@@ -99,9 +101,10 @@ class NewFileAction(Action):
 
         except Exception as e:
             error_title = "Failed to complete '%s' action" % self.label
-            QtGui.QMessageBox.information(
-                parent_ui, error_title, "%s:\n\n%s" % (error_title, e)
-            )
+
+            message = "%s:\n\n%s" % (error_title, e)
+            TKMessageBox.information(error_title, message, parent=parent_ui)
+
             self._app.log_exception(error_title)
             return False
         else:
