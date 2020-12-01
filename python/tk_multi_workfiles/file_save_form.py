@@ -30,7 +30,6 @@ from .file_finder import FileFinder
 from .util import value_to_str
 from .errors import MissingTemplatesError
 
-
 from .actions.save_as_file_action import SaveAsFileAction
 
 
@@ -777,6 +776,7 @@ class FileSaveForm(FileFormBase):
             if dir and not os.path.exists(dir):
                 app.ensure_folder_exists(dir)
         except TankError as e:
+            # oops, looks like something went wrong!
             QtGui.QMessageBox.critical(
                 self, "Failed to save file!", "Failed to save file!\n\n%s" % e
             )

@@ -102,12 +102,9 @@ class NewFileAction(Action):
 
         except Exception as e:
             error_title = "Failed to complete '%s' action" % self.label
-
-            message = "%s:\n\n%s" % (error_title, e)
             QtGui.QMessageBox.information(
                 parent_ui, error_title, "%s:\n\n%s" % (error_title, e)
             )
-
             self._app.log_exception(error_title)
             return False
         else:
