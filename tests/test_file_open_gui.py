@@ -59,22 +59,34 @@ def test_my_tasks(app_dialog, sg_project):
 
 # Parametrize decorator to run the same functions for Assets and Shots tabs.
 @pytest.mark.parametrize(
-    "tab_name, selection_hierarchy, entities",
+    "tab_name, selection_hierarchy, entity, entity_type, step, task",
     [
         (
             "Assets",
+            # Names of the tree items in the selection order
             ("Character", "AssetAutomation", "Model"),
-            ("Asset", "AssetAutomation", "Model", "Rig"),
+            "Asset",
+            "AssetAutomation",
+            "Model",
+            "Rig",
         ),
         (
             "Shots",
+            # Names of the tree items in the selection order
             ("seq_001", "shot_001", "Comp"),
-            ("Shot", "shot_001", "Comp", "Light"),
+            "Shot",
+            "shot_001",
+            "Comp",
+            "Light",
         ),
     ],
 )
-def test_tabs(app_dialog, tab_name, selection_hierarchy, entities):
+def test_tabs(
+    app_dialog, tab_name, selection_hierarchy, entity, entity_type, step, task
+):
     """
     Assets/Shots tabs UI validation.
     """
-    _test_tab(app_dialog, tab_name, selection_hierarchy, entities)
+    _test_tab(
+        app_dialog, tab_name, selection_hierarchy, entity, entity_type, step, task
+    )

@@ -86,11 +86,11 @@ def _test_expected_ui_showing(app_dialog, tab_name):
     ].exists(), "Search {0} text field is missing".format(tab_name)
 
 
-def _navigate_and_validate_breadcrumb(app_dialog, selection_hierarchy, entities):
+def _navigate_and_validate_content(app_dialog, selection_hierarchy, task):
     """
-    Navigation and breadcrumb validation
+    Navigation and content dialog validation
     """
-    # Got to the model task and validate breadcrumb
+    # Got to the model task and validate content dialog
 
     for num, item in enumerate(selection_hierarchy):
 
@@ -107,50 +107,44 @@ def _navigate_and_validate_breadcrumb(app_dialog, selection_hierarchy, entities)
         "{0} - {0}".format(selection_hierarchy[2])
     ].exists(), "{0} task is missing in content dialog".format(selection_hierarchy[2])
     assert app_dialog.root.cells[
-        "{0} - {0}".format(entities[3])
-    ].exists(), "{0} task is missing in content dialog".format(entities[3])
+        "{0} - {0}".format(task)
+    ].exists(), "{0} task is missing in content dialog".format(task)
 
 
-def _test_tab(app_dialog, tab_name, selection_hierarchy, entities):
-    """
-    Assets/Shots tabs UI validation.
-    """
-    # Select an entity tab
-    app_dialog.root.tabs[tab_name].mouseClick()
-
-    _test_expected_ui_showing(app_dialog, tab_name)
-
-    _navigate_and_validate_breadcrumb(app_dialog, selection_hierarchy, entities)
-
+def _search_all(app_dialog, step, task):
     # Search in the content dialog for a specific task and make sure other tasks are not showing up anymore
-    app_dialog.root["Search All Files"].pasteIn(entities[3], enter=True)
+    app_dialog.root["Search All Files"].pasteIn(task, enter=True)
     assert app_dialog.root.cells[
-        "{0} - {0}".format(entities[3])
-    ].exists(), "{0} task should be visible in content dialog".format(entities[3])
+        "{0} - {0}".format(task)
+    ].exists(), "{0} task should be visible in content dialog".format(task)
     assert (
-        app_dialog.root.cells["{0} - {0}".format(entities[2])].exists() is False
-    ), "{0} task shouldn't be visible in content dialog".format(entities[2])
+        app_dialog.root.cells["{0} - {0}".format(step)].exists() is False
+    ), "{0} task shouldn't be visible in content dialog".format(step)
 
     # Remove text in the search field and make sure all tasks are back
     app_dialog.root["Search All Files"].buttons.mouseClick()
     assert app_dialog.root.cells[
-        "{0} - {0}".format(entities[2])
-    ].exists(), "{0} task should be visible in content dialog".format(entities[2])
+        "{0} - {0}".format(step)
+    ].exists(), "{0} task should be visible in content dialog".format(step)
 
+
+def _breadcrumb_validation(
+    app_dialog, tab_name, selection_hierarchy, entity, entity_type, step
+):
     # Select a specific task
-    app_dialog.root.outlineitems[entities[2]].mouseDoubleClick()
-    app_dialog.root.outlineitems[entities[2]][1].waitExist(timeout=30)
-    app_dialog.root.outlineitems[entities[2]][1].mouseClick()
+    app_dialog.root.outlineitems[step].mouseDoubleClick()
+    app_dialog.root.outlineitems[step][1].waitExist(timeout=30)
+    app_dialog.root.outlineitems[step][1].mouseClick()
 
     # Validate content dialog
     assert app_dialog.root.cells[
-        "{0} - {0}".format(entities[2])
+        "{0} - {0}".format(step)
     ].exists(), "Not on the right tasks"
 
     # Validate breadcrumb
     assert app_dialog.root.captions[
         "{0}*{1}*{2}*{3}*Step*{4}*Task*{4}".format(
-            tab_name, selection_hierarchy[0], entities[0], entities[1], entities[2]
+            tab_name, selection_hierarchy[0], entity, entity_type, step
         )
     ].exists(), "Breadcrumb not on the right task"
 
@@ -164,33 +158,62 @@ def _test_tab(app_dialog, tab_name, selection_hierarchy, entities):
         tab_name
     ].exists(), "Breadcrumb widget is not set correctly"
 
+
+def _hierarchy_view(app_dialog, step, task):
     # Unselect all Pipeline Step filters and make sure tasks are not showing up anymore
     app_dialog.root.buttons["Select None"].mouseClick()
     assert (
-        app_dialog.root.outlineitems[entities[2]].exists() is False
-    ), "{0} task shouldn't be visible".format(entities[2])
+        app_dialog.root.outlineitems[step].exists() is False
+    ), "{0} task shouldn't be visible".format(step)
     assert (
-        app_dialog.root.cells["{0} - {0}".format(entities[2])].exists() is False
-    ), "{0} task shouldn't be visible in content dialog".format(entities[2])
+        app_dialog.root.cells["{0} - {0}".format(step)].exists() is False
+    ), "{0} task shouldn't be visible in content dialog".format(step)
 
     # Select all Pipeline Step filters and make sure all tasks are showing up
     app_dialog.root.buttons["Select All"].mouseClick()
-    app_dialog.root.outlineitems[entities[2]].waitExist(timeout=30)
+    app_dialog.root.outlineitems[step].waitExist(timeout=30)
     assert app_dialog.root.outlineitems[
-        entities[2]
-    ].exists(), "{0} task should be visible".format(entities[2])
+        step
+    ].exists(), "{0} task should be visible".format(step)
 
     # Search for a specific task and make sure other tasks are not showing up anymore
-    app_dialog.root["Search Entity"].pasteIn(entities[3], enter=True)
+    app_dialog.root["Search Entity"].pasteIn(task, enter=True)
     assert app_dialog.root.outlineitems[
-        entities[3]
-    ].exists(), "{0} task should be visible".format(entities[3])
+        task
+    ].exists(), "{0} task should be visible".format(task)
     assert (
-        app_dialog.root.outlineitems[entities[2]].exists() is False
-    ), "{0} task shouldn't be visible".format(entities[2])
+        app_dialog.root.outlineitems[step].exists() is False
+    ), "{0} task shouldn't be visible".format(step)
 
     # Enable My Tasks Only and make sure tasks are not showing up anymore
     app_dialog.root.checkboxes["My Tasks Only"].mouseClick()
     assert (
-        app_dialog.root.outlineitems[entities[3]].exists() is False
-    ), "{0} task shouldn't be visible".format(entities[3])
+        app_dialog.root.outlineitems[task].exists() is False
+    ), "{0} task shouldn't be visible".format(task)
+
+
+def _test_tab(
+    app_dialog, tab_name, selection_hierarchy, entity, entity_type, step, task
+):
+    """
+    Assets/Shots tabs UI validation.
+    """
+    # Select an entity tab
+    app_dialog.root.tabs[tab_name].mouseClick()
+
+    # Validate the expected UI is available
+    _test_expected_ui_showing(app_dialog, tab_name)
+
+    # Navigate in the hierarchy view and make sure the content dialog has the right information
+    _navigate_and_validate_content(app_dialog, selection_hierarchy, task)
+
+    # Test search all text field
+    _search_all(app_dialog, step, task)
+
+    # Breadcrumb validation
+    _breadcrumb_validation(
+        app_dialog, tab_name, selection_hierarchy, entity, entity_type, step
+    )
+
+    # Hierarchy view validation
+    _hierarchy_view(app_dialog, step, task)
