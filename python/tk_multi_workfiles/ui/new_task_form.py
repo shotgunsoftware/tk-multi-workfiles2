@@ -115,9 +115,11 @@ class Ui_NewTaskForm(object):
         self.assigned_to.setText(QtGui.QApplication.translate("NewTaskForm", "Mr John Smith", None, QtGui.QApplication.UnicodeUTF8))
         self.label_6.setText(QtGui.QApplication.translate("NewTaskForm", "Assigned to:", None, QtGui.QApplication.UnicodeUTF8))
         self.label_4.setText(QtGui.QApplication.translate("NewTaskForm", "Entity:", None, QtGui.QApplication.UnicodeUTF8))
+        self.pipeline_step.setAccessibleName(QtGui.QApplication.translate("NewTaskForm", "Pipeline Step", None, QtGui.QApplication.UnicodeUTF8))
         self.entity.setText(QtGui.QApplication.translate("NewTaskForm", "Shot ABC 123", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("NewTaskForm", "Pipeline Step:", None, QtGui.QApplication.UnicodeUTF8))
         self.label_2.setText(QtGui.QApplication.translate("NewTaskForm", "Task Name:", None, QtGui.QApplication.UnicodeUTF8))
+        self.task_name.setAccessibleName(QtGui.QApplication.translate("NewTaskForm", "Task Name", None, QtGui.QApplication.UnicodeUTF8))
         self.cancel_btn.setText(QtGui.QApplication.translate("NewTaskForm", "Cancel", None, QtGui.QApplication.UnicodeUTF8))
         self.create_btn.setText(QtGui.QApplication.translate("NewTaskForm", "Create", None, QtGui.QApplication.UnicodeUTF8))
 

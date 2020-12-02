@@ -113,6 +113,7 @@ class Ui_FileListForm(object):
         FileListForm.setWindowTitle(QtGui.QApplication.translate("FileListForm", "Form", None, QtGui.QApplication.UnicodeUTF8))
         self.user_filter_btn.setProperty("user_style", QtGui.QApplication.translate("FileListForm", "current", None, QtGui.QApplication.UnicodeUTF8))
         self.all_versions_cb.setText(QtGui.QApplication.translate("FileListForm", "All Versions", None, QtGui.QApplication.UnicodeUTF8))
+        self.search_ctrl.setAccessibleName(QtGui.QApplication.translate("FileListForm", "Search All Files", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..file_list.file_details_view import FileDetailsView
 from ..file_list.user_filter_button import UserFilterButton
