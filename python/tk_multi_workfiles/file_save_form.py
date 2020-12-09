@@ -377,8 +377,8 @@ class FileSaveForm(FileFormBase):
                 # and raise a new, clearer exception for this specific use case:
                 raise TankError(
                     "Unable to resolve template fields!  This could mean there is a mismatch "
-                    "between your folder schema and templates.  Please email "
-                    "support@shotgunsoftware.com if you need help fixing this."
+                    "between your folder schema and templates. Contact us via {} "
+                    "if you need help fixing this.".format(sgtk.support_url)
                 )
 
             # it's ok not to have a path preview at this point!
