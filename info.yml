@@ -267,7 +267,7 @@ description: "Using this app you can browse, open and save your Work Files and P
 
 # Required minimum versions for this item to run
 requires_shotgun_version:
-requires_core_version: "v0.19.1"
+requires_core_version: "v0.19.18"
 requires_engine_version:
 
 # the engines that this app can operate in:
