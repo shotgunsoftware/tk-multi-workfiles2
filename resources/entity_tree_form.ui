@@ -85,6 +85,9 @@
          <height>20</height>
         </size>
        </property>
+       <property name="accessibleName">
+        <string>Search Entity</string>
+       </property>
        <property name="styleSheet">
         <string notr="true">#search_ctrl {
 background-color: rgb(255, 128, 0);

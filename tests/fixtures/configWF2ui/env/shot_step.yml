@@ -1,0 +1,47 @@
+# Copyright (c) 2020 Shotgun Software Inc.
+#
+# CONFIDENTIAL AND PROPRIETARY
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
+# Source Code License included in this distribution package. See LICENSE.
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
+# not expressly granted therein are reserved by Shotgun Software Inc.
+
+engines:
+  tk-testengine:
+    location: {'type': 'dev', 'path': '$SHOTGUN_TEST_ENGINE'}
+    debug_logging: false
+    apps:
+      tk-multi-run-this-app:
+        template_publish: publish_path
+        template_publish_area: publish_area
+        template_work_area: work_area
+        template_work: work_path
+        entities:
+        - caption: Assets
+          entity_type: Asset
+          hierarchy: [sg_asset_type, code]
+          filters:
+          sub_hierarchy:
+            entity_type: Task
+            filters:
+            link_field: entity
+            hierarchy: [step]
+        - caption: Shots
+          entity_type: Shot
+          filters:
+          hierarchy: [sg_sequence, code]
+          sub_hierarchy:
+            entity_type: Task
+            filters:
+            link_field: entity
+            hierarchy: [step]
+        location: {'type': 'path', 'path': '$SHOTGUN_TK_APP_LOCATION'}
+
+
+frameworks:
+  tk-framework-shotgunutils_v5.x.x:
+    location: {type: path, path: '$SHOTGUN_REPOS_ROOT/tk-framework-shotgunutils' }
+  tk-framework-qtwidgets_v2.x.x:
+    location: {type: path, path: '$SHOTGUN_REPOS_ROOT/tk-framework-qtwidgets' }

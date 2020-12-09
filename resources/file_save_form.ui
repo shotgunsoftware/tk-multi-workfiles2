@@ -235,6 +235,9 @@ background-color: rgb(255, 128, 0);
          </property>
          <item>
           <widget class="QSpinBox" name="version_spinner">
+           <property name="accessibleName">
+            <string>Version Number</string>
+           </property>
            <property name="maximum">
             <number>9999999</number>
            </property>
@@ -275,6 +278,9 @@ background-color: rgb(255, 128, 0);
              <height>0</height>
             </size>
            </property>
+           <property name="accessibleName">
+            <string>File Type</string>
+           </property>
           </widget>
          </item>
          <item>
@@ -304,6 +310,9 @@ background-color: rgb(255, 128, 0);
              <width>200</width>
              <height>16777215</height>
             </size>
+           </property>
+           <property name="accessibleName">
+            <string>Name Edit</string>
            </property>
            <property name="frame">
             <bool>true</bool>
