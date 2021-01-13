@@ -14,6 +14,7 @@ import time
 import os
 import sys
 from tk_toolchain.authentication import get_toolkit_user
+from tk_toolchain.testing import create_unique_name
 
 try:
     from MA.UI import topwindows
@@ -53,7 +54,8 @@ def sg_project(shotgun):
     )
 
     # Make sure there is not already an automation project created
-    filters = [["name", "is", "Toolkit WF2 UI Automation"]]
+    project_name = create_unique_name("Toolkit WF2 UI Automation")
+    filters = [["name", "is", project_name]]
     existed_project = shotgun.find_one("Project", filters)
     if existed_project is not None:
         shotgun.delete(existed_project["type"], existed_project["id"])
@@ -61,8 +63,8 @@ def sg_project(shotgun):
     # Create a new project without template. This mean it will use the default one.
     project_data = {
         "sg_description": "Project Created by Automation",
-        "name": "Toolkit WF2 UI Automation",
-        "tank_name": "Toolkit WF2 UI Automation",
+        "name": project_name,
+        "tank_name": project_name,
     }
     new_project = shotgun.create("Project", project_data)
 
