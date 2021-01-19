@@ -35,7 +35,7 @@ def window_name():
     return "Shotgun: File Save"
 
 
-def test_my_tasks(app_dialog, sg_project):
+def test_my_tasks(app_dialog, tk_test_create_project):
     """
     Basic My Tasks tab UI validation to make sure all buttons, tabs and fields are available
     """
@@ -63,7 +63,7 @@ def test_my_tasks(app_dialog, sg_project):
     ].checked, "Use Next Available Version Number checkbox should be checked by default"
 
     # My Tasks tab general UI validation
-    _test_my_tasks_tab(app_dialog, sg_project)
+    _test_my_tasks_tab(app_dialog, tk_test_create_project)
 
 
 # Parametrize decorator to run the same functions for Assets and Shots tabs.
