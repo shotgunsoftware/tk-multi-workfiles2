@@ -23,7 +23,7 @@ except ImportError:
 # This fixture will launch tk-run-app on first usage
 # and will remain valid until the test run ends.
 @pytest.fixture(scope="module")
-def host_application(tk_test_create_project, tk_test_create_entities, commands):
+def host_application(tk_test_project, tk_test_entities, commands):
     """
     Launch the host application for the Toolkit application.
 
@@ -45,9 +45,9 @@ def host_application(tk_test_create_project, tk_test_create_entities, commands):
             "--location",
             os.path.dirname(__file__),
             "--context-entity-type",
-            tk_test_create_project["type"],
+            tk_test_project["type"],
             "--context-entity-id",
-            str(tk_test_create_project["id"]),
+            str(tk_test_project["id"]),
             "--commands",
             commands,
             "--config",

@@ -34,7 +34,7 @@ def window_name():
     return "Shotgun: Change Context"
 
 
-def test_ui_validation(app_dialog, tk_test_create_project):
+def test_ui_validation(app_dialog, tk_test_project):
     """
     Basic UI validation to make sure all buttons, tabs and fields are available
     """
@@ -43,7 +43,7 @@ def test_ui_validation(app_dialog, tk_test_create_project):
         "Change Context"
     ].exists(), "Not the Change Context dialog"
     assert app_dialog.root.captions[
-        "*Project " + tk_test_create_project["name"]
+        "*Project " + tk_test_project["name"]
     ].exists(), "Not the right context"
 
     # Make sure the breadcrumb UI is fine.
