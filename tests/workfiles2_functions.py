@@ -16,13 +16,13 @@ except ImportError:
     pytestmark = pytest.mark.skip()
 
 
-def _test_my_tasks_tab(app_dialog, sg_project):
+def _test_my_tasks_tab(app_dialog, tk_test_project):
     """
     Basic My Tasks tab UI validation to make sure all buttons, tabs and fields are available
     """
     # Make Sure the File dialog is showing up in the right context
     assert app_dialog.root.captions[
-        "*Project " + sg_project["name"]
+        "*Project " + tk_test_project["name"]
     ].exists(), "Not the right context"
 
     # Make sure the breadcrumb UI is fine.
