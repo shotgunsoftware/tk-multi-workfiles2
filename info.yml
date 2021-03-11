@@ -275,7 +275,7 @@ supported_engines:
 
 # the engines that can launch this app on startup
 # currently, we have done QA on the following engines:
-launch_at_startup_supported_engines: [tk-nuke, tk-maya, tk-3dsmax, tk-katana, tk-katana_foundry]  # remove tk-katana_foundry when merged with official release
+launch_at_startup_supported_engines: [tk-nuke, tk-maya, tk-3dsmax]
 
 # the frameworks required to run this app
 frameworks:
