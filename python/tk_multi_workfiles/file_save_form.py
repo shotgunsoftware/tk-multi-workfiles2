@@ -604,6 +604,23 @@ class FileSaveForm(FileFormBase):
                     name = self._current_env.save_as_default_name or "scene"
                 self._ui.name_edit.setText(name)
 
+                # Setup custom name label if any.
+                # See also ./ui/file_save_form.py:retranslateUi()
+                app = sgtk.platform.current_bundle()
+                label_template = (
+                    '<html><head/><body><p><span style=" font-weight:600;">'
+                    "{}:</span></p></body></html>"
+                )
+                # Catch even if save_name_label is an empty string.
+                label_text = app.get_setting("save_name_label") or "Name"
+                text = QtGui.QApplication.translate(
+                    "FileSaveForm",
+                    label_template.format(label_text),
+                    None,
+                    QtGui.QApplication.UnicodeUTF8,
+                )
+                self._ui.name_label.setText(text)
+
             self._ui.name_label.setVisible(name_is_used)
             self._ui.name_edit.setVisible(name_is_used)
 

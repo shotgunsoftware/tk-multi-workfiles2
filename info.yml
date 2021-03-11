@@ -13,6 +13,13 @@
 # expected fields in the configuration file for this app
 configuration:
 
+    # WWFX: Save Name label
+    #
+    save_name_label:
+      type: str
+      description: Custom save dialog "Name" label text.
+      default_value: Name
+
     # Startup options
     #
 
