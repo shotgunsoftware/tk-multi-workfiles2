@@ -92,6 +92,10 @@ class MultiWorkFiles(sgtk.platform.Application):
                 },
             )
 
+        self.workfiles_management = self.create_hook_instance(
+            self.get_setting("hook_workfiles_management")
+        )
+
         # Process auto startup options - but only on certain supported platforms
         # because of the way QT inits and connects to different host applications
         # differently, in conjunction with the 'boot' process in different tools,

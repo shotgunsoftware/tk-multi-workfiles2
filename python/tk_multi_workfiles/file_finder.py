@@ -179,26 +179,39 @@ class FileFinder(QtCore.QObject):
             "version_compare_ignore_fields", []
         )
 
-        # find all work & publish files and filter out any that should be ignored:
-        work_files = self._find_work_files(
-            context, work_template, version_compare_ignore_fields
-        )
-        filtered_work_files = self._filter_work_files(work_files, valid_file_extensions)
-
-        published_files = self._find_publishes(publish_filters)
-        filtered_published_files = self._filter_publishes(
-            published_files, publish_template, valid_file_extensions
-        )
+        # # find all work & publish files and filter out any that should be ignored:
+        # work_files = self._find_work_files(
+        #     context, work_template, version_compare_ignore_fields
+        # )
+        # filtered_work_files = self._filter_work_files(work_files, valid_file_extensions)
+        #
+        # published_files = self._find_publishes(publish_filters)
+        # filtered_published_files = self._filter_publishes(
+        #     published_files, publish_template, valid_file_extensions
+        # )
 
         # turn these into FileItem instances:
         name_map = FileFinder._FileNameMap()
+        # work_file_item_details = self._process_work_files(
+        #     filtered_work_files,
+        #     work_template,
+        #     context,
+        #     name_map,
+        #     version_compare_ignore_fields,
+        #     filter_file_key,
+        # )
+        # Find and process all work files
+        filtered_work_files = self._find_and_filter_work_files(
+            context, work_template,
+            version_compare_ignore_fields, valid_file_extensions
+        )
         work_file_item_details = self._process_work_files(
             filtered_work_files,
             work_template,
             context,
             name_map,
             version_compare_ignore_fields,
-            filter_file_key,
+            filter_file_key
         )
         work_file_items = dict(
             [
@@ -207,6 +220,20 @@ class FileFinder(QtCore.QObject):
             ]
         )
 
+        # publish_item_details = self._process_publish_files(
+        #     filtered_published_files,
+        #     publish_template,
+        #     work_template,
+        #     context,
+        #     name_map,
+        #     version_compare_ignore_fields,
+        #     filter_file_key,
+        # )
+        # Find and process all publish files.
+        published_files = self._find_publishes(publish_filters)
+        filtered_published_files = self._filter_publishes(published_files,
+                                                          publish_template,
+                                                          valid_file_extensions)
         publish_item_details = self._process_publish_files(
             filtered_published_files,
             publish_template,
@@ -214,7 +241,7 @@ class FileFinder(QtCore.QObject):
             context,
             name_map,
             version_compare_ignore_fields,
-            filter_file_key,
+            filter_file_key
         )
         publish_items = dict(
             [
@@ -235,6 +262,21 @@ class FileFinder(QtCore.QObject):
             work_file.update_from_publish(publish)
 
         return file_items
+
+    def _find_and_filter_work_files(
+            self,
+            context, work_template,
+            version_compare_ignore_fields, valid_file_extensions
+    ):
+        try:
+            return self._app.workfiles_management.find_work_files(
+                context, work_template, version_compare_ignore_fields, valid_file_extensions
+            )
+        except NotImplementedError:
+            pass
+
+        work_files = self._find_work_files(context, work_template, version_compare_ignore_fields)
+        return self._filter_work_files(work_files, valid_file_extensions)
 
     def _process_work_files(
         self,
@@ -808,29 +850,51 @@ class AsyncFileFinder(FileFinder):
             user_work_area = work_area.create_copy_for_user(user) if user else work_area
             search.user_work_areas[user_id] = user_work_area
 
-            # find work files:
-            find_work_files_task = self._bg_task_manager.add_task(
-                self._task_find_work_files,
-                group=search.id,
-                priority=AsyncFileFinder._FIND_FILES_PRIORITY,
-                task_kwargs={"environment": user_work_area},
-            )
+            # # find work files:
+            # find_work_files_task = self._bg_task_manager.add_task(
+            #     self._task_find_work_files,
+            #     group=search.id,
+            #     priority=AsyncFileFinder._FIND_FILES_PRIORITY,
+            #     task_kwargs={"environment": user_work_area},
+            # )
+            #
+            # # filter work files:
+            # filter_work_files_task = self._bg_task_manager.add_task(
+            #     self._task_filter_work_files,
+            #     group=search.id,
+            #     priority=AsyncFileFinder._FIND_FILES_PRIORITY,
+            #     upstream_task_ids=[find_work_files_task],
+            #     task_kwargs={"environment": user_work_area},
+            # )
+            try:
+                # find and filter work files. The hook does these two steps in a single call.
+                # we could arguably break it into two tasks, but I'm not sure
+                # what benefit there would be. The filtering is 100% processing only and no file io.
+                previous_work_file_task = self._bg_task_manager.add_task(
+                    self._task_find_and_filter_work_files,
+                    group=search.id,
+                    priority=AsyncFileFinder._FIND_FILES_PRIORITY,
+                    task_kwargs={"environment": user_work_area})
+            except NotImplementedError:
+                # find work files:
+                previous_work_file_task = self._bg_task_manager.add_task(self._task_find_work_files,
+                                                                         group=search.id,
+                                                                         priority=AsyncFileFinder._FIND_FILES_PRIORITY,
+                                                                         task_kwargs={"environment": user_work_area})
 
-            # filter work files:
-            filter_work_files_task = self._bg_task_manager.add_task(
-                self._task_filter_work_files,
-                group=search.id,
-                priority=AsyncFileFinder._FIND_FILES_PRIORITY,
-                upstream_task_ids=[find_work_files_task],
-                task_kwargs={"environment": user_work_area},
-            )
+                # filter work files:
+                previous_work_file_task = self._bg_task_manager.add_task(self._task_filter_work_files,
+                                                                         group=search.id,
+                                                                         priority=AsyncFileFinder._FIND_FILES_PRIORITY,
+                                                                         upstream_task_ids=[previous_work_file_task],
+                                                                         task_kwargs={"environment": user_work_area})
 
             # build work items:
             process_work_items_task = self._bg_task_manager.add_task(
                 self._task_process_work_items,
                 group=search.id,
                 priority=AsyncFileFinder._FIND_FILES_PRIORITY,
-                upstream_task_ids=[filter_work_files_task],
+                upstream_task_ids=[previous_work_file_task],
                 task_kwargs={
                     "environment": user_work_area,
                     "name_map": search.name_map,
@@ -1134,6 +1198,21 @@ class AsyncFileFinder(FileFinder):
                 environment.context,
                 environment.work_template,
                 environment.version_compare_ignore_fields,
+            )
+        return {"work_files": work_files}
+
+    def _task_find_and_filter_work_files(self, environment, **kwargs):
+        """
+        Background task that finds and filters available work files.
+        :param environment: Environment for which we'll want to scan for files.
+        :type environment: :class:`tk_multi_workfiles2.Environment`
+        """
+        work_files = []
+        if (environment and environment.context and environment.work_template):
+            work_files = self._find_and_filter_work_files(
+                environment.context, environment.work_template,
+                environment.version_compare_ignore_fields,
+                environment.valid_file_extensions
             )
         return {"work_files": work_files}
 

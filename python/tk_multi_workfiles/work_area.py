@@ -183,7 +183,7 @@ class WorkArea(object):
         :returns: List of users inside the work area sandboxes.
         """
         if self._work_template_contains_user:
-            return self._resolve_user_sandboxes(self.work_template)
+            return self._resolve_user_sandboxes(self.work_template, is_work_template=True)
         else:
             return []
 
@@ -215,7 +215,7 @@ class WorkArea(object):
         """
         Caches internally the list of user sandboxes.
         """
-        self._resolve_user_sandboxes(self.work_template)
+        self._resolve_user_sandboxes(self.work_template, is_work_template=True)
         self._resolve_user_sandboxes(self.publish_template)
 
     # ------------------------------------------------------------------------------------------
@@ -424,12 +424,10 @@ class WorkArea(object):
 
         return None
 
-    def _resolve_user_sandboxes(self, template):
+    def _resolve_user_sandboxes(self, template, is_work_template=False):
         """
         Resolves user sandboxes on disk for a given template. Caches the result.
-
         :param template: Template for which to cache the users.
-
         :returns: List of users in the given sandbox.
         """
         if not template or not self._context:

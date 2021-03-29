@@ -43,14 +43,14 @@ class UserCache(Threaded):
         """
         return self._current_user
 
-    def get_user_details_for_id(self, user_id):
-        """
-        Get the user details for the specified user entity id.
-
-        :param user_id: The entity id of the user whose details should be returned
-        :returns:       A Shotgun entity dictionary for the user if found, otherwise {}
-        """
-        return self.get_user_details_for_ids([user_id]).get(id)
+    # def get_user_details_for_id(self, user_id):
+    #     """
+    #     Get the user details for the specified user entity id.
+    #
+    #     :param user_id: The entity id of the user whose details should be returned
+    #     :returns:       A Shotgun entity dictionary for the user if found, otherwise {}
+    #     """
+    #     return self.get_user_details_for_ids([user_id]).get(id)
 
     def get_user_details_for_ids(self, ids):
         """

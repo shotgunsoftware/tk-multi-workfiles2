@@ -354,6 +354,10 @@ class FileItem(object):
         """
         return self._details.get("editable_reason") or ""
 
+    @property
+    def workfile_description(self):
+        return self._details.get("description") or ""
+
     # ------------------------------------------------------------------------------------------
     # Published file properties
 

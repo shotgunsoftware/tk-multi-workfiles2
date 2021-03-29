@@ -12,6 +12,7 @@
 """
 import os
 from sgtk.platform.qt import QtCore, QtGui
+import sgtk
 
 from .file_action import FileAction
 from ..scene_operation import save_file, SAVE_FILE_AS_ACTION
@@ -60,6 +61,15 @@ class SaveAsFileAction(FileAction):
             save_file(
                 self._app, SAVE_FILE_AS_ACTION, self.environment.context, self.file.path
             )
+            # Register the workfile
+            try:
+                sgtk.platform.current_bundle().workfiles_management.register_workfile(
+                    self.file.name, self.file.version,
+                    self.environment.context, self.environment.work_template, self.file.path,
+                    self.file.workfile_description, self.file.thumbnail
+                )
+            except NotImplementedError:
+                pass
         except Exception as e:
             QtGui.QMessageBox.critical(
                 None, "Failed to save file!", "Failed to save file:\n\n%s" % e

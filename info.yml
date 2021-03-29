@@ -113,6 +113,12 @@ configuration:
         description: Specify a hook that will create the task and do any input validation that is
                      required.
 
+    hook_workfiles_management:
+      type: hook
+      default_value: "{self}/workfiles_management.py"
+      description: Hook that takes over workfiles discovery and tracking when use_workfiles_entity
+                   is set to True in your configuration.
+
     # General preferences
     #
     entities:
@@ -240,6 +246,16 @@ configuration:
         values:
           type: str
         default_value: ['All', 'Working', 'Publishes']
+
+    show_workfile_actions_on_publishes:
+        type: bool
+        description: Show workfile related operations on publishes.
+        default_value: True
+
+    show_publish_actions_on_workfiles:
+        type: bool
+        description: Show publish related operations on workfiles.
+        default_value: True
 
     # Save specific options
     #

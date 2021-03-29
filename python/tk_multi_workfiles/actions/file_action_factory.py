@@ -72,6 +72,11 @@ class FileActionFactory(object):
         self._workfiles_visible = workfiles_visible
         self._publishes_visible = publishes_visible
 
+        # By default, we always show all actions on the menus.
+        self._show_workfile_actions = True
+        self._show_publish_actions = True
+        self._next_version_override = None
+
         app = sgtk.platform.current_bundle()
 
         # determine if this file is in a different users sandbox:
@@ -117,7 +122,52 @@ class FileActionFactory(object):
         """
         actions = []
 
+        app = sgtk.platform.current_bundle()
+
+        show_workfile_actions_on_publishes = app.get_setting("show_workfile_actions_on_publishes")
+        show_publish_actions_on_workfiles = app.get_setting("show_publish_actions_on_workfiles")
+
+        # If this menu is for the All tab, then we show both types of actions as the items
+        # in that view can be both Publishes and Workfiles.
+        if self._workfiles_visible and self._publishes_visible:
+            self._show_workfile_actions = True
+            self._show_publish_actions = True
+        else:
+            # If we're only showing one type of item, we'll go with
+            # what is in the selection.
+            # If the item is a workfile, we definitely want to show workfiles actions.
+            # If the item is a publish, but the publish actions on workfiles setting
+            # is turned on, we also want to show workfiles.
+            # If not, we won't show them.
+            self._show_workfile_actions = file_item.is_local or (
+                    file_item.is_published and show_workfile_actions_on_publishes
+            )
+            # Similar logic, but for publish actions.
+            self._show_publish_actions = file_item.is_published or (
+                    file_item.is_local and show_publish_actions_on_workfiles
+            )
+
         current_user_file_versions = self._get_current_user_file_versions(file_item)
+
+        # Each actions has their own way of computing the next version.
+        # For the workfiles management workflow however, there is only
+        # one way to grab the next available ticket for a workfile so
+        # we'll make sure that we grab it the right way. Because of this,
+        # we'll compute the value once here if the hook can compute
+        # the next version number and we'll pass it down as an override to all
+        # the actions that generate new files on disk.
+        try:
+            self._next_version_override = (
+                    sgtk.platform.current_bundle().workfiles_management.get_next_workfile_version
+                        (
+                            # Name is not mandatory
+                            self._work_area.work_template.get_fields(file_item.path).get("name"),
+                            self._work_area.context,
+                            self._work_area.work_template
+                    )
+            )
+        except NotImplementedError:
+            self._next_version_override = None
 
         # add the interactive 'open' action.  This is the
         # default/generic open action that gets run whenever someone
@@ -129,6 +179,7 @@ class FileActionFactory(object):
                 self._work_area,
                 self._workfiles_visible,
                 self._publishes_visible,
+                self._next_version_override
             )
         )
 
@@ -214,7 +265,11 @@ class FileActionFactory(object):
 
         actions = []
 
-        if not file_item.is_local:
+        # if not file_item.is_local:
+        #     return actions
+        # RA the above was the original, below is the change
+        # Should this be a change or an addition?
+        if not self._show_workfile_actions:
             return actions
 
         # all actions available when selection is a work file
@@ -227,13 +282,15 @@ class FileActionFactory(object):
         if self._in_other_users_sandbox:
             # file is in another user sandbox so add appropriate actions:
             actions.append(
-                ContinueFromWorkFileAction(file_item, file_versions, self._work_area)
+                ContinueFromWorkFileAction(file_item, file_versions, self._work_area,
+                self._next_version_override)
             )
 
             if self._change_work_area and self._can_copy_to_work_area:
                 actions.append(
                     CopyAndOpenFileInCurrentWorkAreaAction(
-                        file_item, file_versions, self._work_area
+                        file_item, file_versions, self._work_area,
+                        self._next_version_override
                     )
                 )
 
@@ -246,14 +303,16 @@ class FileActionFactory(object):
                 if file_item.version != max_version:
                     actions.append(
                         ContinueFromWorkFileAction(
-                            file_item, file_versions, self._work_area
+                            file_item, file_versions, self._work_area,
+                            self._next_version_override
                         )
                     )
 
             if self._change_work_area and self._can_copy_to_work_area:
                 actions.append(
                     CopyAndOpenFileInCurrentWorkAreaAction(
-                        file_item, file_versions, self._work_area
+                        file_item, file_versions, self._work_area,
+                        self._next_version_override
                     )
                 )
 
@@ -269,7 +328,11 @@ class FileActionFactory(object):
         :returns: List of actions.
         """
         actions = []
-        if not file_item.is_published:
+
+        # if not file_item.is_published:
+        #     return actions
+        # RA:Same change vs. addition question as for workfiles.
+        if not self._show_publish_actions:
             return actions
 
         # all actions available when selection is a work file:
@@ -279,13 +342,15 @@ class FileActionFactory(object):
         if file_item.path:
             # file has a local path so it's possible to carry copy it to the local work area!
             actions.append(
-                ContinueFromPublishAction(file_item, file_versions, self._work_area)
+                ContinueFromPublishAction(file_item, file_versions, self._work_area,
+                self._next_version_override)
             )
 
             if self._change_work_area and self._can_copy_to_work_area:
                 actions.append(
                     CopyAndOpenPublishInCurrentWorkAreaAction(
-                        file_item, file_versions, self._work_area
+                        file_item, file_versions, self._work_area,
+                        self._next_version_override
                     )
                 )
 
@@ -303,27 +368,29 @@ class FileActionFactory(object):
         # ------------------------------------------------------------------
         actions.append(SeparatorAction())
 
-        actions.extend(
-            self._create_previous_versions_actions_menu(
-                "Previous Work Files",
-                [
-                    item
-                    for item in six.itervalues(file_item.versions)
-                    if file_item.version > item.version and item.is_local
-                ],
+        if self._show_workfile_actions:
+            actions.extend(
+                self._create_previous_versions_actions_menu(
+                    "Previous Work Files",
+                    [
+                        item
+                        for item in six.itervalues(file_item.versions)
+                        if file_item.version > item.version and item.is_local
+                    ],
+                )
             )
-        )
 
-        actions.extend(
-            self._create_previous_versions_actions_menu(
-                "Previous Publishes",
-                [
-                    item
-                    for item in six.itervalues(file_item.versions)
-                    if file_item.version > item.version and item.is_published
-                ],
+        if self._show_publish_actions:
+            actions.extend(
+                self._create_previous_versions_actions_menu(
+                    "Previous Publishes",
+                    [
+                        item
+                        for item in six.itervalues(file_item.versions)
+                        if file_item.version > item.version and item.is_published
+                    ],
+                )
             )
-        )
 
         return actions
 

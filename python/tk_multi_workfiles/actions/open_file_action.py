@@ -29,6 +29,18 @@ class OpenFileAction(FileAction):
     """
     """
 
+    def __init__(self, label, file, file_versions, environment, next_version_override=None):
+        """
+        :params str label: Label of the menu item.
+        :param FileItem file: File the menu item is launched from.
+        :param file_versions: All the file versions, publishes and workfiles, associated with the selection.
+        :param environment: Environment associated with this file.
+        :param int next_version_override: Allows to override the next version for the current version
+            stream of this file.
+        """
+        super(OpenFileAction, self).__init__(label, file, file_versions, environment)
+        self._next_version_override = next_version_override
+
     def _copy_file(self, source_path, target_path):
         """
         Use hook to copy a file from source to target path
@@ -127,6 +139,18 @@ class OpenFileAction(FileAction):
                 self._app.log_exception("Copy file failed")
                 return False
 
+            # Workfile was created on disk, we should register it with Shotgun.
+            try:
+                sgtk.platform.current_bundle().workfiles_management.register_workfile(
+                    os.path.basename(dst_path), version,
+                    new_ctx, self.environment.work_template, dst_path,
+                    # FIXME: We don't have workfile descriptions or thumbnail implemented for now,
+                    # so pass None.
+                    None, None
+                )
+            except NotImplementedError:
+                pass
+
         # switch context:
         previous_context = self._app.context
         if not new_ctx == self._app.context:
@@ -175,6 +199,7 @@ class OpenFileAction(FileAction):
 
 class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
     """
+    This command allows to open a file another task into the current context.
     """
 
     def _open_in_current_work_area(
@@ -223,30 +248,55 @@ class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
         src_version = None
         dst_version = None
         if "version" in dst_work_area.work_template.keys:
-            # need to figure out the next version:
-            src_version = fields["version"]
+            # # need to figure out the next version:
+            # src_version = fields["version"]
 
-            # build a file key from the fields:
-            file_key = FileItem.build_file_key(
-                fields,
-                dst_work_area.work_template,
-                dst_work_area.version_compare_ignore_fields,
-            )
+            # # build a file key from the fields:
+            # file_key = FileItem.build_file_key(
+            #     fields,
+            #     dst_work_area.work_template,
+            #     dst_work_area.version_compare_ignore_fields,
+            # )
+            #
+            # # look for all files that match this key:
+            # finder = FileFinder()
+            # found_files = finder.find_files(
+            #     dst_work_area.work_template,
+            #     dst_work_area.publish_template,
+            #     dst_work_area.context,
+            #     file_key,
+            # )
+            #
+            # # get the max version:
+            # versions = [file.version for file in found_files]
+            # dst_version = max(versions or [0]) + 1
+            #
+            # fields["version"] = dst_version
 
-            # look for all files that match this key:
-            finder = FileFinder()
-            found_files = finder.find_files(
-                dst_work_area.work_template,
-                dst_work_area.publish_template,
-                dst_work_area.context,
-                file_key,
-            )
+            if self._next_version_override is not None:
+                dst_version = self._next_version_override
+                fields["version"] = self._next_version_override
+            else:
+                # need to figure out the next version:
+                src_version = fields["version"]
 
-            # get the max version:
-            versions = [file.version for file in found_files]
-            dst_version = max(versions or [0]) + 1
+                # build a file key from the fields:
+                file_key = FileItem.build_file_key(fields,
+                                                   dst_work_area.work_template,
+                                                   dst_work_area.version_compare_ignore_fields)
 
-            fields["version"] = dst_version
+                # look for all files that match this key:
+                finder = FileFinder()
+                found_files = finder.find_files(dst_work_area.work_template,
+                                                dst_work_area.publish_template,
+                                                dst_work_area.context,
+                                                file_key)
+
+                # get the max version:
+                versions = [file.version for file in found_files]
+                dst_version = (max(versions or [0]) + 1)
+
+                fields["version"] = dst_version
 
         # confirm we should copy and open the file:
         msg = "'%s" % file.name
@@ -288,29 +338,43 @@ class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
             return False
 
         # copy and open the file:
-        return self._do_copy_and_open(
-            src_path,
-            dst_file_path,
-            version=None,
-            read_only=False,
-            new_ctx=dst_work_area.context,
-            parent_ui=parent_ui,
-        )
+        # return self._do_copy_and_open(
+        #     src_path,
+        #     dst_file_path,
+        #     version=None,
+        #     read_only=False,
+        #     new_ctx=dst_work_area.context,
+        #     parent_ui=parent_ui,
+        # )
+        return self._do_copy_and_open(src_path,
+                                      dst_file_path,
+                                      version=fields.get("version"),
+                                      read_only=False,
+                                      new_ctx=dst_work_area.context,
+                                      parent_ui=parent_ui)
+
 
 
 class ContinueFromFileAction(OpenFileAction):
     """
     """
 
-    def __init__(self, label, file, file_versions, environment):
+    def __init__(self, label, file, file_versions, environment, next_version_override):
         """
+        :params str label: Label of the menu item.
+        :param FileItem file: File the menu item is launched from.
+        :param file_versions: All the file versions, publishes and workfiles, associated with the selection.
+        :param environment: Environment associated with this file.
+        :param int next_version_override: Allows to override the next version for the current version
+            stream of this file.
         """
+        # Figure out what could be the default next version number.
         # Q. should the next version include the current version?
         all_versions = [v for v, f in six.iteritems(file_versions)] + [file.version]
         max_version = max(all_versions)
         self._version = max_version + 1
         label = "%s (as v%03d)" % (label, self._version)
-        OpenFileAction.__init__(self, label, file, file_versions, environment)
+        OpenFileAction.__init__(self, label, file, file_versions, environment, next_version_override)
 
     def _continue_from(self, src_path, src_template, parent_ui):
         """
@@ -338,17 +402,21 @@ class ContinueFromFileAction(OpenFileAction):
         fields.update(context_fields)
 
         # update version:
-        fields["version"] = self._version
+        fields["version"] = self._version if self._next_version_override is None else self._next_version_override
 
         # build the destination path:
         dst_path = dst_work_area.work_template.apply_fields(fields)
 
         # copy and open the file:
+        # return self._do_copy_and_open(
+        #     src_path,
+        #     dst_path,
+        #     None,
+        #     not self.file.editable,
+        #     dst_work_area.context,
+        #     parent_ui,
+        # )
         return self._do_copy_and_open(
-            src_path,
-            dst_path,
-            None,
-            not self.file.editable,
-            dst_work_area.context,
-            parent_ui,
+            src_path, dst_path, fields["version"], not self.file.editable,
+            dst_work_area.context, parent_ui
         )

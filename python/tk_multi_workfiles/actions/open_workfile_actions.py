@@ -79,8 +79,14 @@ class ContinueFromWorkFileAction(ContinueFromFileAction):
     """
     """
 
-    def __init__(self, file, file_versions, environment):
+    # def __init__(self, file, file_versions, environment):
+    def __init__(self, file, file_versions, environment, next_version_override):
         """
+        :param FileItem file: File the menu item is launched from.
+        :param file_versions: All the file versions, publishes and workfiles, associated with the selection.
+        :param environment: Environment associated with this file.
+        :param int next_version_override: Allows to override the next version for the current version
+            stream of this file.
         """
         label = ""
         if (
@@ -92,11 +98,12 @@ class ContinueFromWorkFileAction(ContinueFromFileAction):
             and environment.context.user["id"] != g_user_cache.current_user["id"]
         ):
             sandbox_user = environment.context.user.get("name", "Unknown").split(" ")[0]
-            label = "Continue Working from %s's File" % sandbox_user
+            # label = "Continue Working from %s's File" % sandbox_user
+            label = "Continue Working from %s's Work File in your Work Area" % sandbox_user
         else:
             label = "Continue Working"
 
-        ContinueFromFileAction.__init__(self, label, file, file_versions, environment)
+        ContinueFromFileAction.__init__(self, label, file, file_versions, environment, next_version_override)
 
     def execute(self, parent_ui):
         """
@@ -116,11 +123,12 @@ class CopyAndOpenFileInCurrentWorkAreaAction(CopyAndOpenInCurrentWorkAreaAction)
     and opens it from there
     """
 
-    def __init__(self, file, file_versions, environment):
+    def __init__(self, file, file_versions, environment, next_version_override):
         """
         """
         CopyAndOpenInCurrentWorkAreaAction.__init__(
-            self, "Open in Current Work Area...", file, file_versions, environment
+            self, "Open in Current Work Area...", file, file_versions, environment,
+            next_version_override
         )
 
     def execute(self, parent_ui):
