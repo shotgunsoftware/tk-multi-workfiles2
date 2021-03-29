@@ -441,7 +441,7 @@ class FileSaveForm(FileFormBase):
                                                   env.publish_template,
                                                   env.context,
                                                   file_key) or []
-                    except TankError, e:
+                    except TankError as e:
                         raise TankError("Failed to find files for this work area: %s" % e)
                     file_versions = [f.version for f in files]
 
