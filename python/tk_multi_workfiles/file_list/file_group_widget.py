@@ -108,7 +108,7 @@ class FileGroupWidget(GroupWidgetBase):
         ):
             templates = work_area.get_missing_templates()
             if not work_area.are_settings_loaded():
-                search_msg = "Shotgun Workfiles hasn't been setup."
+                search_msg = "SG Workfiles hasn't been setup."
             elif templates:
                 search_msg = MissingTemplatesError.generate_missing_templates_message(
                     templates
