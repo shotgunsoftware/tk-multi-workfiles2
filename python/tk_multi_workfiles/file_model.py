@@ -503,14 +503,12 @@ class FileModel(QtGui.QStandardItemModel):
         """
         parent_item = parent_item or self.invisibleRootItem()
 
-        # get the item and safey remove all children of the item:
-        item = parent_item.child(row)
-        if not item:
-            return
-        self._clear_children_r(item)
-
-        # and remove the row:
-        parent_item.removeRow(row)
+        # Remove entire row from the parent item, this will remove all of its children.
+        # Use `takeRow` instead of `removeRow` to prevent model from deleting the data
+        # before we're done using it. takeRow does not free the memory, but we own the
+        # objects and do not keep a reference to it, so garbage collection will take
+        # care of freeing up the memory for us.
+        parent_item.takeRow(row)
 
     def _clear_children_r(self, parent_item):
         """
