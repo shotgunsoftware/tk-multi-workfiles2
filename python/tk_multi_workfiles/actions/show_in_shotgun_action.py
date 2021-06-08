@@ -45,7 +45,7 @@ class ShowPublishInShotgunAction(ShowInShotgunAction):
 
     def __init__(self, file, file_versions, environment):
         ShowInShotgunAction.__init__(
-            self, "Show Publish in Shotgun", file, file_versions, environment
+            self, "Show Publish in ShotGrid", file, file_versions, environment
         )
 
     def execute(self, parent_ui):
@@ -63,7 +63,7 @@ class ShowLatestPublishInShotgunAction(ShowInShotgunAction):
 
     def __init__(self, file, file_versions, environment):
         ShowInShotgunAction.__init__(
-            self, "Show Latest Publish in Shotgun", file, file_versions, environment
+            self, "Show Latest Publish in ShotGrid", file, file_versions, environment
         )
 
     def execute(self, parent_ui):

@@ -32,7 +32,7 @@ def window_name():
     Return the window app name.
     This fixture is used by the app_dialog fixture in conftest.py
     """
-    return "Shotgun: File Save"
+    return "ShotGrid: File Save"
 
 
 def test_my_tasks(app_dialog, tk_test_project):

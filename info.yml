@@ -94,7 +94,7 @@ configuration:
         type: hook
         default_value: "{self}/filter_publishes.py"
         description: Specify a hook that, if needed, can filter the raw list of publishes returned
-                     from Shotgun for the current Work area.
+                     from ShotGrid for the current Work area.
 
     hook_get_badge:
         type: hook
@@ -118,17 +118,17 @@ configuration:
     entities:
         type: list
         description: "This setting defines the different tabs that will show up on the left hand side.
-                      Each tab represents a Shotgun query, grouped by some shotgun fields to form a tree.
+                      Each tab represents a ShotGrid query, grouped by some shotgun fields to form a tree.
                       This setting is a list of dictionaries. Each dictionary in the list defines one tab,
                       and should have the following keys: *caption* specifies the name of the tab, *entity_type*
-                      specifies the Shotgun Entity type to display. *filters* is a list of standard API Shotgun
-                      filters either in the standard or complex format. *hierarchy* is a list of Shotgun fields
+                      specifies the ShotGrid Entity type to display. *filters* is a list of standard API ShotGrid
+                      filters either in the standard or complex format. *hierarchy* is a list of ShotGrid fields
                       relative to the entity type, defining the grouping of the tree. An optional *sub_query*
                       key can be used to define a deferred query which will be run to collect children when
                       an Entity is expanded in the tree view, typically Tasks for a Shot or an Asset.
                       It is a dictionary with the following keys: *entity_type* key to specify the child Entity
-                      type to collect, *link_field* the Shotgun field name used to link the Entity to its parent,
-                      *filters* a list of standard Shotgun API filters, *hierarchy* a list of fields defining
+                      type to collect, *link_field* the ShotGrid field name used to link the Entity to its parent,
+                      *filters* a list of standard ShotGrid API filters, *hierarchy* a list of fields defining
                       the grouping in the sub-tree.
                       The optional *step_filter_on* setting is an Entity type and can be used to restrict
                       the list of Steps used for filtering to only the Steps for the specified Entity type.
@@ -262,7 +262,7 @@ configuration:
 requires_shotgun_fields:
 
 # More verbose description of this item
-display_name: "Shotgun Workfiles"
+display_name: "ShotGrid Workfiles"
 description: "Using this app you can browse, open and save your Work Files and Publishes."
 
 # Required minimum versions for this item to run
