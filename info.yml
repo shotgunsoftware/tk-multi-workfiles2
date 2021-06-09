@@ -118,7 +118,7 @@ configuration:
     entities:
         type: list
         description: "This setting defines the different tabs that will show up on the left hand side.
-                      Each tab represents a ShotGrid query, grouped by some shotgun fields to form a tree.
+                      Each tab represents a ShotGrid query, grouped by some ShotGrid fields to form a tree.
                       This setting is a list of dictionaries. Each dictionary in the list defines one tab,
                       and should have the following keys: *caption* specifies the name of the tab, *entity_type*
                       specifies the ShotGrid Entity type to display. *filters* is a list of standard API ShotGrid
