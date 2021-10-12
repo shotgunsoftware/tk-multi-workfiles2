@@ -469,7 +469,7 @@ class FileFinder(QtCore.QObject):
         hook_publishes = [{"sg_publish": sg_publish} for sg_publish in sg_publishes]
 
         # execute the hook - this will return a list of filtered publishes:
-        hook_result = self._app.execute_hook(
+        hook_result = self._app.engine.execute_in_main_thread(self._app.execute_hook,
             "hook_filter_publishes", publishes=hook_publishes
         )
         if not isinstance(hook_result, list):
@@ -589,7 +589,7 @@ class FileFinder(QtCore.QObject):
         hook_work_files = [{"work_file": {"path": path}} for path in work_file_paths]
 
         # Execute the hook - this will return a list of filtered paths:
-        hook_result = self._app.execute_hook(
+        hook_result = self._app.engine.execute_in_main_thread(self._app.execute_hook,
             "hook_filter_work_files", work_files=hook_work_files
         )
         if not isinstance(hook_result, list):

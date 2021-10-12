@@ -36,7 +36,7 @@ class OpenFileAction(FileAction):
         self._app.log_debug(
             "Copying file '%s' to '%s' via hook" % (source_path, target_path)
         )
-        self._app.execute_hook(
+        self._app.engine.execute_in_main_thread(self._app.execute_hook,
             "hook_copy_file", source_path=source_path, target_path=target_path
         )
 

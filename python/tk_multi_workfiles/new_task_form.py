@@ -102,7 +102,7 @@ class NewTaskForm(QtGui.QWidget):
         self._ui.task_name.setFocus()
         self._ui.task_name.selectAll()
 
-        validator = self._app.execute_hook_method(
+        validator = self._app.engine.execute_in_main_thread(self._app.execute_hook_method,
             "create_new_task_hook", "create_task_name_validator"
         )
         if validator:
@@ -159,7 +159,7 @@ class NewTaskForm(QtGui.QWidget):
             return
 
         try:
-            self._app.execute_hook_method(
+            self._app.engine.execute_in_main_thread(self._app.execute_hook_method,
                 "create_new_task_hook",
                 "create_new_task",
                 name=self._get_task_name(),
