@@ -278,3 +278,4 @@ frameworks:
     # We need a version of tk-framework-shotgunutils with a fix for deleting items.
     - {"name": "tk-framework-shotgunutils", "version": "v5.x.x", "minimum_version": "v5.3.5"}
     - {"name": "tk-framework-qtwidgets", "version": "v2.x.x"}
+    - {"name": "tk-framework-swc", "version": "v0.x.x"}    
