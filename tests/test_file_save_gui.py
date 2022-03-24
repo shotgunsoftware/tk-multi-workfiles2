@@ -43,16 +43,16 @@ def test_my_tasks(app_dialog, tk_test_project):
     assert app_dialog.root.captions["File Save"].exists(), "Not the File Open dialog"
 
     # Validate File Save dialog buttons
-    assert app_dialog.root.buttons["Open"].exists(), "Open file type button is missing"
+    assert app_dialog.root.dropdowns[
+        "File Type"
+    ].exists(), "Open file type drop down menu is missing"
     assert app_dialog.root.buttons["Save"].exists(), "Save button is missing"
 
     # Validate File Save dialog text fields
     assert app_dialog.root.textfields[
         "Name Edit"
     ].exists(), "Name text field is missing"
-    assert app_dialog.root.textfields[
-        "Version Number"
-    ].exists(), "Version text field is missing"
+    assert app_dialog.root["Version Number"].exists(), "Version text field is missing"
 
     # Validate File Save dialog checkboxes
     assert app_dialog.root.checkboxes[

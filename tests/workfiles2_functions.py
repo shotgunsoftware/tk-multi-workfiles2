@@ -12,6 +12,7 @@ import pytest
 
 try:
     from MA.UI import topwindows
+    from MA.UI import first
 except ImportError:
     pytestmark = pytest.mark.skip()
 
@@ -100,32 +101,40 @@ def _navigate_and_validate_content(app_dialog, selection_hierarchy, task):
             app_dialog.root.outlineitems[item].mouseDoubleClick()
 
     # Validate content dialog
-    assert app_dialog.root.cells[
-        selection_hierarchy[1]
-    ].exists(), "{0} is missing in content dialog".format(selection_hierarchy[1])
-    assert app_dialog.root.cells[
-        "{0} - {0}".format(selection_hierarchy[2])
-    ].exists(), "{0} task is missing in content dialog".format(selection_hierarchy[2])
-    assert app_dialog.root.cells[
-        "{0} - {0}".format(task)
-    ].exists(), "{0} task is missing in content dialog".format(task)
+    # Cells are not showing up with PySide2, it is only seeing them as text.
+    assert (
+        app_dialog.root.cells[selection_hierarchy[1]].exists()
+        or app_dialog.root.captions[selection_hierarchy[1]].exists()
+    ), "{0} is missing in content dialog".format(selection_hierarchy[1])
+    assert (
+        app_dialog.root.cells["{0} - {0}".format(selection_hierarchy[2])].exists()
+        or app_dialog.root.captions["{0} - {0}".format(selection_hierarchy[2])].exists()
+    ), "{0} task is missing in content dialog".format(selection_hierarchy[2])
+    assert (
+        app_dialog.root.cells["{0} - {0}".format(task)].exists()
+        or app_dialog.root.captions["{0} - {0}".format(task)].exists()
+    ), "{0} task is missing in content dialog".format(task)
 
 
 def _search_all(app_dialog, step, task):
     # Search in the content dialog for a specific task and make sure other tasks are not showing up anymore
+    # Cells are not showing up with PySide2, it is only seeing them as text.
     app_dialog.root["Search All Files"].pasteIn(task, enter=True)
-    assert app_dialog.root.cells[
-        "{0} - {0}".format(task)
-    ].exists(), "{0} task should be visible in content dialog".format(task)
     assert (
-        app_dialog.root.cells["{0} - {0}".format(step)].exists() is False
+        app_dialog.root.cells["{0} - {0}".format(task)].exists()
+        or app_dialog.root.captions["{0} - {0}".format(task)].exists()
+    ), "{0} task should be visible in content dialog".format(task)
+    assert (
+        app_dialog.root.cells["{0} - {0}".format(step)].exists()
+        or app_dialog.root.captions["{0} - {0}".format(step)].exists() is False
     ), "{0} task shouldn't be visible in content dialog".format(step)
 
     # Remove text in the search field and make sure all tasks are back
     app_dialog.root["Search All Files"].buttons.mouseClick()
-    assert app_dialog.root.cells[
-        "{0} - {0}".format(step)
-    ].exists(), "{0} task should be visible in content dialog".format(step)
+    assert (
+        app_dialog.root.cells["{0} - {0}".format(step)].exists()
+        or app_dialog.root.captions["{0} - {0}".format(step)].exists()
+    ), "{0} task should be visible in content dialog".format(step)
 
 
 def _breadcrumb_validation(
@@ -137,9 +146,11 @@ def _breadcrumb_validation(
     app_dialog.root.outlineitems[step][1].mouseClick()
 
     # Validate content dialog
-    assert app_dialog.root.cells[
-        "{0} - {0}".format(step)
-    ].exists(), "Not on the right tasks"
+    # Cells are not showing up with PySide2, it is only seeing them as text.
+    assert (
+        app_dialog.root.cells["{0} - {0}".format(step)].exists()
+        or app_dialog.root.captions["{0} - {0}".format(step)].exists()
+    ), "Not on the right tasks"
 
     # Validate breadcrumb
     assert app_dialog.root.captions[
@@ -161,12 +172,14 @@ def _breadcrumb_validation(
 
 def _hierarchy_view(app_dialog, step, task):
     # Unselect all Pipeline Step filters and make sure tasks are not showing up anymore
+    # Cells are not showing up with PySide2, it is only seeing them as text.
     app_dialog.root.buttons["Select None"].mouseClick()
     assert (
         app_dialog.root.outlineitems[step].exists() is False
     ), "{0} task shouldn't be visible".format(step)
     assert (
-        app_dialog.root.cells["{0} - {0}".format(step)].exists() is False
+        app_dialog.root.cells["{0} - {0}".format(step)].exists()
+        or app_dialog.root.captions["{0} - {0}".format(step)].exists() is False
     ), "{0} task shouldn't be visible in content dialog".format(step)
 
     # Select all Pipeline Step filters and make sure all tasks are showing up
@@ -200,6 +213,11 @@ def _test_tab(
     """
     # Select an entity tab
     app_dialog.root.tabs[tab_name].mouseClick()
+
+    # Make sure UI dialog display all items
+    activityDialog = first(app_dialog.root)
+    width, height = activityDialog.size
+    app_dialog.root.mouseClick(width * 0, height * 0.5)
 
     # Validate the expected UI is available
     _test_expected_ui_showing(app_dialog, tab_name)
