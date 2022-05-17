@@ -39,12 +39,10 @@ class FileFinder(QtCore.QObject):
     """
 
     class _FileNameMap(Threaded):
-        """
-        """
+        """ """
 
         def __init__(self):
-            """
-            """
+            """ """
             Threaded.__init__(self)
             self._name_map = {}
 
@@ -348,8 +346,7 @@ class FileFinder(QtCore.QObject):
         version_compare_ignore_fields,
         filter_file_key=None,
     ):
-        """
-        """
+        """ """
         files = {}
 
         # and add in publish details:
@@ -463,8 +460,7 @@ class FileFinder(QtCore.QObject):
         return sg_publishes
 
     def _filter_publishes(self, sg_publishes, publish_template, valid_file_extensions):
-        """
-        """
+        """ """
         # build list of publishes to send to the filter_publishes hook:
         hook_publishes = [{"sg_publish": sg_publish} for sg_publish in sg_publishes]
 
@@ -649,8 +645,7 @@ class AsyncFileFinder(FileFinder):
 
     class _SearchData(object):
         def __init__(self, search_id, entity, users, publish_model):
-            """
-            """
+            """ """
             self.id = search_id
             self.entity = copy.deepcopy(entity)
             self.users = copy.deepcopy(users)
@@ -682,8 +677,7 @@ class AsyncFileFinder(FileFinder):
     search_completed = QtCore.Signal(object)  # search_id
 
     def __init__(self, bg_task_manager, parent=None):
-        """
-        """
+        """ """
         FileFinder.__init__(self, parent)
 
         self._searches = {}
@@ -697,8 +691,7 @@ class AsyncFileFinder(FileFinder):
         )
 
     def shut_down(self):
-        """
-        """
+        """ """
         # clean up any publish models - not doing this will result in
         # severe instability!
         for search in self._searches:
@@ -778,8 +771,7 @@ class AsyncFileFinder(FileFinder):
         return search.id
 
     def _begin_search_stage_1(self, search):
-        """
-        """
+        """ """
         # start Stage 1 to construct the work area:
         # 1a. Construct a work area for the entity.  The work area contains the context as well as
         # all settings, etc. specific to the work area.
@@ -797,8 +789,7 @@ class AsyncFileFinder(FileFinder):
         )
 
     def _begin_search_for_work_files(self, search, work_area):
-        """
-        """
+        """ """
 
         # 2a. Add tasks to find and filter work files:
         for user in search.users:
@@ -839,8 +830,7 @@ class AsyncFileFinder(FileFinder):
             search.find_work_files_tasks.add(process_work_items_task)
 
     def _begin_search_process_publishes(self, search, sg_publishes):
-        """
-        """
+        """ """
         # 3a. Process publishes
         for user in search.users:
             user_id = user["id"] if user else None
@@ -873,8 +863,7 @@ class AsyncFileFinder(FileFinder):
             search.find_publishes_tasks.add(process_publish_items_task)
 
     def _on_publish_model_refreshed(self, data_changed):
-        """
-        """
+        """ """
         model = self.sender()
         if model.uid not in self._searches:
             return
@@ -888,8 +877,7 @@ class AsyncFileFinder(FileFinder):
         self._begin_search_process_publishes(search, sg_publishes)
 
     def _on_publish_model_refresh_failed(self, msg):
-        """
-        """
+        """ """
         model = self.sender()
         search_id = model.search_id
         if search_id not in self._searches:
@@ -960,8 +948,7 @@ class AsyncFileFinder(FileFinder):
             self.files_found.emit(search_id, files, work_area)
 
     def _on_background_task_failed(self, task_id, search_id, msg, stack_trace):
-        """
-        """
+        """ """
         if search_id not in self._searches:
             return
         self.stop_search(search_id)
@@ -974,8 +961,7 @@ class AsyncFileFinder(FileFinder):
         self.search_failed.emit(search_id, msg)
 
     def _on_background_search_finished(self, search_id):
-        """
-        """
+        """ """
         if search_id not in self._searches:
             return
         search = self._searches[search_id]
@@ -1000,8 +986,7 @@ class AsyncFileFinder(FileFinder):
         self.search_completed.emit(search_id)
 
     def stop_search(self, search_id):
-        """
-        """
+        """ """
         search = self._searches.get(search_id)
         if not search:
             return
@@ -1013,8 +998,7 @@ class AsyncFileFinder(FileFinder):
         del self._searches[search_id]
 
     def stop_all_searches(self):
-        """
-        """
+        """ """
         for search in self._searches.values():
             self._bg_task_manager.stop_task_group(search.id)
             if search.publish_model:
@@ -1024,8 +1008,7 @@ class AsyncFileFinder(FileFinder):
     ################################################################################################
     ################################################################################################
     def _task_construct_work_area(self, entity, **kwargs):
-        """
-        """
+        """ """
         app = sgtk.platform.current_bundle()
         work_area = None
         if entity:
@@ -1038,8 +1021,7 @@ class AsyncFileFinder(FileFinder):
         return {"environment": work_area}
 
     def _task_resolve_sandbox_users(self, environment, **kwargs):
-        """
-        """
+        """ """
         if environment:
             environment.resolve_user_sandboxes()
         return {"environment": environment}
@@ -1074,8 +1056,7 @@ class AsyncFileFinder(FileFinder):
         return copy.deepcopy(search.publish_model.get_sg_data())
 
     def _task_filter_publishes(self, sg_publishes, environment, **kwargs):
-        """
-        """
+        """ """
         # time.sleep(5)
         filtered_publishes = []
         if (
@@ -1104,8 +1085,7 @@ class AsyncFileFinder(FileFinder):
     def _task_process_publish_items(
         self, sg_publishes, environment, name_map, **kwargs
     ):
-        """
-        """
+        """ """
         publish_items = {}
         if (
             sg_publishes
@@ -1126,8 +1106,7 @@ class AsyncFileFinder(FileFinder):
         return {"publish_items": publish_items, "environment": environment}
 
     def _task_find_work_files(self, environment, **kwargs):
-        """
-        """
+        """ """
         work_files = []
         if environment and environment.context and environment.work_template:
             work_files = self._find_work_files(
@@ -1138,8 +1117,7 @@ class AsyncFileFinder(FileFinder):
         return {"work_files": work_files}
 
     def _task_filter_work_files(self, work_files, environment, **kwargs):
-        """
-        """
+        """ """
         filtered_work_files = []
         if work_files:
             filtered_work_files = self._filter_work_files(
@@ -1148,8 +1126,7 @@ class AsyncFileFinder(FileFinder):
         return {"work_files": filtered_work_files}
 
     def _task_process_work_items(self, work_files, environment, name_map, **kwargs):
-        """
-        """
+        """ """
         work_items = {}
         if (
             work_files

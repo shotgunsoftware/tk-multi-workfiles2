@@ -25,16 +25,14 @@ class InteractiveOpenAction(OpenFileAction):
     def __init__(
         self, file, file_versions, environment, workfiles_visible, publishes_visible
     ):
-        """
-        """
+        """ """
         OpenFileAction.__init__(self, "Open", file, file_versions, environment)
 
         self._workfiles_visible = workfiles_visible
         self._publishes_visible = publishes_visible
 
     def execute(self, parent_ui):
-        """
-        """
+        """ """
         if not self.file:
             return False
 

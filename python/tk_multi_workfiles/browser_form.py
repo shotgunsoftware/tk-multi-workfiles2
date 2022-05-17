@@ -577,8 +577,7 @@ class BrowserForm(QtGui.QWidget):
                 form.enable_user_filtering_widget(True)
 
     def _on_file_selected(self, file, env, selection_mode):
-        """
-        """
+        """ """
         # ignore if the sender isn't the current file tab:
         if self._ui.file_browser_tabs.currentWidget() != self.sender():
             return

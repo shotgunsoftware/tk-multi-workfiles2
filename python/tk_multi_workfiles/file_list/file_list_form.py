@@ -198,8 +198,7 @@ class FileListForm(QtGui.QWidget):
         return (selected_file, env_details)
 
     def enable_show_all_versions(self, enable):
-        """
-        """
+        """ """
         if enable:
             self._ui.all_versions_cb.show()
             self._on_show_all_versions_toggled(self._ui.all_versions_cb.isChecked())

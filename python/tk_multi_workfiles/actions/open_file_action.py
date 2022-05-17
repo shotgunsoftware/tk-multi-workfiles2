@@ -26,8 +26,7 @@ from ..user_cache import g_user_cache
 
 
 class OpenFileAction(FileAction):
-    """
-    """
+    """ """
 
     def _copy_file(self, source_path, target_path):
         """
@@ -174,14 +173,12 @@ class OpenFileAction(FileAction):
 
 
 class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
-    """
-    """
+    """ """
 
     def _open_in_current_work_area(
         self, src_path, src_template, file, src_work_area, parent_ui
     ):
-        """
-        """
+        """ """
         # get info about the current work area:
         app = sgtk.platform.current_bundle()
         # no need to try/except this WorkArea object creation, since if we're here it means the
@@ -299,12 +296,10 @@ class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
 
 
 class ContinueFromFileAction(OpenFileAction):
-    """
-    """
+    """ """
 
     def __init__(self, label, file, file_versions, environment):
-        """
-        """
+        """ """
         # Q. should the next version include the current version?
         all_versions = [v for v, f in six.iteritems(file_versions)] + [file.version]
         max_version = max(all_versions)
@@ -313,8 +308,7 @@ class ContinueFromFileAction(OpenFileAction):
         OpenFileAction.__init__(self, label, file, file_versions, environment)
 
     def _continue_from(self, src_path, src_template, parent_ui):
-        """
-        """
+        """ """
         # get the destination work area for the current user:
         dst_work_area = self.environment.create_copy_for_user(g_user_cache.current_user)
         app = sgtk.platform.current_bundle()
