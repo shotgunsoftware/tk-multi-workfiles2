@@ -40,8 +40,7 @@ class ContextChangeForm(FileFormBase):
         return Ui_FileOpenForm()
 
     def _do_init(self):
-        """
-        """
+        """ """
         super(ContextChangeForm, self)._do_init()
 
         # start by disabling buttons:
@@ -55,7 +54,9 @@ class ContextChangeForm(FileFormBase):
         self._ui.browser.task_double_clicked.connect(self._on_context_change)
 
         self._ui.browser.set_models(
-            self._my_tasks_model, self._entity_models, None,
+            self._my_tasks_model,
+            self._entity_models,
+            None,
         )
 
         # initialize the browser widget:

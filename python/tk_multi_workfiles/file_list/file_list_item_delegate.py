@@ -35,8 +35,7 @@ class FileListItemDelegate(GroupedListViewItemDelegate):
         return FileGroupWidget(parent)
 
     def _get_painter_widget(self, model_index, parent):
-        """
-        """
+        """ """
         if not model_index.isValid():
             return None
         if not self._item_widget:
@@ -107,8 +106,7 @@ class FileListItemDelegate(GroupedListViewItemDelegate):
         ) == QtGui.QStyle.State_Selected
 
     def sizeHint(self, style_options, model_index):
-        """
-        """
+        """ """
         if not model_index.isValid():
             return QtCore.QSize()
 

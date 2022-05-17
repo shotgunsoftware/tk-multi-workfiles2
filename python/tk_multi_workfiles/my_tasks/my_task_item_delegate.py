@@ -25,12 +25,10 @@ from ..util import map_to_source
 
 
 class MyTaskItemDelegate(WidgetDelegate):
-    """
-    """
+    """ """
 
     def __init__(self, extra_display_fields, view):
-        """
-        """
+        """ """
         WidgetDelegate.__init__(self, view)
         self._extra_display_fields = extra_display_fields
         view.setRootIsDecorated(False)
@@ -41,8 +39,7 @@ class MyTaskItemDelegate(WidgetDelegate):
     # ------------------------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------
     def _get_painter_widget(self, model_index, parent):
-        """
-        """
+        """ """
         if not model_index.isValid():
             return None
 
@@ -54,8 +51,7 @@ class MyTaskItemDelegate(WidgetDelegate):
         return self._paint_widget()
 
     def _create_editor_widget(self, model_index, style_options, parent):
-        """
-        """
+        """ """
         if not model_index.isValid():
             return None
 
@@ -68,8 +64,7 @@ class MyTaskItemDelegate(WidgetDelegate):
         return widget
 
     def sizeHint(self, style_options, model_index):
-        """
-        """
+        """ """
         if not model_index.isValid():
             return QtCore.QSize()
 
@@ -79,13 +74,11 @@ class MyTaskItemDelegate(WidgetDelegate):
         return self._widget_sz or QtCore.QSize()
 
     def _on_before_paint(self, widget, model_index, style_options):
-        """
-        """
+        """ """
         self._setup_widget(widget, model_index, style_options)
 
     def _setup_widget(self, widget, model_index, style_options):
-        """
-        """
+        """ """
         src_index = map_to_source(model_index)
         if not src_index or not src_index.isValid():
             return

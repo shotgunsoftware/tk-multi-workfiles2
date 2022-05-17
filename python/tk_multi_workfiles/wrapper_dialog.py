@@ -27,8 +27,8 @@ class WrapperDialog(QtGui.QDialog):
         QtGui.QDialog.__init__(self, parent)
 
         self._widget = widget
-        self._widget.closeEvent = lambda event, dh=widget.closeEvent: self._handle_widget_close(
-            event, dh
+        self._widget.closeEvent = (
+            lambda event, dh=widget.closeEvent: self._handle_widget_close(event, dh)
         )
 
         layout = QtGui.QVBoxLayout()

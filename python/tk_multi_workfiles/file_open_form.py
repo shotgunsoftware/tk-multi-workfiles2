@@ -57,8 +57,7 @@ class FileOpenForm(FileFormBase):
         return Ui_FileOpenForm()
 
     def _do_init(self):
-        """
-        """
+        """ """
         super(FileOpenForm, self)._do_init()
 
         # start by disabling buttons:
@@ -83,7 +82,9 @@ class FileOpenForm(FileFormBase):
         # initialize the browser widget:
         self._ui.browser.show_user_filtering_widget(self._is_using_user_sandboxes())
         self._ui.browser.set_models(
-            self._my_tasks_model, self._entity_models, self._file_model,
+            self._my_tasks_model,
+            self._entity_models,
+            self._file_model,
         )
         current_file = self._get_current_file()
         app = sgtk.platform.current_bundle()
@@ -105,8 +106,7 @@ class FileOpenForm(FileFormBase):
         return False
 
     def _on_browser_file_selected(self, file, env):
-        """
-        """
+        """ """
         self._on_selected_file_changed(file, env)
         self._update_new_file_btn(env)
 
@@ -120,15 +120,13 @@ class FileOpenForm(FileFormBase):
         self._update_new_file_btn(env_details)
 
     def _on_browser_file_double_clicked(self, file, env):
-        """
-        """
+        """ """
         self._on_selected_file_changed(file, env)
         self._update_new_file_btn(env)
         self._on_open()
 
     def _on_selected_file_changed(self, file, env):
-        """
-        """
+        """ """
         # get the available actions for this file:
         file_actions = self._get_available_file_actions(file, env)
 
@@ -161,8 +159,7 @@ class FileOpenForm(FileFormBase):
             self._ui.open_options_btn.setEnabled(False)
 
     def _update_new_file_btn(self, env):
-        """
-        """
+        """ """
         if env and NewFileAction.can_do_new_file(env):
             self._new_file_env = env
         else:
@@ -170,8 +167,7 @@ class FileOpenForm(FileFormBase):
         self._ui.new_file_btn.setEnabled(self._new_file_env is not None)
 
     def _on_browser_context_menu_requested(self, file, env, pnt):
-        """
-        """
+        """ """
         if not file:
             return
 
@@ -238,8 +234,7 @@ class FileOpenForm(FileFormBase):
                 add_separators = True
 
     def _on_open(self):
-        """
-        """
+        """ """
         if not self._default_open_action:
             return
 
@@ -248,8 +243,7 @@ class FileOpenForm(FileFormBase):
         self._perform_action(self._default_open_action)
 
     def _on_new_file(self):
-        """
-        """
+        """ """
         if not self._new_file_env or not NewFileAction.can_do_new_file(
             self._new_file_env
         ):

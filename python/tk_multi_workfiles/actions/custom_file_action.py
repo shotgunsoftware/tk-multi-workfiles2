@@ -19,8 +19,7 @@ from .file_action import FileAction
 class CustomFileAction(FileAction):
     @staticmethod
     def _prepare_file_data_for_hook(file_versions):
-        """
-        """
+        """ """
         work_file_versions = []
         publish_versions = []
         for file in file_versions:
@@ -50,8 +49,7 @@ class CustomFileAction(FileAction):
     def get_action_details(
         file, file_versions, environment, workfiles_visible, publishes_visible
     ):
-        """
-        """
+        """ """
         app = sgtk.platform.current_bundle()
 
         # build hook-friendly data:
@@ -100,8 +98,7 @@ class CustomFileAction(FileAction):
         self._publishes_visible = publishes_visible
 
     def execute(self, parent_ui):
-        """
-        """
+        """ """
         # execute hook to perform the action
         app = sgtk.platform.current_bundle()
 

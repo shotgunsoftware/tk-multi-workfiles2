@@ -20,8 +20,7 @@ from ..user_cache import g_user_cache
 
 
 class UserFilterMenu(QtGui.QMenu):
-    """
-    """
+    """ """
 
     users_selected = QtCore.Signal(object)  # list of users
 
@@ -32,8 +31,7 @@ class UserFilterMenu(QtGui.QMenu):
             self.available = True
 
     def __init__(self, parent):
-        """
-        """
+        """ """
         QtGui.QMenu.__init__(self, parent)
 
         self._current_user_id = (
@@ -76,14 +74,12 @@ class UserFilterMenu(QtGui.QMenu):
 
     @property
     def current_user_selected(self):
-        """
-        """
+        """ """
         return self._current_user_id in self._checked_user_ids
 
     @property
     def other_users_selected(self):
-        """
-        """
+        """ """
         available_user_ids = set(
             [
                 user_id
@@ -135,8 +131,7 @@ class UserFilterMenu(QtGui.QMenu):
     available_users = property(_get_available_users, _set_available_users)
 
     def _update_selected_users(self, users):
-        """
-        """
+        """ """
         new_checked_user_ids = set()
         user_ids = set([u["id"] for u in users if u])
         for uid in user_ids:
@@ -162,8 +157,7 @@ class UserFilterMenu(QtGui.QMenu):
         self._checked_user_ids = new_checked_user_ids
 
     def _populate_available_users(self, users):
-        """
-        """
+        """ """
         all_users_checked = self._all_users_action.isChecked()
 
         # compile a list of users with existing actions if they have them:
@@ -273,8 +267,7 @@ class UserFilterMenu(QtGui.QMenu):
             self._emit_users_selected()
 
     def _add_no_other_users_action(self):
-        """
-        """
+        """ """
         action = QtGui.QWidgetAction(self)
         menu_label = QtGui.QLabel("<i>(No Other Users Found!)</i>", self)
         ss = "QLabel {margin: 3px;}"
@@ -285,16 +278,14 @@ class UserFilterMenu(QtGui.QMenu):
         return action
 
     def clear(self):
-        """
-        """
+        """ """
         # clearing this menu just clears the list of available users:
         for user_details in self._available_users.values():
             self.removeAction(user_details.action)
         self._available_users = {}
 
     def mousePressEvent(self, event):
-        """
-        """
+        """ """
         active_action = self.activeAction()
         if active_action and active_action.isCheckable():
             if active_action.isEnabled():
@@ -304,8 +295,7 @@ class UserFilterMenu(QtGui.QMenu):
             QtGui.QMenu.mousePressEvent(self, event)
 
     def _on_user_toggled(self, user_id, toggled):
-        """
-        """
+        """ """
         users_changed = False
         if toggled:
             if user_id not in self._checked_user_ids:
@@ -323,8 +313,7 @@ class UserFilterMenu(QtGui.QMenu):
             self._emit_users_selected()
 
     def _update_all_users_action(self):
-        """
-        """
+        """ """
         all_users_checked = True
         all_users_enabled = False
         if not self._available_users:
@@ -352,8 +341,7 @@ class UserFilterMenu(QtGui.QMenu):
                 self._all_users_action.blockSignals(signals_blocked)
 
     def _on_all_other_users_toggled(self, toggled):
-        """
-        """
+        """ """
         signals_blocked = self.blockSignals(True)
         # users_changed = False
         try:
@@ -369,6 +357,5 @@ class UserFilterMenu(QtGui.QMenu):
         self._emit_users_selected()
 
     def _emit_users_selected(self):
-        """
-        """
+        """ """
         self.users_selected.emit(self.selected_users)
