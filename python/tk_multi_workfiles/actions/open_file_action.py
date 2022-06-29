@@ -346,3 +346,131 @@ class ContinueFromFileAction(OpenFileAction):
             dst_work_area.context,
             parent_ui,
         )
+
+
+class CheckReferencesOnOpenFileAction(Action):
+    """
+    An action that can be checked to indicate if references should be checked on file open.
+    """
+
+    # The settings key prefix to storing the value indicating if references are checked on
+    # file open
+    CHECK_REFS_USER_SETTING = "check_references_on_file_open"
+
+    def __init__(self, env):
+        """
+        Create the checkable action.
+
+        Initialize the environment and the current check state.
+
+        :param env: The environment used to store the setting value.
+        :type env: WorkArea
+        """
+
+        super(CheckReferencesOnOpenFileAction, self).__init__(
+            "Check References on Open", checkable=True
+        )
+
+        self._env = env
+
+        # Set the action's checked property based on user settings and config default setting
+        self.checked = self.retrieve_check_reference_setting(self._app, self._env)
+
+    @staticmethod
+    def get_check_references_setting_key(env):
+        """
+        Get the setting key for the check references value.
+
+        The context task is attempted to be extracted from the environment in order to create
+        a setting key unique to each Task. This means that the reference check is set based on
+        the current context Task.
+
+        :param env: The environment used to build the setting key.
+        :type env: WorkArea
+
+        :return: The setting key.
+        :rtype: str
+        """
+
+        # Attempt to get the context task to build the setting key value
+        try:
+            env_key = "_task{}".format(env.context.task["id"])
+        except:
+            env_key = ""
+
+        return "{prefix}{env}".format(
+            prefix=CheckReferencesOnOpenFileAction.CHECK_REFS_USER_SETTING,
+            env=env_key,
+        )
+
+    @staticmethod
+    def store_check_reference_setting(app, env, value):
+        """
+        Store the setting value for checking references.
+
+        :param app: The Application used to store the setting value.
+        :type app: Application
+        :param env: The environment used to store the setting value.
+        :type env: WorkArea
+        :param value: The check references setting value.
+        :type value: bool
+        """
+
+        setting_key = CheckReferencesOnOpenFileAction.get_check_references_setting_key(
+            env
+        )
+
+        manager = settings_fw.UserSettings(app)
+        manager.store(setting_key, value)
+
+    @staticmethod
+    def retrieve_check_reference_setting(app, env):
+        """
+        Retrieve the setting value for checking references.
+
+        :param app: The Application used to store the setting value.
+        :type app: Application
+        :param env: The environment used to store the setting value.
+        :type env: WorkArea
+
+        :return: The setting value for checking references.
+        :rtype: bool
+        """
+
+        setting_key = CheckReferencesOnOpenFileAction.get_check_references_setting_key(
+            env
+        )
+
+        # Check if there is a user setting stored for the 'check references' options
+        manager = settings_fw.UserSettings(app)
+        checked = manager.retrieve(setting_key, None)
+
+        if checked is None:
+            # No user setting defined, get the app setting value for the default value
+            checked = app.get_setting("check_references_on_file_open", False)
+
+        return checked
+
+    def execute(self, parent_ui):
+        """
+        Callback triggered when this action is executed.
+
+        This action will get the current check state of the action, and toggle it. The user
+        settings will be updated to reflect the latest value of checking references on file
+        open. Setting will be stored based on the action's environment.
+
+        :param parent_ui: The parent widget of this action
+        :type parent_ui: QWidget
+
+        :return: False to indicate that this action should not close the parent dialog.
+        :rtype: bool
+        """
+
+        # Toggle the current checked state
+        self.checked = not self.checked
+
+        # Update the user setting for the 'check references' option
+        self.store_check_reference_setting(self._app, self._env, self.checked)
+
+        # Do not close the dialog after this action option is executed
+        return False
