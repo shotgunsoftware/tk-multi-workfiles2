@@ -18,6 +18,8 @@ from .action import SeparatorAction, ActionGroup
 
 from .interactive_open_action import InteractiveOpenAction
 
+from .open_file_action import CheckReferencesOnOpenFileAction
+
 from .open_workfile_actions import OpenWorkfileAction
 from .open_workfile_actions import ContinueFromWorkFileAction
 from .open_workfile_actions import CopyAndOpenFileInCurrentWorkAreaAction
@@ -140,6 +142,9 @@ class FileActionFactory(object):
         actions.extend(
             self._create_published_file_actions(file_item, current_user_file_versions)
         )
+        # Create checkable options for opening workfiles and publishes
+        actions.append(CheckReferencesOnOpenFileAction(self._work_area))
+
         # Creates actions for previous versions of the current file.
         actions.extend(self._create_previous_versions_actions_menus(file_item))
         # Creates a New action.
