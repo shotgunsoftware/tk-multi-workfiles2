@@ -20,7 +20,7 @@ class ActionBase(object):
     Base class for Actions.
     """
 
-    def __init__(self, label):
+    def __init__(self, label, checkable=False, checked=False):
         """
         Constructor.
 
@@ -28,6 +28,8 @@ class ActionBase(object):
         """
         self._app = sgtk.platform.current_bundle()
         self._label = label
+        self._checkable = checkable
+        self._checked = checked
 
     @property
     def label(self):
@@ -35,6 +37,20 @@ class ActionBase(object):
         :returns: The name of the action.
         """
         return self._label
+
+    @property
+    def checkable(self):
+        """Get the property indicating if this action is checkable or not."""
+        return self._checkable
+
+    @property
+    def checked(self):
+        """Get or set the property indicating if this action state is checked."""
+        return self._checked
+
+    @checked.setter
+    def checked(self, value):
+        self._checked = value
 
 
 class Action(ActionBase):
