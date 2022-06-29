@@ -13,7 +13,7 @@
 import os
 
 import sgtk
-from sgtk.platform.qt import QtCore, QtGui
+from sgtk.platform.qt import QtGui
 from sgtk import TankError
 from tank_vendor import six
 
