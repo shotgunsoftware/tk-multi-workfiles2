@@ -17,12 +17,21 @@ from sgtk.platform.qt import QtGui
 from sgtk import TankError
 from tank_vendor import six
 
+from .action import Action
 from .file_action import FileAction
-from ..scene_operation import reset_current_scene, open_file, OPEN_FILE_ACTION
+from ..scene_operation import (
+    reset_current_scene,
+    open_file,
+    check_references,
+    OPEN_FILE_ACTION,
+    CHECK_REFERENCES_ACTION,
+)
 from ..work_area import WorkArea
 from ..file_item import FileItem
 from ..file_finder import FileFinder
 from ..user_cache import g_user_cache
+
+settings_fw = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
 
 
 class OpenFileAction(FileAction):
@@ -40,7 +49,14 @@ class OpenFileAction(FileAction):
         )
 
     def _do_copy_and_open(
-        self, src_path, dst_path, version, read_only, new_ctx, parent_ui
+        self,
+        src_path,
+        dst_path,
+        version,
+        read_only,
+        new_ctx,
+        parent_ui,
+        check_refs=False,
     ):
         """
         Copies src_path to dst_path, creates folders, restarts the engine and then opens
@@ -51,6 +67,8 @@ class OpenFileAction(FileAction):
         :param version:     The version of the work file to be opened
         :param read_only:   True if the work file should be opened read-only
         :param new_ctx:     The context that the work file should be opened in
+        :param check_refs:  True indicates that references shoudl be checked on open, if the
+                            check references settings is True
         :returns:           True of the source file is copied and successfully opened
         """
         if not dst_path or not new_ctx:
@@ -158,10 +176,19 @@ class OpenFileAction(FileAction):
             self._app.log_exception("Failed to open file %s!" % dst_path)
             FileAction.restore_context(parent_ui, previous_context)
             return False
+
         # Test specifically for False. Legacy open hooks return None, which means success.
         if is_file_opened is False:
             FileAction.restore_context(parent_ui, previous_context)
             return False
+
+        if check_refs:
+            do_check = CheckReferencesOnOpenFileAction.retrieve_check_reference_setting(
+                self._app, self._environment
+            )
+            if do_check:
+                # Check that all references are up to date in the current file that was just opened
+                check_references(self._app, CHECK_REFERENCES_ACTION, new_ctx, parent_ui)
 
         try:
             self._app.log_metric("Opened Workfile")
