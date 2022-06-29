@@ -230,6 +230,9 @@ class FileOpenForm(FileFormBase):
                 q_action.triggered[()].connect(
                     lambda a=action, checked=False: self._perform_action(a)
                 )
+                if action.checkable:
+                    q_action.setCheckable(True)
+                    q_action.setChecked(action.checked)
                 menu.addAction(q_action)
                 add_separators = True
 
