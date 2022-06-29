@@ -51,3 +51,6 @@ HierarchicalFilteringProxyModel = models.HierarchicalFilteringProxyModel
 overlay_widget = sgtk.platform.import_framework(
     "tk-framework-qtwidgets", "overlay_widget"
 )
+
+message_box = sgtk.platform.import_framework("tk-framework-qtwidgets", "message_box")
+MessageBox = message_box.MessageBox
