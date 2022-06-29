@@ -64,8 +64,6 @@ class FileOpenForm(FileFormBase):
         self._ui.change_ctx_btn.hide()
         self._ui.open_btn.setEnabled(False)
         self._ui.open_options_btn.setEnabled(False)
-        # tmp - disable some controls that currently don't work!
-        self._ui.open_options_btn.hide()
 
         self._ui.open_btn.clicked.connect(self._on_open)
         self._ui.new_file_btn.clicked.connect(self._on_new_file)
