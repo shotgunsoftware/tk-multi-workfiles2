@@ -319,6 +319,7 @@ class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
             read_only=False,
             new_ctx=dst_work_area.context,
             parent_ui=parent_ui,
+            check_refs=True,
         )
 
 
@@ -372,6 +373,7 @@ class ContinueFromFileAction(OpenFileAction):
             not self.file.editable,
             dst_work_area.context,
             parent_ui,
+            check_refs=True,
         )
 
 
