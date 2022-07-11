@@ -241,6 +241,11 @@ configuration:
           type: str
         default_value: ['All', 'Working', 'Publishes']
 
+    check_references_on_file_open:
+        type: bool
+        description: Define if the references should be checked on file open.
+        default_value: False
+
     # Save specific options
     #
 
