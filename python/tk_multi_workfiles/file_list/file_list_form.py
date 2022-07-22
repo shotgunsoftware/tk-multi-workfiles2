@@ -186,7 +186,7 @@ class FileListForm(QtGui.QWidget):
 
         if checked is None:
             # No user setting defined, get the app setting value for the default value
-            checked = app.get_setting("check_references_on_file_open", False)
+            checked = app.get_setting(FileListForm.CHECK_REFS_USER_SETTING, False)
 
         return checked
 
