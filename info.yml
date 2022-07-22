@@ -241,6 +241,13 @@ configuration:
           type: str
         default_value: ['All', 'Working', 'Publishes']
 
+    show_check_references_option:
+        type: bool
+        description: True will show the checkbox option for the user to check for out of date
+                     references on file open action. False will hide the option and not
+                     references will not be checked on file open.
+        default_value: True
+
     check_references_on_file_open:
         type: bool
         description: Define if the references should be checked on file open.
