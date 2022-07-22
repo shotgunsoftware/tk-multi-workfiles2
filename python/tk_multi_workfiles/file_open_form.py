@@ -34,10 +34,11 @@ class FileOpenForm(FileFormBase):
     """
 
     def __init__(self, parent=None):
-        """
-        Construction
-        """
+        """Construction"""
+
         super(FileOpenForm, self).__init__(parent)
+
+        self._app = sgtk.platform.current_bundle()
 
         self._new_file_env = None
         self._default_open_action = None
@@ -47,8 +48,7 @@ class FileOpenForm(FileFormBase):
             # break the UI and crash the dcc horribly!
             self._do_init()
         except Exception:
-            app = sgtk.platform.current_bundle()
-            app.log_exception("Unhandled exception during Form construction!")
+            self._app.log_exception("Unhandled exception during Form construction!")
 
     def init_ui_file(self):
         """
