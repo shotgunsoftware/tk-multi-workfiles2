@@ -81,7 +81,8 @@ class FileOpenForm(FileFormBase):
 
         # initialize the browser widget:
         self._ui.browser.show_user_filtering_widget(self._is_using_user_sandboxes())
-        self._ui.browser.show_check_references_widget(True)
+        show_check_refs = self._app.get_setting("show_check_references_option", False)
+        self._ui.browser.show_check_references_widget(show_check_refs)
         self._ui.browser.set_models(
             self._my_tasks_model,
             self._entity_models,
