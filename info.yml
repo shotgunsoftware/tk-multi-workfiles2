@@ -250,7 +250,8 @@ configuration:
 
     check_references_on_file_open:
         type: bool
-        description: Define if the references should be checked on file open.
+        description: Define if the references should be checked on file open. This will be
+                     ignored if 'show_check_references_option' is False.
         default_value: False
 
     # Save specific options
