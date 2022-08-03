@@ -71,7 +71,9 @@ class FileSaveForm(FileFormBase):
             self._allow_preview_update = True
             # Manually invoke the preview update here so it is only called once due to the
             # _allow_preview_update flag.
-            self._start_preview_update()
+            # this is unneccesary at this stage, callbacks set the preview update fine,
+            # and too many calls to this function can lock the gui
+            #self._start_preview_update("__init__")
         except Exception:
             self._allow_preview_update = True
             app = sgtk.platform.current_bundle()
