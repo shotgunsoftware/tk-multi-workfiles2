@@ -179,12 +179,12 @@ def check_references(app, action, context, parent_ui):
         action,
         context,
         "check_references",
-        result_types=(list, type(None)),
+        result_types=(list, bool, type(None)),
     )
 
-    # Return the result, if the custom hook returned a value other than None (indicating it
-    # checked the references)
-    if result is not None:
+    # Return the result, if the custom hook returned a value of type list, otherwise
+    # assume that the default reference check should be performed.
+    if isinstance(result, list):
         return result
 
     # No result returned, get the breakdown app to perform the default operation to check
