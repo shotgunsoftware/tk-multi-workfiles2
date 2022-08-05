@@ -300,6 +300,12 @@ class FileListForm(QtGui.QWidget):
 
         self._ui.check_refs_cb.setVisible(show)
 
+        if not show:
+            # Set the user preference to not check for reference on file open, if the UI option
+            # is not available. The scene operation checks for this user setting to determine
+            # if it should check references on open.
+            self.store_check_reference_setting(self._app, False)
+
     def select_file(self, file_item, context):
         """
         Select the specified file in the control views if possible.
