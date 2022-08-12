@@ -187,52 +187,66 @@ def check_references(app, action, context, parent_ui):
     if isinstance(result, list):
         return result
 
-    # No result returned, get the breakdown app to perform the default operation to check
-    # references
-    breakdown2_app = app.engine.apps.get("tk-multi-breakdown2")
-    if not breakdown2_app:
-        return None
+    # Set the cursor to waiting while references are being checked
+    QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
-    # Use the breakdown manager to get the file references, then check if any are out of date
-    manager = breakdown2_app.create_breakdown_manager()
-    file_items = manager.scan_scene()
-    result = []
-    for file_item in file_items:
-        manager.get_latest_published_file(file_item)
-        if (
-            not file_item.highest_version_number
-            or file_item.sg_data["version_number"] < file_item.highest_version_number
-        ):
-            result.append(file_item)
+    try:
+        # No result returned, get the breakdown app to perform the default operation to check
+        # references
+        breakdown2_app = app.engine.apps.get("tk-multi-breakdown2")
+        if not breakdown2_app:
+            return None
 
-    if result:
-        # Out of date references were found, prompt the user how to handle them
-        msg_box = MessageBox()
-        msg_box.setWindowTitle("Reference Check")
-        msg_box.set_text("Found out of date references in current scene.")
-        msg_box.set_detailed_text(
-            "\n".join(
-                [
-                    (fi.sg_data.get("name") if fi.sg_data else fi.path) or fi.path
-                    for fi in result
-                ]
+        # Use the breakdown manager to get the file references, then check if any are out of date
+        manager = breakdown2_app.create_breakdown_manager()
+        file_items = manager.scan_scene()
+        result = []
+        for file_item in file_items:
+            manager.get_latest_published_file(file_item)
+            if (
+                not file_item.highest_version_number
+                or file_item.sg_data["version_number"]
+                < file_item.highest_version_number
+            ):
+                result.append(file_item)
+
+        if result:
+            # Out of date references were found, prompt the user how to handle them
+            msg_box = MessageBox()
+            msg_box.setWindowTitle("Reference Check")
+            msg_box.set_text("Found out of date references in current scene.")
+            msg_box.set_detailed_text(
+                "\n".join(
+                    [
+                        (fi.sg_data.get("name") if fi.sg_data else fi.path) or fi.path
+                        for fi in result
+                    ]
+                )
             )
-        )
-        msg_box.set_always_show_details(True)
-        open_button = msg_box.add_button("Open in Breakdown", MessageBox.ACCEPT_ROLE)
-        ignore_button = msg_box.add_button("Ignore", MessageBox.REJECT_ROLE)
-        update_all_button = msg_box.add_button("Update All", MessageBox.APPLY_ROLE)
-        msg_box.set_default_button(update_all_button)
+            msg_box.set_always_show_details(True)
+            open_button = msg_box.add_button(
+                "Open in Breakdown", MessageBox.ACCEPT_ROLE
+            )
+            ignore_button = msg_box.add_button("Ignore", MessageBox.REJECT_ROLE)
+            update_all_button = msg_box.add_button("Update All", MessageBox.APPLY_ROLE)
+            msg_box.set_default_button(update_all_button)
 
-        msg_box.exec_()
+            # Restore the cursor temporarily while user interacts with the dialog
+            QtGui.QApplication.restoreOverrideCursor()
+            try:
+                msg_box.exec_()
+            finally:
+                QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
-        if msg_box.button_clicked == update_all_button:
-            # Update all references to the latest version
-            for file_item in result:
-                manager.update_to_latest_version(file_item)
-        elif msg_box.button_clicked == open_button:
-            # Open the breakdown app to see the out of date references in more details, where
-            # the user can manually fix any, if desired
-            breakdown2_app.show_dialog()
+            if msg_box.button_clicked == update_all_button:
+                # Update all references to the latest version
+                for file_item in result:
+                    manager.update_to_latest_version(file_item)
+            elif msg_box.button_clicked == open_button:
+                # Open the breakdown app to see the out of date references in more details, where
+                # the user can manually fix any, if desired
+                breakdown2_app.show_dialog()
+    finally:
+        QtGui.QApplication.restoreOverrideCursor()
 
     return result
