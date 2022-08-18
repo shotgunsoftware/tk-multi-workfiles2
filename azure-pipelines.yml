@@ -45,4 +45,3 @@ jobs:
     additional_repositories:
       - name: tk-framework-shotgunutils
       - name: tk-framework-qtwidgets
-        ref: custom-msg-box
