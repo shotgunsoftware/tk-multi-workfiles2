@@ -34,10 +34,11 @@ class FileOpenForm(FileFormBase):
     """
 
     def __init__(self, parent=None):
-        """
-        Construction
-        """
+        """Construction"""
+
         super(FileOpenForm, self).__init__(parent)
+
+        self._app = sgtk.platform.current_bundle()
 
         self._new_file_env = None
         self._default_open_action = None
@@ -47,8 +48,7 @@ class FileOpenForm(FileFormBase):
             # break the UI and crash the dcc horribly!
             self._do_init()
         except Exception:
-            app = sgtk.platform.current_bundle()
-            app.log_exception("Unhandled exception during Form construction!")
+            self._app.log_exception("Unhandled exception during Form construction!")
 
     def init_ui_file(self):
         """
@@ -81,6 +81,8 @@ class FileOpenForm(FileFormBase):
 
         # initialize the browser widget:
         self._ui.browser.show_user_filtering_widget(self._is_using_user_sandboxes())
+        show_check_refs = self._app.get_setting("show_check_references_option", False)
+        self._ui.browser.show_check_references_widget(show_check_refs)
         self._ui.browser.set_models(
             self._my_tasks_model,
             self._entity_models,

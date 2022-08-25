@@ -241,6 +241,19 @@ configuration:
           type: str
         default_value: ['All', 'Working', 'Publishes']
 
+    show_check_references_option:
+        type: bool
+        description: True will show the checkbox option for the user to check for out of date
+                     references on file open action. False will hide the option and not
+                     references will not be checked on file open.
+        default_value: False
+
+    check_references_on_file_open:
+        type: bool
+        description: Define if the references should be checked on file open. This will be
+                     ignored if 'show_check_references_option' is False.
+        default_value: False
+
     # Save specific options
     #
 
@@ -277,4 +290,4 @@ supported_engines:
 frameworks:
     # We need a version of tk-framework-shotgunutils with a fix for deleting items.
     - {"name": "tk-framework-shotgunutils", "version": "v5.x.x", "minimum_version": "v5.3.5"}
-    - {"name": "tk-framework-qtwidgets", "version": "v2.x.x"}
+    - {"name": "tk-framework-qtwidgets", "version": "v2.x.x", "minimum_version": "v2.10.4"}

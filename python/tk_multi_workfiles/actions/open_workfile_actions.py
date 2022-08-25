@@ -70,6 +70,7 @@ class OpenWorkfileAction(OpenFileAction):
             read_only=self.file.editable,
             new_ctx=self.environment.context,
             parent_ui=parent_ui,
+            check_refs=True,
         )
 
 

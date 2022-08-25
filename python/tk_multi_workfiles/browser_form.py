@@ -94,6 +94,7 @@ class BrowserForm(QtGui.QWidget):
         self._enable_show_all_versions = True
 
         self._show_user_filtering_widget = False
+        self._show_check_references_widget = False
         self._file_model = None
         self._my_tasks_form = None
         self._entity_tree_forms = []
@@ -198,6 +199,14 @@ class BrowserForm(QtGui.QWidget):
             if user sandboxing is configured for an entity inside the current selection.
         """
         self._show_user_filtering_widget = is_visible
+
+    def show_check_references_widget(self, is_visible):
+        """
+        Shows the check references option widget.
+
+        :param is_visible: If True, the check references checkbox will be shown.
+        """
+        self._show_check_references_widget = is_visible
 
     def set_models(self, my_tasks_model, entity_models, file_model):
         """
@@ -317,6 +326,10 @@ class BrowserForm(QtGui.QWidget):
         # Do not show the button by default, it will be revealed when the first
         # sandbox is detected.
         file_form.show_user_filtering_widget(self._show_user_filtering_widget)
+        # Only show the option to check references on file open when we are in file open mode
+        file_form.show_check_references_on_open_widget(
+            self._show_check_references_widget
+        )
         file_form.set_model(self._file_model)
         file_form.file_selected.connect(self._on_file_selected)
         file_form.file_double_clicked.connect(self.file_double_clicked)
