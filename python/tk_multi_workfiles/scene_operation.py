@@ -8,6 +8,8 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+import os
+from sys import platform
 import types
 from sgtk import TankError
 from tank_vendor import six
@@ -133,6 +135,11 @@ def save_file(app, action, context, path=None):
     Use hook to save the current file
     """
     if path != None:
+        if platform == "win32":
+            # On Windows, this fixes the issue with Nuke 13 failing to save when
+            # we have path definitions in templates starting with 0, e.g.:
+            # shot_root: 08 sequences/{Sequence}/{Shot}/{Step}
+            path = path.replace(os.path.sep + "0", os.path.sep * 2 + "0")
         app.log_debug("Saving the current file as '%s' with hook" % path)
         _do_scene_operation(app, action, context, "save_as", path)
     else:
