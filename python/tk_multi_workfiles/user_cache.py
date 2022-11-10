@@ -114,6 +114,11 @@ class UserCache(Threaded):
         :param path:    The path to find the last modified user for
         :returns:       A  Shotgun entity dictionary for the HumanUser that last modified the path
         """
+        import sys
+        sys.path.append(r"/Users/ariel.calzada/pydev")
+        import pydevd
+        pydevd.settrace('localhost', port=5490, stdoutToServer=True,
+                        stderrToServer=True)
 
         login_name = None
         if sgtk.util.is_windows():
