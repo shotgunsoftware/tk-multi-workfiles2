@@ -9,8 +9,8 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
-from sys import platform
 import types
+import sgtk
 from sgtk import TankError
 from tank_vendor import six
 from sgtk.platform.qt import QtGui, QtCore
@@ -135,9 +135,9 @@ def save_file(app, action, context, path=None):
     Use hook to save the current file
     """
     if path != None:
-        if platform == "win32":
+        if sgtk.util.is_windows():
             # On Windows, this fixes the issue with Nuke 13 failing to save when
-            # we have path definitions in templates starting with 0, e.g.:
+            # we have path definitions in the template starting with 0, e.g.:
             # shot_root: 08 sequences/{Sequence}/{Shot}/{Step}
             path = path.replace(os.path.sep + "0", os.path.sep * 2 + "0")
         app.log_debug("Saving the current file as '%s' with hook" % path)
