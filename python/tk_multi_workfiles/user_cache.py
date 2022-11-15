@@ -115,15 +115,18 @@ class UserCache(Threaded):
         :returns:       A  Shotgun entity dictionary for the HumanUser that last modified the path
         """
         import sys
-        sys.path.append(r"/Users/ariel.calzada/pydev")
+        sys.path.append(r"C:\Users\calzaadmin\pydev")
         import pydevd
         pydevd.settrace('localhost', port=5490, stdoutToServer=True,
                         stderrToServer=True)
 
         login_name = None
         if sgtk.util.is_windows():
-            # TODO: add windows support..
-            pass
+            try:
+                from .win_32_api import get_file_owner
+                login_name = get_file_owner(path)
+            except:
+                pass
         else:
             try:
                 from pwd import getpwuid
