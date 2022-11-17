@@ -8,9 +8,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import os
 import types
-import sgtk
 from sgtk import TankError
 from tank_vendor import six
 from sgtk.platform.qt import QtGui, QtCore
