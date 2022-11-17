@@ -135,11 +135,6 @@ def save_file(app, action, context, path=None):
     Use hook to save the current file
     """
     if path != None:
-        if sgtk.util.is_windows():
-            # On Windows, this fixes the issue with Nuke 13 failing to save when
-            # we have path definitions in the template starting with 0, e.g.:
-            # shot_root: 08 sequences/{Sequence}/{Shot}/{Step}
-            path = path.replace(os.path.sep + "0", os.path.sep * 2 + "0")
         app.log_debug("Saving the current file as '%s' with hook" % path)
         _do_scene_operation(app, action, context, "save_as", path)
     else:

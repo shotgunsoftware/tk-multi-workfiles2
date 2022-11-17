@@ -102,7 +102,7 @@ class SceneOperation(HookClass):
 
         if operation == "current_path":
             # return the current script path
-            return nuke.root().name().replace("/", os.path.sep)
+            return nuke.root().name().replace(os.path.sep, "/")
 
         elif operation == "open":
             # open the specified script
