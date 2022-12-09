@@ -261,6 +261,8 @@ class EntityTreeForm(QtGui.QWidget):
                 self._ui.entity_tree.setModel(None)
                 if isinstance(view_model, EntityTreeProxyModel):
                     view_model.setSourceModel(None)
+            
+            self._refresh_overlay_widget.hide()
         finally:
             self.blockSignals(signals_blocked)
 
