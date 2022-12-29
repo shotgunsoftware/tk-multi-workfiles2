@@ -11,7 +11,7 @@
 """
 """
 import os
-
+import re
 import sgtk
 from sgtk.platform.qt import QtGui
 from sgtk import TankError
@@ -165,6 +165,28 @@ class OpenFileAction(FileAction):
             is_file_opened = open_file(
                 self._app, OPEN_FILE_ACTION, new_ctx, dst_path, version, read_only
             )
+        except RuntimeError as e:
+            # If the user open a Nuke file with a different version, just raise a
+            # warning but doesn't restore the original context as Nuke doesn't
+            # take this as a failed operation, so let's keep the context that the
+            # work file should be opened in.
+            if re.match(r"\S+.v[\d.]+.nk is for nuke[\d.]+v[\d.]+; this is nuke[\d.]+v[\d.]+", str(e)):
+                is_file_opened = True
+                QtGui.QMessageBox.warning(
+                    parent_ui,
+                    "Warning, open file with different version.",
+                    "%s" % e,
+                )
+            else:
+                QtGui.QMessageBox.critical(
+                    parent_ui,
+                    "Failed to open file",
+                    "Failed to open file\n\n%s\n\n%s" % (dst_path, e),
+                )
+                self._app.log_exception("Failed to open file %s!" % dst_path)
+                FileAction.restore_context(parent_ui, previous_context)
+                return False
+
         except Exception as e:
             QtGui.QMessageBox.critical(
                 parent_ui,
