@@ -170,7 +170,10 @@ class OpenFileAction(FileAction):
             # warning but doesn't restore the original context as Nuke doesn't
             # take this as a failed operation, so let's keep the context that the
             # work file should be opened in.
-            if re.match(r"\S+.v[\d.]+.nk is for nuke[\d.]+v[\d.]+; this is nuke[\d.]+v[\d.]+", str(e)):
+            if re.match(
+                r"\S+.v[\d.]+.nk is for nuke[\d.]+v[\d.]+; this is nuke[\d.]+v[\d.]+",
+                str(e),
+            ):
                 is_file_opened = True
                 QtGui.QMessageBox.warning(
                     parent_ui,
