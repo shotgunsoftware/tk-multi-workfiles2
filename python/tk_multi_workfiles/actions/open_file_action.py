@@ -167,7 +167,9 @@ class OpenFileAction(FileAction):
                 self._app, OPEN_FILE_ACTION, new_ctx, dst_path, version, read_only
             )
         except Exception as e:
-            if not self.__handle_open_file_exception(e, dst_path, parent_ui, previous_context):
+            if not self.__handle_open_file_exception(
+                e, dst_path, parent_ui, previous_context
+            ):
                 return False
             is_file_opened = True
 
@@ -191,7 +193,7 @@ class OpenFileAction(FileAction):
         return True
 
     def __handle_open_file_exception(
-            self, error_message, dst_path, parent_ui, previous_context
+        self, error_message, dst_path, parent_ui, previous_context
     ):
         """
         If the 'Open file' operation fails restore the original context,
@@ -207,12 +209,9 @@ class OpenFileAction(FileAction):
         # warning but doesn't restore the original context as Nuke doesn't
         # take this as a failed operation, so let's keep the context that the
         # work file should be opened in.
-        if (
-                isinstance(exc_value, RuntimeError)
-                and re.match(
+        if isinstance(exc_value, RuntimeError) and re.match(
             r"x\S+.v[\d.]+.nk is for nuke[\d.]+v[\d.]+; this is nuke[\d.]+v[\d.]+",
             str(error_message),
-        )
         ):
             _require_context_restore = False
             QtGui.QMessageBox.warning(
@@ -220,7 +219,9 @@ class OpenFileAction(FileAction):
                 "Warning, open file with different version.",
                 "%s" % error_message,
             )
-            self._app.log_exception("Warning, open file %s with different version" % dst_path)
+            self._app.log_exception(
+                "Warning, open file %s with different version" % dst_path
+            )
             return True
 
         else:
