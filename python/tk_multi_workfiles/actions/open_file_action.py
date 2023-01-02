@@ -147,7 +147,7 @@ class OpenFileAction(FileAction):
         previous_context = self._app.context
         if not new_ctx == self._app.context:
             try:
-                # Change the curent context.
+                # Change the current context.
                 FileAction.change_context(new_ctx)
             except Exception as e:
                 QtGui.QMessageBox.critical(
@@ -163,12 +163,6 @@ class OpenFileAction(FileAction):
 
         # open file
         try:
-            import sys
-            sys.path.append(
-                r"/Applications/PyCharm.app/Contents/debug-eggs/pydevd-pycharm.egg")
-            import pydevd
-            pydevd.settrace('localhost', port=5490, stdoutToServer=True,
-                            stderrToServer=True)
             is_file_opened = open_file(
                 self._app, OPEN_FILE_ACTION, new_ctx, dst_path, version, read_only
             )
