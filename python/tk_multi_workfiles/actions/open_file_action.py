@@ -196,8 +196,8 @@ class OpenFileAction(FileAction):
         self, error_message, dst_path, parent_ui, previous_context
     ):
         """
-        If the 'Open file' operation fails restore the original context,
-        logs you out and displays an error message.
+        If the 'Open file' operation fails, restore the original context
+        and displays an error message.
 
         :param error_message: Error string that will be displayed in a message box.
         :param dst_path: The path of the file to copy.
