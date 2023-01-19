@@ -210,7 +210,7 @@ class OpenFileAction(FileAction):
         # take this as a failed operation, so let's keep the context that the
         # work file should be opened in.
         if isinstance(exc_value, RuntimeError) and re.match(
-            r"x\S+.v[\d.]+.nk is for nuke[\d.]+v[\d.]+; this is nuke[\d.]+v[\d.]+",
+            r"\S+.v[\d.]+.nk is for nuke[\d.]+v[\d.]+; this is nuke[\d.]+v[\d.]+",
             str(error_message),
         ):
             _require_context_restore = False
