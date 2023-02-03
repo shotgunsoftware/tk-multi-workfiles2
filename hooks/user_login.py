@@ -9,10 +9,15 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 
-import ctypes
-from ctypes import wintypes
 import os
 import sgtk
+
+try:
+    import ctypes
+    from ctypes import wintypes
+except:
+    pass
+
 
 HookClass = sgtk.get_hook_baseclass()
 
