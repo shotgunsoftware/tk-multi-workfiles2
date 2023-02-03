@@ -12,12 +12,6 @@
 import os
 import sgtk
 
-try:
-    import ctypes
-    from ctypes import wintypes
-except:
-    pass
-
 
 HookClass = sgtk.get_hook_baseclass()
 
@@ -78,93 +72,101 @@ class Win32Api:
     By @skral
     """
 
-    _PSECURITY_DESCRIPTOR = ctypes.POINTER(wintypes.BYTE)
-    _PSID = ctypes.POINTER(wintypes.BYTE)
-    _LPDWORD = ctypes.POINTER(wintypes.DWORD)
-    _LPBOOL = ctypes.POINTER(wintypes.BOOL)
+    def __init__(self):
+        import ctypes
+        from ctypes import wintypes
 
-    _OWNER_SECURITY_INFORMATION = 0x00000001
-    _SID_TYPES = dict(
-        enumerate(
-            "User Group Domain Alias WellKnownGroup DeletedAccount "
-            "Invalid Unknown Computer Label".split(),
-            1,
+        self._PSECURITY_DESCRIPTOR = ctypes.POINTER(wintypes.BYTE)
+        self._PSID = ctypes.POINTER(wintypes.BYTE)
+        self._LPDWORD = ctypes.POINTER(wintypes.DWORD)
+        self._LPBOOL = ctypes.POINTER(wintypes.BOOL)
+
+        self._OWNER_SECURITY_INFORMATION = 0x00000001
+        self._SID_TYPES = dict(
+            enumerate(
+                "User Group Domain Alias WellKnownGroup DeletedAccount "
+                "Invalid Unknown Computer Label".split(),
+                1,
+            )
         )
-    )
 
-    _advapi32 = ctypes.windll.advapi32
+        self._advapi32 = ctypes.windll.advapi32
 
-    # MSDN windows/desktop/aa446639
-    _GetFileSecurity = _advapi32.GetFileSecurityW
-    _GetFileSecurity.restype = wintypes.BOOL
-    _GetFileSecurity.argtypes = [
-        wintypes.LPCWSTR,  # File Name (in)
-        wintypes.DWORD,  # Requested Information (in)
-        _PSECURITY_DESCRIPTOR,  # Security Descriptor (out_opt)
-        wintypes.DWORD,  # Length (in)
-        _LPDWORD,  # Length Needed (out)
-    ]
+        # MSDN windows/desktop/aa446639
+        self._GetFileSecurity = self._advapi32.GetFileSecurityW
+        self._GetFileSecurity.restype = wintypes.BOOL
+        self._GetFileSecurity.argtypes = [
+            wintypes.LPCWSTR,  # File Name (in)
+            wintypes.DWORD,  # Requested Information (in)
+            self._PSECURITY_DESCRIPTOR,  # Security Descriptor (out_opt)
+            wintypes.DWORD,  # Length (in)
+            self._LPDWORD,  # Length Needed (out)
+        ]
 
-    # MSDN windows/desktop/aa446651
-    _GetSecurityDescriptorOwner = _advapi32.GetSecurityDescriptorOwner
-    _GetSecurityDescriptorOwner.restype = wintypes.BOOL
-    _GetSecurityDescriptorOwner.argtypes = [
-        _PSECURITY_DESCRIPTOR,  # Security Descriptor (in)
-        ctypes.POINTER(_PSID),  # Owner (out)
-        _LPBOOL,  # Owner Exists (out)
-    ]
+        # MSDN windows/desktop/aa446651
+        _GetSecurityDescriptorOwner = self._advapi32.GetSecurityDescriptorOwner
+        _GetSecurityDescriptorOwner.restype = wintypes.BOOL
+        _GetSecurityDescriptorOwner.argtypes = [
+            self._PSECURITY_DESCRIPTOR,  # Security Descriptor (in)
+            ctypes.POINTER(self._PSID),  # Owner (out)
+            self._LPBOOL,  # Owner Exists (out)
+        ]
 
-    # MSDN windows/desktop/aa379166
-    _LookupAccountSid = _advapi32.LookupAccountSidW
-    _LookupAccountSid.restype = wintypes.BOOL
-    _LookupAccountSid.argtypes = [
-        wintypes.LPCWSTR,  # System Name (in)
-        _PSID,  # SID (in)
-        wintypes.LPCWSTR,  # Name (out)
-        _LPDWORD,  # Name Size (inout)
-        wintypes.LPCWSTR,  # Domain(out_opt)
-        _LPDWORD,  # Domain Size (inout)
-        _LPDWORD,  # SID Type (out)
-    ]
+        # MSDN windows/desktop/aa379166
+        _LookupAccountSid = self._advapi32.LookupAccountSidW
+        _LookupAccountSid.restype = wintypes.BOOL
+        _LookupAccountSid.argtypes = [
+            wintypes.LPCWSTR,  # System Name (in)
+            self._PSID,  # SID (in)
+            wintypes.LPCWSTR,  # Name (out)
+            self._LPDWORD,  # Name Size (inout)
+            wintypes.LPCWSTR,  # Domain(out_opt)
+            self._LPDWORD,  # Domain Size (inout)
+            self._LPDWORD,  # SID Type (out)
+        ]
+
+        # Make available these modules for the object
+        self.ctypes = ctypes
+        self.wintypes = wintypes
 
     def get_file_security(self, filename, request):
-        length = wintypes.DWORD()
-        self._GetFileSecurity(filename, request, None, 0, ctypes.byref(length))
+        length = self.wintypes.DWORD()
+        self._GetFileSecurity(filename, request, None, 0, self.ctypes.byref(length))
 
         if length.value:
-            sd = (wintypes.BYTE * length.value)()
+            sd = (self.wintypes.BYTE * length.value)()
             if self._GetFileSecurity(
-                filename, request, sd, length, ctypes.byref(length)
+                filename, request, sd, length, self.ctypes.byref(length)
             ):
                 return sd
 
     def get_security_descriptor_owner(self, sd):
         if sd is not None:
             sid = self._PSID()
-            sid_defaulted = wintypes.BOOL()
+            sid_defaulted = self.wintypes.BOOL()
 
             if self._GetSecurityDescriptorOwner(
-                sd, ctypes.byref(sid), ctypes.byref(sid_defaulted)
+                sd, self.ctypes.byref(sid), self.ctypes.byref(sid_defaulted)
             ):
                 return sid
 
     def look_up_account_sid(self, sid):
         if sid is not None:
             SIZE = 256
-            name = ctypes.create_unicode_buffer(SIZE)
-            domain = ctypes.create_unicode_buffer(SIZE)
-            cch_name = wintypes.DWORD(SIZE)
-            cch_domain = wintypes.DWORD(SIZE)
-            sid_type = wintypes.DWORD()
+            name = self.ctypes.create_unicode_buffer(SIZE)
+            domain = self.ctypes.create_unicode_buffer(SIZE)
+            cch_name = self.wintypes.DWORD(SIZE)
+            cch_domain = self.wintypes.DWORD(SIZE)
+            sid_type = self.wintypes.DWORD()
 
             if self._LookupAccountSid(
                 None,
                 sid,
                 name,
-                ctypes.byref(cch_name),
+                self.ctypes.byref(cch_name),
                 domain,
-                ctypes.byref(cch_domain),
-                ctypes.byref(sid_type),
+                self.ctypes.byref(cch_domain),
+                self.ctypes.byref(sid_type),
             ):
                 return name.value, domain.value, sid_type.value
 
