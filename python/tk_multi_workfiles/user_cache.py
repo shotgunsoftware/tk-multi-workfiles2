@@ -11,8 +11,6 @@
 """
 Implementation of the user cache storing Shotgun user information
 """
-import os
-import sys
 import sgtk
 
 from .util import Threaded
@@ -115,21 +113,22 @@ class UserCache(Threaded):
         :returns:       A  Shotgun entity dictionary for the HumanUser that last modified the path
         """
 
-        login_name = None
-        if sgtk.util.is_windows():
-            # TODO: add windows support..
-            pass
+        # Execute hook for getting user login.
+        try:
+            login_name = self._app.execute_hook_method(
+                "user_login_hook",
+                "get_user",
+                path=path,
+            )
+        except Exception:
+            self._app.logger.warning(
+                "Exception raised when executing hook for work file at %s with details %s"
+                % (self._path, self._details),
+                exc_info=True,
+            )
         else:
-            try:
-                from pwd import getpwuid
-
-                login_name = getpwuid(os.stat(path).st_uid).pw_name
-            except:
-                pass
-
-        if login_name:
-            sg_user = self._get_user_details_for_login(login_name)
-            return sg_user
+            if login_name:
+                return self._get_user_details_for_login(login_name)
 
         return None
 
@@ -149,7 +148,15 @@ class UserCache(Threaded):
                     "HumanUser", [["login", "is", login_name]], self._sg_fields
                 )
                 # handle sg_user being None
-                sg_user = sg_user or {}
+                # create a minimal object with the OS session login.
+                sg_user = sg_user or {
+                    "type": "HumanUser",
+                    "id": None,
+                    "email": None,
+                    "login": login_name,
+                    "name": f"{login_name} (System)",
+                    "image": None,
+                }
             except Exception as e:
                 # this isn't critical so just log as debug
                 self._app.log_debug(
