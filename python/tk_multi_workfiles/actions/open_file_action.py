@@ -11,7 +11,8 @@
 """
 """
 import os
-
+import sys
+import re
 import sgtk
 from sgtk.platform.qt import QtGui
 from sgtk import TankError
@@ -146,7 +147,7 @@ class OpenFileAction(FileAction):
         previous_context = self._app.context
         if not new_ctx == self._app.context:
             try:
-                # Change the curent context.
+                # Change the current context.
                 FileAction.change_context(new_ctx)
             except Exception as e:
                 QtGui.QMessageBox.critical(
@@ -166,14 +167,11 @@ class OpenFileAction(FileAction):
                 self._app, OPEN_FILE_ACTION, new_ctx, dst_path, version, read_only
             )
         except Exception as e:
-            QtGui.QMessageBox.critical(
-                parent_ui,
-                "Failed to open file",
-                "Failed to open file\n\n%s\n\n%s" % (dst_path, e),
-            )
-            self._app.log_exception("Failed to open file %s!" % dst_path)
-            FileAction.restore_context(parent_ui, previous_context)
-            return False
+            if not self.__handle_open_file_exception(
+                e, dst_path, parent_ui, previous_context
+            ):
+                return False
+            is_file_opened = True
 
         # Test specifically for False. Legacy open hooks return None, which means success.
         if is_file_opened is False:
@@ -193,6 +191,52 @@ class OpenFileAction(FileAction):
             pass
 
         return True
+
+    def __handle_open_file_exception(
+        self, error_message, dst_path, parent_ui, previous_context
+    ):
+        """
+        If the 'Open file' operation fails, restore the original context
+        and displays an error message.
+
+        :param error_message: Error string that will be displayed in a message box.
+        :param dst_path: The path of the file to copy.
+        :param PySide.QtWidget parent_ui: Parent for the error dialog.
+        :param sgtk.Context previous_context: Original context to restore.
+        """
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        # If the user open a Nuke file with a different version, just raise a
+        # warning but doesn't restore the original context as Nuke doesn't
+        # take this as a failed operation, so let's keep the context that the
+        # work file should be opened in.
+        if isinstance(exc_value, RuntimeError) and re.match(
+            r"\S+.v[\d.]+.nk is for nuke[\d.]+v[\d.]+; this is nuke[\d.]+v[\d.]+",
+            str(error_message),
+        ):
+            _require_context_restore = False
+            QtGui.QMessageBox.warning(
+                parent_ui,
+                "Warning, open file with different version.",
+                "%s" % error_message,
+            )
+            self._app.log_exception(
+                "Warning, open file %s with different version" % dst_path
+            )
+            return True
+
+        else:
+            _require_context_restore = True
+            exc_text = "Failed to open file\n\n%s\n\n%s" % (dst_path, error_message)
+            QtGui.QMessageBox.critical(
+                parent_ui,
+                "Failed to open file",
+                exc_text,
+            )
+        # if the file operation failed we need to restore the original context.
+        if _require_context_restore:
+            self._app.log_exception("Failed to open file %s!" % dst_path)
+            FileAction.restore_context(parent_ui, previous_context)
+            return False
 
 
 class CopyAndOpenInCurrentWorkAreaAction(OpenFileAction):
