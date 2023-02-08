@@ -228,7 +228,7 @@ class FileItem(object):
         :returns:   A dictionary of {version:FileItem} containing a map of all other
                     versions of this file
         """
-        return {k: self._versions[k] for k in sorted(self._versions)}
+        return self._versions
 
     # @versions.setter
     def _set_versions(self, value):
@@ -236,7 +236,7 @@ class FileItem(object):
         :param value:   A dictionary of {version:FileItem} pairs that represent all other
                         versions of this file
         """
-        self._versions = value
+        self._versions = {k: value[k] for k in sorted(value)}
 
     versions = property(_get_versions, _set_versions)
 
