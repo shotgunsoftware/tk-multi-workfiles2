@@ -315,10 +315,10 @@ class FileFinder(QtCore.QObject):
                     # ignore OSErrors as it's probably a permissions thing!
                     pass
 
-            # if not file_details["modified_by"]:
-            #     file_details["modified_by"] = g_user_cache.get_file_last_modified_user(
-            #         work_path
-            #     )
+            if not file_details["modified_by"]:
+                file_details["modified_by"] = g_user_cache.get_file_last_modified_user(
+                    work_path
+                )
 
             if not file_details["name"]:
                 # make sure all files with the same key have the same name:
@@ -334,23 +334,7 @@ class FileFinder(QtCore.QObject):
                 "work_details": file_details,
             }
 
-        # Batch get system login for files and add them back to `files`
-        try:
-            login_dict = self._app.execute_hook_method(
-                "user_login_hook",
-                "batch_get_login",
-                files=files,
-            )
-            for key, login in login_dict.items():
-                if login:
-                    # assign SG user
-                    files[key]["work_details"][
-                        "modified_by"
-                    ] = g_user_cache.get_user_details_for_login(login)
-            return files
-        except:
-            # Something failed, let's return the original files dict
-            return files
+        return files
 
     def _process_publish_files(
         self,
@@ -1151,9 +1135,6 @@ class AsyncFileFinder(FileFinder):
             and environment.context
             and name_map
         ):
-            import time
-
-            start = time.time()
             work_items = self._process_work_files(
                 work_files,
                 environment.work_template,
@@ -1161,6 +1142,4 @@ class AsyncFileFinder(FileFinder):
                 name_map,
                 environment.version_compare_ignore_fields,
             )
-            total = time.time() - start
-            self._app.logger.info(f"---End21: {total}")
         return {"work_items": work_items, "environment": environment}

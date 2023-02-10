@@ -47,36 +47,6 @@ class UserLogin(HookClass):
             except:
                 pass
 
-    def batch_get_login(self, files, **kwargs):
-        """
-        This methods performs the `get_login` logic for a list of files
-
-        :param files:   Dictionary of files that can be used to instantiate :class:`FileItem`
-        A dictionaries for the current work files after being processed
-        by the _process_work_files method in the form:
-
-        {
-            (file_key, version_number) : {
-                key           - file unique key
-                is_work_file  - bool flag
-                work_path     - absolute path of the file
-                work_details  - dictionary that includes name, version, task, entity,
-                                modified_at, and (possibly empty) modified_by.
-            }
-        }
-
-        :returns:           A dictionary that keeps the same keys as the input.
-                            The values are the System logins. Otherwise None.
-                            The output dictionary might not be the same lenght of the input.
-        """
-        logins_dict = {}
-        for key, file in files.items():
-            if not file["work_details"]["modified_by"]:
-                logins_dict[key] = self.get_login(file["work_path"])
-
-        # It should return at least the same files received
-        return logins_dict
-
     def save_user(self, work_path, work_version, **kwargs):
         """
         Placeholder to save additional user login information that is called when the work file

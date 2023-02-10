@@ -126,11 +126,11 @@ class UserCache(Threaded):
             )
         else:
             if login_name:
-                return self.get_user_details_for_login(login_name)
+                return self._get_user_details_for_login(login_name)
 
         return None
 
-    def get_user_details_for_login(self, login_name):
+    def _get_user_details_for_login(self, login_name):
         """
         Get the shotgun HumanUser entry for the specified login name
 
