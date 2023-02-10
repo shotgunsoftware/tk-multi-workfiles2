@@ -790,12 +790,12 @@ class FileSaveForm(FileFormBase):
                     "user_login_hook",
                     "save_user",
                     work_path=path_to_save,
-                    work_versions=version_to_save,
+                    work_version=version_to_save,
                 )
             except Exception:
                 app.logger.warning(
-                    "Exception raised when executing save hook for work file at %s with details %s"
-                    % (self._path, self._details),
+                    "Exception raised when executing save hook for work file at %s"
+                    % path_to_save,
                     exc_info=True,
                 )
 

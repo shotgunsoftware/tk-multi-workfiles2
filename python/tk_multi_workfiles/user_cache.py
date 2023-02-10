@@ -106,8 +106,7 @@ class UserCache(Threaded):
 
     def get_file_last_modified_user(self, path):
         """
-        Get the user details of the last person to modify the specified file.  Note, this currently
-        doesn't work on Windows as Windows doesn't provide this information as standard
+        Get the user details of the last person to modify the specified file.
 
         :param path:    The path to find the last modified user for
         :returns:       A  Shotgun entity dictionary for the HumanUser that last modified the path
@@ -117,22 +116,21 @@ class UserCache(Threaded):
         try:
             login_name = self._app.execute_hook_method(
                 "user_login_hook",
-                "get_user",
+                "get_login",
                 path=path,
             )
         except Exception:
             self._app.logger.warning(
-                "Exception raised when executing hook for work file at %s with details %s"
-                % (self._path, self._details),
+                "Exception raised when executing hook for work file at %s" % path,
                 exc_info=True,
             )
         else:
             if login_name:
-                return self._get_user_details_for_login(login_name)
+                return self.get_user_details_for_login(login_name)
 
         return None
 
-    def _get_user_details_for_login(self, login_name):
+    def get_user_details_for_login(self, login_name):
         """
         Get the shotgun HumanUser entry for the specified login name
 

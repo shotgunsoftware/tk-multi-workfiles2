@@ -21,11 +21,10 @@ class UserLogin(HookClass):
     Hook that can be used to push and retrieve user login data for work files.
     """
 
-    def get_user(self, path, **kwargs):
+    def get_login(self, path, **kwargs):
         """
         This method is called when listing all the work files. By default, it looks at the OS
-        session login. `python.tk_multi_workfiles.user_cache.UserCache.get_file_last_modified_user`
-        method will try to determine if it can match a SG login.
+        session login.
 
         :param path:            Path where the work file is located.
         :type path:             str
@@ -34,17 +33,49 @@ class UserLogin(HookClass):
         :rtype:                 Optional[str]
         """
         if sgtk.util.is_windows():
+            # Get this information for Windows platforms
             try:
                 return Win32Api().get_file_owner(path)
             except:
                 pass
         else:
+            # Get this information for Linux and Darwin platforms
             try:
                 from pwd import getpwuid
 
                 return getpwuid(os.stat(path).st_uid).pw_name
             except:
                 pass
+
+    def batch_get_login(self, files, **kwargs):
+        """
+        This methods performs the `get_login` logic for a list of files
+
+        :param files:   Dictionary of files that can be used to instantiate :class:`FileItem`
+        A dictionaries for the current work files after being processed
+        by the _process_work_files method in the form:
+
+        {
+            (file_key, version_number) : {
+                key           - file unique key
+                is_work_file  - bool flag
+                work_path     - absolute path of the file
+                work_details  - dictionary that includes name, version, task, entity,
+                                modified_at, and (possibly empty) modified_by.
+            }
+        }
+
+        :returns:           A dictionary that keeps the same keys as the input.
+                            The values are the System logins. Otherwise None.
+                            The output dictionary might not be the same lenght of the input.
+        """
+        logins_dict = {}
+        for key, file in files.items():
+            if not file["work_details"]["modified_by"]:
+                logins_dict[key] = self.get_login(file["work_path"])
+
+        # It should return at least the same files received
+        return logins_dict
 
     def save_user(self, work_path, work_version, **kwargs):
         """
@@ -104,18 +135,18 @@ class Win32Api:
         ]
 
         # MSDN windows/desktop/aa446651
-        _GetSecurityDescriptorOwner = self._advapi32.GetSecurityDescriptorOwner
-        _GetSecurityDescriptorOwner.restype = wintypes.BOOL
-        _GetSecurityDescriptorOwner.argtypes = [
+        self._GetSecurityDescriptorOwner = self._advapi32.GetSecurityDescriptorOwner
+        self._GetSecurityDescriptorOwner.restype = wintypes.BOOL
+        self._GetSecurityDescriptorOwner.argtypes = [
             self._PSECURITY_DESCRIPTOR,  # Security Descriptor (in)
             ctypes.POINTER(self._PSID),  # Owner (out)
             self._LPBOOL,  # Owner Exists (out)
         ]
 
         # MSDN windows/desktop/aa379166
-        _LookupAccountSid = self._advapi32.LookupAccountSidW
-        _LookupAccountSid.restype = wintypes.BOOL
-        _LookupAccountSid.argtypes = [
+        self._LookupAccountSid = self._advapi32.LookupAccountSidW
+        self._LookupAccountSid.restype = wintypes.BOOL
+        self._LookupAccountSid.argtypes = [
             wintypes.LPCWSTR,  # System Name (in)
             self._PSID,  # SID (in)
             wintypes.LPCWSTR,  # Name (out)
