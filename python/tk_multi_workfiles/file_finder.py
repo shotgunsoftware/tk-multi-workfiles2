@@ -936,14 +936,14 @@ class AsyncFileFinder(FileFinder):
         elif task_id in search.find_publishes_tasks:
             search.find_publishes_tasks.remove(task_id)
             # found publishes:
-            publish_item_args = result.get("publish_items", {}).values()
+            publish_item_args = (result.get("publish_items", {})).values()
             files = [FileItem(**kwargs) for kwargs in publish_item_args]
             self.publishes_found.emit(search_id, files, work_area)
 
         elif task_id in search.find_work_files_tasks:
             search.find_work_files_tasks.remove(task_id)
             # found work files:
-            work_item_args = result.get("work_items", {}).values()
+            work_item_args = (result.get("work_items", {})).values()
             files = [FileItem(**kwargs) for kwargs in work_item_args]
             self.files_found.emit(search_id, files, work_area)
 

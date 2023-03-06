@@ -784,6 +784,21 @@ class FileSaveForm(FileFormBase):
         file_saved = action.execute(self)
 
         if file_saved:
+            # Execute hook for saving additional user login.
+            try:
+                result = app.execute_hook_method(
+                    "user_login_hook",
+                    "save_user",
+                    work_path=path_to_save,
+                    work_version=version_to_save,
+                )
+            except Exception:
+                app.logger.warning(
+                    "Exception raised when executing save hook for work file at %s"
+                    % path_to_save,
+                    exc_info=True,
+                )
+
             # all good - lets close the dialog
             self._exit_code = QtGui.QDialog.Accepted
             self.close()

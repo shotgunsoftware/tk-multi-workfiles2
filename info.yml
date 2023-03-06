@@ -113,6 +113,12 @@ configuration:
         description: Specify a hook that will create the task and do any input validation that is
                      required.
 
+    user_login_hook:
+        type: hook
+        default_value: "{self}/user_login.py"
+        description: Contains methods to retrieve custom user login and push user data when a
+                     work file is saved.
+
     # General preferences
     #
     entities:
