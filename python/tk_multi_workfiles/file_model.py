@@ -641,7 +641,6 @@ class FileModel(QtGui.QStandardItemModel):
 
         valid_group_keys = set()
         if self._current_searches and self._current_users:
-
             # get details about the users to run searches for:
             current_user_key = self._gen_entity_key(g_user_cache.current_user)
             have_current_user = False
@@ -843,10 +842,7 @@ class FileModel(QtGui.QStandardItemModel):
             valid_files[file_version_key] = file_item
 
             # we want to retrieve the thumbnail if one is available:
-            if (
-                file_item.thumbnail_path
-                and not file_item.thumbnail
-            ):
+            if file_item.thumbnail_path and not file_item.thumbnail:
                 # request the thumbnail using the data retriever:
                 request_id = self._sg_data_retriever.request_thumbnail(
                     file_item.thumbnail_path,
