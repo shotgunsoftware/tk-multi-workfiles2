@@ -119,6 +119,11 @@ configuration:
         description: Contains methods to retrieve custom user login and push user data when a
                      work file is saved.
 
+    file_action_hook:
+        type: hook
+        default_value: "{self}/file_action.py"
+        description: Hook which creates folders on disk.
+
     # General preferences
     #
     entities:
@@ -137,8 +142,8 @@ configuration:
                       *filters* a list of standard ShotGrid API filters, *hierarchy* a list of fields defining
                       the grouping in the sub-tree.
                       The optional *step_filter_on* setting is an Entity type and can be used to restrict
-                      the list of Steps used for filtering to only the Steps for the specified Entity type.
-"
+                      the list of Steps used for filtering to only the Steps for the specified Entity type."
+
         # For backward compatibility reasons we don't use the new deferred queries
         # by default. Using deferred queries, an Asset/Shot setup could be:
         # - caption: Assets (deferred)
