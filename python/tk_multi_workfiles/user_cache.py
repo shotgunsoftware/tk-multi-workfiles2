@@ -152,7 +152,7 @@ class UserCache(Threaded):
                     "id": None,
                     "email": None,
                     "login": login_name,
-                    "name": f"{login_name} (System)",
+                    "name": "%s (System)" % login_name,
                     "image": None,
                 }
             except Exception as e:
