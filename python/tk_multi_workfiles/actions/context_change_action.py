@@ -50,9 +50,8 @@ class ContextChangeAction(Action):
                 # log the original exception (useful for tracking down the problem)
                 self._app.log_exception("Unable to run folder creation!")
 
-            if not self._environment.context == self._app.context:
-                # Change context
-                FileAction.change_context(self._environment.context)
+            # Change context
+            FileAction.change_context(self._environment.context)
 
         except Exception as e:
             error_title = "Failed to complete '%s' action" % self.label
