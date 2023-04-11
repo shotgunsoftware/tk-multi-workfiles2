@@ -18,7 +18,7 @@ from sgtk import support_url
 
 from .file_action import FileAction
 from .action import Action
-from ..scene_operation import prepare_new_scene, reset_current_scene, NEW_FILE_ACTION
+from ..scene_operation import prepare_new_scene, post_scene_creation, reset_current_scene, NEW_FILE_ACTION, POST_SCENE_CREATION_ACTION
 
 
 class NewFileAction(Action):
@@ -115,8 +115,11 @@ class NewFileAction(Action):
                 # prepare the new scene:
                 prepare_new_scene(self._app, NEW_FILE_ACTION, self._environment.context)
 
-                # Change context
+                # Force Change context
                 FileAction.change_context(self._environment.context)
+
+                # after new scene creation:
+                post_scene_creation(self._app, POST_SCENE_CREATION_ACTION, self._environment.context)
 
         except Exception as e:
             error_title = "Failed to complete '%s' action" % self.label

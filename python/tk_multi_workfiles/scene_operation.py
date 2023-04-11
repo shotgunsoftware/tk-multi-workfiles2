@@ -21,7 +21,8 @@ from .framework_qtwidgets import MessageBox
     NEW_FILE_ACTION,
     VERSION_UP_FILE_ACTION,
     CHECK_REFERENCES_ACTION,
-) = range(5)
+    POST_SCENE_CREATION_ACTION,
+) = range(6)
 
 
 def _do_scene_operation(
@@ -60,6 +61,8 @@ def _do_scene_operation(
         action_str = "version_up"
     elif action == CHECK_REFERENCES_ACTION:
         action_str = "check_references"
+    elif action == POST_SCENE_CREATION_ACTION:
+        action_str = "post_new"
     else:
         raise TankError("Unrecognised action %s for scene operation" % action)
 
@@ -127,6 +130,14 @@ def prepare_new_scene(app, action, context):
     app.log_debug("Preparing the new scene via hook")
     return _do_scene_operation(app, action, context, "prepare_new")
 
+
+def post_scene_creation(app, action, context):
+    """
+    Use the hook to do any preperation for
+    the new scene
+    """
+    app.log_debug("After scene creation checks via hook")
+    return _do_scene_operation(app, action, context, "post_new")
 
 def save_file(app, action, context, path=None):
     """
