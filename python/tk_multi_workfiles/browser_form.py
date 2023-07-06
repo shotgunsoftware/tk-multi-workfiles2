@@ -82,6 +82,7 @@ class BrowserForm(QtGui.QWidget):
     )  # file, env, pnt
     entity_type_focus_changed = QtCore.Signal(object)  # entity type
     step_filter_changed = QtCore.Signal(list)  # SG filter
+    folder_double_clicked = QtCore.Signal(object)  # folder
 
     task_double_clicked = QtCore.Signal(object)  # My tasks task double clicked
 
@@ -250,6 +251,7 @@ class BrowserForm(QtGui.QWidget):
                 step_entity_filter=step_entity_filter,
             )
             entity_form.entity_selected.connect(self._on_entity_selected)
+            self.folder_double_clicked.connect(entity_form.select_folder_entity)
             self._ui.task_browser_tabs.addTab(entity_form, caption)
             entity_form.create_new_task.connect(self.create_new_task)
             self._entity_tree_forms.append(entity_form)
@@ -333,6 +335,7 @@ class BrowserForm(QtGui.QWidget):
         file_form.set_model(self._file_model)
         file_form.file_selected.connect(self._on_file_selected)
         file_form.file_double_clicked.connect(self.file_double_clicked)
+        file_form.folder_double_clicked.connect(self.folder_double_clicked)
         file_form.file_context_menu_requested.connect(
             self._on_file_context_menu_requested
         )

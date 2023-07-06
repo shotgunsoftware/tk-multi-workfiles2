@@ -76,6 +76,7 @@ class FileModel(QtGui.QStandardItemModel):
     WORK_AREA_ROLE = _BASE_ROLE + 3  # WorkArea data
     SEARCH_STATUS_ROLE = _BASE_ROLE + 4  # search status data
     SEARCH_MSG_ROLE = _BASE_ROLE + 5  # search message data
+    FOLDER_ENTITY_ROLE = _BASE_ROLE + 6  # FolderEntity data
 
     class _BaseModelItem(QtGui.QStandardItem):
         """
@@ -197,6 +198,34 @@ class FileModel(QtGui.QStandardItemModel):
                 self, typ=FileModel.FOLDER_NODE_TYPE, text=name
             )
             self._entity = entity
+
+        def data(self, role):
+            """
+            Return the data from the item for the specified role.
+
+            :param role:    The role to return data for.
+            :returns:       Data for the specified role
+            """
+            if role == FileModel.FOLDER_ENTITY_ROLE:
+                return self._entity
+            else:
+                return FileModel._BaseModelItem.data(self, role)
+
+        def setData(self, value, role):
+            """
+            Set the data on the item for the specified role
+
+            :param value:   The value to set the data with
+            :param role:    The role to set the data for
+            """
+            if role == QtCore.Qt.DisplayRole:
+                # do nothing as it can't be set!
+                pass
+            elif role == FileModel.FOLDER_ENTITY_ROLE:
+                self._entity = value
+            else:
+                # call the base implementation:
+                FileModel._BaseModelItem.setData(self, value, role)
 
         @property
         def entity(self):

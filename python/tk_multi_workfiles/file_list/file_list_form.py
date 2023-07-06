@@ -44,6 +44,9 @@ class FileListForm(QtGui.QWidget):
     # Signal emitted whenever a file is double-clicked
     file_double_clicked = QtCore.Signal(object, object)  # file, env
 
+    # Signal emitted whenever a folder is double-clicked
+    folder_double_clicked = QtCore.Signal(object)  # folder
+
     # Signal emitted whenever a context menu is required for a file
     file_context_menu_requested = QtCore.Signal(
         object, object, QtCore.QPoint
@@ -605,8 +608,9 @@ class FileListForm(QtGui.QWidget):
         item_type = get_model_data(idx, FileModel.NODE_TYPE_ROLE)
         if item_type == FileModel.FOLDER_NODE_TYPE:
             # selection is a folder/child so move into it
-            # TODO
-            pass
+            selected_item = get_model_data(idx, FileModel.FOLDER_ENTITY_ROLE)
+            env_details = get_model_data(idx, FileModel.WORK_AREA_ROLE)
+            self.folder_double_clicked.emit(selected_item)
         elif item_type == FileModel.FILE_NODE_TYPE:
             # this is a file so perform the default action for the file
             selected_file = get_model_data(idx, FileModel.FILE_ITEM_ROLE)
