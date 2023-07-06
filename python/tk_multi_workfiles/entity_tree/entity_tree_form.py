@@ -280,8 +280,8 @@ class EntityTreeForm(QtGui.QWidget):
 
     def select_folder_entity(self, folder):
         self._reset_selection()
-        self.select_entity(folder['type'], folder["id"])
-        
+        self.select_entity(folder["type"], folder["id"])
+
     def select_entity(self, entity_type, entity_id):
         """
         Select the specified entity in the tree.

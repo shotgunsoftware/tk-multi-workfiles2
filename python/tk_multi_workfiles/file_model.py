@@ -76,7 +76,7 @@ class FileModel(QtGui.QStandardItemModel):
     WORK_AREA_ROLE = _BASE_ROLE + 3  # WorkArea data
     SEARCH_STATUS_ROLE = _BASE_ROLE + 4  # search status data
     SEARCH_MSG_ROLE = _BASE_ROLE + 5  # search message data
-    FOLDER_ENTITY_ROLE = _BASE_ROLE + 6 # FolderEntity data
+    FOLDER_ENTITY_ROLE = _BASE_ROLE + 6  # FolderEntity data
 
     class _BaseModelItem(QtGui.QStandardItem):
         """
