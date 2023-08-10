@@ -17,14 +17,19 @@ from sgtk.platform.qt import QtGui, QtCore
 from .file_finder import AsyncFileFinder
 from .user_cache import g_user_cache
 from .file_search_cache import FileSearchCache
+from .util import value_to_str
+from .errors import MissingTemplatesError
 
 shotgun_data = sgtk.platform.import_framework(
     "tk-framework-shotgunutils", "shotgun_data"
 )
 ShotgunDataRetriever = shotgun_data.ShotgunDataRetriever
 
+delegates = sgtk.platform.import_framework("tk-framework-qtwidgets", "delegates")
+ViewItemRolesMixin = delegates.ViewItemRolesMixin
 
-class FileModel(QtGui.QStandardItemModel):
+
+class FileModel(QtGui.QStandardItemModel, ViewItemRolesMixin):
     """
     The FileModel maintains a model of all files (work files and publishes) found for a matrix of
     entities and users.  Details of each 'version' of a file are contained in a FileItem instance
@@ -69,13 +74,27 @@ class FileModel(QtGui.QStandardItemModel):
     # enumeration of search status:
     (SEARCHING, SEARCH_COMPLETED, SEARCH_FAILED) = range(3)
 
-    # additional data roles defined for the model:
+    # Additional data roles defined for the model
     _BASE_ROLE = QtCore.Qt.UserRole + 32
-    NODE_TYPE_ROLE = _BASE_ROLE + 1  # type of node in model (e.g. FILE_NODE_TYPE)
-    FILE_ITEM_ROLE = _BASE_ROLE + 2  # FileItem data
-    WORK_AREA_ROLE = _BASE_ROLE + 3  # WorkArea data
-    SEARCH_STATUS_ROLE = _BASE_ROLE + 4  # search status data
-    SEARCH_MSG_ROLE = _BASE_ROLE + 5  # search message data
+    (
+        NODE_TYPE_ROLE,  # type of node in model (e.g. FILE_NODE_TYPE)
+        FILE_ITEM_ROLE,  # FileItem data
+        WORK_AREA_ROLE,  # WorkArea data
+        SEARCH_STATUS_ROLE,  # search status data
+        SEARCH_MSG_ROLE,  # search message data
+        GROUP_SANDBOX_USER,  # the sandbox user name
+        NEXT_AVAILABLE_ROLE,  # Keep track of the next available custome role. Insert new roles above.
+    ) = range(_BASE_ROLE, _BASE_ROLE + 7)
+
+    # The list of roles which return a string value. This is used in the data method to ensure string data is santized.
+    # This must be called after the ViewItemRolesMixin initializes its own roles.
+    STRING_ROLES = [
+        QtCore.Qt.DisplayRole,
+        SEARCH_MSG_ROLE,
+    ]
+
+    # hook paths
+    HOOK_PATH_UI_CONFIG = "ui_config_hook"
 
     class _BaseModelItem(QtGui.QStandardItem):
         """
@@ -97,11 +116,25 @@ class FileModel(QtGui.QStandardItemModel):
             :param role:    The role to return data for.
             :returns:       Data for the specified role
             """
-            if role == FileModel.NODE_TYPE_ROLE:
+
+            # Check if the model has a method defined for retrieving the item data for this role.
+            data_method = self.model().get_method_for_role(role)
+
+            if data_method:
+                try:
+                    return data_method(self)
+                except TypeError as error:
+                    raise sgtk.TankError(
+                        "Failed to execute the method defined to retrieve item data for role `{role}`.\nError: {msg}".format(
+                            role=role, msg=error
+                        )
+                    )
+
+            elif role == FileModel.NODE_TYPE_ROLE:
                 return self._type
+
             else:
-                # just return the default implementation:
-                return QtGui.QStandardItem.data(self, role)
+                return super(FileModel._BaseModelItem, self).data(role)
 
         def setData(self, value, role):
             """
@@ -152,15 +185,32 @@ class FileModel(QtGui.QStandardItemModel):
             :param role:    The role to return data for.
             :returns:       Data for the specified role
             """
+
             if role == QtCore.Qt.DisplayRole:
-                return "%s, v%0d" % (self._file_item.name, self._file_item.version)
+                data = "%s, v%0d" % (self._file_item.name, self._file_item.version)
+
+            elif role == QtCore.Qt.DecorationRole:
+                data = self._file_item.thumbnail
+                if not data:
+                    # Default thumbnail to empty image
+                    data = ":/tk-multi-workfiles2/thumb_empty.png"
+
+                if isinstance(data, six.string_types):
+                    data = QtGui.QPixmap(data)
+
+            elif role == QtCore.Qt.BackgroundRole:
+                data = QtGui.QApplication.palette().midlight()
+
             elif role == FileModel.FILE_ITEM_ROLE:
-                return self._file_item
+                data = self._file_item
+
             elif role == FileModel.WORK_AREA_ROLE:
-                return self._work_area
+                data = self._work_area
+
             else:
-                # just return the default implementation:
-                return FileModel._BaseModelItem.data(self, role)
+                data = super(FileModel._FileModelItem, self).data(role)
+
+            return FileModel.sanitize_data(data, role)
 
         def setData(self, value, role):
             """
@@ -205,6 +255,21 @@ class FileModel(QtGui.QStandardItemModel):
             """
             return self._entity
 
+        def data(self, role):
+            """
+            Return the data from the item for the specified role.
+
+            :param role:    The role to return data for.
+            """
+
+            if role == QtCore.Qt.DecorationRole:
+                data = QtGui.QPixmap(":/tk-multi-workfiles2/folder_512x400.png")
+
+            else:
+                data = super(FileModel._FolderModelItem, self).data(role)
+
+            return FileModel.sanitize_data(data, role)
+
     class _GroupModelItem(_BaseModelItem):
         """
         Model item that represents a group in the model.  A group is a per-user, per-entity item that contains
@@ -225,6 +290,7 @@ class FileModel(QtGui.QStandardItemModel):
             self._search_msg = ""
             self._key = key
             self._work_area = work_area
+            self._sandbox_user_name = ""
 
         @property
         def key(self):
@@ -238,7 +304,7 @@ class FileModel(QtGui.QStandardItemModel):
             """
             :returns:   The WorkArea instance associated with this item
             """
-            return self._work_area
+            return self.data(FileModel.WORK_AREA_ROLE)
 
         # @work_area.setter
         def _set_work_area(self, work_area):
@@ -247,8 +313,7 @@ class FileModel(QtGui.QStandardItemModel):
 
             :param work_area:   The WorkArea to associate with this item
             """
-            self._work_area = work_area
-            self.emitDataChanged()
+            self.setData(work_area, FileModel.WORK_AREA_ROLE)
 
         work_area = property(_get_work_area, _set_work_area)
 
@@ -259,9 +324,15 @@ class FileModel(QtGui.QStandardItemModel):
             :param status:  The search status (see the search status enumeration above) to update this item with
             :param msg:     The status message if any to update this item with
             """
-            self._search_status = status
-            self._search_msg = msg
-            self.emitDataChanged()
+
+            if msg is None:
+                # The set data method will take care of setting the search message.
+                self.setData(status, FileModel.SEARCH_STATUS_ROLE)
+            else:
+                # Manually set the search status, message and emit data changed signal.
+                self._search_status = status
+                self._search_msg = msg
+                self.emitDataChanged()
 
         def data(self, role):
             """
@@ -270,15 +341,33 @@ class FileModel(QtGui.QStandardItemModel):
             :param role:    The role to return data for.
             :returns:       Data for the specified role
             """
+
             if role == FileModel.SEARCH_STATUS_ROLE:
-                return self._search_status
+                data = self._search_status
+
             elif role == FileModel.SEARCH_MSG_ROLE:
-                return self._search_msg
+                data = self._search_msg
+
             elif role == FileModel.WORK_AREA_ROLE:
-                return self._work_area
+                data = self._work_area
+
+            elif role == FileModel.GROUP_SANDBOX_USER:
+                data = self._sandbox_user_name
+
+            elif role == FileModel.VIEW_ITEM_HEIGHT_ROLE:
+                # Group item height always adjusts to content size
+                data = -1
+
+            elif role == FileModel.VIEW_ITEM_LOADING_ROLE:
+                # Indicate that this group item is in a loading state
+                search_status = self.data(FileModel.SEARCH_STATUS_ROLE)
+                data = search_status == FileModel.SEARCHING
+
             else:
-                # just return the default implementation:
-                return FileModel._BaseModelItem.data(self, role)
+                data = FileModel._BaseModelItem.data(self, role)
+
+            # Sanitize the data before returning
+            return FileModel.sanitize_data(data, role)
 
         def setData(self, value, role):
             """
@@ -287,15 +376,64 @@ class FileModel(QtGui.QStandardItemModel):
             :param value:   The value to set the data with
             :param role:    The role to set the data for
             """
+
             if role == FileModel.SEARCH_STATUS_ROLE:
                 self._search_status = value
+
+                msg = ""
+
+                if self._search_status == FileModel.SEARCHING:
+                    msg = "Searching for files..."
+
+                elif self._search_status == FileModel.SEARCH_COMPLETED:
+                    if not self.hasChildren():
+                        work_area = self.data(FileModel.WORK_AREA_ROLE)
+                        if work_area:
+                            if not work_area.are_settings_loaded():
+                                msg = "Shotgun Workfiles hasn't been setup."
+                            else:
+                                templates = work_area.get_missing_templates()
+                                if templates:
+                                    msg = MissingTemplatesError.generate_missing_templates_message(
+                                        templates
+                                    )
+                                else:
+                                    msg = "No files found."
+
+                elif self._search_status == FileModel.SEARCH_FAILED:
+                    msg = "Search Failed"
+
+                self._search_msg = msg
                 self.emitDataChanged()
+
             elif role == FileModel.SEARCH_MSG_ROLE:
                 self._search_msg = value
                 self.emitDataChanged()
+
             elif role == FileModel.WORK_AREA_ROLE:
                 self._work_area = value
+
+                sandbox_user_name = ""
+                if self._work_area and self._work_area.contains_user_sandboxes:
+                    context = self._work_area.context
+                    if context and context.user:
+                        if (
+                            g_user_cache.current_user
+                            and g_user_cache.current_user["id"] == context.user["id"]
+                        ):
+                            sandbox_user_name = "My"
+                        else:
+                            sandbox_user_name = "{name}'s".format(
+                                name=context.user.get("name", "Unknown")
+                            )
+                    else:
+                        sandbox_user_name = "Unknown's"
+                else:
+                    sandbox_user_name = ""
+
+                self._sandbox_user_name = sandbox_user_name
                 self.emitDataChanged()
+
             else:
                 # call the base implementation:
                 FileModel._BaseModelItem.setData(self, value, role)
@@ -348,6 +486,69 @@ class FileModel(QtGui.QStandardItemModel):
         self._finder.search_failed.connect(self._on_finder_search_failed)
         self._finder.work_area_resolved.connect(self._on_finder_work_area_resolved)
         self._finder.work_area_found.connect(self._on_finder_work_area_found)
+
+        # Add additional roles defined by the ViewItemRolesMixin class.
+        self.NEXT_AVAILABLE_ROLE = self.initialize_roles(self.NEXT_AVAILABLE_ROLE)
+        # Add additional roles to the string roles list, ensure there are no duplicates.
+        self.STRING_ROLES.extend(
+            [
+                self.VIEW_ITEM_HEADER_ROLE,
+                self.VIEW_ITEM_SUBTITLE_ROLE,
+                self.VIEW_ITEM_SHORT_TEXT_ROLE,
+            ]
+        )
+        self.STRING_ROLES = list(set(self.STRING_ROLES))
+
+        # Get the hook instance to allow customizing the view item display
+        ui_config_hook_path = self._app.get_setting(self.HOOK_PATH_UI_CONFIG)
+        ui_config_hook = self._app.create_hook_instance(ui_config_hook_path)
+
+        # Create a mapping of model item data roles to the method that will be called to retrieve
+        # the data for the item. The methods defined for each role must accept two parameters:
+        # (1) QStandardItem (2) dict
+        self.role_methods = {
+            self.VIEW_ITEM_THUMBNAIL_ROLE: ui_config_hook.get_item_thumbnail,
+            self.VIEW_ITEM_HEADER_ROLE: ui_config_hook.get_item_title,
+            self.VIEW_ITEM_SUBTITLE_ROLE: ui_config_hook.get_item_subtitle,
+            self.VIEW_ITEM_TEXT_ROLE: ui_config_hook.get_item_details,
+            self.VIEW_ITEM_ICON_ROLE: ui_config_hook.get_item_icons,
+            self.VIEW_ITEM_WIDTH_ROLE: ui_config_hook.get_item_width,
+            self.VIEW_ITEM_SEPARATOR_ROLE: ui_config_hook.get_item_separator,
+        }
+
+    @classmethod
+    def get_file_data(cls, index, field):
+        """
+        Callback to get file item data.
+        """
+
+        file_item = index.data(cls.FILE_ITEM_ROLE)
+        if not file_item:
+            return None
+
+        if hasattr(file_item, field):
+            return getattr(file_item, field)
+
+        return None
+
+    @staticmethod
+    def sanitize_data(data, role):
+        """
+        Sanitize the Qt model data (data returned from :class:`sgkt.platform.qt.QtGui.QStandardItem` data
+        method). This handles QVariant types returned when using PyQt instead of PySide and safely converts
+        value to string, if the `role` is in the STRING_ROLES list.
+
+        :param data: The data to sanitize.
+        :return: The sanitized data.
+        """
+
+        if data and hasattr(QtCore, "QVariant") and isinstance(data, QtCore.QVariant):
+            data = data.toPyObject()
+
+        if role in FileModel.STRING_ROLES:
+            data = value_to_str(data)
+
+        return data
 
     def destroy(self):
         """
@@ -855,7 +1056,7 @@ class FileModel(QtGui.QStandardItemModel):
                     self._published_file_type,
                     file_item.published_file_id,
                     "image",
-                    load_image=True,
+                    load_image=False,  # Avoid loading to QImage then convert to QPixmap
                 )
                 self._pending_thumbnail_requests[request_id] = (
                     group_item.key,
@@ -1218,8 +1419,18 @@ class FileModel(QtGui.QStandardItemModel):
 
         # extract the thumbnail path and QImage from the data/result
         thumb_path = data.get("thumb_path")
+        if not thumb_path:
+            return
+
         thumb_image = data.get("image")
-        if not thumb_path or not thumb_image:
+        if thumb_image:
+            # prepare a pixmap from the thumbnail image
+            thumb = self._build_thumbnail(thumb_image)
+        else:
+            # Create a pixmap directly from the thumbnail path
+            thumb = QtGui.QPixmap(thumb_path)
+
+        if not thumb:
             return
 
         # find all file items for this file:
@@ -1233,11 +1444,6 @@ class FileModel(QtGui.QStandardItemModel):
             if group_item.key == group_key:
                 work_area = group_item.work_area
                 break
-
-        # prepare a pixmap from the thumbnail image:
-        thumb = self._build_thumbnail(thumb_image)
-        if not thumb:
-            return
 
         # update all files and items with this thumbnail:
         for model_item in model_items:
