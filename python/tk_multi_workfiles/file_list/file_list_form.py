@@ -20,8 +20,10 @@ from sgtk.platform.qt import QtCore, QtGui
 from ..file_model import FileModel
 from ..ui.file_list_form import Ui_FileListForm
 from .file_proxy_model import FileProxyModel
-from .file_list_item_delegate import FileListItemDelegate
 from ..util import get_model_data, map_to_source, get_source_model
+from ..framework_qtwidgets import ViewItemDelegate, SGQIcon
+
+settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
 
 settings_fw = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
 
@@ -49,6 +51,9 @@ class FileListForm(QtGui.QWidget):
         object, object, QtCore.QPoint
     )  # file, env, pos
 
+    # Settings keys
+    VIEW_MODE_SETTING = "view_mode"
+    ITEM_SIZE_SCALE_VALUE = "view_item_size_scale"
     # The settings key prefix to storing the value indicating if references are checked on
     # file open
     CHECK_REFS_USER_SETTING = "check_references_on_file_open"
@@ -73,6 +78,10 @@ class FileListForm(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
 
         self._app = sgtk.platform.current_bundle()
+
+        # create a settings manager where we can pull and push prefs later
+        # prefs in this manager are shared
+        self._settings_manager = settings.UserSettings(self._app)
 
         # keep track of the file to select when/if it appears in the attached model
         self._file_to_select = None
@@ -128,8 +137,96 @@ class FileListForm(QtGui.QWidget):
         self._ui.file_list_view.viewport().installEventFilter(self)
 
         # Note, we have to keep a handle to the item delegate to help GC
-        self._item_delegate = FileListItemDelegate(self._ui.file_list_view)
-        self._ui.file_list_view.setItemDelegate(self._item_delegate)
+        file_item_delegate = self._setup_view_item_delegate(self._ui.file_list_view)
+
+        # Set up the view modes
+        self.view_modes = [
+            {
+                "button": self._ui.thumbnail_mode,
+                "delegate": file_item_delegate,
+                "width": None,  # No width hint, the item width is determined by the item's data
+            },
+            {
+                "button": self._ui.list_mode,
+                "delegate": file_item_delegate,
+                "width": -1,  # Tell the delegate item widths should expand to the full viewport width
+            },
+        ]
+        for i, view_mode in enumerate(self.view_modes):
+            view_mode["button"].clicked.connect(
+                lambda checked=False, mode=i: self._set_view_mode(mode)
+            )
+
+        # Set up icons for view mode buttons
+        self._ui.thumbnail_mode.setIcon(SGQIcon.grid_view_mode())
+        self._ui.list_mode.setIcon(SGQIcon.list_view_mode())
+
+        # Set up the item size slider
+        scale_val = self._settings_manager.retrieve(self.ITEM_SIZE_SCALE_VALUE, 25)
+        self._ui.item_size_slider.valueChanged.connect(
+            self._on_view_item_size_slider_change
+        )
+        self._ui.item_size_slider.setValue(scale_val)
+
+        cur_view_mode = self._settings_manager.retrieve(self.VIEW_MODE_SETTING, 0)
+        self._set_view_mode(cur_view_mode)
+
+    def _setup_view_item_delegate(self, view):
+        """Create and set up a :class:`ViewItemDelegate` object for the given view."""
+
+        delegate = ViewItemDelegate(view)
+
+        # Set the item data roles used by the delegate to render an item.
+        delegate.header_role = FileModel.VIEW_ITEM_HEADER_ROLE
+        delegate.subtitle_role = FileModel.VIEW_ITEM_SUBTITLE_ROLE
+        delegate.text_role = FileModel.VIEW_ITEM_TEXT_ROLE
+        delegate.icon_role = FileModel.VIEW_ITEM_ICON_ROLE
+        delegate.expand_role = FileModel.VIEW_ITEM_EXPAND_ROLE
+        delegate.width_role = FileModel.VIEW_ITEM_WIDTH_ROLE
+        delegate.height_role = FileModel.VIEW_ITEM_HEIGHT_ROLE
+        delegate.loading_role = FileModel.VIEW_ITEM_LOADING_ROLE
+        delegate.separator_role = FileModel.VIEW_ITEM_SEPARATOR_ROLE
+
+        # Set up delegate styling (e.g. margins, padding, etc.)
+        delegate.text_rect_valign = ViewItemDelegate.CENTER
+        delegate.text_padding = ViewItemDelegate.Padding(0, 0, 0, 8)
+        delegate.item_padding = ViewItemDelegate.Padding(0, 0, 0, 0)
+        delegate.thumbnail_padding = ViewItemDelegate.Padding(7, 0, 7, 7)
+        delegate.thumbnail_uniform = True
+        delegate.action_item_margin = 2
+
+        # Do not highlight rows on loading
+        delegate.loading_brush = QtCore.Qt.NoBrush
+
+        # Set up actions
+        # Add an expand action for group header items
+        delegate.add_action(
+            {
+                "icon": SGQIcon.tree_arrow(),
+                "show_always": True,
+                "padding": 0,
+                "padding-bottom": 4,
+                "features": QtGui.QStyleOptionButton.Flat,
+                "get_data": self._get_expand_action_data,
+                "callback": lambda view, index, pos: view.toggle_expand(index),
+            },
+            ViewItemDelegate.LEFT,
+        )
+        # Add a menu button for actions
+        delegate.add_action(
+            {
+                "icon": SGQIcon.tree_arrow(),
+                "padding": 2,
+                "callback": self._actions_menu_requested,
+            },
+            ViewItemDelegate.TOP_RIGHT,
+        )
+
+        # Enable mouse tracking for the delegate to receive mouse events
+        view.setMouseTracking(True)
+        view.setItemDelegate(delegate)
+
+        return delegate
 
     def shut_down(self):
         """
@@ -161,10 +258,12 @@ class FileListForm(QtGui.QWidget):
 
             # detach and clean up the item delegate:
             self._ui.file_list_view.setItemDelegate(None)
-            if self._item_delegate:
-                self._item_delegate.setParent(None)
-                self._item_delegate.deleteLater()
-                self._item_delegate = None
+            for view_mode in self.view_modes:
+                delegate = view_mode.get("delegate")
+                if delegate:
+                    delegate.setParent(None)
+                    delegate.deleteLater()
+                    delegate = None
 
         finally:
             self.blockSignals(signals_blocked)
@@ -477,27 +576,38 @@ class FileListForm(QtGui.QWidget):
 
     def _on_context_menu_requested(self, pnt):
         """
-        Slot triggered when a context menu has been requested from one of the file views.  This
-        will collect information about the item under the cursor and emit a file_context_menu_requested
-        signal.
+        Slot triggered when a context menu has been requested from one of the file views. This will
+        call the method to show the context menu at the given position.
 
         :param pnt: The position for the context menu relative to the source widget
         """
-        # get the item under the point:
+
         idx = self._ui.file_list_view.indexAt(pnt)
-        if not idx or not idx.isValid():
+        self._show_context_menu(self.sender(), idx, pnt)
+
+    def _show_context_menu(self, widget, index, pos):
+        """
+        Show a context menu for the index at the given position. This will collect information about
+        the index and emit a file_context_menu_requested signal.
+
+        :param widget: The source widge (e.g. the view the index belongs to)
+        :param index: The index to display the menu for.
+        :param pos: The position for the context menu relative to the source widget
+        """
+
+        if not index or not index.isValid():
             return
 
         # get the file from the index:
-        file_item = get_model_data(idx, FileModel.FILE_ITEM_ROLE)
+        file_item = get_model_data(index, FileModel.FILE_ITEM_ROLE)
         if not file_item:
             return
 
         # ...and the env details:
-        env_details = get_model_data(idx, FileModel.WORK_AREA_ROLE)
+        env_details = get_model_data(index, FileModel.WORK_AREA_ROLE)
 
         # remap the point from the source widget:
-        pnt = self.sender().mapTo(self, pnt)
+        pnt = widget.mapTo(self, pos)
 
         # emit a more specific signal:
         self.file_context_menu_requested.emit(file_item, env_details, pnt)
@@ -644,3 +754,109 @@ class FileListForm(QtGui.QWidget):
 
         # emit file selected signal:
         self.file_selected.emit(selected_file, env_details, FileListForm.USER_SELECTED)
+
+    def _set_view_mode(self, mode_index):
+        """
+        Set the view mode for the main view.
+
+        :param mode_index: The mode to set the view to.
+        :type mode_index: int
+
+        :return: None
+        """
+
+        assert 0 <= mode_index < len(self.view_modes), "Undefined view mode"
+
+        # Clear any selection on changing the view mode.
+        if self._ui.file_list_view.selectionModel():
+            self._ui.file_list_view.selectionModel().clear()
+
+        for i, view_mode in enumerate(self.view_modes):
+            is_cur_mode = i == mode_index
+            view_mode["button"].setChecked(is_cur_mode)
+            if is_cur_mode:
+                delegate = view_mode["delegate"]
+                delegate.item_width = view_mode.get("width")
+                self._ui.file_list_view.setItemDelegate(delegate)
+
+        self._ui.file_list_view._update_all_item_info = True
+        self._ui.file_list_view.viewport().update()
+
+        self._settings_manager.store(self.VIEW_MODE_SETTING, mode_index)
+
+    def _on_view_item_size_slider_change(self, value):
+        """
+        Slot triggered on the view item size slider value changed.
+
+        :param value: The value of the slider.
+        :return: None
+        """
+
+        for view_mode in self.view_modes:
+            if isinstance(view_mode.get("delegate"), ViewItemDelegate):
+                view_mode["delegate"].item_height = value
+
+        self._ui.file_list_view._update_all_item_info = True
+        self._ui.file_list_view.viewport().update()
+
+        self._settings_manager.store(self.ITEM_SIZE_SCALE_VALUE, value)
+
+    def _get_expand_action_data(self, parent, index):
+        """
+        Return the action data for the group header expand action, and for the given index.
+        This data will determine how the action is displayed for the index.
+
+        :param parent: This is the parent of the :class:`ViewItemDelegate`, which is the file view.
+        :type parent: :class:`GroupItemView`
+        :param index: The index the action is for.
+        :type index: :class:`sgtk.platform.qt.QtCore.QModelIndex`
+        :return: The data for the action and index.
+        :rtype: dict, e.g.:
+            {
+                "visible": bool  # Flag indicating whether the action is displayed or not
+                "state": :class:`sgtk.platform.qt.QtGui.QStyle.StateFlag`  # Flag indicating state of the icon
+                                                                        # e.g. enabled/disabled, on/off, etc.
+                "name": str # Override the default action name for this index
+            }
+        """
+
+        # Show the expand action for group header indexes
+        visible = not index.parent().isValid()
+
+        # The expand action is turned on if the group has children (else cannot click to
+        # expand since there is nothing to show in the group).
+        if index.model().rowCount(index) > 0:
+            state = QtGui.QStyle.State_Active | QtGui.QStyle.State_Enabled
+        else:
+            state = ~QtGui.QStyle.State_Active & ~QtGui.QStyle.State_Enabled
+
+        # Toggle the expand icon based on if the group is expanded or not.
+        if parent.is_expanded(index):
+            state |= QtGui.QStyle.State_Off
+        else:
+            state |= QtGui.QStyle.State_On
+
+        return {"visible": visible, "state": state}
+
+    def _actions_menu_requested(self, view, index, pos):
+        """
+        Callback triggered when a view item's action menu is requested to be shown.
+        This will clear and select the given index, and show the item's actions menu.
+
+        :param view: The view the item belongs to.
+        :type view: :class:`GroupItemView`
+        :param index: The index of the item.
+        :type index: :class:`sgtk.platform.qt.QtCore.QModelIndex`
+        :param pos: The position that the menu should be displayed at.
+        :type pos: :class:`sgtk.platform.qt.QtCore.QPoint`
+
+        :return: None
+        """
+
+        selection_model = view.selectionModel()
+        if selection_model:
+            view.selectionModel().select(
+                index, QtGui.QItemSelectionModel.ClearAndSelect
+            )
+
+        self._show_context_menu(view, index, pos)
