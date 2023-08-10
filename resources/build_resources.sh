@@ -46,7 +46,6 @@ build_ui file_save_form
 build_ui file_list_form
 build_ui my_tasks_form
 build_ui entity_tree_form
-build_ui task_widget
 build_ui open_options_form
 build_ui new_task_form
 
