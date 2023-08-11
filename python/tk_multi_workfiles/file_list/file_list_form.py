@@ -21,13 +21,18 @@ from ..file_model import FileModel
 from ..ui.file_list_form import Ui_FileListForm
 from .file_proxy_model import FileProxyModel
 from .file_list_item_delegate import FileListItemDelegate
+from ..framework_qtwidgets import FilterMenu, FilterMenuButton
 from ..util import get_model_data, map_to_source, get_source_model
 
+settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
 
 class FileListForm(QtGui.QWidget):
     """
     Main file list form class
     """
+
+    # Settings keys
+    FILTER_MENU_STATE = "filter_menu_state"
 
     # Selection mode.
     # - USER_SELECTED:   The user manually changed the selected file by clicking or navigating
@@ -65,6 +70,9 @@ class FileListForm(QtGui.QWidget):
         """
         QtGui.QWidget.__init__(self, parent)
 
+        # Create a settings manager to save/restore user prefs
+        self._settings_manager = settings.UserSettings(sgtk.platform.current_bundle())
+
         # keep track of the file to select when/if it appears in the attached model
         self._file_to_select = None
         # and keep track of the currently selected item
@@ -84,7 +92,8 @@ class FileListForm(QtGui.QWidget):
         self._ui = Ui_FileListForm()
         self._ui.setupUi(self)
 
-        self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
+        self._search_label = search_label
+        self._ui.search_ctrl.set_placeholder_text("Search %s" % self._search_label)
         self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
 
         self._ui.all_versions_cb.setChecked(file_filters.show_all_versions)
@@ -116,12 +125,51 @@ class FileListForm(QtGui.QWidget):
         self._item_delegate = FileListItemDelegate(self._ui.file_list_view)
         self._ui.file_list_view.setItemDelegate(self._item_delegate)
 
+        # Set up the filter menu.
+        self._filter_menu = FilterMenu(self, refresh_on_show=False)
+        # The list of fields that the menu will show.
+        self._filter_menu.set_accept_fields([
+            "{role}.is_local".format(role=FileModel.FILE_ITEM_ROLE),
+            "{role}.is_published".format(role=FileModel.FILE_ITEM_ROLE),
+            "{role}.name".format(role=FileModel.FILE_ITEM_ROLE),
+            "{role}.step".format(role=FileModel.FILE_ITEM_ROLE),
+            "{role}.asset".format(role=FileModel.FILE_ITEM_ROLE),
+            "{role}.asset_type".format(role=FileModel.FILE_ITEM_ROLE),
+            "{role}.modified_at".format(role=FileModel.FILE_ITEM_ROLE),
+            "{role}.path".format(role=FileModel.FILE_ITEM_ROLE),
+            "{role}.publish_path".format(role=FileModel.FILE_ITEM_ROLE),
+            "{role}.published_at".format(role=FileModel.FILE_ITEM_ROLE),
+            "{role}.published_by".format(role=FileModel.FILE_ITEM_ROLE),
+            "{role}.published_description".format(role=FileModel.FILE_ITEM_ROLE),
+            "{role}.task".format(role=FileModel.FILE_ITEM_ROLE),
+            "{role}.version".format(role=FileModel.FILE_ITEM_ROLE),
+        ])
+        # The model role used to extract the file item data to build the filters off of.
+        self._filter_menu.set_filter_roles([FileModel.FILE_ITEM_ROLE])
+        # Initialize and restore the previous filters for the user.
+        self._filter_menu.initialize_menu()
+        filter_menu_state = self._settings_manager.retrieve(
+            self._get_settings_key(self.FILTER_MENU_STATE), None
+        )
+        if not filter_menu_state:
+            # Default menu state will show the Pipeline Step if no app user settings found.
+            filter_menu_state = {
+                "{role}.step".format(role=FileModel.FILE_ITEM_ROLE): {},
+            }
+        self._filter_menu.restore_state(filter_menu_state)
+        # Set the menu to the filter button
+        self._ui.filter_menu_btn.setMenu(self._filter_menu)
+
     def shut_down(self):
         """
         Clean up as much as we can to help the gc once the widget is finished with.
         """
         signals_blocked = self.blockSignals(True)
         try:
+            # First save any user preferences
+            current_menu_state = self._filter_menu.save_state()
+            self._settings_manager.store(self._get_settings_key(self.FILTER_MENU_STATE), current_menu_state)
+
             # clear any references:
             self._file_to_select = None
             self._current_item_ref = None
@@ -282,6 +330,13 @@ class FileListForm(QtGui.QWidget):
             # connect the views to the filtered model:
             self._ui.file_list_view.setModel(filter_model)
             self._ui.file_details_view.setModel(filter_model)
+
+            # Set up the filter menu:
+            # Connect FileModel signals to filter menu to update filter state.
+            model.searching.connect(self._filter_menu.menu_about_to_be_refreshed)
+            model.search_complete.connect(self._filter_menu.refresh)
+            # Set the FileProxyModel to build the filters based on this model data.
+            self._filter_menu.set_filter_model(filter_model)
         else:
             # connect the views to the model:
             self._ui.file_list_view.setModel(model)
@@ -578,3 +633,13 @@ class FileListForm(QtGui.QWidget):
 
         # emit file selected signal:
         self.file_selected.emit(selected_file, env_details, FileListForm.USER_SELECTED)
+
+    def _get_settings_key(self, key):
+        """
+        Return the settings key for this FileListForm.
+
+        There may be multiple FileListForm objects, so this ensure settings are not overwritten
+        by other FileListForm objects.
+        """
+
+        return f"{self._search_label}.{key}"
