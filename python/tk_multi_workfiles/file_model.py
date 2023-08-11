@@ -78,7 +78,7 @@ class FileModel(QtGui.QStandardItemModel):
     SEARCH_MSG_ROLE = _BASE_ROLE + 5  # search message data
 
     # Signals
-    # 
+    #
     # Emit signal when any search has started
     searching = QtCore.Signal()
     # Emit signal when there are no searches currently being performed
@@ -1209,10 +1209,9 @@ class FileModel(QtGui.QStandardItemModel):
             # clean the search cache entry for this item assuming the search completed successfully!
             if status == FileModel.SEARCH_COMPLETED:
                 self._search_cache.set_dirty(search.entity, user, is_dirty=False)
-        
+
         if not self._in_progress_searches:
             self.search_complete.emit()
-
 
     def _on_data_retriever_work_completed(self, uid, request_type, data):
         """

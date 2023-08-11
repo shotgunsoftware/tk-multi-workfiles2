@@ -79,7 +79,9 @@ class FileListForm(QtGui.QWidget):
         self._app = sgtk.platform.current_bundle()
 
         # Create a settings manager to save/restore user prefs
-        self._settings_manager = settings_fw.UserSettings(sgtk.platform.current_bundle())
+        self._settings_manager = settings_fw.UserSettings(
+            sgtk.platform.current_bundle()
+        )
 
         # keep track of the file to select when/if it appears in the attached model
         self._file_to_select = None
@@ -144,22 +146,24 @@ class FileListForm(QtGui.QWidget):
         # Set up the filter menu.
         self._filter_menu = FilterMenu(self, refresh_on_show=False)
         # The list of fields that the menu will show.
-        self._filter_menu.set_accept_fields([
-            "{role}.is_local".format(role=FileModel.FILE_ITEM_ROLE),
-            "{role}.is_published".format(role=FileModel.FILE_ITEM_ROLE),
-            "{role}.name".format(role=FileModel.FILE_ITEM_ROLE),
-            "{role}.step".format(role=FileModel.FILE_ITEM_ROLE),
-            "{role}.asset".format(role=FileModel.FILE_ITEM_ROLE),
-            "{role}.asset_type".format(role=FileModel.FILE_ITEM_ROLE),
-            "{role}.modified_at".format(role=FileModel.FILE_ITEM_ROLE),
-            "{role}.path".format(role=FileModel.FILE_ITEM_ROLE),
-            "{role}.publish_path".format(role=FileModel.FILE_ITEM_ROLE),
-            "{role}.published_at".format(role=FileModel.FILE_ITEM_ROLE),
-            "{role}.published_by".format(role=FileModel.FILE_ITEM_ROLE),
-            "{role}.published_description".format(role=FileModel.FILE_ITEM_ROLE),
-            "{role}.task".format(role=FileModel.FILE_ITEM_ROLE),
-            "{role}.version".format(role=FileModel.FILE_ITEM_ROLE),
-        ])
+        self._filter_menu.set_accept_fields(
+            [
+                "{role}.is_local".format(role=FileModel.FILE_ITEM_ROLE),
+                "{role}.is_published".format(role=FileModel.FILE_ITEM_ROLE),
+                "{role}.name".format(role=FileModel.FILE_ITEM_ROLE),
+                "{role}.step".format(role=FileModel.FILE_ITEM_ROLE),
+                "{role}.asset".format(role=FileModel.FILE_ITEM_ROLE),
+                "{role}.asset_type".format(role=FileModel.FILE_ITEM_ROLE),
+                "{role}.modified_at".format(role=FileModel.FILE_ITEM_ROLE),
+                "{role}.path".format(role=FileModel.FILE_ITEM_ROLE),
+                "{role}.publish_path".format(role=FileModel.FILE_ITEM_ROLE),
+                "{role}.published_at".format(role=FileModel.FILE_ITEM_ROLE),
+                "{role}.published_by".format(role=FileModel.FILE_ITEM_ROLE),
+                "{role}.published_description".format(role=FileModel.FILE_ITEM_ROLE),
+                "{role}.task".format(role=FileModel.FILE_ITEM_ROLE),
+                "{role}.version".format(role=FileModel.FILE_ITEM_ROLE),
+            ]
+        )
         # The model role used to extract the file item data to build the filters off of.
         self._filter_menu.set_filter_roles([FileModel.FILE_ITEM_ROLE])
         # Initialize and restore the previous filters for the user.
@@ -184,7 +188,9 @@ class FileListForm(QtGui.QWidget):
         try:
             # First save any user preferences
             current_menu_state = self._filter_menu.save_state()
-            self._settings_manager.store(self._get_settings_key(self.FILTER_MENU_STATE), current_menu_state)
+            self._settings_manager.store(
+                self._get_settings_key(self.FILTER_MENU_STATE), current_menu_state
+            )
 
             # clear any references:
             self._file_to_select = None

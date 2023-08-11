@@ -255,10 +255,10 @@ class FileItem(object):
     def _property_from_key(self, property_name):
         """
         Convenience method to extract a property from the file item key.
-        
+
         :param property_name: The name of the property to get the value for.
         :type property_name: str
-        
+
         :return: The property value.
         :rtype: any
         """
