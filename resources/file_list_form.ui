@@ -30,7 +30,7 @@
     <number>2</number>
    </property>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,1,0">
+    <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,1,0,0">
      <property name="leftMargin">
       <number>1</number>
      </property>
@@ -133,6 +133,13 @@ background-color: rgb(255, 128, 0);
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="FilterMenuButton" name="filter_menu_btn">
+       <property name="text">
+        <string>Filter</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
@@ -142,7 +149,16 @@ background-color: rgb(255, 128, 0);
      </property>
      <widget class="QWidget" name="list_page">
       <layout class="QHBoxLayout" name="horizontalLayout_5">
-       <property name="margin">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
         <number>0</number>
        </property>
        <item>
@@ -156,7 +172,16 @@ background-color: rgb(255, 128, 0);
      </widget>
      <widget class="QWidget" name="details_page">
       <layout class="QHBoxLayout" name="horizontalLayout_4">
-       <property name="margin">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
         <number>0</number>
        </property>
        <item>
@@ -174,6 +199,11 @@ background-color: rgb(255, 128, 0);
    <extends>QWidget</extends>
    <header>..framework_qtwidgets</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>FilterMenuButton</class>
+   <extends>QToolButton</extends>
+   <header>..framework_qtwidgets</header>
   </customwidget>
   <customwidget>
    <class>FileDetailsView</class>
