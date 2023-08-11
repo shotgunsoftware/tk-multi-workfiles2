@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'file_list_form.ui'
+# Form implementation generated from reading ui file 'C:\Users\qa\sg_envs\dv\tk\tk-multi-workfiles2\resources\file_list_form.ui'
 #
+# Created: Fri Aug 11 12:29:05 2023
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -70,6 +71,9 @@ class Ui_FileListForm(object):
         self.all_versions_cb = QtGui.QCheckBox(FileListForm)
         self.all_versions_cb.setObjectName("all_versions_cb")
         self.horizontalLayout_3.addWidget(self.all_versions_cb)
+        self.check_refs_cb = QtGui.QCheckBox(FileListForm)
+        self.check_refs_cb.setObjectName("check_refs_cb")
+        self.horizontalLayout_3.addWidget(self.check_refs_cb)
         spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_3.addItem(spacerItem)
         self.search_ctrl = SearchWidget(FileListForm)
@@ -82,7 +86,7 @@ class Ui_FileListForm(object):
         self.filter_menu_btn = FilterMenuButton(FileListForm)
         self.filter_menu_btn.setObjectName("filter_menu_btn")
         self.horizontalLayout_3.addWidget(self.filter_menu_btn)
-        self.horizontalLayout_3.setStretch(2, 1)
+        self.horizontalLayout_3.setStretch(3, 1)
         self.verticalLayout.addLayout(self.horizontalLayout_3)
         self.view_pages = QtGui.QStackedWidget(FileListForm)
         self.view_pages.setObjectName("view_pages")
@@ -116,6 +120,7 @@ class Ui_FileListForm(object):
         FileListForm.setWindowTitle(QtGui.QApplication.translate("FileListForm", "Form", None, QtGui.QApplication.UnicodeUTF8))
         self.user_filter_btn.setProperty("user_style", QtGui.QApplication.translate("FileListForm", "current", None, QtGui.QApplication.UnicodeUTF8))
         self.all_versions_cb.setText(QtGui.QApplication.translate("FileListForm", "All Versions", None, QtGui.QApplication.UnicodeUTF8))
+        self.check_refs_cb.setText(QtGui.QApplication.translate("FileListForm", "Check References on Open", None, QtGui.QApplication.UnicodeUTF8))
         self.search_ctrl.setAccessibleName(QtGui.QApplication.translate("FileListForm", "Search All Files", None, QtGui.QApplication.UnicodeUTF8))
         self.filter_menu_btn.setText(QtGui.QApplication.translate("FileListForm", "Filter", None, QtGui.QApplication.UnicodeUTF8))
 

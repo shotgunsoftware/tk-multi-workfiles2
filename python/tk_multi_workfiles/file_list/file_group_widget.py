@@ -24,8 +24,7 @@ from ..actions.new_file_action import NewFileAction
 
 
 class FileGroupWidget(GroupWidgetBase):
-    """
-    """
+    """ """
 
     def __init__(self, parent):
         """
@@ -65,8 +64,7 @@ class FileGroupWidget(GroupWidgetBase):
         self._show_msg = False
 
     def set_item(self, model_idx):
-        """
-        """
+        """ """
         group_name = get_model_str(model_idx)
         work_area = get_model_data(model_idx, FileModel.WORK_AREA_ROLE)
         search_status = get_model_data(model_idx, FileModel.SEARCH_STATUS_ROLE)
@@ -128,21 +126,18 @@ class FileGroupWidget(GroupWidgetBase):
         self._ui.msg_label.setVisible(show_msg)
 
     def set_expanded(self, expand=True):
-        """
-        """
+        """ """
         if (self._ui.expand_check_box.checkState() == QtCore.Qt.Checked) != expand:
             self._ui.expand_check_box.setCheckState(
                 QtCore.Qt.Checked if expand else QtCore.Qt.Unchecked
             )
 
     def mouseReleaseEvent(self, event):
-        """
-        """
+        """ """
         self._ui.expand_check_box.toggle()
 
     def _on_expand_checkbox_state_changed(self, state):
-        """
-        """
+        """ """
         show_msg = self._show_msg and state == QtCore.Qt.Checked
         self._ui.msg_label.setVisible(show_msg)
 

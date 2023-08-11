@@ -20,8 +20,7 @@ from ..util import set_widget_property
 
 
 class TaskWidget(QtGui.QWidget):
-    """
-    """
+    """ """
 
     def __init__(self, parent):
         """
@@ -34,8 +33,7 @@ class TaskWidget(QtGui.QWidget):
         self._ui.setupUi(self)
 
     def set_selected(self, selected=True):
-        """
-        """
+        """ """
         set_widget_property(
             self._ui.background,
             "selected",
@@ -45,14 +43,12 @@ class TaskWidget(QtGui.QWidget):
         )
 
     def set_thumbnail(self, thumb):
-        """
-        """
+        """ """
         geom = self._ui.thumbnail.geometry()
         self._set_label_image(self._ui.thumbnail, thumb, geom.width(), geom.height())
 
     def set_entity(self, name, typ, icon):
-        """
-        """
+        """ """
         self._ui.entity_label.setText(name)
         if not icon:
             self._ui.entity_icon.hide()
@@ -61,8 +57,7 @@ class TaskWidget(QtGui.QWidget):
             self._set_label_image(self._ui.entity_icon, icon, 20, 20)
 
     def set_task(self, name, icon):
-        """
-        """
+        """ """
         self._ui.task_label.setText("<big>%s</big>" % name)
         if not icon:
             self._ui.task_icon.hide()
@@ -71,14 +66,12 @@ class TaskWidget(QtGui.QWidget):
             self._set_label_image(self._ui.task_icon, icon, 20, 20)
 
     def set_other(self, text):
-        """
-        """
+        """ """
         self._ui.other_label.setVisible(bool(text))
         self._ui.other_label.setText(text)
 
     def _set_label_image(self, label, image, w, h):
-        """
-        """
+        """ """
         if not image:
             # make sure it's cleared
             label.setPixmap(QtGui.QPixmap())

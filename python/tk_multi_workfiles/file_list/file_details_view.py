@@ -16,8 +16,7 @@ from sgtk.platform.qt import QtCore, QtGui
 
 
 class FileDetailsView(QtGui.QTableView):
-    """
-    """
+    """ """
 
     def __init__(self, parent):
         """

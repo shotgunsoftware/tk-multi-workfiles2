@@ -23,12 +23,10 @@ from tank_vendor import six
 
 
 class ShowInFileSystemAction(FileAction):
-    """
-    """
+    """ """
 
     def _show_in_fs(self, path):
-        """
-        """
+        """ """
         # find the deepest path that actually exists:
         while path and not os.path.exists(path):
             path = os.path.dirname(path)
@@ -61,8 +59,7 @@ class ShowInFileSystemAction(FileAction):
 
 
 class ShowPublishInFileSystemAction(ShowInFileSystemAction):
-    """
-    """
+    """ """
 
     def __init__(self, file, file_versions, environment):
         ShowInFileSystemAction.__init__(
@@ -70,15 +67,13 @@ class ShowPublishInFileSystemAction(ShowInFileSystemAction):
         )
 
     def execute(self, parent_ui):
-        """
-        """
+        """ """
         if self.file and self.file.is_published:
             self._show_in_fs(self.file.publish_path)
 
 
 class ShowWorkFileInFileSystemAction(ShowInFileSystemAction):
-    """
-    """
+    """ """
 
     def __init__(self, file, file_versions, environment):
         ShowInFileSystemAction.__init__(
@@ -86,16 +81,14 @@ class ShowWorkFileInFileSystemAction(ShowInFileSystemAction):
         )
 
     def execute(self, parent_ui):
-        """
-        """
+        """ """
         if self.file and self.file.is_local:
             self._show_in_fs(self.file.path)
 
 
 class ShowAreaInFileSystemAction(ShowInFileSystemAction):
     def _show_area_in_fs(self, file, environment, template):
-        """
-        """
+        """ """
         # build fields starting with the context:
         fields = environment.context.as_template_fields(template)
         if file:
@@ -129,8 +122,7 @@ class ShowAreaInFileSystemAction(ShowInFileSystemAction):
 
 
 class ShowWorkAreaInFileSystemAction(ShowAreaInFileSystemAction):
-    """
-    """
+    """ """
 
     def __init__(self, file, file_versions, environment):
         ShowAreaInFileSystemAction.__init__(
@@ -138,8 +130,7 @@ class ShowWorkAreaInFileSystemAction(ShowAreaInFileSystemAction):
         )
 
     def execute(self, parent_ui):
-        """
-        """
+        """ """
         if not self.file:
             return
 
@@ -156,8 +147,7 @@ class ShowWorkAreaInFileSystemAction(ShowAreaInFileSystemAction):
 
 
 class ShowPublishAreaInFileSystemAction(ShowAreaInFileSystemAction):
-    """
-    """
+    """ """
 
     def __init__(self, file, file_versions, environment):
         ShowAreaInFileSystemAction.__init__(
@@ -165,8 +155,7 @@ class ShowPublishAreaInFileSystemAction(ShowAreaInFileSystemAction):
         )
 
     def execute(self, parent_ui):
-        """
-        """
+        """ """
         if not self.file:
             return
 

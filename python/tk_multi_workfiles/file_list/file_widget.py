@@ -15,8 +15,7 @@ from ..ui.file_widget import Ui_FileWidget
 
 
 class FileWidget(QtGui.QWidget):
-    """
-    """
+    """ """
 
     def __init__(self, parent):
         """
@@ -116,8 +115,7 @@ class FileWidget(QtGui.QWidget):
         self._ui.subtitle.setVisible(show_subtitle)
 
     def set_is_publish(self, is_publish):
-        """
-        """
+        """ """
         self._publish_icon.setVisible(is_publish)
 
     def set_is_editable(self, editable):
@@ -130,8 +128,7 @@ class FileWidget(QtGui.QWidget):
         self._lock_icon.setVisible(not editable)
 
     def set_thumbnail(self, thumb):
-        """
-        """
+        """ """
         if not thumb or not isinstance(thumb, QtGui.QPixmap):
             thumb = QtGui.QPixmap(":/tk-multi-workfiles2/thumb_empty.png")
         self._ui.thumbnail.setPixmap(thumb)
@@ -148,8 +145,7 @@ class FileWidget(QtGui.QWidget):
             self._badge_icon.setVisible(False)
 
     def _update_ui(self):
-        """
-        """
+        """ """
         self._ui.background.setProperty("selected", self._is_selected)
         self._ui.background.style().unpolish(self._ui.background)
         self._ui.background.ensurePolished()

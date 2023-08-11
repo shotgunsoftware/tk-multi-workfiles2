@@ -56,3 +56,6 @@ filtering = sgtk.platform.import_framework("tk-framework-qtwidgets", "filtering"
 FilterMenu = filtering.FilterMenu
 FilterMenuButton = filtering.FilterMenuButton
 FilterItemTreeProxyModel = filtering.FilterItemTreeProxyModel
+
+message_box = sgtk.platform.import_framework("tk-framework-qtwidgets", "message_box")
+MessageBox = message_box.MessageBox

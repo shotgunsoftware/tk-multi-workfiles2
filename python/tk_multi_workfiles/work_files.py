@@ -28,8 +28,7 @@ def dbg_info(func):
     """
 
     def wrapper(*args, **kwargs):
-        """
-        """
+        """ """
         # grab the pre-run memory info:
         num_objects_before = len(gc.get_objects())
         bytes_before = 0

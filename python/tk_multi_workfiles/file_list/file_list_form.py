@@ -24,7 +24,8 @@ from .file_list_item_delegate import FileListItemDelegate
 from ..framework_qtwidgets import FilterMenu, FilterMenuButton
 from ..util import get_model_data, map_to_source, get_source_model
 
-settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
+settings_fw = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
+
 
 class FileListForm(QtGui.QWidget):
     """
@@ -52,6 +53,10 @@ class FileListForm(QtGui.QWidget):
         object, object, QtCore.QPoint
     )  # file, env, pos
 
+    # The settings key prefix to storing the value indicating if references are checked on
+    # file open
+    CHECK_REFS_USER_SETTING = "check_references_on_file_open"
+
     def __init__(
         self,
         parent,
@@ -68,10 +73,13 @@ class FileListForm(QtGui.QWidget):
         :show_publishes:        True if publishes should be displayed in this control, otherwise False
         :param parent:          The parent QWidget for this control
         """
+
         QtGui.QWidget.__init__(self, parent)
 
+        self._app = sgtk.platform.current_bundle()
+
         # Create a settings manager to save/restore user prefs
-        self._settings_manager = settings.UserSettings(sgtk.platform.current_bundle())
+        self._settings_manager = settings_fw.UserSettings(sgtk.platform.current_bundle())
 
         # keep track of the file to select when/if it appears in the attached model
         self._file_to_select = None
@@ -94,10 +102,18 @@ class FileListForm(QtGui.QWidget):
 
         self._search_label = search_label
         self._ui.search_ctrl.set_placeholder_text("Search %s" % self._search_label)
-        self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
+        # self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
+        # self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
+        self._ui.search_ctrl.search_changed.connect(self._on_search_changed)
 
         self._ui.all_versions_cb.setChecked(file_filters.show_all_versions)
         self._ui.all_versions_cb.toggled.connect(self._on_show_all_versions_toggled)
+
+        check_refs = self.retrieve_check_reference_setting(self._app)
+        self._ui.check_refs_cb.setChecked(check_refs)
+        self._ui.check_refs_cb.toggled.connect(
+            lambda checked: self.store_check_reference_setting(self._app, checked)
+        )
 
         self._ui.user_filter_btn.available_users = self._file_filters.available_users
         self._ui.user_filter_btn.selected_users = self._file_filters.users
@@ -202,6 +218,42 @@ class FileListForm(QtGui.QWidget):
         finally:
             self.blockSignals(signals_blocked)
 
+    @staticmethod
+    def retrieve_check_reference_setting(app):
+        """
+        Retrieve the setting value for checking references.
+
+        :param app: The Application used to store the setting value.
+        :type app: Application
+        :return: The setting value for checking references.
+        :rtype: bool
+        """
+
+        # Check if there is a user setting stored for the 'check references' options
+        manager = settings_fw.UserSettings(app)
+        checked = manager.retrieve(FileListForm.CHECK_REFS_USER_SETTING, None)
+
+        if checked is None:
+            # No user setting defined, get the app setting value for the default value
+            checked = app.get_setting(FileListForm.CHECK_REFS_USER_SETTING, False)
+
+        return checked
+
+    @staticmethod
+    def store_check_reference_setting(app, value):
+        """
+        Store the setting value for checking references.
+        :param app: The Application used to store the setting value.
+        :type app: Application
+        :param env: The environment used to store the setting value.
+        :type env: WorkArea
+        :param value: The check references setting value.
+        :type value: bool
+        """
+
+        manager = settings_fw.UserSettings(app)
+        manager.store(FileListForm.CHECK_REFS_USER_SETTING, value)
+
     @property
     def work_files_visible(self):
         """
@@ -246,8 +298,7 @@ class FileListForm(QtGui.QWidget):
         return (selected_file, env_details)
 
     def enable_show_all_versions(self, enable):
-        """
-        """
+        """ """
         if enable:
             self._ui.all_versions_cb.show()
             self._on_show_all_versions_toggled(self._ui.all_versions_cb.isChecked())
@@ -287,6 +338,22 @@ class FileListForm(QtGui.QWidget):
             )
 
         self._ui.user_filter_btn.setEnabled(is_enabled)
+
+    def show_check_references_on_open_widget(self, show):
+        """
+        Show the option to check references on file open.
+
+        :param enable: True to turn on the functionality.
+        :type enable: bool
+        """
+
+        self._ui.check_refs_cb.setVisible(show)
+
+        if not show:
+            # Set the user preference to not check for reference on file open, if the UI option
+            # is not available. The scene operation checks for this user setting to determine
+            # if it should check references on open.
+            self.store_check_reference_setting(self._app, False)
 
     def select_file(self, file_item, context):
         """

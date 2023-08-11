@@ -248,7 +248,7 @@ class FileItem(object):
         :param value:   A dictionary of {version:FileItem} pairs that represent all other
                         versions of this file
         """
-        self._versions = value
+        self._versions = {k: value[k] for k in sorted(value)}
 
     versions = property(_get_versions, _set_versions)
 

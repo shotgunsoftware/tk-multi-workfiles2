@@ -12,6 +12,8 @@
 
 # The path to output all built .py files to:
 UI_PYTHON_PATH=../python/tk_multi_workfiles/ui
+# The path to where the PySide binaries are installed
+PYTHON_BASE="/Applications/Shotgun.app/Contents/Resources/Python"
 
 # Remove any problematic profiles from pngs.
 for f in *.png; do mogrify $f; done
@@ -28,11 +30,11 @@ function build_qt {
 }
 
 function build_ui {
-    build_qt "pyside-uic --from-imports" "$1.ui" "$1"
+    build_qt "${PYTHON_BASE}/bin/python ${PYTHON_BASE}/bin/pyside-uic --from-imports" "$1.ui" "$1"
 }
 
 function build_res {
-    build_qt "pyside-rcc -py3" "$1.qrc" "$1_rc"
+    build_qt "${PYTHON_BASE}/bin/pyside-rcc -py3" "$1.qrc" "$1_rc"
 }
 
 

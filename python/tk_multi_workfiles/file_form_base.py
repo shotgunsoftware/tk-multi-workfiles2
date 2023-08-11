@@ -87,8 +87,7 @@ class FileFormBase(QtGui.QWidget):
             self.addAction(osx_f5_refresh_action)
 
     def _do_init(self):
-        """
-        """
+        """ """
 
         # set up the UI
         self._ui = self.init_ui_file()
@@ -337,8 +336,7 @@ class FileFormBase(QtGui.QWidget):
         return env_details
 
     def _on_navigate(self, breadcrumb_trail):
-        """
-        """
+        """ """
         if not breadcrumb_trail:
             return
 
@@ -471,8 +469,7 @@ class FileFormBase(QtGui.QWidget):
                 model.update_filters(step_filter)
 
     def _perform_action(self, action):
-        """
-        """
+        """ """
         if not action:
             return
 

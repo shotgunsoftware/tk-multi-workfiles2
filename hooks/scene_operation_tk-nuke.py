@@ -98,11 +98,11 @@ class SceneOperation(HookClass):
         # If we didn't hit the Hiero or Nuke Studio case above, we can
         # continue with the typical Nuke scene operation logic.
         if file_path:
-            file_path = file_path.replace("/", os.path.sep)
+            file_path = file_path.replace(os.path.sep, "/")
 
         if operation == "current_path":
             # return the current script path
-            return nuke.root().name().replace("/", os.path.sep)
+            return nuke.root().name().replace(os.path.sep, "/")
 
         elif operation == "open":
             # open the specified script
