@@ -104,8 +104,6 @@ class FileListForm(QtGui.QWidget):
 
         self._search_label = search_label
         self._ui.search_ctrl.set_placeholder_text("Search %s" % self._search_label)
-        # self._ui.search_ctrl.search_edited.connect(self._on_search_changed)
-        # self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
         self._ui.search_ctrl.search_changed.connect(self._on_search_changed)
 
         self._ui.all_versions_cb.setChecked(file_filters.show_all_versions)
