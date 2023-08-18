@@ -144,23 +144,23 @@ class FileListForm(QtGui.QWidget):
         # Set up the filter menu.
         self._filter_menu = FilterMenu(self, refresh_on_show=False)
         # The list of fields that the menu will show.
-        self._filter_menu.set_accept_fields(
-            [
-                "{role}.is_local".format(role=FileModel.FILE_ITEM_ROLE),
-                "{role}.is_published".format(role=FileModel.FILE_ITEM_ROLE),
-                "{role}.name".format(role=FileModel.FILE_ITEM_ROLE),
-                "{role}.step".format(role=FileModel.FILE_ITEM_ROLE),
-                "{role}.asset".format(role=FileModel.FILE_ITEM_ROLE),
-                "{role}.asset_type".format(role=FileModel.FILE_ITEM_ROLE),
-                "{role}.modified_at".format(role=FileModel.FILE_ITEM_ROLE),
-                "{role}.path".format(role=FileModel.FILE_ITEM_ROLE),
-                "{role}.publish_path".format(role=FileModel.FILE_ITEM_ROLE),
-                "{role}.published_at".format(role=FileModel.FILE_ITEM_ROLE),
-                "{role}.published_by".format(role=FileModel.FILE_ITEM_ROLE),
-                "{role}.published_description".format(role=FileModel.FILE_ITEM_ROLE),
-                "{role}.task".format(role=FileModel.FILE_ITEM_ROLE),
-                "{role}.version".format(role=FileModel.FILE_ITEM_ROLE),
-            ]
+        fields = [
+            "is_local",
+            "is_published"
+            "name",
+            "step",
+            "asset",
+            "asset_type",
+            "modified_at",
+            "path",
+            "publish_path",
+            "published_at",
+            "published_by",
+            "published_description",
+            "task",
+            "version",
+        ]
+        self._filter_menu.set_accept_fields(["{role}.{field}".format(role=FileModel.FILE_ITEM_ROLE, field=f) for f in fields]
         )
         # The model role used to extract the file item data to build the filters off of.
         self._filter_menu.set_filter_roles([FileModel.FILE_ITEM_ROLE])
