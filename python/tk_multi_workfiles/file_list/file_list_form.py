@@ -146,7 +146,7 @@ class FileListForm(QtGui.QWidget):
         # The list of fields that the menu will show.
         fields = [
             "is_local",
-            "is_published"
+            "is_published",
             "name",
             "step",
             "asset",
@@ -160,7 +160,11 @@ class FileListForm(QtGui.QWidget):
             "task",
             "version",
         ]
-        self._filter_menu.set_accept_fields(["{role}.{field}".format(role=FileModel.FILE_ITEM_ROLE, field=f) for f in fields]
+        self._filter_menu.set_accept_fields(
+            [
+                "{role}.{field}".format(role=FileModel.FILE_ITEM_ROLE, field=f)
+                for f in fields
+            ]
         )
         # The model role used to extract the file item data to build the filters off of.
         self._filter_menu.set_filter_roles([FileModel.FILE_ITEM_ROLE])
