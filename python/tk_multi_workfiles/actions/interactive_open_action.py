@@ -25,16 +25,14 @@ class InteractiveOpenAction(OpenFileAction):
     def __init__(
         self, file, file_versions, environment, workfiles_visible, publishes_visible
     ):
-        """
-        """
+        """ """
         OpenFileAction.__init__(self, "Open", file, file_versions, environment)
 
         self._workfiles_visible = workfiles_visible
         self._publishes_visible = publishes_visible
 
     def execute(self, parent_ui):
-        """
-        """
+        """ """
         if not self.file:
             return False
 
@@ -176,7 +174,13 @@ class InteractiveOpenAction(OpenFileAction):
             return False
 
         return self._do_copy_and_open(
-            None, file.path, file.version, False, env.context, parent_ui
+            None,
+            file.path,
+            file.version,
+            False,
+            env.context,
+            parent_ui,
+            check_refs=True,
         )
 
     def _open_publish_with_check(
@@ -317,7 +321,13 @@ class InteractiveOpenAction(OpenFileAction):
                     work_path = local_path
 
         return self._do_copy_and_open(
-            src_path, work_path, None, not file.editable, env.context, parent_ui
+            src_path,
+            work_path,
+            None,
+            not file.editable,
+            env.context,
+            parent_ui,
+            check_refs=True,
         )
 
     def _open_previous_publish(self, file, env, parent_ui):
@@ -346,6 +356,7 @@ class InteractiveOpenAction(OpenFileAction):
             read_only=True,
             new_ctx=env.context,
             parent_ui=parent_ui,
+            check_refs=False,
         )
 
     def _open_publish_read_only(self, file, env, parent_ui):
@@ -361,6 +372,7 @@ class InteractiveOpenAction(OpenFileAction):
             read_only=True,
             new_ctx=env.context,
             parent_ui=parent_ui,
+            check_refs=False,
         )
 
     def _open_publish_as_workfile(self, file, env, new_version, parent_ui):
@@ -439,5 +451,11 @@ class InteractiveOpenAction(OpenFileAction):
                 return False
 
         return self._do_copy_and_open(
-            src_path, work_path, None, not file.editable, env.context, parent_ui
+            src_path,
+            work_path,
+            None,
+            not file.editable,
+            env.context,
+            parent_ui,
+            check_refs=True,
         )

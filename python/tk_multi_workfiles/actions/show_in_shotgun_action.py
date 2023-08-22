@@ -19,12 +19,10 @@ from .file_action import FileAction
 
 
 class ShowInShotgunAction(FileAction):
-    """
-    """
+    """ """
 
     def _open_url_for_published_file(self, file):
-        """
-        """
+        """ """
         # construct the url:
         published_file_entity_type = sgtk.util.get_published_file_entity_type(
             self._app.sgtk
@@ -40,8 +38,7 @@ class ShowInShotgunAction(FileAction):
 
 
 class ShowPublishInShotgunAction(ShowInShotgunAction):
-    """
-    """
+    """ """
 
     def __init__(self, file, file_versions, environment):
         ShowInShotgunAction.__init__(
@@ -49,8 +46,7 @@ class ShowPublishInShotgunAction(ShowInShotgunAction):
         )
 
     def execute(self, parent_ui):
-        """
-        """
+        """ """
         if not self.file or not self.file.is_published:
             return
 
@@ -58,8 +54,7 @@ class ShowPublishInShotgunAction(ShowInShotgunAction):
 
 
 class ShowLatestPublishInShotgunAction(ShowInShotgunAction):
-    """
-    """
+    """ """
 
     def __init__(self, file, file_versions, environment):
         ShowInShotgunAction.__init__(
@@ -67,8 +62,7 @@ class ShowLatestPublishInShotgunAction(ShowInShotgunAction):
         )
 
     def execute(self, parent_ui):
-        """
-        """
+        """ """
         publish_versions = [
             v for v, f in six.iteritems(self.file_versions) if f.is_published
         ]

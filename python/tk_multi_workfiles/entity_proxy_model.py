@@ -18,12 +18,10 @@ from .util import get_model_str
 
 
 class EntityProxyModel(HierarchicalFilteringProxyModel):
-    """
-    """
+    """ """
 
     def __init__(self, parent, compare_sg_fields=None):
-        """
-        """
+        """ """
         HierarchicalFilteringProxyModel.__init__(self, parent)
         self._compare_fields = compare_sg_fields
 
@@ -100,8 +98,7 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
         return False
 
     def _sg_data_matches_r(self, sg_data, compare_fields, reg_exp):
-        """
-        """
+        """ """
         if isinstance(compare_fields, list):
             # e.g. ["one", "two", {"three":"four", "five":["six", "seven"]}]
             for cf in compare_fields:

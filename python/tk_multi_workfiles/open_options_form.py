@@ -320,9 +320,7 @@ class OpenOptionsForm(QtGui.QWidget):
         self.close()
 
     def keyPressEvent(self, event):
-        """
-
-        """
+        """ """
         if event.key() == QtCore.Qt.Key_Return or event.key() == QtCore.Qt.Key_Enter:
             if self._ui.publish_frame.hasFocus():
                 self._exit(OpenOptionsForm.OPEN_PUBLISH)

@@ -25,12 +25,10 @@ from ..user_cache import g_user_cache
 
 
 class OpenWorkfileAction(OpenFileAction):
-    """
-    """
+    """ """
 
     def __init__(self, file, file_versions, environment):
-        """
-        """
+        """ """
         all_versions = [v for v, f in six.iteritems(file_versions)]
         max_version = max(all_versions) if all_versions else 0
 
@@ -72,16 +70,15 @@ class OpenWorkfileAction(OpenFileAction):
             read_only=self.file.editable,
             new_ctx=self.environment.context,
             parent_ui=parent_ui,
+            check_refs=True,
         )
 
 
 class ContinueFromWorkFileAction(ContinueFromFileAction):
-    """
-    """
+    """ """
 
     def __init__(self, file, file_versions, environment):
-        """
-        """
+        """ """
         label = ""
         if (
             environment
@@ -99,8 +96,7 @@ class ContinueFromWorkFileAction(ContinueFromFileAction):
         ContinueFromFileAction.__init__(self, label, file, file_versions, environment)
 
     def execute(self, parent_ui):
-        """
-        """
+        """ """
         if not self.file.is_local or not self.environment.work_template:
             return False
 
@@ -117,15 +113,13 @@ class CopyAndOpenFileInCurrentWorkAreaAction(CopyAndOpenInCurrentWorkAreaAction)
     """
 
     def __init__(self, file, file_versions, environment):
-        """
-        """
+        """ """
         CopyAndOpenInCurrentWorkAreaAction.__init__(
             self, "Open in Current Work Area...", file, file_versions, environment
         )
 
     def execute(self, parent_ui):
-        """
-        """
+        """ """
         if (
             not self.file
             or not self.file.is_local

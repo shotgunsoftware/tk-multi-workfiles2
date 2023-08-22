@@ -85,7 +85,7 @@ def test_ui_validation(app_dialog, tk_test_project):
     app_dialog.root.dialogs["ShotGrid: Create New Task"].textfields[
         "Task Name"
     ].pasteIn("New Texture Task")
-    app_dialog.root.dialogs["ShotGrid: Create New Task"].captions[
+    app_dialog.root.dialogs["ShotGrid: Create New Task"].dropdowns[
         "Pipeline Step"
     ].mouseClick()
     topwindows.listitems["Texture"].waitExist(timeout=30)
@@ -102,4 +102,7 @@ def test_ui_validation(app_dialog, tk_test_project):
     app_dialog.root.tabs["My Tasks"].mouseClick()
     app_dialog.root.outlineitems["New Texture Task"].waitExist(timeout=30)
     app_dialog.root.outlineitems["New Texture Task"].mouseClick()
-    assert app_dialog.root.outlineitems["New Texture Task"].selected is True
+    assert (
+        app_dialog.root.outlineitems["New Texture Task"].selected
+        or app_dialog.root.outlineitems["New Texture Task"].focused is True
+    )

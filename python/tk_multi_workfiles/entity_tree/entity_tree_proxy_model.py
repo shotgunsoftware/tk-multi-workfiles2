@@ -25,8 +25,7 @@ class EntityTreeProxyModel(EntityProxyModel):
     """
 
     def __init__(self, parent, compare_sg_fields):
-        """
-        """
+        """ """
         EntityProxyModel.__init__(self, parent, compare_sg_fields)
         self._only_show_my_tasks = False
 
@@ -55,8 +54,7 @@ class EntityTreeProxyModel(EntityProxyModel):
     only_show_my_tasks = property(_get_only_show_my_tasks, _set_only_show_my_tasks)
 
     def _is_row_accepted(self, src_row, src_parent_idx, parent_accepted):
-        """
-        """
+        """ """
         if self._only_show_my_tasks:
             # filter out any tasks that aren't assigned to the current user:
             current_user = g_user_cache.current_user
