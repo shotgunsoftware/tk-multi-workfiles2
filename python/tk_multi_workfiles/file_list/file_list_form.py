@@ -65,14 +65,16 @@ class FileListForm(QtGui.QWidget):
         file_filters,
         show_work_files=True,
         show_publishes=False,
+        show_item_context_menu=True,
     ):
         """
         Construction
 
-        :param search_label:    The hint label to be displayed on the search control
-        :show_work_files:       True if work files should be displayed in this control, otherwise False
-        :show_publishes:        True if publishes should be displayed in this control, otherwise False
-        :param parent:          The parent QWidget for this control
+        :param search_label:     The hint label to be displayed on the search control
+        :show_work_files:        True if work files should be displayed in this control, otherwise False
+        :show_publishes:         True if publishes should be displayed in this control, otherwise False
+        :show_item_context_menu: True if items have a context menu to show, otherwise False
+        :param parent:           The parent QWidget for this control
         """
 
         QtGui.QWidget.__init__(self, parent)
@@ -97,6 +99,7 @@ class FileListForm(QtGui.QWidget):
 
         self._show_work_files = show_work_files
         self._show_publishes = show_publishes
+        self._show_item_context_menu = show_item_context_menu
 
         # set up the UI
         self._ui = Ui_FileListForm()
@@ -125,10 +128,11 @@ class FileListForm(QtGui.QWidget):
         self._ui.file_list_view.setSelectionMode(
             QtGui.QAbstractItemView.SingleSelection
         )
-        self._ui.file_list_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self._ui.file_list_view.customContextMenuRequested.connect(
-            self._on_context_menu_requested
-        )
+        if self._show_item_context_menu:
+            self._ui.file_list_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+            self._ui.file_list_view.customContextMenuRequested.connect(
+                self._on_context_menu_requested
+            )
 
         # we want to handle double-click on items but we only want double-clicks to work when using
         # the left mouse button.  To achieve this we connect to the doubleClicked slot but also install
@@ -213,14 +217,15 @@ class FileListForm(QtGui.QWidget):
             ViewItemDelegate.LEFT,
         )
         # Add a menu button for actions
-        delegate.add_action(
-            {
-                "icon": SGQIcon.tree_arrow(),
-                "padding": 2,
-                "callback": self._actions_menu_requested,
-            },
-            ViewItemDelegate.TOP_RIGHT,
-        )
+        if self._show_item_context_menu:
+            delegate.add_action(
+                {
+                    "icon": SGQIcon.tree_arrow(),
+                    "padding": 2,
+                    "callback": self._actions_menu_requested,
+                },
+                ViewItemDelegate.TOP_RIGHT,
+            )
 
         # Enable mouse tracking for the delegate to receive mouse events
         view.setMouseTracking(True)
@@ -804,6 +809,7 @@ class FileListForm(QtGui.QWidget):
     def _get_expand_action_data(self, parent, index):
         """
         Return the action data for the group header expand action, and for the given index.
+
         This data will determine how the action is displayed for the index.
 
         :param parent: This is the parent of the :class:`ViewItemDelegate`, which is the file view.
