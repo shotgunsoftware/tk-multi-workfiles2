@@ -18,7 +18,7 @@ HookClass = sgtk.get_hook_baseclass()
 
 
 class UIConfig(HookClass):
-    """Hook to customize customize a view that use the ViewItemDelegate."""
+    """Hook to customize customize the main file view."""
 
     # List describing the published file info to display for an item.
     PUBLISHED_FILE_DETAILS = [
@@ -33,6 +33,21 @@ class UIConfig(HookClass):
         {"attr": "modified_by", "default": "<i>Unknown</i>"},
         {"attr": "modified_at", "default": "<i>Unknown</i>"},
     ]
+
+    def get_item_background_color(self, item):
+        """Returns the brush to use to draw the background for this widget
+
+        :param item: The model item
+        :type item: :class:`sgkt.platofrm.qt.QtGui.QStandardItem`
+
+        :return: The QBrush.
+        :rtype: :class:`sgtk.platform.qt.QtGui.QBrush`
+        """
+
+        parent = item.index().parent()
+        if parent.isValid():
+            return QtGui.QApplication.palette().midlight()
+        return None
 
     def get_task_item_thumbnail(self, item):
         """

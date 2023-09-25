@@ -198,9 +198,6 @@ class FileModel(QtGui.QStandardItemModel, ViewItemRolesMixin):
                 if isinstance(data, six.string_types):
                     data = QtGui.QPixmap(data)
 
-            elif role == QtCore.Qt.BackgroundRole:
-                data = QtGui.QApplication.palette().midlight()
-
             elif role == FileModel.FILE_ITEM_ROLE:
                 data = self._file_item
 
@@ -514,6 +511,7 @@ class FileModel(QtGui.QStandardItemModel, ViewItemRolesMixin):
             self.VIEW_ITEM_ICON_ROLE: ui_config_hook.get_item_icons,
             self.VIEW_ITEM_WIDTH_ROLE: ui_config_hook.get_item_width,
             self.VIEW_ITEM_SEPARATOR_ROLE: ui_config_hook.get_item_separator,
+            QtCore.Qt.BackgroundRole: ui_config_hook.get_item_background_color,
         }
 
     @classmethod
