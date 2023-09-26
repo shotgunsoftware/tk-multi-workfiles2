@@ -118,6 +118,7 @@ configuration:
         default_value: "{self}/ui_config.py"
         description: Specify a hook that, if desired, configures the display of the workfiles and
                      publish file items in the main view.
+
     user_login_hook:
         type: hook
         default_value: "{self}/user_login.py"
