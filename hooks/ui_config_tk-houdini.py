@@ -32,5 +32,7 @@ class HoudiniUIConfig(HookClass):
         """
 
         parent = item.index().parent()
-        if parent.isValid():
-            return QtGui.QApplication.palette().base()
+        if not parent.isValid():
+            return
+
+        return QtGui.QApplication.palette().base()
