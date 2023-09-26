@@ -18,7 +18,11 @@ class HoudiniUIConfig(HookClass):
     """Hook to customize customize the main file view for Houdini."""
 
     def get_item_background_color(self, item):
-        """Returns the brush to use to draw the background for this widget
+        """
+        Returns the brush to use to draw the background for this widget
+
+        Top-level items will use the default brush (None is returned), and non-top level items
+        will use the QPalette base brush to paint the background.
 
         :param item: The model item
         :type item: :class:`sgkt.platofrm.qt.QtGui.QStandardItem`
@@ -30,4 +34,3 @@ class HoudiniUIConfig(HookClass):
         parent = item.index().parent()
         if parent.isValid():
             return QtGui.QApplication.palette().base()
-        return None
