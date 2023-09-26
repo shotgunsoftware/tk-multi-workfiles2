@@ -167,10 +167,11 @@ class FileListForm(QtGui.QWidget):
 
         # Set up the item size slider
         scale_val = self._settings_manager.retrieve(self.ITEM_SIZE_SCALE_VALUE, 25)
+        self._ui.item_size_slider.setValue(scale_val)
+        self._on_view_item_size_slider_change(scale_val)
         self._ui.item_size_slider.valueChanged.connect(
             self._on_view_item_size_slider_change
         )
-        self._ui.item_size_slider.setValue(scale_val)
 
         cur_view_mode = self._settings_manager.retrieve(self.VIEW_MODE_SETTING, 0)
         self._set_view_mode(cur_view_mode)
