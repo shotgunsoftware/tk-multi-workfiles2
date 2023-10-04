@@ -31,18 +31,9 @@ NavigationWidget = navigation.NavigationWidget
 BreadcrumbWidget = navigation.BreadcrumbWidget
 Breadcrumb = navigation.Breadcrumb
 
-# Spinner/busy widget:
-spinner_widget = sgtk.platform.import_framework(
-    "tk-framework-qtwidgets", "spinner_widget"
-)
-SpinnerWidget = spinner_widget.SpinnerWidget
-
 # Grouped list view, widget base class and delegates:
 views = sgtk.platform.import_framework("tk-framework-qtwidgets", "views")
-GroupedListView = views.GroupedListView
-GroupWidgetBase = views.GroupWidgetBase
-GroupedListViewItemDelegate = views.GroupedListViewItemDelegate
-WidgetDelegate = views.WidgetDelegate
+GroupedItemView = views.GroupedItemView
 
 # hierarchical filtering proxy model:
 models = sgtk.platform.import_framework("tk-framework-qtwidgets", "models")
@@ -52,10 +43,18 @@ overlay_widget = sgtk.platform.import_framework(
     "tk-framework-qtwidgets", "overlay_widget"
 )
 
+<<<<<<< HEAD
 filtering = sgtk.platform.import_framework("tk-framework-qtwidgets", "filtering")
 FilterMenu = filtering.FilterMenu
 FilterMenuButton = filtering.FilterMenuButton
 FilterItemTreeProxyModel = filtering.FilterItemTreeProxyModel
+=======
+delegates = sgtk.platform.import_framework("tk-framework-qtwidgets", "delegates")
+ViewItemDelegate = delegates.ViewItemDelegate
+
+sg_qicons = sgtk.platform.import_framework("tk-framework-qtwidgets", "sg_qicons")
+SGQIcon = sg_qicons.SGQIcon
+>>>>>>> 6a490421b3a23340a5ba34ad4ad3c83f8554c3a6
 
 message_box = sgtk.platform.import_framework("tk-framework-qtwidgets", "message_box")
 MessageBox = message_box.MessageBox

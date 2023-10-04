@@ -145,6 +145,8 @@ class FileSaveForm(FileFormBase):
 
         # initialize the browser:
         self._ui.browser.enable_show_all_versions(False)
+        # Save form does not have context menu actions for items
+        self._ui.browser.has_item_context_menu = False
         # We don't want to see other user's sandboxes, nor do we want to save in them.
         self._ui.browser.show_user_filtering_widget(False)
         self._ui.browser.set_models(

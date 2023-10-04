@@ -10,8 +10,6 @@ agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 not expressly granted therein are reserved by Shotgun Software Inc.
 */
 
-
-
 /* Use open sans font across the app if core supports it */
 QWidget {
     font-family: Open Sans;
@@ -31,62 +29,18 @@ QWidget {
     font-size: 9px;
 }
 
-/* Styling for FileGroupWidget in the files view */
-
-FileGroupWidget #msg_label {
-    font: 11px;
-    color: grey;
+QToolButton#thumbnail_mode,
+QToolButton#list_mode
+{
+  border: none;
+  outline: none;
+  padding: 4px;
 }
-
-FileGroupWidget #user_label {
-    font-size: 10px;
-    color: rgb(0, 178, 236);
-}
-FileGroupWidget #title_label {
-    font-size: 14px;
-}
-FileGroupWidget #expand_check_box::indicator {
-    width: 12;
-    height: 12;
-}
-FileGroupWidget #expand_check_box {
-    font: 14px;
-}
-FileGroupWidget #expand_check_box::indicator:unchecked {
-    image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);
-}
-FileGroupWidget #expand_check_box::indicator:unchecked:hover {
-    image: url(:/tk-multi-workfiles2/tree_arrow_collapsed.png);
-}
-FileGroupWidget #expand_check_box::indicator:checked {
-    image: url(:/tk-multi-workfiles2/tree_arrow_expanded.png);
-}
-/*
-This was commented in the inline styling, adding it here commented as well to keep
-trace of it.
-FileGroupWidget #grid_radio_btn::indicator::checked:hover {
-   image: url(:/tk-multi-workfiles2/grid_view_checked_hover.png);
-}
-*/
-
-/* Styling for the FileWidget delegate in the files view */
-
-FileWidget #background {
-    border-style: solid;
-    border-width: 2px;
-    border-radius: 2px;
-}
-
-FileWidget #background[selected=false] {
-    background-color: rgba(0,0,0,0);
-    border-color: rgba(0,0,0,0);
-}
-
-FileWidget #background[selected=true] {
-/*
-    background-color: rgb(135, 166, 185, 50);
-    border-color: rgb(135, 166, 185);
-*/
-    border-color: rgb(0, 178, 236);
-    background-color: rgba(0, 178, 236, 30);
+QToolButton#thumbnail_mode:checked,
+QToolButton#list_mode:checked,
+QToolButton#thumbnail_mode:hover,
+QToolButton#list_mode:hover
+{
+  background-color: palette(light);
+  border-radius: 4px;
 }
