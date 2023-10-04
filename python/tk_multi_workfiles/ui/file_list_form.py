@@ -169,4 +169,4 @@ class Ui_FileListForm(object):
 from ..file_list.file_details_view import FileDetailsView
 from ..file_list.user_filter_button import UserFilterButton
 from ..framework_qtwidgets import FilterMenuButton, GroupedItemView, SearchWidget
-from .
+from . import resources_rc
