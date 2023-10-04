@@ -21,7 +21,12 @@ from ..file_model import FileModel
 from ..ui.file_list_form import Ui_FileListForm
 from .file_proxy_model import FileProxyModel
 from ..util import get_model_data, map_to_source, get_source_model
-from ..framework_qtwidgets import FilterMenu, FilterMenuButton, ViewItemDelegate, SGQIcon
+from ..framework_qtwidgets import (
+    FilterMenu,
+    FilterMenuButton,
+    ViewItemDelegate,
+    SGQIcon,
+)
 
 settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
 
