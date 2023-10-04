@@ -96,6 +96,13 @@ class FileModel(QtGui.QStandardItemModel, ViewItemRolesMixin):
     # hook paths
     HOOK_PATH_UI_CONFIG = "ui_config_hook"
 
+    # Signals
+    #
+    # Emit signal when any search has started
+    searching = QtCore.Signal()
+    # Emit signal when there are no searches currently being performed
+    search_complete = QtCore.Signal()
+
     class _BaseModelItem(QtGui.QStandardItem):
         """
         Base model item for storage of the file data in the model.
@@ -809,6 +816,9 @@ class FileModel(QtGui.QStandardItemModel, ViewItemRolesMixin):
             self._in_progress_searches[search_id] = search
             self._app.log_debug("File Model: Started search %d..." % search_id)
 
+            # Emit signal to indicate the model is performing a search
+            self.searching.emit()
+
     def _stop_in_progress_searches(self):
         """
         Stop all in-progress searches
@@ -1398,6 +1408,9 @@ class FileModel(QtGui.QStandardItemModel, ViewItemRolesMixin):
             # clean the search cache entry for this item assuming the search completed successfully!
             if status == FileModel.SEARCH_COMPLETED:
                 self._search_cache.set_dirty(search.entity, user, is_dirty=False)
+
+        if not self._in_progress_searches:
+            self.search_complete.emit()
 
     def _on_data_retriever_work_completed(self, uid, request_type, data):
         """

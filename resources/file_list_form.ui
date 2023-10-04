@@ -253,6 +253,13 @@ background-color: rgb(255, 128, 0);
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="FilterMenuButton" name="filter_menu_btn">
+       <property name="text">
+        <string>Filter</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
@@ -407,6 +414,11 @@ background-color: rgb(255, 128, 0);
    <extends>QWidget</extends>
    <header>..framework_qtwidgets</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>FilterMenuButton</class>
+   <extends>QToolButton</extends>
+   <header>..framework_qtwidgets</header>
   </customwidget>
   <customwidget>
    <class>FileDetailsView</class>

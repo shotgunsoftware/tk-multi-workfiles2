@@ -43,6 +43,10 @@ overlay_widget = sgtk.platform.import_framework(
     "tk-framework-qtwidgets", "overlay_widget"
 )
 
+filtering = sgtk.platform.import_framework("tk-framework-qtwidgets", "filtering")
+FilterMenu = filtering.FilterMenu
+FilterMenuButton = filtering.FilterMenuButton
+FilterItemTreeProxyModel = filtering.FilterItemTreeProxyModel
 delegates = sgtk.platform.import_framework("tk-framework-qtwidgets", "delegates")
 ViewItemDelegate = delegates.ViewItemDelegate
 

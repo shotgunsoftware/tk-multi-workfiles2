@@ -101,8 +101,11 @@ class Ui_FileListForm(object):
 "}")
         self.search_ctrl.setObjectName("search_ctrl")
         self.horizontalLayout_3.addWidget(self.search_ctrl)
-        self.horizontalLayout_3.setStretch(2, 1)
-        self.verticalLayout_2.addLayout(self.horizontalLayout_3)
+        self.filter_menu_btn = FilterMenuButton(FileListForm)
+        self.filter_menu_btn.setObjectName("filter_menu_btn")
+        self.horizontalLayout_3.addWidget(self.filter_menu_btn)
+        self.horizontalLayout_3.setStretch(3, 1)
+        self.verticalLayout.addLayout(self.horizontalLayout_3)
         self.view_pages = QtGui.QStackedWidget(FileListForm)
         self.view_pages.setObjectName("view_pages")
         self.list_page = QtGui.QWidget()
@@ -161,8 +164,9 @@ class Ui_FileListForm(object):
         self.list_mode.setToolTip(QtGui.QApplication.translate("FileListForm", "List Mode", None, QtGui.QApplication.UnicodeUTF8))
         self.list_mode.setAccessibleName(QtGui.QApplication.translate("FileListForm", "list_mode", None, QtGui.QApplication.UnicodeUTF8))
         self.search_ctrl.setAccessibleName(QtGui.QApplication.translate("FileListForm", "Search All Files", None, QtGui.QApplication.UnicodeUTF8))
+        self.filter_menu_btn.setText(QtGui.QApplication.translate("FileListForm", "Filter", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..file_list.file_details_view import FileDetailsView
 from ..file_list.user_filter_button import UserFilterButton
-from ..framework_qtwidgets import SearchWidget, GroupedItemView
+from ..framework_qtwidgets import FilterMenuButton, GroupedItemView, SearchWidget
 from . import resources_rc
