@@ -191,6 +191,7 @@ class FileFormBase(QtGui.QWidget):
             step_filter_on = ent.get("step_filter_on")
             sub_query = ent.get("sub_hierarchy", [])
             deferred_query = None
+            omit_project_filter = ent.get("omit_project_filter", False)
             if sub_query:
                 step_filter_on = entity_type  # Ensure this is not wrongly set
                 # The target entity type for the sub query.
@@ -234,8 +235,9 @@ class FileFormBase(QtGui.QWidget):
                 # the current project in the tree!
                 resolved_filters.append(["id", "is", app.context.project["id"]])
             else:
-                # filter entities on the current project:
-                resolved_filters.append(["project", "is", app.context.project])
+                if not omit_project_filter:
+                    # filter entities on the current project:
+                    resolved_filters.append(["project", "is", app.context.project])
 
             resolved_filters.extend(resolve_filters(filters))
 
