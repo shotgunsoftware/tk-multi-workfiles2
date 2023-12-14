@@ -831,7 +831,7 @@ class FileListForm(QtGui.QWidget):
         by other FileListForm objects.
         """
 
-        return f"{self._search_label}.{key}"
+        return "{}.{}".format(self._search_label, key)
 
     def _set_view_mode(self, mode_index):
         """
