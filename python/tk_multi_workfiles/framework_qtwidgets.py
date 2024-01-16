@@ -53,7 +53,9 @@ ViewItemDelegate = delegates.ViewItemDelegate
 sg_qicons = sgtk.platform.import_framework("tk-framework-qtwidgets", "sg_qicons")
 SGQIcon = sg_qicons.SGQIcon
 
-shotgun_menus = sgtk.platform.import_framework("tk-framework-qtwidgets", "shotgun_menus")
+shotgun_menus = sgtk.platform.import_framework(
+    "tk-framework-qtwidgets", "shotgun_menus"
+)
 ShotgunMenu = shotgun_menus.ShotgunMenu
 
 message_box = sgtk.platform.import_framework("tk-framework-qtwidgets", "message_box")
