@@ -20,6 +20,8 @@ from .actions.file_action_factory import FileActionFactory
 from .actions.action import SeparatorAction, ActionGroup
 from .actions.new_file_action import NewFileAction
 
+from .framework_qtwidgets import ShotgunMenu
+
 from .file_form_base import FileFormBase
 from .ui.file_open_form import Ui_FileOpenForm
 
@@ -152,7 +154,7 @@ class FileOpenForm(FileFormBase):
             # build the menu and add the actions to it:
             menu = self._ui.open_options_btn.menu()
             if not menu:
-                menu = QtGui.QMenu(self._ui.open_options_btn)
+                menu = ShotgunMenu(self._ui.open_options_btn)
                 self._ui.open_options_btn.setMenu(menu)
             menu.clear()
             self._populate_open_menu(menu, file_actions[1:])
@@ -179,7 +181,7 @@ class FileOpenForm(FileFormBase):
             return
 
         # build the context menu:
-        context_menu = QtGui.QMenu(self.sender())
+        context_menu = ShotgunMenu(self.sender())
         self._populate_open_menu(context_menu, file_actions[1:])
 
         # map the point to a global position:
