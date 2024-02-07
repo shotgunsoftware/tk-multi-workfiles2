@@ -64,7 +64,7 @@ class StepListWidget(QtCore.QObject):
     """
 
     _step_list = None
-    step_filter_changed = QtCore.Signal(object)  # List of SG step dictionaries
+    step_filter_changed = QtCore.Signal(object)  # List of PTR step dictionaries
 
     def __init__(self, list_widget):
         """

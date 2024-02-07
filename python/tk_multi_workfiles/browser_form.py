@@ -81,7 +81,7 @@ class BrowserForm(QtGui.QWidget):
         object, object, QtCore.QPoint
     )  # file, env, pnt
     entity_type_focus_changed = QtCore.Signal(object)  # entity type
-    step_filter_changed = QtCore.Signal(list)  # SG filter
+    step_filter_changed = QtCore.Signal(list)  # PTR filter
 
     task_double_clicked = QtCore.Signal(object)  # My tasks task double clicked
 
