@@ -20,12 +20,12 @@
 # below should correspond to a local storage in Shotgun. This allows the roots
 # defined here to be called anything, making it possible to reuse the
 # configuration without changing references to the storage root, only the
-# associated SG storage id. If the `shotgun_storage_key` is not defined, then
-# the root name must match the name of the storage in SG (legacy fallback).
+# associated PTR storage id. If the `shotgun_storage_key` is not defined, then
+# the root name must match the name of the storage in PTR (legacy fallback).
 #
 # NOTE: Local storages ids can only be retrieved via the API currently:
 #
-#    # get all local storages defined in SG
+#    # get all local storages defined in PTR
 #    shotgun.find("LocalStorage", [], ["code"])
 #
 # One of the roots defined in this file should have a `default` key with a value

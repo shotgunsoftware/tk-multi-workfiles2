@@ -199,7 +199,7 @@ class FileFormBase(QtGui.QWidget):
                 sub_filters = resolve_filters(sub_query.get("filters") or [])
                 # A list of fields to retrieve in the sub query.
                 sub_hierarchy = sub_query.get("hierarchy") or []
-                # The SG field allowing linking the sub query Entity to its
+                # The PTR field allowing linking the sub query Entity to its
                 # parent Entity.
                 sub_link_field = sub_query.get("link_field", "entity")
                 deferred_query = {

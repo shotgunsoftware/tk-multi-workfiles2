@@ -318,7 +318,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         # Update or create the dummy item in the cache
         self._deferred_cache.add_item(
             parent_uid=parent_uid,
-            # We need to use something which looks like a SG Entity dictionary.
+            # We need to use something which looks like a PTR Entity dictionary.
             # By having a "text" key and using it for the field name, the tree
             # view will display its contents.
             sg_data={"text": text, "type": ""},
@@ -412,7 +412,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         if data_item:
             self._deferred_cache.add_item(
                 parent_uid=parent_uid,
-                # We need to use something which looks like a SG Entity dictionary.
+                # We need to use something which looks like a PTR Entity dictionary.
                 # By having a "text" key and using it for the field name, the tree
                 # view will display its contents.
                 sg_data={"text": message, "type": ""},
@@ -574,7 +574,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         while item_list:
             item = item_list.pop()
             if item.get_sg_data() and item.index() != index:
-                # Leaves in the static SG model, we only load data for children
+                # Leaves in the static PTR model, we only load data for children
                 # if the leaf was the actual item being selected, so files for
                 # it will be collected. Otherwise we stop here to not trigger
                 # all deferred queries.

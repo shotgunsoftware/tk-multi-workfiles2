@@ -158,7 +158,7 @@ class UserCache(Threaded):
             except Exception as e:
                 # this isn't critical so just log as debug
                 self._app.log_debug(
-                    "Failed to retrieve SG user for login '%s': %s" % (login_name, e)
+                    "Failed to retrieve PTR user for login '%s': %s" % (login_name, e)
                 )
 
             # cache the sg user so we don't have to look for it again
