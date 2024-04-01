@@ -15,8 +15,6 @@ UI_PYTHON_PATH=../python/tk_multi_workfiles/ui
 # The path to where the PySide binaries are installed
 PYTHON_BASE="/Applications/Shotgun.app/Contents/Resources/Python"
 
-# Remove any problematic profiles from pngs.
-for f in *.png; do mogrify $f; done
 
 # Helper functions to build UI files
 function build_qt {
@@ -46,9 +44,6 @@ build_ui file_save_form
 build_ui file_list_form
 build_ui my_tasks_form
 build_ui entity_tree_form
-build_ui task_widget
-build_ui file_widget
-build_ui file_group_widget
 build_ui open_options_form
 build_ui new_task_form
 

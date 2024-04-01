@@ -31,7 +31,7 @@ def window_name():
     Return the window app name.
     This fixture is used by the app_dialog fixture in conftest.py
     """
-    return "ShotGrid: Change Context"
+    return "Flow Production Tracking: Change Context"
 
 
 def test_ui_validation(app_dialog, tk_test_project):
@@ -81,16 +81,20 @@ def test_ui_validation(app_dialog, tk_test_project):
     app_dialog.root.outlineitems["AssetAutomation"].waitExist(timeout=30)
     app_dialog.root.outlineitems["AssetAutomation"].mouseDoubleClick()
     app_dialog.root.buttons["+ New Task"].mouseClick()
-    app_dialog.root.dialogs["ShotGrid: Create New Task"].waitExist(timeout=30)
-    app_dialog.root.dialogs["ShotGrid: Create New Task"].textfields[
+    app_dialog.root.dialogs["Flow Production Tracking: Create New Task"].waitExist(
+        timeout=30
+    )
+    app_dialog.root.dialogs["Flow Production Tracking: Create New Task"].textfields[
         "Task Name"
     ].pasteIn("New Texture Task")
-    app_dialog.root.dialogs["ShotGrid: Create New Task"].dropdowns[
+    app_dialog.root.dialogs["Flow Production Tracking: Create New Task"].dropdowns[
         "Pipeline Step"
     ].mouseClick()
     topwindows.listitems["Texture"].waitExist(timeout=30)
     topwindows.listitems["Texture"].mouseClick()
-    app_dialog.root.dialogs["ShotGrid: Create New Task"].buttons["Create"].mouseClick()
+    app_dialog.root.dialogs["Flow Production Tracking: Create New Task"].buttons[
+        "Create"
+    ].mouseClick()
     app_dialog.root.outlineitems["Texture"].waitExist(timeout=30)
     # Enable My Tasks Only and make sure Model task is not showing up anymore
     app_dialog.root.checkboxes["My Tasks Only"].mouseClick()

@@ -81,7 +81,7 @@ class BrowserForm(QtGui.QWidget):
         object, object, QtCore.QPoint
     )  # file, env, pnt
     entity_type_focus_changed = QtCore.Signal(object)  # entity type
-    step_filter_changed = QtCore.Signal(list)  # SG filter
+    step_filter_changed = QtCore.Signal(list)  # PTR filter
 
     task_double_clicked = QtCore.Signal(object)  # My tasks task double clicked
 
@@ -99,6 +99,8 @@ class BrowserForm(QtGui.QWidget):
         self._my_tasks_form = None
         self._entity_tree_forms = []
         self._file_browser_forms = []
+        self._has_item_context_menu = True
+
         # set up the UI
         self._ui = Ui_BrowserForm()
         self._ui.setupUi(self)
@@ -176,6 +178,15 @@ class BrowserForm(QtGui.QWidget):
         if not file_form:
             return False
         return file_form.publishes_visible
+
+    @property
+    def has_item_context_menu(self):
+        """Get or set the property indicating if items in the browser have a context menu to show."""
+        return self._has_item_context_menu
+
+    @has_item_context_menu.setter
+    def has_item_context_menu(self, value):
+        self._has_item_context_menu = value
 
     def enable_show_all_versions(self, enable):
         """
@@ -319,7 +330,12 @@ class BrowserForm(QtGui.QWidget):
         :param show_publishes: True is this tab will show publishes.
         """
         file_form = FileListForm(
-            self, search_label, self._file_filters, show_work_files, show_publishes
+            self,
+            search_label,
+            self._file_filters,
+            show_work_files,
+            show_publishes,
+            show_item_context_menu=self.has_item_context_menu,
         )
         self._ui.file_browser_tabs.addTab(file_form, tab_name)
         file_form.enable_show_all_versions(self._enable_show_all_versions)
