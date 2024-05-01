@@ -696,7 +696,9 @@ class BrowserForm(QtGui.QWidget):
         project_id = self.__get_project_id(app)
         if project_id:
             sg = app.shotgun._sg
-            logger.debug(f"Task Status Filter: getting statuses from project {project_id}")
+            logger.debug(
+                f"Task Status Filter: getting statuses from project {project_id}"
+            )
             task_status_list = sg.schema_field_read(
                 "Task", "sg_status_list", {"type": "Project", "id": project_id}
             )["sg_status_list"]["properties"]["valid_values"]["value"]
