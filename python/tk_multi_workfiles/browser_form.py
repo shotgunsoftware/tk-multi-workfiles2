@@ -677,31 +677,22 @@ class BrowserForm(QtGui.QWidget):
         self.step_filter_changed.emit(get_filter_from_filter_list(step_list))
 
     # Task status filter methods
-    def __get_project_id(self, bundle):
-        """
-        Helper method to return the project id for the current context.
-
-        :param bundle: The current app bundle.
-        """
-        if bundle.tank.pipeline_configuration.is_site_configuration():
-            return None
-        else:
-            return bundle.tank.pipeline_configuration.get_project_id()
-
     def populate_task_status_list(self):
         """
         Populate the task status list from the project schema.
         """
         app = sgtk.platform.current_bundle()
-        project_id = self.__get_project_id(app)
+        project_id = app.context.project.get("id")
         if project_id:
-            sg = app.shotgun._sg
             logger.debug(
                 f"Task Status Filter: getting statuses from project {project_id}"
             )
-            task_status_list = sg.schema_field_read(
-                "Task", "sg_status_list", {"type": "Project", "id": project_id}
-            )["sg_status_list"]["properties"]["valid_values"]["value"]
+            try:
+                task_status_list = app.shotgun._sg.schema_field_read(
+                    "Task", "sg_status_list", {"type": "Project", "id": project_id}
+                )["sg_status_list"]["properties"]["valid_values"]["value"]
+            except KeyError:
+                task_status_list = []
 
         task_status_list.insert(0, "ALL")
         self._my_tasks_form._ui.task_status_combo.addItems(task_status_list)
@@ -721,4 +712,3 @@ class BrowserForm(QtGui.QWidget):
 
         self.my_tasks_model.data_refreshed.emit(True)
         self.my_tasks_model.async_refresh()
-        return
