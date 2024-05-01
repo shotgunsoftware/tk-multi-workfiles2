@@ -242,10 +242,14 @@ class BrowserForm(QtGui.QWidget):
 
             # Task status filter
             self.my_tasks_model = my_tasks_model
-            self.populate_task_status_list()
-            self._my_tasks_form._ui.task_status_combo.currentTextChanged.connect(
-                self._on_task_status_combo_changed
-            )
+            try:
+                self.populate_task_status_list()
+                self._my_tasks_form._ui.task_status_combo.currentTextChanged.connect(
+                    self._on_task_status_combo_changed
+                )
+            except KeyError as e:
+                logger.warning("Task Status Filter: Error loading: {}".format(e))
+                self._my_tasks_form._ui.task_status_combo.hide()
 
         for caption, step_filter_on, model in entity_models:
             step_entity_filter = None
@@ -687,12 +691,9 @@ class BrowserForm(QtGui.QWidget):
             logger.debug(
                 f"Task Status Filter: getting statuses from project {project_id}"
             )
-            try:
-                task_status_list = app.shotgun._sg.schema_field_read(
-                    "Task", "sg_status_list", {"type": "Project", "id": project_id}
-                )["sg_status_list"]["properties"]["valid_values"]["value"]
-            except KeyError:
-                task_status_list = []
+            task_status_list = app.shotgun._sg.schema_field_read(
+                "Task", "sg_status_list", {"type": "Project", "id": project_id}
+            )["sg_status_list"]["properties"]["valid_values"]["value"]
 
         task_status_list.insert(0, "ALL")
         self._my_tasks_form._ui.task_status_combo.addItems(task_status_list)
