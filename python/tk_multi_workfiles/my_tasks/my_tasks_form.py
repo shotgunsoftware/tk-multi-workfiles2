@@ -47,6 +47,9 @@ class MyTasksForm(EntityTreeForm):
         # There is no need for the my tasks toggle.
         self._ui.my_tasks_cb.hide()
 
+        # Task status filter
+        self._ui.task_status_combo.show()
+
         # Sets an item delete to show a list of tiles for tasks instead of nodes in a tree.
         # Make sure we keep a reference to the delegate otherwise things may crash later on
         self._item_delegate = self._create_delegate(tasks_model, self._ui.entity_tree)

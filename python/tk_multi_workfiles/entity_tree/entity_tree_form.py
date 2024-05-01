@@ -121,6 +121,9 @@ class EntityTreeForm(QtGui.QWidget):
         self._ui.search_ctrl.set_placeholder_text("Search %s" % search_label)
         self._ui.search_ctrl.setToolTip("Press enter to complete the search")
 
+        # Task status filter
+        self._ui.task_status_combo.hide()
+
         # Hide the my-tasks-only checkbox if we are showing tasks, or if the entity
         # model is making use of deferred queries. In the latter case, we don't
         # have the data queried up front that's needed to properly filter the

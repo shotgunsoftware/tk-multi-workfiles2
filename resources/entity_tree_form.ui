@@ -41,6 +41,13 @@
       <number>1</number>
      </property>
      <item>
+      <widget class="QComboBox" name="task_status_combo">
+       <property name="text">
+        <string>Task Status</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QCheckBox" name="my_tasks_cb">
        <property name="text">
         <string>My Tasks Only</string>
