@@ -240,6 +240,17 @@ class BrowserForm(QtGui.QWidget):
             self._ui.task_browser_tabs.addTab(self._my_tasks_form, "My Tasks")
             self._my_tasks_form.create_new_task.connect(self.create_new_task)
 
+            # Task status filter
+            self.my_tasks_model = my_tasks_model
+            try:
+                self.populate_task_status_list()
+                self._my_tasks_form._ui.task_status_combo.currentTextChanged.connect(
+                    self._on_task_status_combo_changed
+                )
+            except KeyError as e:
+                logger.warning("Task Status Filter: Error loading: {}".format(e))
+                self._my_tasks_form._ui.task_status_combo.hide()
+
         for caption, step_filter_on, model in entity_models:
             step_entity_filter = None
             if model.represents_tasks:
@@ -281,7 +292,6 @@ class BrowserForm(QtGui.QWidget):
             # list of valid tabs)
             for tab in tabs_to_display:
                 if tab in self.TAB_INFO:
-
                     # extract the tab info from the lookup
                     tab_info = self.TAB_INFO[tab]
                     tab_name = tab.title()
@@ -669,3 +679,37 @@ class BrowserForm(QtGui.QWidget):
         :param step_list: A list of Shotgun Step dictionaries.
         """
         self.step_filter_changed.emit(get_filter_from_filter_list(step_list))
+
+    # Task status filter methods
+    def populate_task_status_list(self):
+        """
+        Populate the task status list from the project schema.
+        """
+        app = sgtk.platform.current_bundle()
+        project_id = app.context.project.get("id")
+        if project_id:
+            logger.debug(
+                f"Task Status Filter: getting statuses from project {project_id}"
+            )
+            task_status_list = app.shotgun._sg.schema_field_read(
+                "Task", "sg_status_list", {"type": "Project", "id": project_id}
+            )["sg_status_list"]["properties"]["valid_values"]["value"]
+
+        task_status_list.insert(0, "ALL")
+        self._my_tasks_form._ui.task_status_combo.addItems(task_status_list)
+
+    def _on_task_status_combo_changed(self, value):
+        """
+        Called when the task status combo box is changed.
+
+        :param value: The selected value on the combo box.
+        """
+        if value == "ALL":
+            self.my_tasks_model.load_and_refresh()
+        else:
+            self.my_tasks_model.load_and_refresh(
+                extra_filter=["sg_status_list", "is", value.lower()]
+            )
+
+        self.my_tasks_model.data_refreshed.emit(True)
+        self.my_tasks_model.async_refresh()
