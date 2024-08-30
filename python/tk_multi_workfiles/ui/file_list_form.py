@@ -129,7 +129,9 @@ class Ui_FileListForm(object):
 "}")
 
         self.horizontalLayout_3.addWidget(self.search_ctrl)
-
+        self.filter_menu_btn = FilterMenuButton(FileListForm)
+        self.filter_menu_btn.setObjectName("filter_menu_btn")
+        self.horizontalLayout_3.addWidget(self.filter_menu_btn)
         self.horizontalLayout_3.setStretch(2, 1)
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_3)
@@ -220,4 +222,5 @@ class Ui_FileListForm(object):
 #if QT_CONFIG(accessibility)
         self.search_ctrl.setAccessibleName(QCoreApplication.translate("FileListForm", u"Search All Files", None))
 #endif // QT_CONFIG(accessibility)
+        self.filter_menu_btn.setAccessibleName(QCoreApplication.translate("FileListForm", u"Filter", None))
     # retranslateUi

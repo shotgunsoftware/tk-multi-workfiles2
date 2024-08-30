@@ -101,7 +101,6 @@ class Ui_EntityTreeForm(object):
 
     def retranslateUi(self, EntityTreeForm):
         EntityTreeForm.setWindowTitle(QCoreApplication.translate("EntityTreeForm", u"Form", None))
-        self.task_status_combo.setText(QCoreApplication.translate("EntityTreeForm", u"Task Status", None))
         self.my_tasks_cb.setText(QCoreApplication.translate("EntityTreeForm", u"My Tasks Only", None))
         self.new_task_btn.setText(QCoreApplication.translate("EntityTreeForm", u"+ New Task", None))
 #if QT_CONFIG(accessibility)
