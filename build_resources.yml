@@ -1,0 +1,19 @@
+# YAML Configuration File for Qt Resource Building
+#
+# For more information:
+# https://github.com/shotgunsoftware/tk-toolchain?tab=readme-ov-file#tk-build-qt-resources
+
+- ui_src: resources
+  ui_files:
+    - browser_form
+    - file_open_form
+    - file_save_form
+    - file_list_form
+    - my_tasks_form
+    - entity_tree_form
+    - open_options_form
+    - new_task_form
+    - crash_dbg_form
+  res_files:
+    - resources
+  py_dest: python/tk_multi_workfiles/ui
