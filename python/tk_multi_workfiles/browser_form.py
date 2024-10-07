@@ -691,9 +691,13 @@ class BrowserForm(QtGui.QWidget):
             logger.debug(
                 f"Task Status Filter: getting statuses from project {project_id}"
             )
-            task_status_list = app.shotgun._sg.schema_field_read(
+            project_task_statuses = app.shotgun._sg.schema_field_read(
                 "Task", "sg_status_list", {"type": "Project", "id": project_id}
-            )["sg_status_list"]["properties"]["valid_values"]["value"]
+            )["sg_status_list"]["properties"]
+
+            hidden_statuses = project_task_statuses["hidden_values"]["value"]
+            all_statuses = project_task_statuses["display_values"]["value"]
+            task_status_list = [status for status in all_statuses if status not in hidden_statuses]
 
         task_status_list.insert(0, "ALL")
         self._my_tasks_form._ui.task_status_combo.addItems(task_status_list)
