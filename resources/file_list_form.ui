@@ -194,6 +194,13 @@ background-color: rgb(255, 128, 0);
            </property>
           </widget>
          </item>
+         <item>
+          <widget class="FilterMenuButton" name="filter_menu_btn">
+          <property name="accessibleName">
+            <string>Filter</string>
+          </property>
+          </widget>
+        </item>
         </layout>
        </item>
        <!-- </property>

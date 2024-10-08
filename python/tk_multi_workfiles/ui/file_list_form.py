@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'file_list_form.ui'
 ##
-## Created by: Qt User Interface Compiler version 5.15.2
+## Created by: Qt User Interface Compiler version 5.15.16
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -129,9 +129,12 @@ class Ui_FileListForm(object):
 "}")
 
         self.horizontalLayout_3.addWidget(self.search_ctrl)
+
         self.filter_menu_btn = FilterMenuButton(FileListForm)
-        self.filter_menu_btn.setObjectName("filter_menu_btn")
+        self.filter_menu_btn.setObjectName(u"filter_menu_btn")
+
         self.horizontalLayout_3.addWidget(self.filter_menu_btn)
+
         self.horizontalLayout_3.setStretch(2, 1)
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_3)
@@ -222,5 +225,7 @@ class Ui_FileListForm(object):
 #if QT_CONFIG(accessibility)
         self.search_ctrl.setAccessibleName(QCoreApplication.translate("FileListForm", u"Search All Files", None))
 #endif // QT_CONFIG(accessibility)
+#if QT_CONFIG(accessibility)
         self.filter_menu_btn.setAccessibleName(QCoreApplication.translate("FileListForm", u"Filter", None))
+#endif // QT_CONFIG(accessibility)
     # retranslateUi

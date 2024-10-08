@@ -42,9 +42,6 @@
      </property>
      <item>
       <widget class="QComboBox" name="task_status_combo">
-       <property name="text">
-        <string>Task Status</string>
-       </property>
       </widget>
      </item>
      <item>
