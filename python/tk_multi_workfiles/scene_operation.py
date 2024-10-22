@@ -23,6 +23,11 @@ from .framework_qtwidgets import MessageBox
     CHECK_REFERENCES_ACTION,
 ) = range(5)
 
+DCCS_MULTIPLE_CONTEXT_CACHE = [
+    "tk-photoshopcc",
+    "tk-aftereffects",
+]
+
 
 def _do_scene_operation(
     app,
@@ -138,6 +143,9 @@ def save_file(app, action, context, path=None):
     else:
         app.log_debug("Saving the current file with hook")
         _do_scene_operation(app, action, context, "save")
+
+    if app.engine.name in DCCS_MULTIPLE_CONTEXT_CACHE:
+        app.engine._add_to_context_cache(path, context)
 
 
 def open_file(app, action, context, path, version, read_only):
