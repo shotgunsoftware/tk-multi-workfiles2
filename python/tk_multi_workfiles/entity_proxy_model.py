@@ -43,7 +43,7 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
 
         # call base class
         return super(EntityProxyModel, self).setFilterRegExp(reg_exp)
-432 7bghfvfcrdexwsqabjkmnvgyvctfrcdeswa45r6r4eww vfgd
+
     def ensure_data_is_loaded(self, index=None):
         """
         Recursively processes the model and ensures that all data
