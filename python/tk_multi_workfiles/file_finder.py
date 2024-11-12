@@ -16,7 +16,6 @@ import time
 import sgtk
 from sgtk.platform.qt import QtCore
 from tank_vendor.shotgun_api3 import sg_timezone
-from tank_vendor import six
 from sgtk import TankError
 
 from .file_item import FileItem
@@ -201,7 +200,7 @@ class FileFinder(QtCore.QObject):
         work_file_items = dict(
             [
                 (k, FileItem(**kwargs))
-                for k, kwargs in six.iteritems(work_file_item_details)
+                for k, kwargs in work_file_item_details.items()
             ]
         )
 
@@ -217,13 +216,13 @@ class FileFinder(QtCore.QObject):
         publish_items = dict(
             [
                 (k, FileItem(**kwargs))
-                for k, kwargs in six.iteritems(publish_item_details)
+                for k, kwargs in publish_item_details.items()
             ]
         )
 
         # and aggregate the results:
         file_items = list(work_file_items.values())
-        for file_key_and_version, publish in six.iteritems(publish_items):
+        for file_key_and_version, publish in publish_items.items():
             work_file = work_file_items.get(file_key_and_version)
             if not work_file:
                 file_items.append(publish)
@@ -281,7 +280,7 @@ class FileFinder(QtCore.QObject):
             # copy common fields from work_file:
             #
             file_details = dict(
-                [(k, v) for k, v in six.iteritems(work_file) if k != "path"]
+                [(k, v) for k, v in work_file.items() if k != "path"]
             )
 
             # get version from fields if not specified in work file:
@@ -389,7 +388,7 @@ class FileFinder(QtCore.QObject):
             # copy common fields from sg_publish:
             #
             file_details = dict(
-                [(k, v) for k, v in six.iteritems(sg_publish) if k != "path"]
+                [(k, v) for k, v in sg_publish.items() if k != "path"]
             )
 
             # get version from fields if not specified in publish file:

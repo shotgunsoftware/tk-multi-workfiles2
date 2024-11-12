@@ -1,4 +1,3 @@
-from __future__ import print_function
 import sgtk
 from sgtk.platform.qt import QtGui
 

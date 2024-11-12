@@ -12,7 +12,6 @@ from datetime import datetime, timedelta
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
-from tank_vendor import six
 
 HookClass = sgtk.get_hook_baseclass()
 
@@ -402,7 +401,7 @@ def display_value(raw_value, dict_field=None):
             # Attemp to return a display field, if it does not exist, just return the raw value.
             dict_field = "name"
 
-        if isinstance(dict_field, six.string_types):
+        if isinstance(dict_field, str):
             return raw_value.get(dict_field, raw_value)
 
         if isinstance(dict_field, list):

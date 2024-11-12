@@ -13,7 +13,10 @@ import hou
 
 import sgtk
 
-from tank_vendor import six
+try:
+    from tank_vendor import sgutils
+except ImportError:
+    from tank_vendor import six as sgutils
 
 HookClass = sgtk.get_hook_baseclass()
 
@@ -72,13 +75,13 @@ class SceneOperation(HookClass):
         elif operation == "open":
             # give houdini forward slashes
             file_path = file_path.replace(os.path.sep, "/")
-            hou.hipFile.load(six.ensure_str(file_path))
+            hou.hipFile.load(sgutils.ensure_str(file_path))
         elif operation == "save":
             hou.hipFile.save()
         elif operation == "save_as":
             # give houdini forward slashes
             file_path = file_path.replace(os.path.sep, "/")
-            hou.hipFile.save(six.ensure_str(file_path))
+            hou.hipFile.save(sgutils.ensure_str(file_path))
         elif operation == "reset":
             hou.hipFile.clear()
             return True

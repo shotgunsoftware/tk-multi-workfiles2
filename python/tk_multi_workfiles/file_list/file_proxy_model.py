@@ -11,7 +11,6 @@
 
 import sgtk
 from sgtk.platform.qt import QtCore
-from tank_vendor import six
 
 from ..file_model import FileModel
 from ..framework_qtwidgets import FilterItemTreeProxyModel
@@ -141,7 +140,7 @@ class FileProxyModel(FilterItemTreeProxyModel):
 
                 visible_versions = [
                     v
-                    for v, f in six.iteritems(all_versions)
+                    for v, f in all_versions.items()
                     if (f.is_local and self._show_workfiles)
                     or (f.is_published and self._show_publishes)
                 ]

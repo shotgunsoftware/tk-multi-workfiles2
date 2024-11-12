@@ -9,7 +9,6 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import sgtk
-from tank_vendor import six
 from sgtk.platform.qt import QtGui, QtCore
 
 shotgun_model = sgtk.platform.import_framework(
@@ -204,7 +203,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         Clear the data we hold.
         """
         self._deferred_cache = ShotgunDataHandlerCache()
-        for deferred_model in six.itervalues(self._deferred_models):
+        for deferred_model in self._deferred_models.values():
             deferred_model.clear()
         self._deferred_models = {}
         super(ShotgunDeferredEntityModel, self).clear()
@@ -213,7 +212,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         """
         Destroy this model and any deferred models attached to it.
         """
-        for deferred_model in six.itervalues(self._deferred_models):
+        for deferred_model in self._deferred_models.values():
             deferred_model.destroy()
         self._deferred_models = {}
         super(ShotgunDeferredEntityModel, self).destroy()
