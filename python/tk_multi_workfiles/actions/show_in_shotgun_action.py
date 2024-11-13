@@ -70,9 +70,7 @@ class ShowLatestPublishInShotgunAction(ShowInShotgunAction):
 
     def execute(self, parent_ui):
         """ """
-        publish_versions = [
-            v for v, f in self.file_versions.items() if f.is_published
-        ]
+        publish_versions = [v for v, f in self.file_versions.items() if f.is_published]
         if not publish_versions:
             return
 

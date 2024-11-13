@@ -41,9 +41,7 @@ class InteractiveOpenAction(OpenFileAction):
 
         # get information about the max local & publish versions:
         local_versions = [v for v, f in self.file_versions.items() if f.is_local]
-        publish_versions = [
-            v for v, f in self.file_versions.items() if f.is_published
-        ]
+        publish_versions = [v for v, f in self.file_versions.items() if f.is_published]
         max_local_version = max(local_versions) if local_versions else None
         max_publish_version = max(publish_versions) if publish_versions else None
         max_version = max(0, max_local_version or 0, max_publish_version or 0)

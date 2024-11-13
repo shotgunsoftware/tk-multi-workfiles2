@@ -198,10 +198,7 @@ class FileFinder(QtCore.QObject):
             filter_file_key,
         )
         work_file_items = dict(
-            [
-                (k, FileItem(**kwargs))
-                for k, kwargs in work_file_item_details.items()
-            ]
+            [(k, FileItem(**kwargs)) for k, kwargs in work_file_item_details.items()]
         )
 
         publish_item_details = self._process_publish_files(
@@ -214,10 +211,7 @@ class FileFinder(QtCore.QObject):
             filter_file_key,
         )
         publish_items = dict(
-            [
-                (k, FileItem(**kwargs))
-                for k, kwargs in publish_item_details.items()
-            ]
+            [(k, FileItem(**kwargs)) for k, kwargs in publish_item_details.items()]
         )
 
         # and aggregate the results:
@@ -279,9 +273,7 @@ class FileFinder(QtCore.QObject):
 
             # copy common fields from work_file:
             #
-            file_details = dict(
-                [(k, v) for k, v in work_file.items() if k != "path"]
-            )
+            file_details = dict([(k, v) for k, v in work_file.items() if k != "path"])
 
             # get version from fields if not specified in work file:
             if not file_details["version"]:
@@ -387,9 +379,7 @@ class FileFinder(QtCore.QObject):
 
             # copy common fields from sg_publish:
             #
-            file_details = dict(
-                [(k, v) for k, v in sg_publish.items() if k != "path"]
-            )
+            file_details = dict([(k, v) for k, v in sg_publish.items() if k != "path"])
 
             # get version from fields if not specified in publish file:
             if file_details["version"] == None:

@@ -489,9 +489,7 @@ class FileActionFactory(object):
                 )
 
             # see if we have any publishes:
-            publish_versions = [
-                v for v, f in file_versions.items() if f.is_published
-            ]
+            publish_versions = [v for v, f in file_versions.items() if f.is_published]
             if publish_versions:
                 show_in_actions.append(
                     ShowLatestPublishInShotgunAction(
