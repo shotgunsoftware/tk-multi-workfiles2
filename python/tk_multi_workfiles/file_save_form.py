@@ -42,7 +42,7 @@ class FileSaveForm(FileFormBase):
         """
         Construction
         """
-        super(FileSaveForm, self).__init__(parent)
+        super().__init__(parent)
 
         self._expanded_size = QtCore.QSize(930, 700)
         self._collapsed_size = None
@@ -89,7 +89,7 @@ class FileSaveForm(FileFormBase):
         """
         app = sgtk.platform.current_bundle()
 
-        super(FileSaveForm, self)._do_init()
+        super()._do_init()
 
         self._ui.preview_label.setText(
             "<p style='color:rgb%s'><b>Preview:</b></p>" % (self._preview_colour,)

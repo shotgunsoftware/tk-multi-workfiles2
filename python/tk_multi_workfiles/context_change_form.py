@@ -21,7 +21,7 @@ from .ui.file_open_form import Ui_FileOpenForm
 
 class ContextChangeForm(FileFormBase):
     def __init__(self, parent=None):
-        super(ContextChangeForm, self).__init__(parent)
+        super().__init__(parent)
 
         self._context_change_env = None
 
@@ -41,7 +41,7 @@ class ContextChangeForm(FileFormBase):
 
     def _do_init(self):
         """ """
-        super(ContextChangeForm, self)._do_init()
+        super()._do_init()
 
         # start by disabling buttons:
         self._ui.open_btn.hide()
@@ -67,7 +67,7 @@ class ContextChangeForm(FileFormBase):
         """
         Slot triggered whenever the work area is changed in the browser.
         """
-        env_details = super(ContextChangeForm, self)._on_browser_work_area_changed(
+        env_details = super()._on_browser_work_area_changed(
             entity, breadcrumbs
         )
 

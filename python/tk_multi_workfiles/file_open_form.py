@@ -38,7 +38,7 @@ class FileOpenForm(FileFormBase):
     def __init__(self, parent=None):
         """Construction"""
 
-        super(FileOpenForm, self).__init__(parent)
+        super().__init__(parent)
 
         self._app = sgtk.platform.current_bundle()
 
@@ -60,7 +60,7 @@ class FileOpenForm(FileFormBase):
 
     def _do_init(self):
         """ """
-        super(FileOpenForm, self)._do_init()
+        super()._do_init()
 
         # start by disabling buttons:
         self._ui.change_ctx_btn.hide()
@@ -118,7 +118,7 @@ class FileOpenForm(FileFormBase):
         """
         Slot triggered whenever the work area is changed in the browser.
         """
-        env_details = super(FileOpenForm, self)._on_browser_work_area_changed(
+        env_details = super()._on_browser_work_area_changed(
             entity, breadcrumbs
         )
         self._update_new_file_btn(env_details)

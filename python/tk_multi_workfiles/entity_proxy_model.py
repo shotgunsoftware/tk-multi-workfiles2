@@ -32,7 +32,7 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
         self.sourceModel().ensure_data_is_loaded()
 
         # call base class
-        return super(EntityProxyModel, self).setFilterFixedString(pattern)
+        return super().setFilterFixedString(pattern)
 
     def setFilterRegExp(self, reg_exp):
         """
@@ -42,7 +42,7 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
         self.sourceModel().ensure_data_is_loaded()
 
         # call base class
-        return super(EntityProxyModel, self).setFilterRegExp(reg_exp)
+        return super().setFilterRegExp(reg_exp)
 
     def ensure_data_is_loaded(self, index=None):
         """

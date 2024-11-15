@@ -41,7 +41,7 @@ class TestFileModelBase(Workfiles2TestBase):
         """
         Fixtures setup
         """
-        super(TestFileModelBase, self).setUp(
+        super().setUp(
             app_instance, work_template, publish_template
         )
 
@@ -185,7 +185,7 @@ class TestFileModelWithSandboxes(TestFileModelBase):
     """
 
     def setUp(self):
-        super(TestFileModelWithSandboxes, self).setUp(
+        super().setUp(
             "tk-multi-workfiles2", "sandbox_path", "publish_path"
         )
 
