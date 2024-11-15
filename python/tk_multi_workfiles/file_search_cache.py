@@ -114,7 +114,7 @@ class FileSearchCache(Threaded):
             return {}
 
         # return a dictionary of version:FileItem entries:
-        return dict([(v, f) for v, f in file_info.versions.items()])
+        return {v: f for v, f in file_info.versions.items()}
 
     @Threaded.exclusive
     def find(self, entity, user=None):

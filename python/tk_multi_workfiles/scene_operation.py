@@ -106,7 +106,7 @@ def get_current_path(app, action, context):
     """
     app.log_debug("Retrieving current scene path...")
     return _do_scene_operation(
-        app, action, context, "current_path", result_types=((str,),)
+        app, action, context, "current_path", result_types=(str,)
     )
 
 

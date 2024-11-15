@@ -273,7 +273,7 @@ class FileFinder(QtCore.QObject):
 
             # copy common fields from work_file:
             #
-            file_details = dict([(k, v) for k, v in work_file.items() if k != "path"])
+            file_details = {k: v for k, v in work_file.items() if k != "path"}
 
             # get version from fields if not specified in work file:
             if not file_details["version"]:
@@ -379,7 +379,7 @@ class FileFinder(QtCore.QObject):
 
             # copy common fields from sg_publish:
             #
-            file_details = dict([(k, v) for k, v in sg_publish.items() if k != "path"])
+            file_details = {k: v for k, v in sg_publish.items() if k != "path"}
 
             # get version from fields if not specified in publish file:
             if file_details["version"] == None:
