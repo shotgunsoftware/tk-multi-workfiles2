@@ -67,9 +67,7 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         # for an entity which can't be there.
         self._entity_types = set()
 
-        super().__init__(
-            entity_type, filters, hierarchy, fields, *args, **kwargs
-        )
+        super().__init__(entity_type, filters, hierarchy, fields, *args, **kwargs)
 
     @property
     def represents_tasks(self):
@@ -186,9 +184,7 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         # If dealing with the primary entity type this model represents, just
         # call the base implementation which only considers leaves.
         if entity_type == self.get_entity_type():
-            return super().item_from_entity(
-                entity_type, entity_id
-            )
+            return super().item_from_entity(entity_type, entity_id)
         # If not dealing with the primary entity type, we need to traverse the
         # model to find the entity.
         # Bail out quickly if we know that the entity type we are looking for is

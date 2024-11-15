@@ -118,9 +118,7 @@ class FileOpenForm(FileFormBase):
         """
         Slot triggered whenever the work area is changed in the browser.
         """
-        env_details = super()._on_browser_work_area_changed(
-            entity, breadcrumbs
-        )
+        env_details = super()._on_browser_work_area_changed(entity, breadcrumbs)
         self._update_new_file_btn(env_details)
 
     def _on_browser_file_double_clicked(self, file, env):

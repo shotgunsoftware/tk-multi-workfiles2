@@ -67,9 +67,7 @@ class ContextChangeForm(FileFormBase):
         """
         Slot triggered whenever the work area is changed in the browser.
         """
-        env_details = super()._on_browser_work_area_changed(
-            entity, breadcrumbs
-        )
+        env_details = super()._on_browser_work_area_changed(entity, breadcrumbs)
 
         self._update_change_context_btn(env_details)
 

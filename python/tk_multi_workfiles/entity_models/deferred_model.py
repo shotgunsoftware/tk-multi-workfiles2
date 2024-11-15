@@ -94,9 +94,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         # A bool used to track if a data_refreshed signal emission has been posted
         # in the event queue, to ensure there is only one at any given time.
         self._pending_delayed_data_refreshed = False
-        super().__init__(
-            entity_type, filters, hierarchy, fields, *args, **kwargs
-        )
+        super().__init__(entity_type, filters, hierarchy, fields, *args, **kwargs)
         # Create a cache to handle results from deferred queries.
         self._deferred_cache = ShotgunDataHandlerCache()
 
@@ -663,9 +661,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             entity_type == self.get_entity_type()
             or self._deferred_query["entity_type"] != entity_type
         ):
-            return super().item_from_entity(
-                entity_type, entity_id
-            )
+            return super().item_from_entity(entity_type, entity_id)
         return self._get_item_by_unique_id(
             self._deferred_entity_uid({"type": entity_type, "id": entity_id})
         )

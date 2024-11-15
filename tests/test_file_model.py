@@ -41,9 +41,7 @@ class TestFileModelBase(Workfiles2TestBase):
         """
         Fixtures setup
         """
-        super().setUp(
-            app_instance, work_template, publish_template
-        )
+        super().setUp(app_instance, work_template, publish_template)
 
         # This is specific to this test, everything above should be refactored
         # into a Workfiles2TestBase class.
@@ -185,9 +183,7 @@ class TestFileModelWithSandboxes(TestFileModelBase):
     """
 
     def setUp(self):
-        super().setUp(
-            "tk-multi-workfiles2", "sandbox_path", "publish_path"
-        )
+        super().setUp("tk-multi-workfiles2", "sandbox_path", "publish_path")
 
     @pytest.mark.skipif(
         sgtk.util.is_windows() and "CI" in os.environ,
