@@ -139,6 +139,9 @@ def save_file(app, action, context, path=None):
         app.log_debug("Saving the current file with hook")
         _do_scene_operation(app, action, context, "save")
 
+    if hasattr(app.engine, "add_to_context_cache"):
+        app.engine.add_to_context_cache(path, context)
+
 
 def open_file(app, action, context, path, version, read_only):
     """
