@@ -136,7 +136,7 @@ class MyTasksModel(ShotgunExtendedEntityModel, ViewItemRolesMixin):
                         and other settings specified in load_data()
         """
 
-        super(MyTasksModel, self)._populate_item(item, sg_data)
+        super()._populate_item(item, sg_data)
 
         # Set up the methods to be called for each item data role defined.
         self.set_data_for_role_methods(item)

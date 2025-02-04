@@ -67,9 +67,7 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         # for an entity which can't be there.
         self._entity_types = set()
 
-        super(ShotgunExtendedEntityModel, self).__init__(
-            entity_type, filters, hierarchy, fields, *args, **kwargs
-        )
+        super().__init__(entity_type, filters, hierarchy, fields, *args, **kwargs)
 
     @property
     def represents_tasks(self):
@@ -127,7 +125,7 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         """
         Called every time an item was added in the model.
         """
-        super(ShotgunExtendedEntityModel, self)._finalize_item(item)
+        super()._finalize_item(item)
         # We need to keep track of which entities are in the model, so we can bail
         # out cheaply on entity searches, and not traverse the full model to look
         # for an entity which can't be there.
@@ -139,7 +137,7 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         """
         Clear the data we hold.
         """
-        super(ShotgunExtendedEntityModel, self).clear()
+        super().clear()
         self._entity_types = set()
 
     def ensure_data_for_context(self, context):
@@ -186,9 +184,7 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         # If dealing with the primary entity type this model represents, just
         # call the base implementation which only considers leaves.
         if entity_type == self.get_entity_type():
-            return super(ShotgunExtendedEntityModel, self).item_from_entity(
-                entity_type, entity_id
-            )
+            return super().item_from_entity(entity_type, entity_id)
         # If not dealing with the primary entity type, we need to traverse the
         # model to find the entity.
         # Bail out quickly if we know that the entity type we are looking for is

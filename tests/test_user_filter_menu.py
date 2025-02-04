@@ -23,7 +23,7 @@ class TestUserFilterMenu(Workfiles2TestBase):
         """
         Fixtures setup
         """
-        super(TestUserFilterMenu, self).setUp()
+        super().setUp()
 
         # This is specific to this test, everything above should be refactored
         # into a Workfiles2TestBase class.

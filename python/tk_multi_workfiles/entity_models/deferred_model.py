@@ -9,7 +9,6 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import sgtk
-from tank_vendor import six
 from sgtk.platform.qt import QtGui, QtCore
 
 shotgun_model = sgtk.platform.import_framework(
@@ -95,9 +94,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         # A bool used to track if a data_refreshed signal emission has been posted
         # in the event queue, to ensure there is only one at any given time.
         self._pending_delayed_data_refreshed = False
-        super(ShotgunDeferredEntityModel, self).__init__(
-            entity_type, filters, hierarchy, fields, *args, **kwargs
-        )
+        super().__init__(entity_type, filters, hierarchy, fields, *args, **kwargs)
         # Create a cache to handle results from deferred queries.
         self._deferred_cache = ShotgunDataHandlerCache()
 
@@ -129,7 +126,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         Trigger an asynchronous refresh of the model
         """
         # Refresh the primary cache.
-        super(ShotgunDeferredEntityModel, self).async_refresh()
+        super().async_refresh()
         # Refresh our deferred cache
         # Get the full list of uids
         uids = [uid for uid in self._deferred_cache.uids]
@@ -204,19 +201,19 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         Clear the data we hold.
         """
         self._deferred_cache = ShotgunDataHandlerCache()
-        for deferred_model in six.itervalues(self._deferred_models):
+        for deferred_model in self._deferred_models.values():
             deferred_model.clear()
         self._deferred_models = {}
-        super(ShotgunDeferredEntityModel, self).clear()
+        super().clear()
 
     def destroy(self):
         """
         Destroy this model and any deferred models attached to it.
         """
-        for deferred_model in six.itervalues(self._deferred_models):
+        for deferred_model in self._deferred_models.values():
             deferred_model.destroy()
         self._deferred_models = {}
-        super(ShotgunDeferredEntityModel, self).destroy()
+        super().destroy()
 
     def _add_deferred_item_hierarchy(self, parent_item, hierarchy, name_field, sg_data):
         """
@@ -595,7 +592,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         # Just call base implementation if the index is not valid or if we are
         # not dealing with a leaf.
         if not index.isValid() or not self.itemFromIndex(index).get_sg_data():
-            return super(ShotgunDeferredEntityModel, self).hasChildren(index)
+            return super().hasChildren(index)
         # We always have at least a child, which can be a valid item pulled with
         # a deferred query or a placeholder item.
         return True
@@ -610,7 +607,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         # Just call base implementation if the index is not valid or if we are
         # not dealing with a leaf.
         if not index.isValid() or not self.itemFromIndex(index).get_sg_data():
-            return super(ShotgunDeferredEntityModel, self).canFetchMore(index)
+            return super().canFetchMore(index)
 
         item = self.itemFromIndex(index)
         if item.data(self._SG_ITEM_FETCHED_MORE):
@@ -626,7 +623,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         """
         if not index.isValid():
             # Let the base implementation deal with invalid items
-            return super(ShotgunDeferredEntityModel, self).fetchMore(index)
+            return super().fetchMore(index)
         item = self.itemFromIndex(index)
         # Set the flag to prevent subsequent attempts to fetch more
         item.setData(True, self._SG_ITEM_FETCHED_MORE)
@@ -634,7 +631,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         if not sg_data:
             # If not dealing with a leaf, let the base implementation deal with
             # the index.
-            return super(ShotgunDeferredEntityModel, self).fetchMore(index)
+            return super().fetchMore(index)
         self._run_deferred_query_for_entity(sg_data)
 
     def item_from_entity(self, entity_type, entity_id):
@@ -664,9 +661,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             entity_type == self.get_entity_type()
             or self._deferred_query["entity_type"] != entity_type
         ):
-            return super(ShotgunDeferredEntityModel, self).item_from_entity(
-                entity_type, entity_id
-            )
+            return super().item_from_entity(entity_type, entity_id)
         return self._get_item_by_unique_id(
             self._deferred_entity_uid({"type": entity_type, "id": entity_id})
         )

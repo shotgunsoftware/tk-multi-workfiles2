@@ -47,9 +47,7 @@ class Workfiles2TestBase(TankTestBase):
         Fixtures setup
         """
         # Make sure the project folder on disk has a unique name between each test.
-        super(Workfiles2TestBase, self).setUp(
-            {"project_tank_name": self.short_test_name}
-        )
+        super().setUp({"project_tank_name": self.short_test_name})
         sgtk.set_authenticated_user(SealedMock(login="jeff"))
 
         self.jeff = self.mockgun.create("HumanUser", {"name": "Jeff", "login": "jeff"})

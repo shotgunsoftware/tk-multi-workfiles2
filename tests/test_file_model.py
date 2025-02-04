@@ -41,9 +41,7 @@ class TestFileModelBase(Workfiles2TestBase):
         """
         Fixtures setup
         """
-        super(TestFileModelBase, self).setUp(
-            app_instance, work_template, publish_template
-        )
+        super().setUp(app_instance, work_template, publish_template)
 
         # This is specific to this test, everything above should be refactored
         # into a Workfiles2TestBase class.
@@ -185,13 +183,11 @@ class TestFileModelWithSandboxes(TestFileModelBase):
     """
 
     def setUp(self):
-        super(TestFileModelWithSandboxes, self).setUp(
-            "tk-multi-workfiles2", "sandbox_path", "publish_path"
-        )
+        super().setUp("tk-multi-workfiles2", "sandbox_path", "publish_path")
 
     @pytest.mark.skipif(
-        sys.version_info.major == 2 and sgtk.util.is_windows() and "CI" in os.environ,
-        reason="This test is flaky on Windows, Python 2.7.",
+        sgtk.util.is_windows() and "CI" in os.environ,
+        reason="This test is flaky on Windows",
     )
     def test_default_match_user_files(self):
         """
@@ -228,8 +224,8 @@ class TestFileModelWithSandboxes(TestFileModelBase):
         )
 
     @pytest.mark.skipif(
-        sys.version_info.major == 2 and sgtk.util.is_windows() and "CI" in os.environ,
-        reason="This test is flaky on Windows, Python 2.7.",
+        sgtk.util.is_windows() and "CI" in os.environ,
+        reason="This test is flaky on Windows",
     )
     def test_matches_specified_users(self):
         """
@@ -254,8 +250,8 @@ class TestFileModelWithSandboxes(TestFileModelBase):
         )
 
     @pytest.mark.skipif(
-        sys.version_info.major == 2 and sgtk.util.is_windows() and "CI" in os.environ,
-        reason="This test is flaky on Windows, Python 2.7.",
+        sgtk.util.is_windows() and "CI" in os.environ,
+        reason="This test is flaky on Windows",
     )
     def test_matches_publishes(self):
         """
@@ -284,8 +280,8 @@ class TestFileModelWithSandboxes(TestFileModelBase):
         )
 
     @pytest.mark.skipif(
-        sys.version_info.major == 2 and sgtk.util.is_windows() and "CI" in os.environ,
-        reason="This test is flaky on Windows, Python 2.7.",
+        sgtk.util.is_windows() and "CI" in os.environ,
+        reason="This test is flaky on Windows",
     )
     def test_multi_task_match_same_workfiles_but_different_publishes(self):
         """
@@ -329,8 +325,8 @@ class TestFileModelWithTaskFolder(TestFileModelBase):
         )
 
     @pytest.mark.skipif(
-        sys.version_info.major == 2 and sgtk.util.is_windows() and "CI" in os.environ,
-        reason="This test is flaky on Windows, Python 2.7.",
+        sgtk.util.is_windows() and "CI" in os.environ,
+        reason="This test is flaky on Windows.",
     )
     def test_task_sandboxing_isolates_workfiles_from_same_step(self):
         """

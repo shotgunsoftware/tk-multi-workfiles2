@@ -9,7 +9,6 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import sgtk
-from tank_vendor import six
 from sgtk.platform.qt import QtGui
 
 import os
@@ -562,7 +561,7 @@ class FileItem(object):
                 latest_version = self.versions[max_version]
 
             publish_versions = [
-                f.version for f in six.itervalues(self.versions) if f.is_published
+                f.version for f in self.versions.values() if f.is_published
             ]
             if publish_versions:
                 max_pub_version = max(publish_versions)

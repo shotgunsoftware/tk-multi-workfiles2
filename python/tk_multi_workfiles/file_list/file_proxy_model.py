@@ -11,7 +11,6 @@
 
 import sgtk
 from sgtk.platform.qt import QtCore
-from tank_vendor import six
 
 from ..file_model import FileModel
 from ..framework_qtwidgets import FilterItemTreeProxyModel
@@ -36,7 +35,7 @@ class FileProxyModel(FilterItemTreeProxyModel):
         :param parent:          The parent QObject of this proxy model
         """
 
-        super(FileProxyModel, self).__init__(parent)
+        super().__init__(parent)
 
         # debug - disable caching!
         # self.enable_caching(False)
@@ -92,7 +91,7 @@ class FileProxyModel(FilterItemTreeProxyModel):
         the proxy model so that the filtering is re-run.
         """
         if self._filters.filter_reg_exp != self.filterRegExp():
-            super(FileProxyModel, self).setFilterRegExp(self._filters.filter_reg_exp)
+            super().setFilterRegExp(self._filters.filter_reg_exp)
 
         self.layoutAboutToBeChanged.emit()
         self.invalidateFilter()
@@ -112,7 +111,7 @@ class FileProxyModel(FilterItemTreeProxyModel):
         if not src_idx.isValid():
             return False
 
-        base_model_accepts = super(FileProxyModel, self)._is_row_accepted(
+        base_model_accepts = super()._is_row_accepted(
             src_row, src_parent_idx, parent_accepted
         )
         if not base_model_accepts:
@@ -141,7 +140,7 @@ class FileProxyModel(FilterItemTreeProxyModel):
 
                 visible_versions = [
                     v
-                    for v, f in six.iteritems(all_versions)
+                    for v, f in all_versions.items()
                     if (f.is_local and self._show_workfiles)
                     or (f.is_published and self._show_publishes)
                 ]

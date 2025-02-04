@@ -19,7 +19,6 @@ from .file_action import FileAction
 import os
 import sys
 from itertools import chain
-from tank_vendor import six
 
 
 class ShowInFileSystemAction(FileAction):
@@ -107,7 +106,7 @@ class ShowAreaInFileSystemAction(ShowInFileSystemAction):
                 except TankError as e:
                     pass
             # combine with the context fields, preferring the context
-            fields = dict(chain(six.iteritems(fields), six.iteritems(file_fields)))
+            fields = dict(chain(fields.items(), file_fields.items()))
 
         # try to build a path from the template with these fields:
         while template and template.missing_keys(fields):

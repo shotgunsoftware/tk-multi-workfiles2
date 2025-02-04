@@ -10,7 +10,6 @@
 
 import types
 from sgtk import TankError
-from tank_vendor import six
 from sgtk.platform.qt import QtGui, QtCore
 
 from .framework_qtwidgets import MessageBox
@@ -107,7 +106,7 @@ def get_current_path(app, action, context):
     """
     app.log_debug("Retrieving current scene path...")
     return _do_scene_operation(
-        app, action, context, "current_path", result_types=(six.string_types,)
+        app, action, context, "current_path", result_types=(str,)
     )
 
 

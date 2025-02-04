@@ -11,7 +11,6 @@
 import weakref
 
 import sgtk
-from tank_vendor import six
 from sgtk.platform.qt import QtGui, QtCore
 
 from .file_finder import AsyncFileFinder
@@ -202,7 +201,7 @@ class FileModel(QtGui.QStandardItemModel, ViewItemRolesMixin):
                     # Default thumbnail to empty image
                     data = ":/tk-multi-workfiles2/thumb_empty.png"
 
-                if isinstance(data, six.string_types):
+                if isinstance(data, str):
                     data = QtGui.QPixmap(data)
 
             elif role == FileModel.FILE_ITEM_ROLE:
@@ -913,7 +912,7 @@ class FileModel(QtGui.QStandardItemModel, ViewItemRolesMixin):
                         valid_group_keys.add(group_key)
 
         # remove any groups that are no longer needed:
-        for group_key, group_item in six.iteritems(group_map):
+        for group_key, group_item in group_map.items():
             if group_key not in valid_group_keys:
                 self._safe_remove_row(group_item.row())
 
@@ -959,7 +958,7 @@ class FileModel(QtGui.QStandardItemModel, ViewItemRolesMixin):
         rows_to_remove = set(
             [
                 row
-                for key, row in six.iteritems(current_entity_row_map)
+                for key, row in current_entity_row_map.items()
                 if key not in valid_gen_entity_keys
             ]
         )
@@ -1025,7 +1024,7 @@ class FileModel(QtGui.QStandardItemModel, ViewItemRolesMixin):
         valid_files = dict(
             [
                 (k, v[0])
-                for k, v in six.iteritems(existing_file_item_map)
+                for k, v in existing_file_item_map.items()
                 if k in file_versions_to_keep
             ]
         )
@@ -1078,7 +1077,7 @@ class FileModel(QtGui.QStandardItemModel, ViewItemRolesMixin):
         rows_to_remove = set(
             [
                 v[1].row()
-                for k, v in six.iteritems(existing_file_item_map)
+                for k, v in existing_file_item_map.items()
                 if k in file_versions_to_remove
             ]
         )
@@ -1213,11 +1212,11 @@ class FileModel(QtGui.QStandardItemModel, ViewItemRolesMixin):
         to the _FileModelItem is None.
         """
         new_item_map = {}
-        for group_key, file_map in six.iteritems(self._current_item_map):
+        for group_key, file_map in self._current_item_map.items():
             new_file_map = {}
-            for file_key, version_map in six.iteritems(file_map):
+            for file_key, version_map in file_map.items():
                 new_version_map = {}
-                for version, item_ref in six.iteritems(version_map):
+                for version, item_ref in version_map.items():
                     if item_ref and item_ref():
                         new_version_map[version] = item_ref
                 if new_version_map:
@@ -1509,7 +1508,7 @@ class FileModel(QtGui.QStandardItemModel, ViewItemRolesMixin):
 
             # update thumbnail and versions for each version:
             thumb = None
-            for _, version in sorted(six.iteritems(file_versions), reverse=False):
+            for _, version in sorted(file_versions.items(), reverse=False):
                 if version.thumbnail_path:
                     # this file version should have a thumbnail!
                     thumb = version.thumbnail
@@ -1545,7 +1544,7 @@ class FileModel(QtGui.QStandardItemModel, ViewItemRolesMixin):
         """
         file_versions = self._search_cache.find_file_versions(work_area, file_key) or {}
         thumb = None
-        for _, version in sorted(six.iteritems(file_versions), reverse=False):
+        for _, version in sorted(file_versions.items(), reverse=False):
             if version.thumbnail_path:
                 # this file version should have a thumbnail!
                 thumb = version.thumbnail

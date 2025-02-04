@@ -10,7 +10,6 @@
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
-from tank_vendor import six
 
 from .framework_qtwidgets import HierarchicalFilteringProxyModel
 
@@ -33,7 +32,7 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
         self.sourceModel().ensure_data_is_loaded()
 
         # call base class
-        return super(EntityProxyModel, self).setFilterFixedString(pattern)
+        return super().setFilterFixedString(pattern)
 
     def setFilterRegExp(self, reg_exp):
         """
@@ -43,7 +42,7 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
         self.sourceModel().ensure_data_is_loaded()
 
         # call base class
-        return super(EntityProxyModel, self).setFilterRegExp(reg_exp)
+        return super().setFilterRegExp(reg_exp)
 
     def ensure_data_is_loaded(self, index=None):
         """
@@ -104,7 +103,7 @@ class EntityProxyModel(HierarchicalFilteringProxyModel):
             for cf in compare_fields:
                 if isinstance(cf, dict):
                     # e.g. {"three":"four", "five":["six", "seven"]}
-                    for key, value in six.iteritems(cf):
+                    for key, value in cf.items():
                         data = sg_data.get(key)
                         if data:
                             if self._sg_data_matches_r(data, value, reg_exp):
