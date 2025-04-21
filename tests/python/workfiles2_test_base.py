@@ -11,7 +11,7 @@
 import os
 from contextlib import contextmanager
 
-from mock import patch
+from unittest.mock import patch
 
 from tank_test.tank_test_base import TankTestBase
 from tank_test.tank_test_base import setUpModule  # noqa
