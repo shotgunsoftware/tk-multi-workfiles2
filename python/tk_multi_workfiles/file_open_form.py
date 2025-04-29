@@ -112,7 +112,9 @@ class FileOpenForm(FileFormBase):
     def _on_browser_file_selected(self, file, env):
         """ """
         self._on_selected_file_changed(file, env)
-        self._update_new_file_btn(env)
+        if file:
+            # Only validate the button state if a file is selected.
+            self._update_new_file_btn(env)
 
     def _on_browser_work_area_changed(self, entity, breadcrumbs):
         """
