@@ -873,7 +873,7 @@ class BrowserForm(QtGui.QWidget):
         if field:
             self.my_tasks_model.load_and_refresh(
                 extra_filter=self._extra_filter,  # Keep the filters from the combo box
-                extra_sorting=[{"field_name": field, "direction": sort_order}]
+                extra_sorting=[{"field_name": field, "direction": sort_order}],
             )
             self.my_tasks_model.data_refreshed.emit(True)
 

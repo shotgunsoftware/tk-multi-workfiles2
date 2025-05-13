@@ -99,7 +99,9 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
             filters.append(extra_filter)
         if extra_sorting:
             self._order = extra_sorting
-        self._load_data(self._entity_type, filters, self._hierarchy, self._fields, self._order)
+        self._load_data(
+            self._entity_type, filters, self._hierarchy, self._fields, self._order
+        )
         self.async_refresh()
 
     def update_filters(self, extra_filter):
