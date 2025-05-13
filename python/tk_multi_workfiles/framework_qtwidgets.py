@@ -60,3 +60,7 @@ ShotgunMenu = shotgun_menus.ShotgunMenu
 
 message_box = sgtk.platform.import_framework("tk-framework-qtwidgets", "message_box")
 MessageBox = message_box.MessageBox
+
+shotgun_fields = sgtk.platform.import_framework(
+    "tk-framework-qtwidgets", "shotgun_fields"
+)

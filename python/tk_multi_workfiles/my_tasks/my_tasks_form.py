@@ -17,7 +17,7 @@ from ..util import monitor_qobject_lifetime
 from ..entity_tree.entity_tree_form import EntityTreeForm
 from ..framework_qtwidgets import ViewItemDelegate
 
-from sgtk.platform.qt import QtCore
+from sgtk.platform.qt import QtCore, QtGui
 
 
 class MyTasksForm(EntityTreeForm):
@@ -58,6 +58,8 @@ class MyTasksForm(EntityTreeForm):
         self._ui.entity_tree.setItemDelegate(self._item_delegate)
 
         self._ui.entity_tree.doubleClicked.connect(self._on_double_clicked)
+
+        self._sort_button_setup()
 
     def shut_down(self):
         """
@@ -110,3 +112,10 @@ class MyTasksForm(EntityTreeForm):
         view.setRootIsDecorated(False)
 
         return delegate
+
+    def _sort_button_setup(self):
+        self.sort_menu_button = QtGui.QPushButton()
+        self.sort_menu_button.setText("Sort")
+        self.sort_menu_button.setObjectName("sort_menu_button")
+        self.sort_menu_button.setStyleSheet("border :None")
+        self._ui.horizontalLayout.addWidget(self.sort_menu_button)
