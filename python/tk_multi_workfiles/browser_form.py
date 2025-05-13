@@ -720,8 +720,8 @@ class BrowserForm(QtGui.QWidget):
     # Sorting methods
     def _sort_setup(self):
         # Last sort menu item selected, by default is sorted 'due_date'
-        self._current_menu_sort_item = "due_date"
-        self._current_menu_sort_order = "desc"
+        self._current_menu_sort_item = ""
+        self._current_menu_sort_order = "asc"
 
         # Get a task manager from shotgunutils
         task_manager = sgtk.platform.import_framework(
@@ -781,35 +781,30 @@ class BrowserForm(QtGui.QWidget):
         self._entity_field_menu.set_checked_filter(checked_filter)
         self._entity_field_menu.set_disabled_filter(disabled_filter)
 
-    def _sort_menu_actions(self):
+    def _sort_menu_actions(self, tab_name="tasks"):
         """
         Populate the sort menu with actions.
         """
+        # Get settings from info.yml
+        app = sgtk.platform.current_bundle()
+        sort_fields = app.get_setting("sort_fields").get(tab_name, [])
 
         # Create Sort Menu actions
         sort_asc = self._entity_field_menu._get_qaction("ascending", "Ascending")
         sort_desc = self._entity_field_menu._get_qaction("descending", "Descending")
         separator = self._entity_field_menu.addSeparator()
-        status_action = self._entity_field_menu._get_qaction("sg_status_list", "Status")
-        step_action = self._entity_field_menu._get_qaction("step", "Step")
-        start_date_action = self._entity_field_menu._get_qaction(
-            "start_date", "Start date"
-        )
-        due_date_action = self._entity_field_menu._get_qaction("due_date", "Due date")
-
-        # Actions group list ordered
-        sort_actions = [
-            due_date_action,
-            start_date_action,
-            status_action,
-            separator,
-            sort_asc,
-            sort_desc,
+        field_sort_actions = [
+            self._entity_field_menu._get_qaction(
+                field["field_code"], field["display_name"]
+            )
+            for field in sort_fields or []
         ]
 
-        # By default it sort Tasks due date in descending order
+        # Actions group list ordered
+        sort_actions = [sort_asc, sort_desc, separator, *field_sort_actions]
+
+        # By default it sorts in descending order and the default field is set in the configuration
         sort_desc.setChecked(True)
-        due_date_action.setChecked(True)
 
         # Menu sort order actions
         sort_asc.triggered[()].connect(
@@ -823,18 +818,16 @@ class BrowserForm(QtGui.QWidget):
             )
         )
         # Menu sort field actions
-        status_action.triggered[()].connect(
-            lambda: self.load_sort_data("sg_status_list", status_action, sort_actions)
-        )
-        step_action.triggered[()].connect(
-            lambda: self.load_sort_data("step", step_action, sort_actions)
-        )
-        start_date_action.triggered[()].connect(
-            lambda: self.load_sort_data("start_date", start_date_action, sort_actions)
-        )
-        due_date_action.triggered[()].connect(
-            lambda: self.load_sort_data("due_date", due_date_action, sort_actions)
-        )
+        # default_set = False
+        for index, field_sort_action in enumerate(field_sort_actions):
+            sort_field = sort_fields[index]
+            field_code = sort_field["field_code"]
+            field_sort_action.triggered[()].connect(
+                lambda fc=field_code, fsa=field_sort_action: self.load_sort_data(
+                    fc, fsa, sort_actions
+                )
+            )
+
         # Add actions to the entity Menu
         self._entity_field_menu.add_group(sort_actions, "Sort menu")
         # Remove the separator from the list
@@ -879,18 +872,18 @@ class BrowserForm(QtGui.QWidget):
 
         if field:
             self.my_tasks_model.load_and_refresh(
-                extra_filter=self._extra_filter,  # Keep filtering from the combo box
+                extra_filter=self._extra_filter,  # Keep the filters from the combo box
                 extra_sorting=[{"field_name": field, "direction": sort_order}]
             )
             self.my_tasks_model.data_refreshed.emit(True)
 
         # Set checked the current sort order in the Menu
         if sort_order == "asc":
-            actions_list[3].setChecked(True)
-            actions_list[4].setChecked(False)
+            actions_list[0].setChecked(True)
+            actions_list[1].setChecked(False)
         elif sort_order == "desc":
-            actions_list[4].setChecked(True)
-            actions_list[3].setChecked(False)
+            actions_list[0].setChecked(False)
+            actions_list[1].setChecked(True)
 
         # Save the last menu item selected
         self._current_menu_sort_item = field
