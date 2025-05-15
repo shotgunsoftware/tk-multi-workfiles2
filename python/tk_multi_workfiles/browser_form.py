@@ -833,7 +833,7 @@ class BrowserForm(QtGui.QWidget):
         # Remove the separator from the list
         sort_actions.remove(separator)
 
-    def load_sort_data(self, field, sort_action, actions_list, **sort_order):
+    def load_sort_data(self, field, sort_action, actions_list, sort_order=None):
         """
         Loads the data for MyTasks UI tab according to the selected
         menu sort option.
@@ -843,11 +843,7 @@ class BrowserForm(QtGui.QWidget):
         :param sort_order: Selected sort order.
         """
 
-        sort_order = (
-            sort_order.get("sort_order", None)
-            if sort_order
-            else self._current_menu_sort_order
-        )
+        sort_order = sort_order or self._current_menu_sort_order
 
         for action in actions_list:
             if action == sort_action:
