@@ -763,23 +763,11 @@ class BrowserForm(QtGui.QWidget):
         """
         Define a few simple filter methods for use by the menu
         """
-
-        def field_filter(field):
-            # none of the fields are included
-            return False
-
-        def checked_filter(field):
-            # none of the fields are checked
-            return False
-
-        def disabled_filter(field):
-            # none of the fields are disabled
-            return False
-
-        # attach the filters
-        self._entity_field_menu.set_field_filter(field_filter)
-        self._entity_field_menu.set_checked_filter(checked_filter)
-        self._entity_field_menu.set_disabled_filter(disabled_filter)
+        # Attach the filters
+        # None of the fields are included, checked, and disabled at startup
+        self._entity_field_menu.set_field_filter(lambda field: False)
+        self._entity_field_menu.set_checked_filter(lambda field: False)
+        self._entity_field_menu.set_disabled_filter(lambda field: False)
 
     def _sort_menu_actions(self, tab_name="tasks"):
         """
