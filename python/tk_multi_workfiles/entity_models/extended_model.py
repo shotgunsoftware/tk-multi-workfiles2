@@ -60,6 +60,7 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         self._original_filters = filters
         self._hierarchy = hierarchy
         self._fields = fields
+        self._order = []
         self._extra_filter = None
 
         # We keep track of which entities are in the model, so we can bail
@@ -85,7 +86,7 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         # step filtering should be disabled.
         return "step" in self._fields or "step" in self._hierarchy
 
-    def load_and_refresh(self, extra_filter=None):
+    def load_and_refresh(self, extra_filter=None, extra_sorting=None):
         """
         Load the data for this model and post a refresh.
 
@@ -96,7 +97,11 @@ class ShotgunExtendedEntityModel(ShotgunEntityModel):
         filters = self._original_filters[:]  # Copy the list to not update the reference
         if extra_filter:
             filters.append(extra_filter)
-        self._load_data(self._entity_type, filters, self._hierarchy, self._fields)
+        if extra_sorting:
+            self._order = extra_sorting
+        self._load_data(
+            self._entity_type, filters, self._hierarchy, self._fields, self._order
+        )
         self.async_refresh()
 
     def update_filters(self, extra_filter):
