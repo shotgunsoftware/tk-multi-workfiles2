@@ -747,10 +747,10 @@ class BrowserForm(QtGui.QWidget):
             lambda: self._entity_field_menu.exec_(QtGui.QCursor.pos())
         )
 
-        # the fields manager is used to query which fields are supported
-        # for display. it can also be used to find out which fields are
-        # visible to the user and editable by the user. the fields manager
-        # needs time to initialize itself. once that's done, the widgets can
+        # The fields manager is used to query which fields are supported
+        # for display. It can also be used to find out which fields are
+        # visible to the user and editable by the user. The fields manager
+        # needs time to initialize itself. Once that's done, the widgets can
         # begin to be populated.
         fields_manager = shotgun_fields.ShotgunFieldManager(
             self, bg_task_manager=self._task_manager
