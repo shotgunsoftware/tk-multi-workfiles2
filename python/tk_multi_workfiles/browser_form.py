@@ -23,7 +23,7 @@ from .file_list.file_list_form import FileListForm
 from .file_model import FileModel
 from .util import value_to_str, get_sg_entity_name_field
 from .ui.browser_form import Ui_BrowserForm
-from .framework_qtwidgets import Breadcrumb, shotgun_menus, shotgun_fields
+from .framework_qtwidgets import Breadcrumb, SGQIcon, shotgun_menus, shotgun_fields
 
 from .file_filters import FileFilters
 from .util import monitor_qobject_lifetime, get_template_user_keys
@@ -791,8 +791,10 @@ class BrowserForm(QtGui.QWidget):
         # Actions group list ordered
         sort_actions = [sort_asc, sort_desc, separator, *field_sort_actions]
 
-        # By default it sorts in descending order and the default field is set in the configuration
-        sort_desc.setChecked(True)
+        # By default it sorts in ascending order
+        sort_asc.setChecked(True)
+        # Set the icon to match the default sort order
+        self._my_tasks_form.sort_menu_button.setIcon(SGQIcon.sort_asc())
 
         # Menu sort order actions
         sort_asc.triggered[()].connect(
@@ -865,9 +867,11 @@ class BrowserForm(QtGui.QWidget):
         if sort_order == "asc":
             actions_list[0].setChecked(True)
             actions_list[1].setChecked(False)
+            self._my_tasks_form.sort_menu_button.setIcon(SGQIcon.sort_asc())
         elif sort_order == "desc":
             actions_list[0].setChecked(False)
             actions_list[1].setChecked(True)
+            self._my_tasks_form.sort_menu_button.setIcon(SGQIcon.sort_desc())
 
         # Save the last menu item selected
         self._current_menu_sort_item = field

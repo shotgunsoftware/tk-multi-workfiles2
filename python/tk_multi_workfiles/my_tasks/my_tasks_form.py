@@ -15,7 +15,7 @@ of a Shotgun data model of my tasks, a text search and a filter control.
 
 from ..util import monitor_qobject_lifetime
 from ..entity_tree.entity_tree_form import EntityTreeForm
-from ..framework_qtwidgets import ViewItemDelegate
+from ..framework_qtwidgets import ViewItemDelegate, sg_qwidgets
 
 from sgtk.platform.qt import QtCore, QtGui
 
@@ -114,8 +114,9 @@ class MyTasksForm(EntityTreeForm):
         return delegate
 
     def _sort_button_setup(self):
-        self.sort_menu_button = QtGui.QPushButton()
+        self.sort_menu_button = sg_qwidgets.SGQToolButton()
         self.sort_menu_button.setText("Sort")
         self.sort_menu_button.setObjectName("sort_menu_button")
         self.sort_menu_button.setStyleSheet("border :None")
-        self._ui.horizontalLayout.addWidget(self.sort_menu_button)
+        self.sort_menu_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self._ui.horizontalLayout.addWidget(self.sort_menu_button)  # horizontalLayout_2
