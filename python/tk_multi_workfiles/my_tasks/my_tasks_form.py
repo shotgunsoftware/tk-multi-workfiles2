@@ -119,4 +119,5 @@ class MyTasksForm(EntityTreeForm):
         self.sort_menu_button.setObjectName("sort_menu_button")
         self.sort_menu_button.setStyleSheet("border :None")
         self.sort_menu_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        self._ui.horizontalLayout.addWidget(self.sort_menu_button)  # horizontalLayout_2
+        self.sort_menu_button.setMinimumHeight(24)
+        self._ui.horizontalLayout_2.addWidget(self.sort_menu_button)
