@@ -65,10 +65,12 @@ shotgun_fields = sgtk.platform.import_framework(
 )
 sg_qwidgets = sgtk.platform.import_framework("tk-framework-qtwidgets", "sg_qwidgets")
 
+
 class SGQIcon(sg_qicons.SGQIcon):
     """
     A wrapper for the SGQIcon class to include additional icon resources.
     """
+
     @classmethod
     def sort_asc(cls):
         return cls(cls.resource_version_details_path("sort_up"))
