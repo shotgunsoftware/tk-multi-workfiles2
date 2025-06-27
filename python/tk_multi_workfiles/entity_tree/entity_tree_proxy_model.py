@@ -27,7 +27,11 @@ class EntityTreeProxyModel(EntityProxyModel):
         """ """
         EntityProxyModel.__init__(self, parent, compare_sg_fields)
         self._only_show_my_tasks = False
+
+        # set proxy to auto sort alphabetically
+        self.setDynamicSortFilter(True)
         self.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        self.sort(0, QtCore.Qt.AscendingOrder)
 
     # @property
     def _get_only_show_my_tasks(self):
