@@ -143,8 +143,8 @@ configuration:
                       *filters* a list of standard Flow Production Tracking API filters, *hierarchy* a list of fields defining
                       the grouping in the sub-tree.
                       The optional *step_filter_on* setting is an Entity type and can be used to restrict
-                      the list of Steps used for filtering to only the Steps for the specified Entity type."
-
+                      the list of Steps used for filtering to only the Steps for the specified Entity type.
+"
         # For backward compatibility reasons we don't use the new deferred queries
         # by default. Using deferred queries, an Asset/Shot setup could be:
         # - caption: Assets (deferred)
@@ -241,27 +241,6 @@ configuration:
         type: bool
         description: Controls whether new tasks can be created from the app.
         default_value: True
-
-    sort_fields:
-        type: dict
-        description: Controls what fields appear for sorting in the UI.
-                     Currently the sort menu only shows on the left tasks tab.
-                     You can add any field that would normally be suitable for sorting a query
-                     by for the tab's given entity type.
-        allows_empty: True
-        default_value:
-            tasks:
-                - { field_code: due_date, display_name: Due Date }
-                - { field_code: start_date, display_name: Start Date }
-                - { field_code: sg_status_list, display_name: Status }
-                - { field_code: step, display_name: Step}
-        values:
-            type: list
-            values:
-                type: dict
-                items:
-                    field_code: { type: str }
-                    display_name: { type: str }
 
     file_browser_tabs:
         type: list
