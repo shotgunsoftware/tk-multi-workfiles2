@@ -23,7 +23,7 @@ from .file_list.file_list_form import FileListForm
 from .file_model import FileModel
 from .util import value_to_str, get_sg_entity_name_field
 from .ui.browser_form import Ui_BrowserForm
-from .framework_qtwidgets import Breadcrumb
+from .framework_qtwidgets import Breadcrumb, SGQIcon, shotgun_menus, shotgun_fields
 
 from .file_filters import FileFilters
 from .util import monitor_qobject_lifetime, get_template_user_keys
@@ -242,6 +242,7 @@ class BrowserForm(QtGui.QWidget):
 
             # Task status filter
             self.my_tasks_model = my_tasks_model
+            self._extra_filter = None
             try:
                 self.populate_task_status_list()
                 self._my_tasks_form._ui.task_status_combo.currentTextChanged.connect(
@@ -250,6 +251,9 @@ class BrowserForm(QtGui.QWidget):
             except KeyError as e:
                 logger.warning("Task Status Filter: Error loading: {}".format(e))
                 self._my_tasks_form._ui.task_status_combo.hide()
+
+            # Sorting
+            self._sort_setup()
 
         for caption, step_filter_on, model in entity_models:
             step_entity_filter = None
@@ -705,11 +709,171 @@ class BrowserForm(QtGui.QWidget):
         :param value: The selected value on the combo box.
         """
         if value == "ALL":
+            self._extra_filter = None
             self.my_tasks_model.load_and_refresh()
         else:
-            self.my_tasks_model.load_and_refresh(
-                extra_filter=["sg_status_list", "is", value.lower()]
-            )
+            self._extra_filter = ["sg_status_list", "is", value.lower()]
+            self.my_tasks_model.load_and_refresh(extra_filter=self._extra_filter)
 
         self.my_tasks_model.data_refreshed.emit(True)
-        self.my_tasks_model.async_refresh()
+
+    # Sorting methods
+    def _sort_setup(self):
+        # Last sort menu item selected, by default is sorted 'due_date'
+        self._current_menu_sort_item = ""
+        self._current_menu_sort_order = "asc"
+
+        # Get a task manager from shotgunutils
+        task_manager = sgtk.platform.import_framework(
+            "tk-framework-shotgunutils", "task_manager"
+        )
+        self._task_manager = task_manager.BackgroundTaskManager(
+            self, start_processing=True, max_threads=2
+        )
+
+        # Build an EntityFieldMenu
+        app = sgtk.platform.current_bundle()
+        project_id = app.context.project.get("id")
+
+        self._entity_field_menu = shotgun_menus.EntityFieldMenu(
+            "Task",
+            self,
+            bg_task_manager=self._task_manager,
+            project_id=project_id,
+        )
+
+        # Connect
+        self._my_tasks_form.sort_menu_button.clicked.connect(
+            lambda: self._entity_field_menu.exec_(QtGui.QCursor.pos())
+        )
+
+        # The fields manager is used to query which fields are supported
+        # for display. It can also be used to find out which fields are
+        # visible to the user and editable by the user. The fields manager
+        # needs time to initialize itself. Once that's done, the widgets can
+        # begin to be populated.
+        fields_manager = shotgun_fields.ShotgunFieldManager(
+            self, bg_task_manager=self._task_manager
+        )
+        fields_manager.initialized.connect(self._field_filters)
+        fields_manager.initialize()
+        self._sort_menu_actions()
+
+    def _field_filters(self):
+        """
+        Define a few simple filter methods for use by the menu
+        """
+        # Attach the filters
+        # None of the fields are included, checked, and disabled at startup
+        self._entity_field_menu.set_field_filter(lambda field: False)
+        self._entity_field_menu.set_checked_filter(lambda field: False)
+        self._entity_field_menu.set_disabled_filter(lambda field: False)
+
+    def _sort_menu_actions(self, tab_name="tasks"):
+        """
+        Populate the sort menu with actions.
+        """
+        # Get settings from info.yml
+        app = sgtk.platform.current_bundle()
+        sort_fields = app.get_setting("sort_fields").get(tab_name, [])
+
+        # Create Sort Menu actions
+        sort_asc = self._entity_field_menu._get_qaction("ascending", "Ascending")
+        sort_desc = self._entity_field_menu._get_qaction("descending", "Descending")
+        separator = self._entity_field_menu.addSeparator()
+        field_sort_actions = [
+            self._entity_field_menu._get_qaction(
+                field["field_code"], field["display_name"]
+            )
+            for field in sort_fields or []
+        ]
+
+        # Actions group list ordered
+        sort_actions = [sort_asc, sort_desc, separator, *field_sort_actions]
+
+        # By default it sorts in ascending order
+        sort_asc.setChecked(True)
+        # Set the icon to match the default sort order
+        self._my_tasks_form.sort_menu_button.setIcon(SGQIcon.sort_asc())
+
+        # Menu sort order actions
+        sort_asc.triggered[()].connect(
+            lambda: self.load_sort_data(
+                "ascending", sort_asc, sort_actions, sort_order="asc"
+            )
+        )
+        sort_desc.triggered[()].connect(
+            lambda: self.load_sort_data(
+                "descending", sort_desc, sort_actions, sort_order="desc"
+            )
+        )
+        # Menu sort field actions
+        # default_set = False
+        for index, field_sort_action in enumerate(field_sort_actions):
+            sort_field = sort_fields[index]
+            field_code = sort_field["field_code"]
+            field_sort_action.triggered[()].connect(
+                lambda fc=field_code, fsa=field_sort_action: self.load_sort_data(
+                    fc, fsa, sort_actions
+                )
+            )
+
+        # Add actions to the entity Menu
+        self._entity_field_menu.add_group(sort_actions, "Sort menu")
+        # Remove the separator from the list
+        sort_actions.remove(separator)
+
+    def load_sort_data(self, field, sort_action, actions_list, sort_order=None):
+        """
+        Loads the data for MyTasks UI tab according to the selected
+        menu sort option.
+        :param field: task field string.
+        :param sort_action: selected task QAction object.
+        :param action_list: Dict of task QAction objects.
+        :param sort_order: Selected sort order.
+        """
+
+        sort_order = sort_order or self._current_menu_sort_order
+
+        for action in actions_list:
+            if action == sort_action:
+                sort_action.setChecked(True)
+            else:
+                if sort_action.data().get("field", None) in ["ascending", "descending"]:
+                    # If the current list element is equal to the latest field selected
+                    # Check it True
+                    if action.data().get("field", None) == self._current_menu_sort_item:
+                        sort_action.setChecked(True)
+                    else:
+                        continue
+                else:
+                    action.setChecked(False)
+
+        # Last menu field item selected
+        field = (
+            field
+            if not (field in ["ascending", "descending"])
+            else self._current_menu_sort_item
+        )
+
+        if field:
+            self.my_tasks_model.load_and_refresh(
+                extra_filter=self._extra_filter,  # Keep the filters from the combo box
+                extra_sorting=[{"field_name": field, "direction": sort_order}],
+            )
+            self.my_tasks_model.data_refreshed.emit(True)
+
+        # Set checked the current sort order in the Menu
+        if sort_order == "asc":
+            actions_list[0].setChecked(True)
+            actions_list[1].setChecked(False)
+            self._my_tasks_form.sort_menu_button.setIcon(SGQIcon.sort_asc())
+        elif sort_order == "desc":
+            actions_list[0].setChecked(False)
+            actions_list[1].setChecked(True)
+            self._my_tasks_form.sort_menu_button.setIcon(SGQIcon.sort_desc())
+
+        # Save the last menu item selected
+        self._current_menu_sort_item = field
+        # Save the Last sort item selected
+        self._current_menu_sort_order = sort_order

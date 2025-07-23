@@ -51,7 +51,6 @@ delegates = sgtk.platform.import_framework("tk-framework-qtwidgets", "delegates"
 ViewItemDelegate = delegates.ViewItemDelegate
 
 sg_qicons = sgtk.platform.import_framework("tk-framework-qtwidgets", "sg_qicons")
-SGQIcon = sg_qicons.SGQIcon
 
 shotgun_menus = sgtk.platform.import_framework(
     "tk-framework-qtwidgets", "shotgun_menus"
@@ -60,3 +59,29 @@ ShotgunMenu = shotgun_menus.ShotgunMenu
 
 message_box = sgtk.platform.import_framework("tk-framework-qtwidgets", "message_box")
 MessageBox = message_box.MessageBox
+
+shotgun_fields = sgtk.platform.import_framework(
+    "tk-framework-qtwidgets", "shotgun_fields"
+)
+sg_qwidgets = sgtk.platform.import_framework("tk-framework-qtwidgets", "sg_qwidgets")
+
+
+class SGQIcon(sg_qicons.SGQIcon):
+    """
+    A wrapper for the SGQIcon class to include additional icon resources.
+    """
+
+    @classmethod
+    def sort_asc(cls):
+        return cls(cls.resource_version_details_path("sort_up"))
+
+    @classmethod
+    def sort_desc(cls):
+        return cls(cls.resource_version_details_path("sort_down"))
+
+    @classmethod
+    def resource_version_details_path(cls, name, ext="png"):
+        return ":/version_details/{icon_name}.{ext}".format(
+            icon_name=name,
+            ext=ext,
+        )
