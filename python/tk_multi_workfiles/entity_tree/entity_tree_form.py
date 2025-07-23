@@ -530,7 +530,8 @@ class EntityTreeForm(QtGui.QWidget):
             filter_reg_exp = QtCore.QRegExp(
                 search_text, QtCore.Qt.CaseInsensitive, QtCore.QRegExp.FixedString
             )
-            self._ui.entity_tree.model().setFilterRegExp(filter_reg_exp)
+            if self._ui.entity_tree.model():
+                self._ui.entity_tree.model().setFilterRegExp(filter_reg_exp)
         finally:
             # and update the selection - this will restore the original selection if possible.
             self._update_selection(prev_selected_item)

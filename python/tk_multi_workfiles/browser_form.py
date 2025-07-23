@@ -34,6 +34,12 @@ from .step_list_filter import (
 )
 
 logger = sgtk.platform.get_logger(__name__)
+task_manager = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils", "task_manager"
+)
+shotgun_globals = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils", "shotgun_globals"
+)
 
 
 class BrowserForm(QtGui.QWidget):
@@ -126,10 +132,17 @@ class BrowserForm(QtGui.QWidget):
         )
         self._step_list_widget.step_filter_changed.connect(self._on_step_filter_changed)
 
+        self._task_manager = None
+
     def shut_down(self):
         """
         Help the gc by cleaning up as much as possible when this widget is finished with
         """
+        if self._task_manager:
+            shotgun_globals.unregister_bg_task_manager(self._task_manager)
+            self._task_manager.shut_down()
+            self._task_manager = None
+
         signals_blocked = self.blockSignals(True)
         try:
             self._step_list_widget.save_step_filters_if_changed()
@@ -724,12 +737,10 @@ class BrowserForm(QtGui.QWidget):
         self._current_menu_sort_order = "asc"
 
         # Get a task manager from shotgunutils
-        task_manager = sgtk.platform.import_framework(
-            "tk-framework-shotgunutils", "task_manager"
-        )
         self._task_manager = task_manager.BackgroundTaskManager(
             self, start_processing=True, max_threads=2
         )
+        shotgun_globals.register_bg_task_manager(self._task_manager)
 
         # Build an EntityFieldMenu
         app = sgtk.platform.current_bundle()
