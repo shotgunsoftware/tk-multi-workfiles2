@@ -108,11 +108,6 @@ class SceneOperation(HookClass):
             # open the specified script
             nuke.scriptOpen(file_path)
 
-            # reset any write node render paths:
-            if self._reset_write_node_render_paths():
-                # something changed so make sure to save the script again:
-                nuke.scriptSave()
-
         elif operation == "save":
             # save the current script:
             nuke.scriptSave()
@@ -122,9 +117,6 @@ class SceneOperation(HookClass):
             try:
                 # rename script:
                 nuke.root()["name"].setValue(file_path)
-
-                # reset all write nodes:
-                self._reset_write_node_render_paths()
 
                 # save script:
                 nuke.scriptSaveAs(file_path, -1)
@@ -181,21 +173,6 @@ class SceneOperation(HookClass):
             raise TankError("Please select a Hiero Project!")
 
         return project
-
-    def _reset_write_node_render_paths(self):
-        """
-        Use the tk-nuke-writenode app interface to find and reset
-        the render path of any Shotgun Write nodes in the current script
-        """
-        write_node_app = self.parent.engine.apps.get("tk-nuke-writenode")
-        if not write_node_app:
-            return False
-
-        write_nodes = write_node_app.get_write_nodes()
-        for write_node in write_nodes:
-            write_node_app.reset_node_render_path(write_node)
-
-        return len(write_nodes) > 0
 
     def _scene_operation_hiero_nukestudio(
         self,
