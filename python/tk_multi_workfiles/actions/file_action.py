@@ -31,9 +31,6 @@ class FileAction(Action):
         # create folders:
         QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
-            # (AD) - does this work with non-standard hierarchies? e.g. /Task/Entity?
-            ctx_entity = ctx.task or ctx.entity or ctx.project
-
             # FIXME: The launcher uses the defer_keyword setting, which allows to use keywords other
             # than the engine instance name, which is the default value in the launch app. Using
             # engine.instance_name is the best we can do at the moment because the is no way for workfiles
@@ -50,13 +47,14 @@ class FileAction(Action):
             # - Look for the settings of the launcher app in the destination context and extract the
             # defer_keyword setting and reuse it.
             #
-            # It may very well be that there's no solution that fits everyone and might warrant
-            # a hook.
-            app.sgtk.create_filesystem_structure(
-                ctx_entity.get("type"),
-                ctx_entity.get("id"),
-                engine=app.engine.instance_name,
+            app.execute_hook_method(
+                "file_action_hook",
+                "create_folders",
+                context=ctx,
             )
+        except:
+            app.log_exception("Failed to execute custom file action!")
+
         finally:
             QtGui.QApplication.restoreOverrideCursor()
 
