@@ -223,7 +223,7 @@ class StepListWidget(QtCore.QObject):
                 # color otherwise it is too bright.
                 color = [int(x) for x in step["color"].split(",")] + [200]
                 pixmap.fill(QtGui.QColor(*color))
-                widget.setIcon(pixmap)
+                widget.setIcon(QtGui.QIcon(pixmap))
             # Turn it on if it was in the step saved filters
             # We do this before the toggled signal is connected to not emit
             # un-wanted signals.
