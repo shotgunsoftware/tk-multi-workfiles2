@@ -58,6 +58,22 @@ def get_filter_from_filter_list(step_list):
     return step_filter
 
 
+def get_steps_for_entity_type(entity_type):
+    """
+    Return cached Shotgun Step dictionaries for a given Entity type.
+
+    The list is sourced from StepListWidget's class-level cache, which
+    respects the app setting 'filter_by_pipeline_step_visible_only'
+    and the current project context.
+
+    :param str entity_type: A Shotgun Entity type (e.g. 'Asset', 'Shot').
+    :returns: List of Step dictionaries with at least 'id', 'code',
+              'entity_type' and optionally 'color'.
+    """
+    StepListWidget._cache_step_list()
+    return list(StepListWidget._step_list.get(entity_type, []))
+
+
 class StepListWidget(QtCore.QObject):
     """
     A list widget of Shotgun Pipeline steps per entity type.
@@ -100,17 +116,48 @@ class StepListWidget(QtCore.QObject):
         cached. Do nothing if they were already cached.
         """
         if cls._step_list is None:
-            shotgun = sgtk.platform.current_bundle().shotgun
-            sg_steps = shotgun.find(
-                "Step",
-                [],
-                ["code", "entity_type", "color"],
-                order=[{"field_name": "code", "direction": "asc"}],
-            )
-            # Build a dictionary for indexing by the entity_type
+            bundle = sgtk.platform.current_bundle()
+            shotgun = bundle.shotgun
+            limit_visible = bundle.get_setting("pipeline_step_filter", False)
+            project = getattr(bundle.context, "project", None)
             cls._step_list = defaultdict(list)
-            for sg_step in sg_steps:
-                cls._step_list[sg_step["entity_type"]].append(sg_step)
+
+            if limit_visible and project:
+                # Build a map: entity_type -> set of step ids used by Tasks in this project
+                step_ids_by_entity_type = defaultdict(set)
+                task_filters = [
+                    ["project", "is", {"type": "Project", "id": project["id"]}],
+                    ["step", "is_not", None],
+                ]
+                tasks = shotgun.find("Task", task_filters, ["step", "entity"])
+                for task in tasks:
+                    entity = task.get("entity", {})
+                    entity_type = entity.get("type")
+                    step = task.get("step")
+                    if entity_type and step:
+                        step_ids_by_entity_type[entity_type].add(step["id"])
+
+                # Resolve full Step records per entity type
+                for entity_type, step_ids in step_ids_by_entity_type.items():
+                    if not step_ids:
+                        continue
+                    steps = shotgun.find(
+                        "Step",
+                        [["id", "in", list(step_ids)], ["entity_type", "is", entity_type]],
+                        ["code", "entity_type", "color"],
+                        order=[{"field_name": "code", "direction": "asc"}],
+                    )
+                    for sg_step in steps:
+                        cls._step_list[entity_type].append(sg_step)
+            else:
+                sg_steps = shotgun.find(
+                    "Step",
+                    [],
+                    ["code", "entity_type", "color"],
+                    order=[{"field_name": "code", "direction": "asc"}],
+                )
+                for sg_step in sg_steps:
+                    cls._step_list[sg_step["entity_type"]].append(sg_step)
 
     def select_all_steps(self, value=True):
         """
