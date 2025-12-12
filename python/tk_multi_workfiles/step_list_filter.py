@@ -117,11 +117,14 @@ class StepListWidget(QtCore.QObject):
         """
         if cls._step_list is not None:
             return
+
         bundle = sgtk.platform.current_bundle()
         shotgun_api = bundle.shotgun
         # Use the engine's Shotgun instance for schema calls
         engine_shotgun_api = sgtk.platform.current_engine().shotgun
-        limit_steps_to_project_visible = bundle.get_setting("project_visible_pipeline_steps", False)
+        limit_steps_to_project_visible = bundle.get_setting(
+            "project_visible_pipeline_steps", False
+        )
         current_project = getattr(bundle.context, "project", None)
         # Fetch all steps once (sorted by code) and organize in-memory
         all_steps = shotgun_api.find(
@@ -130,7 +133,9 @@ class StepListWidget(QtCore.QObject):
             ["code", "entity_type", "color"],
             order=[{"field_name": "code", "direction": "asc"}],
         )
-        should_limit_to_project_visible_steps = bool(limit_steps_to_project_visible and current_project)
+        should_limit_to_project_visible_steps = bool(
+            limit_steps_to_project_visible and current_project
+        )
         if not should_limit_to_project_visible_steps:
             # Simple case: cache all steps grouped by entity type
             steps_by_entity_type = defaultdict(list)
