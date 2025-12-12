@@ -12,7 +12,6 @@ from collections import defaultdict
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
-logger = sgtk.platform.get_logger(__name__) # standard Python logger
 
 settings_fw = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
 
