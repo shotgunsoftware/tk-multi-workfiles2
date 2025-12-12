@@ -130,7 +130,7 @@ configuration:
     project_visible_pipeline_steps:
         type: bool
         description: If True, only Steps visible for the current Project and entity type are listed.
-        default_value: True
+        default_value: False
     
     entities:
         type: list
