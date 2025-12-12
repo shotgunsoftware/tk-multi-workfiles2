@@ -12,6 +12,7 @@ from collections import defaultdict
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
+logger = sgtk.platform.get_logger(__name__) # standard Python logger
 
 settings_fw = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
 
@@ -115,49 +116,69 @@ class StepListWidget(QtCore.QObject):
         Retrieve all Steps from Shotgun and cache them, if they were not already
         cached. Do nothing if they were already cached.
         """
-        if cls._step_list is None:
-            bundle = sgtk.platform.current_bundle()
-            shotgun = bundle.shotgun
-            limit_visible = bundle.get_setting("pipeline_step_filter", False)
-            project = getattr(bundle.context, "project", None)
-            cls._step_list = defaultdict(list)
-
-            if limit_visible and project:
-                # Build a map: entity_type -> set of step ids used by Tasks in this project
-                step_ids_by_entity_type = defaultdict(set)
-                task_filters = [
-                    ["project", "is", {"type": "Project", "id": project["id"]}],
-                    ["step", "is_not", None],
-                ]
-                tasks = shotgun.find("Task", task_filters, ["step", "entity"])
-                for task in tasks:
-                    entity = task.get("entity", {})
-                    entity_type = entity.get("type")
-                    step = task.get("step")
-                    if entity_type and step:
-                        step_ids_by_entity_type[entity_type].add(step["id"])
-
-                # Resolve full Step records per entity type
-                for entity_type, step_ids in step_ids_by_entity_type.items():
-                    if not step_ids:
-                        continue
-                    steps = shotgun.find(
-                        "Step",
-                        [["id", "in", list(step_ids)], ["entity_type", "is", entity_type]],
-                        ["code", "entity_type", "color"],
-                        order=[{"field_name": "code", "direction": "asc"}],
-                    )
-                    for sg_step in steps:
-                        cls._step_list[entity_type].append(sg_step)
-            else:
-                sg_steps = shotgun.find(
-                    "Step",
-                    [],
-                    ["code", "entity_type", "color"],
-                    order=[{"field_name": "code", "direction": "asc"}],
-                )
-                for sg_step in sg_steps:
-                    cls._step_list[sg_step["entity_type"]].append(sg_step)
+        if cls._step_list is not None:
+            return
+        bundle = sgtk.platform.current_bundle()
+        shotgun_api = bundle.shotgun
+        # Use the engine's Shotgun instance for schema calls
+        engine_shotgun_api = sgtk.platform.current_engine().shotgun
+        limit_steps_to_project_visible = bundle.get_setting("project_visible_pipeline_steps", False)
+        current_project = getattr(bundle.context, "project", None)
+        # Fetch all steps once (sorted by code) and organize in-memory
+        all_steps = shotgun_api.find(
+            "Step",
+            [],
+            ["code", "entity_type", "color"],
+            order=[{"field_name": "code", "direction": "asc"}],
+        )
+        should_limit_to_project_visible_steps = bool(limit_steps_to_project_visible and current_project)
+        if not should_limit_to_project_visible_steps:
+            # Simple case: cache all steps grouped by entity type
+            steps_by_entity_type = defaultdict(list)
+            for step in all_steps:
+                entity_type = step.get("entity_type")
+                steps_by_entity_type[entity_type].append(step)
+            cls._step_list = steps_by_entity_type
+            return
+        # Limit to steps visible in the current project's schema
+        # Build lookup: entity_type -> { code -> step }
+        steps_by_entity_and_code = defaultdict(dict)
+        for step in all_steps:
+            code = step.get("code")
+            if code:
+                entity_type = step.get("entity_type")
+                steps_by_entity_and_code[entity_type][code] = step
+        cls._step_list = defaultdict(list)
+        project_entity = {"type": "Project", "id": current_project["id"]}
+        for entity_type, step_lookup_by_code in steps_by_entity_and_code.items():
+            schema_fields = engine_shotgun_api.schema_field_read(
+                entity_type,
+                project_entity=project_entity,
+            )
+            # Collect visible pipeline step codes from schema (fields named step_*)
+            visible_step_codes = []
+            for field_name, field_schema in schema_fields.items():
+                step_name = field_schema.get("name", {}).get("value")
+                is_field_visible = field_schema.get("visible", {}).get("value")
+                if (
+                    field_name.startswith("step_")
+                    and is_field_visible
+                    and step_name
+                    and step_name != "ALL TASKS"
+                ):
+                    visible_step_codes.append(step_name)
+            if not visible_step_codes:
+                continue
+            # Filter in-memory to avoid additional network calls, keep sort by code
+            visible_steps = [
+                step_lookup_by_code[step_code]
+                for step_code in visible_step_codes
+                if step_code in step_lookup_by_code
+            ]
+            if not visible_steps:
+                continue
+            visible_steps.sort(key=lambda x: x.get("code") or "")
+            cls._step_list[entity_type].extend(visible_steps)
 
     def select_all_steps(self, value=True):
         """

@@ -127,10 +127,11 @@ configuration:
 
     # General preferences
     #
-    pipeline_step_filter:
+    project_visible_pipeline_steps:
         type: bool
         description: If True, only Steps visible for the current Project and entity type are listed.
         default_value: True
+    
     entities:
         type: list
         description: "This setting defines the different tabs that will show up on the left hand side.
