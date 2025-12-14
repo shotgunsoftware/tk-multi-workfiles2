@@ -62,16 +62,98 @@ def get_steps_for_entity_type(entity_type):
     """
     Return cached Shotgun Step dictionaries for a given Entity type.
 
-    The list is sourced from StepListWidget's class-level cache, which
-    respects the app setting 'filter_by_pipeline_step_visible_only'
-    and the current project context.
+    The list is sourced from the StepCache, which respects the
+    'project_visible_pipeline_steps' app setting and the current project context.
 
     :param str entity_type: A Shotgun Entity type (e.g. 'Asset', 'Shot').
     :returns: List of Step dictionaries with at least 'id', 'code',
               'entity_type' and optionally 'color'.
     """
-    StepListWidget._cache_step_list()
-    return list(StepListWidget._step_list.get(entity_type, []))
+    StepCache.ensure_loaded()
+    return list(StepCache.get_step_map().get(entity_type, []))
+
+
+class StepCache(object):
+    """
+    Cache Shotgun Pipeline Steps per entity type.
+    """
+
+    _step_map = None
+
+    @classmethod
+    def ensure_loaded(cls):
+        """
+        Populate the cache for the current context/settings.
+        Computes a step map on accordingly.
+        """
+        bundle = sgtk.platform.current_bundle()
+        all_steps = bundle.shotgun.find(
+            "Step",
+            [],
+            ["code", "entity_type", "color"],
+            order=[{"field_name": "code", "direction": "asc"}],
+        )
+        project = bundle.context.project
+        if project and bundle.get_setting("project_visible_pipeline_steps", False):
+            step_map = cls._build_project_visible_steps(
+                all_steps, project["id"], sgtk.platform.current_engine().shotgun
+            )
+        else:
+            step_map = defaultdict(list)
+            for step in all_steps:
+                step_map[step.get("entity_type")].append(step)
+        cls._step_map = step_map
+
+    @classmethod
+    def get_step_map(cls):
+        """
+        Return the cached mapping: entity_type -> list of step dicts.
+        """
+        if cls._step_map is None:
+            cls.ensure_loaded()
+        return cls._step_map
+
+    @classmethod
+    def _build_project_visible_steps(cls, all_steps, project_id, engine_shotgun_api):
+        """
+        Build entity_type -> visible steps mapping for a project.
+        """
+        # Build lookup: entity_type -> { code -> step }
+        steps_by_entity_and_code = defaultdict(dict)
+        for step in all_steps:
+            if step.get("code"):
+                steps_by_entity_and_code[step.get("entity_type")][
+                    step.get("code")
+                ] = step
+        step_map = defaultdict(list)
+        for entity_type, step_lookup_by_code in steps_by_entity_and_code.items():
+            schema_fields = engine_shotgun_api.schema_field_read(
+                entity_type,
+                project_entity={"type": "Project", "id": project_id},
+            )
+            visible_step_codes = []
+            for field_name, field_schema in schema_fields.items():
+                step_name = field_schema.get("name", {}).get("value")
+                is_visible = field_schema.get("visible", {}).get("value")
+                if (
+                    field_name.startswith("step_")
+                    and is_visible
+                    and step_name
+                    and step_name != "ALL TASKS"
+                ):
+                    visible_step_codes.append(step_name)
+            if not visible_step_codes:
+                continue
+            visible_steps = [
+                step_lookup_by_code[step_code]
+                for step_code in visible_step_codes
+                if step_code in step_lookup_by_code
+            ]
+            if not visible_steps:
+                continue
+            visible_steps.sort(key=lambda x: x.get("code") or "")
+            step_map[entity_type].extend(visible_steps)
+        return step_map
 
 
 class StepListWidget(QtCore.QObject):
@@ -79,7 +161,6 @@ class StepListWidget(QtCore.QObject):
     A list widget of Shotgun Pipeline steps per entity type.
     """
 
-    _step_list = None
     step_filter_changed = QtCore.Signal(object)  # List of PTR step dictionaries
 
     def __init__(self, list_widget):
@@ -94,7 +175,8 @@ class StepListWidget(QtCore.QObject):
         """
         super().__init__()
         self._list_widget = list_widget
-        self._cache_step_list()
+        StepCache.ensure_loaded()
+        self._step_list = StepCache.get_step_map()
         self._step_widgets = defaultdict(list)
         saved_filters = load_step_filters()
         # Keep track of filters being changed to only save them if they were
@@ -108,81 +190,6 @@ class StepListWidget(QtCore.QObject):
                 self._current_filter_step_ids.update([x["id"] for x in step_list])
         else:
             self._current_filter_step_ids = set([x["id"] for x in load_step_filters()])
-
-    @classmethod
-    def _cache_step_list(cls):
-        """
-        Retrieve all Steps from Shotgun and cache them, if they were not already
-        cached. Do nothing if they were already cached.
-        """
-        if cls._step_list is not None:
-            return
-
-        bundle = sgtk.platform.current_bundle()
-        shotgun_api = bundle.shotgun
-        # Use the engine's Shotgun instance for schema calls
-        engine_shotgun_api = sgtk.platform.current_engine().shotgun
-        limit_steps_to_project_visible = bundle.get_setting(
-            "project_visible_pipeline_steps", False
-        )
-        current_project = getattr(bundle.context, "project", None)
-        # Fetch all steps once (sorted by code) and organize in-memory
-        all_steps = shotgun_api.find(
-            "Step",
-            [],
-            ["code", "entity_type", "color"],
-            order=[{"field_name": "code", "direction": "asc"}],
-        )
-        should_limit_to_project_visible_steps = bool(
-            limit_steps_to_project_visible and current_project
-        )
-        if not should_limit_to_project_visible_steps:
-            # Simple case: cache all steps grouped by entity type
-            steps_by_entity_type = defaultdict(list)
-            for step in all_steps:
-                entity_type = step.get("entity_type")
-                steps_by_entity_type[entity_type].append(step)
-            cls._step_list = steps_by_entity_type
-            return
-        # Limit to steps visible in the current project's schema
-        # Build lookup: entity_type -> { code -> step }
-        steps_by_entity_and_code = defaultdict(dict)
-        for step in all_steps:
-            code = step.get("code")
-            if code:
-                entity_type = step.get("entity_type")
-                steps_by_entity_and_code[entity_type][code] = step
-        cls._step_list = defaultdict(list)
-        project_entity = {"type": "Project", "id": current_project["id"]}
-        for entity_type, step_lookup_by_code in steps_by_entity_and_code.items():
-            schema_fields = engine_shotgun_api.schema_field_read(
-                entity_type,
-                project_entity=project_entity,
-            )
-            # Collect visible pipeline step codes from schema (fields named step_*)
-            visible_step_codes = []
-            for field_name, field_schema in schema_fields.items():
-                step_name = field_schema.get("name", {}).get("value")
-                is_field_visible = field_schema.get("visible", {}).get("value")
-                if (
-                    field_name.startswith("step_")
-                    and is_field_visible
-                    and step_name
-                    and step_name != "ALL TASKS"
-                ):
-                    visible_step_codes.append(step_name)
-            if not visible_step_codes:
-                continue
-            # Filter in-memory to avoid additional network calls, keep sort by code
-            visible_steps = [
-                step_lookup_by_code[step_code]
-                for step_code in visible_step_codes
-                if step_code in step_lookup_by_code
-            ]
-            if not visible_steps:
-                continue
-            visible_steps.sort(key=lambda x: x.get("code") or "")
-            cls._step_list[entity_type].extend(visible_steps)
 
     def select_all_steps(self, value=True):
         """
