@@ -75,12 +75,12 @@ def get_steps_for_entity_type(entity_type):
     :returns: List of Step dictionaries with at least 'id', 'code', 'entity_type'
               and optionally 'color'. Returns an empty list if none are available.
     """
-    return list(get_step_map().get(entity_type, []))
+    return list(_get_entity_type_to_steps_map().get(entity_type, []))
 
 
-def get_step_map():
+def _get_entity_type_to_steps_map():
     """
-    Return the cached mapping of entity_type -> list of Step dictionaries.
+    Return the cached mapping: entity_type -> list of Step dictionaries.
 
     The mapping is provided by
     `CachedShotgunSchema.get_pipeline_steps_by_entity_type`, scoped to the current
@@ -121,7 +121,7 @@ class StepListWidget(QtCore.QObject):
         """
         super().__init__()
         self._list_widget = list_widget
-        self._step_list = get_step_map()
+        self._step_list = _get_entity_type_to_steps_map()
         self._step_widgets = defaultdict(list)
         saved_filters = load_step_filters()
         # Keep track of filters being changed to only save them if they were
