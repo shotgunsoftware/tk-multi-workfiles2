@@ -14,6 +14,9 @@ import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
 settings_fw = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
+shotgun_globals = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils", "shotgun_globals"
+)
 
 # Settings name to save the Step filter list
 _STEP_FILTERS_USER_SETTING = "step_filters"
@@ -60,100 +63,43 @@ def get_filter_from_filter_list(step_list):
 
 def get_steps_for_entity_type(entity_type):
     """
-    Return cached Shotgun Step dictionaries for a given Entity type.
+    Return cached Flow Production Tracking (ShotGrid) Step dictionaries for a given Entity type.
 
-    The list is sourced from the StepCache, which respects the
-    'project_visible_pipeline_steps' app setting and the current project context.
+    The list is sourced from the framework's schema cache
+    (`CachedShotgunSchema.get_pipeline_steps_by_entity_type`) and respects the
+    `project_visible_pipeline_steps` app setting and the current project context.
+    When project visibility is enabled, only Steps exposed via project schema
+    'step_*' fields are included.
 
     :param str entity_type: A Shotgun Entity type (e.g. 'Asset', 'Shot').
-    :returns: List of Step dictionaries with at least 'id', 'code',
-              'entity_type' and optionally 'color'.
+    :returns: List of Step dictionaries with at least 'id', 'code', 'entity_type'
+              and optionally 'color'. Returns an empty list if none are available.
     """
-    StepCache.ensure_loaded()
-    return list(StepCache.get_step_map().get(entity_type, []))
+    return list(get_step_map().get(entity_type, []))
 
 
-class StepCache(object):
+def get_step_map():
     """
-    Cache Shotgun Pipeline Steps per entity type.
+    Return the cached mapping of entity_type -> list of Step dictionaries.
+
+    The mapping is provided by
+    `CachedShotgunSchema.get_pipeline_steps_by_entity_type`, scoped to the current
+    project (when available) and the `project_visible_pipeline_steps` app setting.
+    Each Step dict contains at least: 'id', 'code', 'entity_type', and may include
+    'color'.
+
+    :returns: dict mapping entity type (str) to a list of Step dictionaries.
     """
+    bundle = sgtk.platform.current_bundle()
+    project = bundle.context.project
+    limit_to_project_visible = bundle.get_setting(
+        "project_visible_pipeline_steps", False
+    )
 
-    _step_map = None
-
-    @classmethod
-    def ensure_loaded(cls):
-        """
-        Populate the cache for the current context/settings.
-        Computes a step map on accordingly.
-        """
-        bundle = sgtk.platform.current_bundle()
-        all_steps = bundle.shotgun.find(
-            "Step",
-            [],
-            ["code", "entity_type", "color"],
-            order=[{"field_name": "code", "direction": "asc"}],
-        )
-        project = bundle.context.project
-        if project and bundle.get_setting("project_visible_pipeline_steps", False):
-            step_map = cls._build_project_visible_steps(
-                all_steps, project["id"], sgtk.platform.current_engine().shotgun
-            )
-        else:
-            step_map = defaultdict(list)
-            for step in all_steps:
-                step_map[step.get("entity_type")].append(step)
-        cls._step_map = step_map
-
-    @classmethod
-    def get_step_map(cls):
-        """
-        Return the cached mapping: entity_type -> list of step dicts.
-        """
-        if cls._step_map is None:
-            cls.ensure_loaded()
-        return cls._step_map
-
-    @classmethod
-    def _build_project_visible_steps(cls, all_steps, project_id, engine_shotgun_api):
-        """
-        Build entity_type -> visible steps mapping for a project.
-        """
-        # Build lookup: entity_type -> { code -> step }
-        steps_by_entity_and_code = defaultdict(dict)
-        for step in all_steps:
-            if step.get("code"):
-                steps_by_entity_and_code[step.get("entity_type")][
-                    step.get("code")
-                ] = step
-        step_map = defaultdict(list)
-        for entity_type, step_lookup_by_code in steps_by_entity_and_code.items():
-            schema_fields = engine_shotgun_api.schema_field_read(
-                entity_type,
-                project_entity={"type": "Project", "id": project_id},
-            )
-            visible_step_codes = []
-            for field_name, field_schema in schema_fields.items():
-                step_name = field_schema.get("name", {}).get("value")
-                is_visible = field_schema.get("visible", {}).get("value")
-                if (
-                    field_name.startswith("step_")
-                    and is_visible
-                    and step_name
-                    and step_name != "ALL TASKS"
-                ):
-                    visible_step_codes.append(step_name)
-            if not visible_step_codes:
-                continue
-            visible_steps = [
-                step_lookup_by_code[step_code]
-                for step_code in visible_step_codes
-                if step_code in step_lookup_by_code
-            ]
-            if not visible_steps:
-                continue
-            visible_steps.sort(key=lambda x: x.get("code") or "")
-            step_map[entity_type].extend(visible_steps)
-        return step_map
+    return shotgun_globals.cached_schema.CachedShotgunSchema.get_pipeline_steps_by_entity_type(
+        limit_to_project_visible=bool(project and limit_to_project_visible),
+        project_id=project["id"] if project else None,
+    )
 
 
 class StepListWidget(QtCore.QObject):
@@ -175,8 +121,7 @@ class StepListWidget(QtCore.QObject):
         """
         super().__init__()
         self._list_widget = list_widget
-        StepCache.ensure_loaded()
-        self._step_list = StepCache.get_step_map()
+        self._step_list = get_step_map()
         self._step_widgets = defaultdict(list)
         saved_filters = load_step_filters()
         # Keep track of filters being changed to only save them if they were
