@@ -66,7 +66,7 @@ class TestEntityTreeProxyModel(Workfiles2TestBase):
         # Create an actual MyTasksModel instance with all required parameters
         my_tasks_model = MyTasksModel(
             project=self.project,
-            user=self.current_user,
+            user=self.jeff,
             extra_display_fields=[],
             my_tasks_filters=[],
             parent=None
