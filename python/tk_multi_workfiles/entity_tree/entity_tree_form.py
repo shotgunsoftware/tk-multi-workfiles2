@@ -25,6 +25,7 @@ from ..util import (
     map_to_source,
     get_source_model,
     monitor_qobject_lifetime,
+    create_case_insensitive_regex,
 )
 from ..util import get_sg_entity_name_field
 from ..entity_models import ShotgunDeferredEntityModel
@@ -527,9 +528,7 @@ class EntityTreeForm(QtGui.QWidget):
         prev_selected_item = self._reset_selection()
         try:
             # update the proxy filter search text:
-            filter_reg_exp = QtCore.QRegExp(
-                search_text, QtCore.Qt.CaseInsensitive, QtCore.QRegExp.FixedString
-            )
+            filter_reg_exp = create_case_insensitive_regex(search_text)
             if self._ui.entity_tree.model():
                 self._ui.entity_tree.model().setFilterRegExp(filter_reg_exp)
         finally:
