@@ -29,6 +29,22 @@ class EntityTreeProxyModel(EntityProxyModel):
         self._only_show_my_tasks = False
         self.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
 
+    def setSourceModel(self, source_model):
+        """
+        Override to set up automatic alphabetical sorting for models that don't use custom sorting.
+        """
+        EntityProxyModel.setSourceModel(self, source_model)
+
+        # Enable automatic alphabetical sorting for models that don't use custom sorting
+        # We check if the source model is a MyTasksModel (which uses custom sorting via _order)
+        if source_model:
+            from ..my_tasks.my_tasks_model import MyTasksModel
+
+            if not isinstance(source_model, MyTasksModel):
+                # This is not a MyTasksModel (Assets/Shots tab), enable automatic alphabetical sorting
+                self.setDynamicSortFilter(True)
+                self.sort(0, QtCore.Qt.AscendingOrder)
+
     # @property
     def _get_only_show_my_tasks(self):
         return self._only_show_my_tasks

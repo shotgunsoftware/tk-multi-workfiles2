@@ -251,6 +251,7 @@ configuration:
         allows_empty: True
         default_value:
             tasks:
+                - { field_code: content, display_name: Task Name }
                 - { field_code: due_date, display_name: Due Date }
                 - { field_code: start_date, display_name: Start Date }
                 - { field_code: sg_status_list, display_name: Status }
