@@ -63,11 +63,11 @@ class TestEntityTreeProxyModel(Workfiles2TestBase):
         # Import the actual MyTasksModel class
         MyTasksModel = self.tk_multi_workfiles.my_tasks.my_tasks_model.MyTasksModel
 
-        # Create a mock that is an instance of MyTasksModel
-        mock_my_tasks_model = Mock(spec=MyTasksModel)
+        # Create an actual MyTasksModel instance
+        my_tasks_model = MyTasksModel(None, self.app.shotgun, self.app.context)
 
         # Set the source model
-        proxy_model.setSourceModel(mock_my_tasks_model)
+        proxy_model.setSourceModel(my_tasks_model)
 
         # Verify that dynamic sorting was NOT enabled (should remain False by default)
         self.assertFalse(proxy_model.dynamicSortFilter())
@@ -79,11 +79,12 @@ class TestEntityTreeProxyModel(Workfiles2TestBase):
         # Create the proxy model
         proxy_model = self.EntityTreeProxyModel(None, None)
 
-        # Create a mock entity model (not MyTasksModel)
-        mock_entity_model = Mock()
+        # Create a real Qt model (QStandardItemModel is a generic Qt model)
+        from sgtk.platform.qt import QtGui
+        entity_model = QtGui.QStandardItemModel()
 
         # Set the source model
-        proxy_model.setSourceModel(mock_entity_model)
+        proxy_model.setSourceModel(entity_model)
 
         # Verify that dynamic sorting WAS enabled
         self.assertTrue(proxy_model.dynamicSortFilter())
@@ -120,10 +121,13 @@ class TestEntityTreeProxyModel(Workfiles2TestBase):
         # Create the proxy model
         proxy_model = self.EntityTreeProxyModel(None, None)
 
-        # Create a mock source model
-        mock_source_model = Mock()
-        mock_source_model.ensure_data_is_loaded = Mock()
-        proxy_model.setSourceModel(mock_source_model)
+        # Create a real Qt model and mock the ensure_data_is_loaded method
+        from sgtk.platform.qt import QtGui
+        from unittest.mock import patch
+        
+        source_model = QtGui.QStandardItemModel()
+        source_model.ensure_data_is_loaded = Mock()
+        proxy_model.setSourceModel(source_model)
 
         # Set to True
         proxy_model.only_show_my_tasks = True
@@ -131,7 +135,7 @@ class TestEntityTreeProxyModel(Workfiles2TestBase):
         # Verify it was set
         self.assertTrue(proxy_model.only_show_my_tasks)
         # Verify ensure_data_is_loaded was called
-        mock_source_model.ensure_data_is_loaded.assert_called_once()
+        source_model.ensure_data_is_loaded.assert_called_once()
 
     def test_only_show_my_tasks_property_setter_no_change_does_not_invalidate(self):
         """
@@ -140,15 +144,17 @@ class TestEntityTreeProxyModel(Workfiles2TestBase):
         # Create the proxy model
         proxy_model = self.EntityTreeProxyModel(None, None)
 
-        # Create a mock source model
-        mock_source_model = Mock()
-        mock_source_model.ensure_data_is_loaded = Mock()
-        proxy_model.setSourceModel(mock_source_model)
+        # Create a real Qt model and mock the ensure_data_is_loaded method
+        from sgtk.platform.qt import QtGui
+        
+        source_model = QtGui.QStandardItemModel()
+        source_model.ensure_data_is_loaded = Mock()
+        proxy_model.setSourceModel(source_model)
 
         # Set to True first time
         proxy_model.only_show_my_tasks = True
-        mock_source_model.ensure_data_is_loaded.reset_mock()
+        source_model.ensure_data_is_loaded.reset_mock()
 
         # Setting to the same value should not call ensure_data_is_loaded again
         proxy_model.only_show_my_tasks = True
-        mock_source_model.ensure_data_is_loaded.assert_not_called()
+        source_model.ensure_data_is_loaded.assert_not_called()
