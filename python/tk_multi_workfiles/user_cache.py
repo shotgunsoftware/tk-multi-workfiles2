@@ -11,6 +11,7 @@
 """
 Implementation of the user cache storing Shotgun user information
 """
+
 import sgtk
 
 from .util import Threaded

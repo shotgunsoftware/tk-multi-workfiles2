@@ -11,6 +11,7 @@
 """
 Hook that defines and executes custom actions that can operate on a file (and it's versions).
 """
+
 import sgtk
 
 HookBaseClass = sgtk.get_hook_baseclass()

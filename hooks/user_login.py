@@ -12,7 +12,6 @@
 import os
 import sgtk
 
-
 HookClass = sgtk.get_hook_baseclass()
 
 
