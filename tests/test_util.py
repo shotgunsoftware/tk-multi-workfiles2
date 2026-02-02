@@ -17,6 +17,7 @@ from workfiles2_test_base import Workfiles2TestBase
 from workfiles2_test_base import tearDownModule  # noqa
 
 
+import sgtk
 from sgtk.platform.qt import QtCore
 
 
