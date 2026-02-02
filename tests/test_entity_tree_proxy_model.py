@@ -44,11 +44,8 @@ class TestEntityTreeProxyModel(Workfiles2TestBase):
         """
         Test that __init__ sets case insensitive sorting.
         """
-        # Create a mock parent
-        parent = Mock()
-
-        # Create the proxy model
-        proxy_model = self.EntityTreeProxyModel(parent, None)
+        # Create the proxy model (parent=None is valid for Qt objects)
+        proxy_model = self.EntityTreeProxyModel(None, None)
 
         # Verify case insensitive sorting is set
         self.assertEqual(
@@ -60,9 +57,8 @@ class TestEntityTreeProxyModel(Workfiles2TestBase):
         """
         Test that setSourceModel does NOT enable automatic sorting for MyTasksModel.
         """
-        # Create a mock parent
-        parent = Mock()
-        proxy_model = self.EntityTreeProxyModel(parent, None)
+        # Create the proxy model
+        proxy_model = self.EntityTreeProxyModel(None, None)
 
         # Import the actual MyTasksModel class
         MyTasksModel = self.tk_multi_workfiles.my_tasks.my_tasks_model.MyTasksModel
@@ -80,9 +76,8 @@ class TestEntityTreeProxyModel(Workfiles2TestBase):
         """
         Test that setSourceModel enables automatic sorting for non-MyTasksModel (Assets/Shots).
         """
-        # Create a mock parent
-        parent = Mock()
-        proxy_model = self.EntityTreeProxyModel(parent, None)
+        # Create the proxy model
+        proxy_model = self.EntityTreeProxyModel(None, None)
 
         # Create a mock entity model (not MyTasksModel)
         mock_entity_model = Mock()
@@ -99,9 +94,8 @@ class TestEntityTreeProxyModel(Workfiles2TestBase):
         """
         Test that setSourceModel handles None gracefully.
         """
-        # Create a mock parent
-        parent = Mock()
-        proxy_model = self.EntityTreeProxyModel(parent, None)
+        # Create the proxy model
+        proxy_model = self.EntityTreeProxyModel(None, None)
 
         # Set source model to None (should not crash)
         proxy_model.setSourceModel(None)
@@ -113,9 +107,8 @@ class TestEntityTreeProxyModel(Workfiles2TestBase):
         """
         Test the only_show_my_tasks property getter.
         """
-        # Create a mock parent
-        parent = Mock()
-        proxy_model = self.EntityTreeProxyModel(parent, None)
+        # Create the proxy model
+        proxy_model = self.EntityTreeProxyModel(None, None)
 
         # Initial value should be False
         self.assertFalse(proxy_model.only_show_my_tasks)
@@ -124,9 +117,8 @@ class TestEntityTreeProxyModel(Workfiles2TestBase):
         """
         Test the only_show_my_tasks property setter triggers proper model updates.
         """
-        # Create a mock parent
-        parent = Mock()
-        proxy_model = self.EntityTreeProxyModel(parent, None)
+        # Create the proxy model
+        proxy_model = self.EntityTreeProxyModel(None, None)
 
         # Create a mock source model
         mock_source_model = Mock()
@@ -145,9 +137,8 @@ class TestEntityTreeProxyModel(Workfiles2TestBase):
         """
         Test that setting only_show_my_tasks to the same value doesn't trigger updates.
         """
-        # Create a mock parent
-        parent = Mock()
-        proxy_model = self.EntityTreeProxyModel(parent, None)
+        # Create the proxy model
+        proxy_model = self.EntityTreeProxyModel(None, None)
 
         # Create a mock source model
         mock_source_model = Mock()
