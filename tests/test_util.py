@@ -13,9 +13,9 @@ Unit tests for utility functions in tk_multi_workfiles.util module.
 """
 
 from tank_test.tank_test_base import setUpModule  # noqa
-from tank_test.tank_test_base import tearDownModule  # noqa
-
 from workfiles2_test_base import Workfiles2TestBase
+from workfiles2_test_base import tearDownModule  # noqa
+
 
 from sgtk.platform.qt import QtCore
 
