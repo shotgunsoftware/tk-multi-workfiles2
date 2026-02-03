@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """ """
+
 import sgtk
 
 shotgun_model = sgtk.platform.import_framework(

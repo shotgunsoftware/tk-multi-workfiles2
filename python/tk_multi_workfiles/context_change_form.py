@@ -12,6 +12,7 @@
 Qt widget that presents the user with a list of entities
 so that they can choose a context to work in.
 """
+
 import sgtk
 
 from .actions.context_change_action import ContextChangeAction

@@ -11,6 +11,7 @@
 """
 File open menu factory.
 """
+
 import sgtk
 
 from .action import SeparatorAction, ActionGroup
