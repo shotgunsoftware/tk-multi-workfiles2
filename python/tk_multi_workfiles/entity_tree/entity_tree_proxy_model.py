@@ -40,7 +40,10 @@ class EntityTreeProxyModel(EntityProxyModel):
         if source_model:
             from ..my_tasks.my_tasks_model import MyTasksModel
 
-            if not isinstance(source_model, MyTasksModel):
+            if isinstance(source_model, MyTasksModel):
+                # MyTasksModel uses custom sorting via _order, disable automatic sorting
+                self.setDynamicSortFilter(False)
+            else:
                 # This is not a MyTasksModel (Assets/Shots tab), enable automatic alphabetical sorting
                 self.setDynamicSortFilter(True)
                 self.sort(0, QtCore.Qt.AscendingOrder)
