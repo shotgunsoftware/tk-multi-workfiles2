@@ -12,6 +12,7 @@
 Implementation of the entity tree widget consisting of a tree view that displays the
 contents of a Shotgun Data Model, a text search and a filter control.
 """
+
 import weakref
 
 import sgtk
