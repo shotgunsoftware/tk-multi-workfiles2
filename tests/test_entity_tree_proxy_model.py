@@ -69,7 +69,8 @@ class TestEntityTreeProxyModel(Workfiles2TestBase):
             user=self.jeff,
             extra_display_fields=[],
             my_tasks_filters=[],
-            parent=None
+            parent=None,
+            bg_task_manager=self.bg_task_manager,
         )
 
         # Set the source model
@@ -87,6 +88,7 @@ class TestEntityTreeProxyModel(Workfiles2TestBase):
 
         # Create a real Qt model (QStandardItemModel is a generic Qt model)
         from sgtk.platform.qt import QtGui
+
         entity_model = QtGui.QStandardItemModel()
 
         # Set the source model
@@ -132,7 +134,7 @@ class TestEntityTreeProxyModel(Workfiles2TestBase):
         # Create a real Qt model and mock the ensure_data_is_loaded method
         from sgtk.platform.qt import QtGui
         from unittest.mock import patch
-        
+
         source_model = QtGui.QStandardItemModel()
         source_model.ensure_data_is_loaded = Mock()
         proxy_model.setSourceModel(source_model)
@@ -154,7 +156,7 @@ class TestEntityTreeProxyModel(Workfiles2TestBase):
 
         # Create a real Qt model and mock the ensure_data_is_loaded method
         from sgtk.platform.qt import QtGui
-        
+
         source_model = QtGui.QStandardItemModel()
         source_model.ensure_data_is_loaded = Mock()
         proxy_model.setSourceModel(source_model)
