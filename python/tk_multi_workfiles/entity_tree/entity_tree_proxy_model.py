@@ -11,9 +11,10 @@
 """ """
 
 import sgtk
-from ..entity_proxy_model import EntityProxyModel
 from sgtk.platform.qt import QtCore
 
+from ..entity_proxy_model import EntityProxyModel
+from ..my_tasks.my_tasks_model import MyTasksModel
 from ..user_cache import g_user_cache
 
 
@@ -25,7 +26,7 @@ class EntityTreeProxyModel(EntityProxyModel):
 
     def __init__(self, parent, compare_sg_fields):
         """ """
-        EntityProxyModel.__init__(self, parent, compare_sg_fields)
+        super().__init__(parent, compare_sg_fields)
         self._only_show_my_tasks = False
         self.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
 
@@ -33,13 +34,11 @@ class EntityTreeProxyModel(EntityProxyModel):
         """
         Override to set up automatic alphabetical sorting for models that don't use custom sorting.
         """
-        EntityProxyModel.setSourceModel(self, source_model)
+        super().setSourceModel(source_model)
 
         # Enable automatic alphabetical sorting for models that don't use custom sorting
         # We check if the source model is a MyTasksModel (which uses custom sorting via _order)
         if source_model:
-            from ..my_tasks.my_tasks_model import MyTasksModel
-
             if isinstance(source_model, MyTasksModel):
                 # MyTasksModel uses custom sorting via _order, disable automatic sorting
                 self.setDynamicSortFilter(False)
@@ -91,6 +90,4 @@ class EntityTreeProxyModel(EntityProxyModel):
                 return False
 
         # we accept this row so lets check with the base implementation:
-        return EntityProxyModel._is_row_accepted(
-            self, src_row, src_parent_idx, parent_accepted
-        )
+        return super()._is_row_accepted(self, src_row, src_parent_idx, parent_accepted)
