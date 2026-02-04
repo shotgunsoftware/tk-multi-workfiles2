@@ -90,4 +90,4 @@ class EntityTreeProxyModel(EntityProxyModel):
                 return False
 
         # we accept this row so lets check with the base implementation:
-        return super()._is_row_accepted(self, src_row, src_parent_idx, parent_accepted)
+        return super()._is_row_accepted(src_row, src_parent_idx, parent_accepted)
