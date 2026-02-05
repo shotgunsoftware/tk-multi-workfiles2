@@ -68,10 +68,10 @@ class FileModel(QtGui.QStandardItemModel, ViewItemRolesMixin):
             )
 
     # enumeration of node types in model:
-    (FILE_NODE_TYPE, GROUP_NODE_TYPE, FOLDER_NODE_TYPE) = range(3)
+    FILE_NODE_TYPE, GROUP_NODE_TYPE, FOLDER_NODE_TYPE = range(3)
 
     # enumeration of search status:
-    (SEARCHING, SEARCH_COMPLETED, SEARCH_FAILED) = range(3)
+    SEARCHING, SEARCH_COMPLETED, SEARCH_FAILED = range(3)
 
     # Additional data roles defined for the model
     _BASE_ROLE = QtCore.Qt.UserRole + 32
@@ -1418,7 +1418,7 @@ class FileModel(QtGui.QStandardItemModel, ViewItemRolesMixin):
         if uid not in self._pending_thumbnail_requests:
             # the completed work is of no interest to us!
             return
-        (group_key, file_key, file_version) = self._pending_thumbnail_requests[uid]
+        group_key, file_key, file_version = self._pending_thumbnail_requests[uid]
         del self._pending_thumbnail_requests[uid]
 
         # extract the thumbnail path and QImage from the data/result

@@ -12,6 +12,7 @@
 Custom widget that can display a list of work files/publishes in a couple of
 different views with options to show all versions or just the latest.
 """
+
 import weakref
 
 import sgtk
@@ -46,7 +47,7 @@ class FileListForm(QtGui.QWidget):
     #                    using the mouse.
     # - SYSTEM_SELECTED: The system changed the selection, either because of a filter change, an
     #                    asyncronous data load, etc.
-    (USER_SELECTED, SYSTEM_SELECTED) = range(2)
+    USER_SELECTED, SYSTEM_SELECTED = range(2)
 
     # Signal emitted whenever the selected file changes in one of the file views
     file_selected = QtCore.Signal(object, object, int)  # file, env, selection mode

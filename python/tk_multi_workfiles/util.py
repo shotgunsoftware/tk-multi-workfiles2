@@ -11,6 +11,7 @@
 """
 Various utility methods used by the app code
 """
+
 import threading
 
 import sgtk
