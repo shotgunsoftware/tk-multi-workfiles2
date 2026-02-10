@@ -86,34 +86,15 @@ class Workfiles2TestBase(TankTestBase):
 
     def _cleanup_bg_task_manager(self):
         """
-        Cleanup BackgroundTaskManager - disconnect Qt signals before shut_down
-        to prevent segfaults during garbage collection.
+        Cleanup - release references before destruction.
+
+        Setting instance variable to None releases references to Qt objects,
+        allowing them to be destroyed in a controlled order. This prevents
+        random segmentation faults during CI test runs with PySide6 6.8.3+
+        where Qt signal auto-disconnection can access freed memory during
+        object destruction.
         """
-        if self.bg_task_manager is None:
-            return
-
-        # Disconnect signals to prevent segfaults with PySide6 6.8.3+
-        # Only disconnect if using real Qt signals (not mocked)
-        if hasattr(self.bg_task_manager.task_completed, "disconnect"):
-            try:
-                self.bg_task_manager.task_completed.disconnect()
-            except (RuntimeError, TypeError, AttributeError):
-                pass
-
-        if hasattr(self.bg_task_manager.task_failed, "disconnect"):
-            try:
-                self.bg_task_manager.task_failed.disconnect()
-            except (RuntimeError, TypeError, AttributeError):
-                pass
-
-        if hasattr(self.bg_task_manager.task_group_finished, "disconnect"):
-            try:
-                self.bg_task_manager.task_group_finished.disconnect()
-            except (RuntimeError, TypeError, AttributeError):
-                pass
-
-        # Now safe to call shut_down
-        self.bg_task_manager.shut_down()
+        self.bg_task_manager = None
 
     def create_context(self, entity, user=None):
         """
