@@ -69,8 +69,6 @@ class Workfiles2TestBase(TankTestBase):
 
         # and start the engine
         self.engine = sgtk.platform.start_engine("tk-testengine", self.tk, context)
-        # This ensures that the engine will always be destroyed.
-        self.addCleanup(self.engine.destroy)
 
         self.app = self.engine.apps[app_instance]
         self.tk_multi_workfiles = self.app.import_module("tk_multi_workfiles")
@@ -80,9 +78,22 @@ class Workfiles2TestBase(TankTestBase):
             .import_module("task_manager")
             .BackgroundTaskManager(parent=None, start_processing=True)
         )
-        self.addCleanup(self._cleanup_bg_task_manager)
         self.work_template = self.tk.templates[work_template]
         self.publish_template = self.tk.templates[publish_template]
+
+    def tearDown(self):
+        """
+        Cleanup - shut down task manager and engine in correct order.
+        """
+        # Clean up the background task manager first
+        self._cleanup_bg_task_manager()
+        
+        # Then destroy the engine
+        if hasattr(self, 'engine') and self.engine:
+            self.engine.destroy()
+        
+        # Call parent tearDown
+        super().tearDown()
 
     def _cleanup_bg_task_manager(self):
         """
