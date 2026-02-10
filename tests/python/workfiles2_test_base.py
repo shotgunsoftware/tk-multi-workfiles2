@@ -80,9 +80,40 @@ class Workfiles2TestBase(TankTestBase):
             .import_module("task_manager")
             .BackgroundTaskManager(parent=None, start_processing=True)
         )
-        self.addCleanup(self.bg_task_manager.shut_down)
+        self.addCleanup(self._cleanup_bg_task_manager)
         self.work_template = self.tk.templates[work_template]
         self.publish_template = self.tk.templates[publish_template]
+
+    def _cleanup_bg_task_manager(self):
+        """
+        Cleanup BackgroundTaskManager - disconnect Qt signals before shut_down
+        to prevent segfaults during garbage collection.
+        """
+        if self.bg_task_manager is None:
+            return
+
+        # Disconnect signals to prevent segfaults with PySide6 6.8.3+
+        # Only disconnect if using real Qt signals (not mocked)
+        if hasattr(self.bg_task_manager.task_completed, "disconnect"):
+            try:
+                self.bg_task_manager.task_completed.disconnect()
+            except (RuntimeError, TypeError, AttributeError):
+                pass
+
+        if hasattr(self.bg_task_manager.task_failed, "disconnect"):
+            try:
+                self.bg_task_manager.task_failed.disconnect()
+            except (RuntimeError, TypeError, AttributeError):
+                pass
+
+        if hasattr(self.bg_task_manager.task_group_finished, "disconnect"):
+            try:
+                self.bg_task_manager.task_group_finished.disconnect()
+            except (RuntimeError, TypeError, AttributeError):
+                pass
+
+        # Now safe to call shut_down
+        self.bg_task_manager.shut_down()
 
     def create_context(self, entity, user=None):
         """
