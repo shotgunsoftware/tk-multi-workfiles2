@@ -86,15 +86,16 @@ class Workfiles2TestBase(TankTestBase):
 
     def _cleanup_bg_task_manager(self):
         """
-        Cleanup - release references before destruction.
+        Cleanup - shut down task manager then release references.
 
-        Setting instance variable to None releases references to Qt objects,
-        allowing them to be destroyed in a controlled order. This prevents
-        random segmentation faults during CI test runs with PySide6 6.8.3+
-        where Qt signal auto-disconnection can access freed memory during
-        object destruction.
+        Calls shut_down() to properly stop worker threads, then sets to None
+        to release Qt object references. This prevents random segmentation 
+        faults during CI test runs with PySide6 6.8.3+ where Qt signal 
+        auto-disconnection can access freed memory during object destruction.
         """
-        self.bg_task_manager = None
+        if self.bg_task_manager is not None:
+            self.bg_task_manager.shut_down()
+            self.bg_task_manager = None
 
     def create_context(self, entity, user=None):
         """
