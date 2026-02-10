@@ -21,7 +21,12 @@ from sgtk.platform.qt import QtCore, QtGui
 from ..file_model import FileModel
 from ..ui.file_list_form import Ui_FileListForm
 from .file_proxy_model import FileProxyModel
-from ..util import get_model_data, map_to_source, get_source_model
+from ..util import (
+    get_model_data,
+    map_to_source,
+    get_source_model,
+    create_case_insensitive_regex,
+)
 from ..framework_qtwidgets import (
     FilterMenu,
     FilterMenuButton,
@@ -736,9 +741,7 @@ class FileListForm(QtGui.QWidget):
         prev_selected_item = self._reset_selection()
         try:
             # update the proxy filter search text:
-            filter_reg_exp = QtCore.QRegExp(
-                search_text, QtCore.Qt.CaseInsensitive, QtCore.QRegExp.FixedString
-            )
+            filter_reg_exp = create_case_insensitive_regex(search_text)
             self._file_filters.filter_reg_exp = filter_reg_exp
         finally:
             # and update the selection - this will restore the original selection if possible.

@@ -18,6 +18,30 @@ import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
 
+def create_case_insensitive_regex(pattern):
+    """
+    Create a case-insensitive regular expression compatible with both PySide2 and PySide6.
+
+    In PySide6, QRegExp was replaced with QRegularExpression. The patcher in tk-core
+    has issues mapping the case sensitivity options correctly, so we create the
+    QRegularExpression directly when available.
+
+    :param pattern: The search pattern string
+    :returns: A QRegExp or QRegularExpression configured for case-insensitive matching
+    """
+    # Check if QRegularExpression is available (PySide6)
+    if hasattr(QtCore, "QRegularExpression"):
+        # Use QRegularExpression with CaseInsensitiveOption for PySide6
+        regex = QtCore.QRegularExpression(pattern)
+        regex.setPatternOptions(QtCore.QRegularExpression.CaseInsensitiveOption)
+        return regex
+    else:
+        # Fall back to QRegExp for PySide2
+        return QtCore.QRegExp(
+            pattern, QtCore.Qt.CaseInsensitive, QtCore.QRegExp.FixedString
+        )
+
+
 class Threaded(object):
     """
     Threaded base class that contains a threading.Lock member and an
