@@ -165,7 +165,10 @@ class FileFormBase(QtGui.QWidget):
             bg_task_manager=self._bg_task_manager,
         )
         monitor_qobject_lifetime(model, "My Tasks Model")
-        model.async_refresh()
+        # Load and refresh with default sorting by task name (content field)
+        model.load_and_refresh(
+            extra_sorting=[{"field_name": "content", "direction": "asc"}]
+        )
         return model
 
     def _build_entity_models(self):

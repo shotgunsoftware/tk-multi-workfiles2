@@ -723,17 +723,22 @@ class BrowserForm(QtGui.QWidget):
         """
         if value == "ALL":
             self._extra_filter = None
-            self.my_tasks_model.load_and_refresh()
+            self.my_tasks_model.load_and_refresh(
+                extra_sorting=[{"field_name": "content", "direction": "asc"}]
+            )
         else:
             self._extra_filter = ["sg_status_list", "is", value.lower()]
-            self.my_tasks_model.load_and_refresh(extra_filter=self._extra_filter)
+            self.my_tasks_model.load_and_refresh(
+                extra_filter=self._extra_filter,
+                extra_sorting=[{"field_name": "content", "direction": "asc"}],
+            )
 
         self.my_tasks_model.data_refreshed.emit(True)
 
     # Sorting methods
     def _sort_setup(self):
-        # Last sort menu item selected, by default is sorted 'due_date'
-        self._current_menu_sort_item = ""
+        # Last sort menu item selected, by default sorted by 'Task.content' (name)
+        self._current_menu_sort_item = "content"
         self._current_menu_sort_order = "asc"
 
         # Get a task manager from shotgunutils
@@ -802,10 +807,17 @@ class BrowserForm(QtGui.QWidget):
         # Actions group list ordered
         sort_actions = [sort_asc, sort_desc, separator, *field_sort_actions]
 
-        # By default it sorts in ascending order
+        # By default it sorts in ascending order by Task.content (name)
         sort_asc.setChecked(True)
         # Set the icon to match the default sort order
         self._my_tasks_form.sort_menu_button.setIcon(SGQIcon.sort_asc())
+
+        # Set the default field (Task Name) as checked if it exists
+        if field_sort_actions and sort_fields:
+            for index, field_sort_action in enumerate(field_sort_actions):
+                if sort_fields[index]["field_code"] == "content":
+                    field_sort_action.setChecked(True)
+                    break
 
         # Menu sort order actions
         sort_asc.triggered[()].connect(
