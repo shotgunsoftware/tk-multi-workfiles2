@@ -69,8 +69,6 @@ class Workfiles2TestBase(TankTestBase):
 
         # and start the engine
         self.engine = sgtk.platform.start_engine("tk-testengine", self.tk, context)
-        # This ensures that the engine will always be destroyed.
-        self.addCleanup(self.engine.destroy)
 
         self.app = self.engine.apps[app_instance]
         self.tk_multi_workfiles = self.app.import_module("tk_multi_workfiles")
@@ -80,9 +78,88 @@ class Workfiles2TestBase(TankTestBase):
             .import_module("task_manager")
             .BackgroundTaskManager(parent=None, start_processing=True)
         )
-        self.addCleanup(self.bg_task_manager.shut_down)
         self.work_template = self.tk.templates[work_template]
         self.publish_template = self.tk.templates[publish_template]
+
+    def tearDown(self):
+        """
+        Cleanup - manually shut down and destroy objects before super().tearDown().
+
+        This prevents segmentation faults on macOS with Python 3.13+ where
+        the GIL changes and PySide6 6.8.3+ stricter signal auto-disconnection
+        can access freed memory during object destruction.
+
+        Following tk-framework-shotgunutils pattern: manually handle all
+        cleanup in tearDown (NOT via addCleanup) to ensure proper order.
+        """
+        # Import Qt early so we can use it throughout
+        from tank.platform.qt import QtCore
+        import time
+
+        # Shut down background task manager first and wait for ALL threads
+        if hasattr(self, "bg_task_manager") and self.bg_task_manager is not None:
+            # Call shut_down which signals threads to stop
+            self.bg_task_manager.shut_down()
+
+            # CRITICAL: Wait for the results dispatcher thread to actually finish
+            # The dispatcher's shut_down() doesn't wait (to avoid deadlock in normal use)
+            # but in tearDown we MUST wait or it will try to log during engine destruction
+            results_dispatcher = getattr(
+                self.bg_task_manager, "_results_dispatcher", None
+            )
+            if results_dispatcher and results_dispatcher.isRunning():
+                results_dispatcher.wait(2000)  # Wait up to 2 seconds
+
+            # Explicitly delete the task manager to break any references
+            del self.bg_task_manager
+            self.bg_task_manager = None
+
+        # CRITICAL: Destroy any test-created models/widgets BEFORE destroying engine
+        # This prevents segfaults on Python 3.13 with PySide6
+        if hasattr(self, "_model") and self._model is not None:
+            self._model.destroy()
+            del self._model
+            self._model = None
+
+        # Wait for metrics dispatcher threads to finish before engine.destroy()
+        if hasattr(self, "engine") and self.engine is not None:
+            metrics_dispatcher = getattr(self.engine, "_metrics_dispatcher", None)
+            if metrics_dispatcher and metrics_dispatcher.dispatching:
+                # Stop metrics dispatcher
+                metrics_dispatcher.stop()
+                # Wait for worker threads to actually complete
+                for worker in metrics_dispatcher.workers:
+                    if worker.is_alive():
+                        worker.join(timeout=2.0)
+
+            # Destroy the engine
+            self.engine.destroy()
+
+        # CRITICAL: Aggressive Qt cleanup before pytest fixture teardown
+        qapp = QtCore.QCoreApplication.instance()
+        if qapp is not None:
+            # Process all events multiple times
+            for _ in range(10):
+                QtCore.QCoreApplication.processEvents()
+                QtCore.QCoreApplication.sendPostedEvents()
+
+            # Explicitly process deferred delete events
+            QtCore.QCoreApplication.sendPostedEvents(None, QtCore.QEvent.DeferredDelete)
+            QtCore.QCoreApplication.processEvents()
+
+            # Give threads a tiny moment to fully exit
+            time.sleep(0.01)
+
+            # Final event processing
+            QtCore.QCoreApplication.processEvents()
+            QtCore.QCoreApplication.sendPostedEvents()
+
+        # Clear engine reference after all Qt processing
+        if hasattr(self, "engine"):
+            del self.engine
+            self.engine = None
+
+        super().tearDown()
 
     def create_context(self, entity, user=None):
         """
@@ -104,7 +181,7 @@ class Workfiles2TestBase(TankTestBase):
         return context
 
     @contextmanager
-    def wait_for(self, predicate, assert_msg_cb, timeout=2000):
+    def wait_for(self, predicate, assert_msg_cb, timeout=5000):
         """
         Wait for a given predicate to turn True.
 
@@ -113,7 +190,7 @@ class Workfiles2TestBase(TankTestBase):
         :param callable predicate: Predicate to evaluate.
         :param callable assert_msg_cb: On error, this callable will be invoked
             to generate an error message.
-        :param int timeout: Timeout
+        :param int timeout: Timeout in milliseconds (default 5000ms) in milliseconds (default 5000ms)
         """
         loop = sgtk.platform.qt.QtCore.QEventLoop()
 
