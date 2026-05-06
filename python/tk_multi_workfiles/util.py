@@ -29,8 +29,8 @@ def create_case_insensitive_regex(pattern):
     :param pattern: The search pattern string
     :returns: A QRegExp or QRegularExpression configured for case-insensitive matching
     """
-    # Check if QRegularExpression is available (PySide6)
-    if hasattr(QtCore, "QRegularExpression"):
+    # Check if QRegExp is not available (PySide6)
+    if not hasattr(QtCore, "QRegExp"):
         # Use QRegularExpression with CaseInsensitiveOption for PySide6
         regex = QtCore.QRegularExpression(pattern)
         regex.setPatternOptions(QtCore.QRegularExpression.CaseInsensitiveOption)
