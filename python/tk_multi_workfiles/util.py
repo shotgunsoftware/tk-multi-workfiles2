@@ -32,9 +32,9 @@ def create_case_insensitive_regex(pattern):
     :returns: A case-insensitive QRegExp (Qt5/PySide2) or QRegularExpression
               (Qt6+/PySide6+) object configured for literal fixed-string matching.
     """
-    qt_major_version = int(QtCore.qVersion().split(".")[0])
-
-    if qt_major_version >= 6:
+    engine = sgtk.platform.current_engine()
+    
+    if engine.has_qt6:
         # Qt6+ removed QRegExp. Use QRegularExpression with CaseInsensitiveOption.
         # setPatternOptions is used instead of the constructor flag argument to avoid
         # differences in the PatternOption enum path between Qt versions.

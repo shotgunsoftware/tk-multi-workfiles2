@@ -33,9 +33,11 @@ class TestCreateCaseInsensitiveRegex(Workfiles2TestBase):
 
         self.QtCore = QtCore
 
-        # Detect Qt version to determine which code path should be used
-        self.qt_major_version = int(QtCore.qVersion().split(".")[0])
-        self.is_qt6 = self.qt_major_version >= 6
+        # Use the engine's has_qt6 property - same detection used by the production code
+        import sgtk
+
+        engine = sgtk.platform.current_engine()
+        self.is_qt6 = engine.has_qt6
 
         # Get the function from the imported module
         self.create_case_insensitive_regex = (
