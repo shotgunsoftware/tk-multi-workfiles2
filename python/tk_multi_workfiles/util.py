@@ -33,7 +33,7 @@ def create_case_insensitive_regex(pattern):
               (Qt6+/PySide6+) object configured for literal fixed-string matching.
     """
     engine = sgtk.platform.current_engine()
-    
+
     if engine.has_qt6:
         # Qt6+ removed QRegExp. Use QRegularExpression with CaseInsensitiveOption.
         # setPatternOptions is used instead of the constructor flag argument to avoid
