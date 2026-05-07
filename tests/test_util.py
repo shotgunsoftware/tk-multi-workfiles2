@@ -33,12 +33,6 @@ class TestCreateCaseInsensitiveRegex(Workfiles2TestBase):
 
         self.QtCore = QtCore
 
-        # Use the engine's has_qt6 property - same detection used by the production code
-        import sgtk
-
-        engine = sgtk.platform.current_engine()
-        self.is_qt6 = engine.has_qt6
-
         # Get the function from the imported module
         self.create_case_insensitive_regex = (
             self.tk_multi_workfiles.util.create_case_insensitive_regex
@@ -46,12 +40,12 @@ class TestCreateCaseInsensitiveRegex(Workfiles2TestBase):
 
     def test_returns_valid_regex_object(self):
         """
-        Test that the function returns a valid regex object based on Qt version.
+        Test that the function returns a valid regex object.
         """
         result = self.create_case_insensitive_regex("test")
 
-        # Qt6+ should return QRegularExpression, Qt5 should return QRegExp
-        if self.is_qt6:
+        # Should return either QRegExp or QRegularExpression
+        if hasattr(self.QtCore, "QRegularExpression"):
             self.assertIsInstance(result, self.QtCore.QRegularExpression)
         else:
             self.assertIsInstance(result, self.QtCore.QRegExp)
@@ -63,7 +57,7 @@ class TestCreateCaseInsensitiveRegex(Workfiles2TestBase):
         regex = self.create_case_insensitive_regex("cat")
 
         # Test matching - should match regardless of case
-        if self.is_qt6:
+        if hasattr(self.QtCore, "QRegularExpression"):
             # PySide6/QRegularExpression
             self.assertTrue(regex.match("cat").hasMatch())
             self.assertTrue(regex.match("Cat").hasMatch())
@@ -83,7 +77,7 @@ class TestCreateCaseInsensitiveRegex(Workfiles2TestBase):
         regex = self.create_case_insensitive_regex("CAT")
 
         # Test matching - should match regardless of case
-        if self.is_qt6:
+        if hasattr(self.QtCore, "QRegularExpression"):
             # PySide6/QRegularExpression
             self.assertTrue(regex.match("cat").hasMatch())
             self.assertTrue(regex.match("Cat").hasMatch())
@@ -101,7 +95,7 @@ class TestCreateCaseInsensitiveRegex(Workfiles2TestBase):
         regex = self.create_case_insensitive_regex("CaT")
 
         # Test matching - should match regardless of case
-        if self.is_qt6:
+        if hasattr(self.QtCore, "QRegularExpression"):
             # PySide6/QRegularExpression
             self.assertTrue(regex.match("cat").hasMatch())
             self.assertTrue(regex.match("CAT").hasMatch())
@@ -119,7 +113,7 @@ class TestCreateCaseInsensitiveRegex(Workfiles2TestBase):
         regex = self.create_case_insensitive_regex("")
 
         # Empty pattern should be valid
-        if self.is_qt6:
+        if hasattr(self.QtCore, "QRegularExpression"):
             self.assertIsInstance(regex, self.QtCore.QRegularExpression)
             self.assertTrue(regex.isValid())
         else:
@@ -132,7 +126,7 @@ class TestCreateCaseInsensitiveRegex(Workfiles2TestBase):
         """
         regex = self.create_case_insensitive_regex("my asset")
 
-        if self.is_qt6:
+        if hasattr(self.QtCore, "QRegularExpression"):
             self.assertTrue(regex.match("my asset").hasMatch())
             self.assertTrue(regex.match("My Asset").hasMatch())
             self.assertTrue(regex.match("MY ASSET").hasMatch())
@@ -148,17 +142,17 @@ class TestCreateCaseInsensitiveRegex(Workfiles2TestBase):
         pattern = "TestPattern"
         regex = self.create_case_insensitive_regex(pattern)
 
-        if self.is_qt6:
+        if hasattr(self.QtCore, "QRegularExpression"):
             self.assertEqual(regex.pattern(), pattern)
         else:
             self.assertEqual(regex.pattern(), pattern)
 
-    def test_case_insensitive_option_is_set_qt6(self):
+    def test_case_insensitive_option_is_set_pyside6(self):
         """
-        Test that CaseInsensitiveOption is set for Qt6/QRegularExpression.
+        Test that CaseInsensitiveOption is set for PySide6/QRegularExpression.
         """
-        if not self.is_qt6:
-            self.skipTest("Test only applicable to Qt6+ environment")
+        if not hasattr(self.QtCore, "QRegularExpression"):
+            self.skipTest("QRegularExpression not available (PySide2 environment)")
 
         regex = self.create_case_insensitive_regex("test")
 
@@ -169,12 +163,14 @@ class TestCreateCaseInsensitiveRegex(Workfiles2TestBase):
             "CaseInsensitiveOption should be set for QRegularExpression",
         )
 
-    def test_case_sensitivity_qt5(self):
+    def test_case_sensitivity_pyside2(self):
         """
-        Test that case sensitivity is set correctly for Qt5/QRegExp.
+        Test that case sensitivity is set correctly for PySide2/QRegExp.
         """
-        if self.is_qt6:
-            self.skipTest("Test only applicable to Qt5 environment")
+        if hasattr(self.QtCore, "QRegularExpression"):
+            self.skipTest(
+                "Testing PySide2 behavior, but QRegularExpression is available"
+            )
 
         regex = self.create_case_insensitive_regex("test")
 
