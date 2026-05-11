@@ -571,7 +571,7 @@ class FileFinder(QtCore.QObject):
         )
         return work_file_paths
 
-    def _reconcile_filesystem_for_context(self, context):
+    def _reconcile_filesystem_for_context(self, context: sgtk.Context) -> bool:
         """
         Reconcile filesystem structure with current Shotgun state for the given
         context. Equivalent to the work `+ New File` triggers via
