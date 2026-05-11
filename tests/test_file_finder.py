@@ -18,6 +18,7 @@ from sgtk import TankError
 
 
 class TestReconcileFilesystemForContext(Workfiles2TestBase):
+    """Tests for FileFinder._reconcile_filesystem_for_context."""
 
     def setUp(self):
         super().setUp()
@@ -29,6 +30,7 @@ class TestReconcileFilesystemForContext(Workfiles2TestBase):
         super().tearDown()
 
     def test_returns_false_when_context_has_no_entity(self):
+        """Return False when context has no task, entity, or project."""
         ctx = MagicMock()
         ctx.task = None
         ctx.entity = None
@@ -39,6 +41,7 @@ class TestReconcileFilesystemForContext(Workfiles2TestBase):
         self.assertFalse(result)
 
     def test_returns_true_on_successful_create_filesystem_structure(self):
+        """Return True when create_filesystem_structure succeeds."""
         ctx = MagicMock()
         ctx.task = {"type": "Task", "id": 1}
         ctx.entity = None
@@ -52,6 +55,7 @@ class TestReconcileFilesystemForContext(Workfiles2TestBase):
         self.assertTrue(result)
 
     def test_passes_correct_args_to_create_filesystem_structure(self):
+        """Forward entity type, id, and engine name to create_filesystem_structure."""
         ctx = MagicMock()
         ctx.task = {"type": "Task", "id": 42}
         ctx.entity = None
@@ -67,6 +71,7 @@ class TestReconcileFilesystemForContext(Workfiles2TestBase):
         )
 
     def test_uses_entity_when_task_is_none(self):
+        """Fall back to context.entity when task is None."""
         ctx = MagicMock()
         ctx.task = None
         ctx.entity = {"type": "Asset", "id": 7}
@@ -83,6 +88,7 @@ class TestReconcileFilesystemForContext(Workfiles2TestBase):
         self.assertTrue(result)
 
     def test_uses_project_when_task_and_entity_are_none(self):
+        """Fall back to context.project when both task and entity are None."""
         ctx = MagicMock()
         ctx.task = None
         ctx.entity = None
@@ -99,6 +105,7 @@ class TestReconcileFilesystemForContext(Workfiles2TestBase):
         self.assertTrue(result)
 
     def test_returns_false_and_logs_warning_on_exception(self):
+        """Return False and log a warning when create_filesystem_structure raises."""
         ctx = MagicMock()
         ctx.task = {"type": "Task", "id": 1}
         ctx.entity = None
@@ -117,6 +124,7 @@ class TestReconcileFilesystemForContext(Workfiles2TestBase):
 
 
 class TestFindWorkFilesReconcile(Workfiles2TestBase):
+    """Tests for the reconcile-retry logic in FileFinder._find_work_files."""
 
     def setUp(self):
         super().setUp()
@@ -128,6 +136,7 @@ class TestFindWorkFilesReconcile(Workfiles2TestBase):
         super().tearDown()
 
     def test_first_call_succeeds_no_reconcile(self):
+        """Return files normally when as_template_fields succeeds on the first call."""
         ctx = MagicMock()
         ctx.as_template_fields.return_value = {}
 
@@ -145,6 +154,7 @@ class TestFindWorkFilesReconcile(Workfiles2TestBase):
         mock_cfs.assert_not_called()
 
     def test_reconcile_returns_false_returns_empty_list(self):
+        """Return [] when first as_template_fields raises and reconcile returns False."""
         ctx = MagicMock()
         ctx.as_template_fields.side_effect = TankError("stale")
 
@@ -158,6 +168,7 @@ class TestFindWorkFilesReconcile(Workfiles2TestBase):
         self.assertEqual(result, [])
 
     def test_reconcile_succeeds_retry_succeeds_returns_files(self):
+        """Return files when reconcile succeeds and the retry resolves fields."""
         ctx = MagicMock()
         ctx.as_template_fields.side_effect = [TankError("first"), {}]
 
@@ -176,6 +187,7 @@ class TestFindWorkFilesReconcile(Workfiles2TestBase):
         self.assertEqual(result, ["/c/d.ma"])
 
     def test_reconcile_succeeds_retry_raises_tank_error_logs_and_returns_empty(self):
+        """Return [] and log debug when reconcile succeeds but retry still raises TankError."""
         ctx = MagicMock()
         ctx.as_template_fields.side_effect = [TankError("first"), TankError("second")]
 
