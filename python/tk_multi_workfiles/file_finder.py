@@ -544,9 +544,9 @@ class FileFinder(QtCore.QObject):
             except TankError as exc:
                 # In this case, we cannot continue with any file system resolution, so just exit early instead.
                 self._app.log_debug(
-                    "Could not resolve template fields for context %s after "
+                    f"Could not resolve template fields for context {context} after "
                     "reconciling filesystem structure; returning no work files. "
-                    "Last error: %s" % (context, exc)
+                    "Last error: {exc}"
                 )
                 return []
 
@@ -601,8 +601,7 @@ class FileFinder(QtCore.QObject):
             return True
         except Exception as e:
             self._app.log_warning(
-                "Could not reconcile filesystem structure for context %s: %s"
-                % (context, e)
+                f"Could not reconcile filesystem structure for context {context}: {e}"
             )
             return False
 
