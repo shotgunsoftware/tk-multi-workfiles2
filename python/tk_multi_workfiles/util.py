@@ -22,24 +22,32 @@ def create_case_insensitive_regex(pattern):
     """
     Create a case-insensitive regular expression compatible with both PySide2 and PySide6.
 
-    In PySide6, QRegExp was replaced with QRegularExpression. The patcher in tk-core
-    has issues mapping the case sensitivity options correctly, so we create the
-    QRegularExpression directly when available.
+    Qt6 removed QRegExp entirely and reorganized the QRegularExpression flag enums,
+    so the Qt major version is used to determine which API to use. In Qt5, QRegExp
+    is preferred with FixedString syntax to treat the pattern as a literal string
+    rather than a regex. In Qt6+, QRegularExpression is used with CaseInsensitiveOption
+    applied via setPatternOptions.
 
-    :param pattern: The search pattern string
-    :returns: A QRegExp or QRegularExpression configured for case-insensitive matching
+    :param pattern: The literal search pattern string to match against.
+    :returns: A case-insensitive QRegExp (Qt5/PySide2) or QRegularExpression
+              (Qt6+/PySide6+) object configured for literal fixed-string matching.
     """
-    # Check if QRegularExpression is available (PySide6)
-    if hasattr(QtCore, "QRegularExpression"):
-        # Use QRegularExpression with CaseInsensitiveOption for PySide6
+    engine = sgtk.platform.current_engine()
+
+    if engine.has_qt6:
+        # Qt6+ removed QRegExp. Use QRegularExpression with CaseInsensitiveOption.
+        # setPatternOptions is used instead of the constructor flag argument to avoid
+        # differences in the PatternOption enum path between Qt versions.
         regex = QtCore.QRegularExpression(pattern)
         regex.setPatternOptions(QtCore.QRegularExpression.CaseInsensitiveOption)
-        return regex
     else:
-        # Fall back to QRegExp for PySide2
-        return QtCore.QRegExp(
+        # Qt5/PySide2 - use QRegExp with FixedString to treat the pattern as a
+        # literal string rather than a full regular expression.
+        regex = QtCore.QRegExp(
             pattern, QtCore.Qt.CaseInsensitive, QtCore.QRegExp.FixedString
         )
+
+    return regex
 
 
 class Threaded(object):
