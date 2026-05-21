@@ -529,12 +529,26 @@ class FileFinder(QtCore.QObject):
         work_fields = []
         try:
             work_fields = context.as_template_fields(work_template, validate=True)
-        except TankError as e:
-            # could not resolve fields from this context. This typically happens
+        except TankError as exc:
+            # Field resolution failed. This typically happens
             # when the context object does not have any corresponding objects on
-            # disk / in the path cache. In this case, we cannot continue with any
-            # file system resolution, so just exit early insted.
-            return []
+            # disk / in the path cache. It is also possible that the cause is a stale
+            # path cache — for example, after an entity short_name was renamed and
+            # `tank unregister_folders` ran without folders being recreated.
+            # In case it is the latter, mirror what "+ New File" does by reconciling the
+            # filesystem structure against current Shotgun state, then retry once.
+            if not self._reconcile_filesystem_for_context(context):
+                return []
+            try:
+                work_fields = context.as_template_fields(work_template, validate=True)
+            except TankError as exc:
+                # In this case, we cannot continue with any file system resolution, so just exit early instead.
+                self._app.log_debug(
+                    f"Could not resolve template fields for context {context} after "
+                    "reconciling filesystem structure; returning no work files. "
+                    "Last error: {exc}"
+                )
+                return []
 
         # Build list of fields to ignore when looking for files, any missing key
         # is treated as a wildcard, which allows, for example to retrieve all files
@@ -556,6 +570,40 @@ class FileFinder(QtCore.QObject):
             work_template, work_fields, skip_fields, skip_missing_optional_keys=True
         )
         return work_file_paths
+
+    def _reconcile_filesystem_for_context(self, context: sgtk.Context) -> bool:
+        """
+        Reconcile filesystem structure with current Shotgun state for the given
+        context. Equivalent to the work `+ New File` triggers via
+        FileAction.create_folders, but safe to call from a background worker
+        thread because it omits the Qt cursor override that requires the main
+        thread.
+
+        Walks the config's folder schema against current Shotgun data, creates
+        any missing folders on disk (idempotent — existing folders are left
+        alone), and refreshes path-cache entries with the current entity
+        short_names. After a successful call, a previously-failing
+        as_template_fields(validate=True) typically succeeds.
+
+        :param context: The toolkit context to reconcile.
+        :returns: True if reconciliation ran without error, False otherwise.
+        """
+        ctx_entity = context.task or context.entity or context.project
+        if not ctx_entity:
+            return False
+
+        try:
+            self._app.sgtk.create_filesystem_structure(
+                ctx_entity.get("type"),
+                ctx_entity.get("id"),
+                engine=self._app.engine.instance_name,
+            )
+            return True
+        except Exception as e:
+            self._app.log_warning(
+                f"Could not reconcile filesystem structure for context {context}: {e}"
+            )
+            return False
 
     def _filter_work_files(self, work_file_paths, valid_file_extensions):
         """
