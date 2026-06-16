@@ -316,6 +316,7 @@ description: "Using this app you can browse, open and save your Work Files and P
 requires_shotgun_version:
 requires_core_version: "v0.19.18"
 requires_engine_version:
+minimum_python_version: "3.9"
 
 # the engines that this app can operate in:
 supported_engines:
