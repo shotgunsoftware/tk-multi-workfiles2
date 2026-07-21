@@ -55,7 +55,7 @@ class InteractiveOpenAction(OpenFileAction):
             and (not self._workfiles_visible or not self.file.is_local)
         ):
             # opening a publish and either not showing work files or the file isn't local
-            if self.file.version < max_publish_version:
+            if max_publish_version and self.file.version < max_publish_version:
                 # opening an old version of a publish!
                 return self._open_previous_publish(
                     self.file, self.environment, parent_ui
@@ -78,7 +78,7 @@ class InteractiveOpenAction(OpenFileAction):
             # OR
             # opening a file that is both local and published and both are visible in the view!
             # (is this the right thing to do when a file is both local and a publish??)
-            if self.file.version < max_local_version:
+            if max_local_version and self.file.version < max_local_version:
                 # opening an old version of work file:
                 return self._open_previous_workfile(
                     self.file, self.environment, parent_ui
