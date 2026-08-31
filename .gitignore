@@ -1,3 +1,7 @@
+# ---- ignore special files written during config setup
+tk-metadata
+
+# Byte-compiled / optimized / DLL files
 *.py[cod]
 
 # C extensions
