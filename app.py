@@ -107,18 +107,17 @@ class MultiWorkFiles(sgtk.platform.Application):
 
             if self.get_setting("launch_at_startup"):
                 # show the file manager UI
-                if self.engine.name in SUPPORTED_ENGINES:
-                    # use a single-shot timer to show the open dialog to allow everything to
-                    # finish being set up first:
-                    from sgtk.platform.qt import QtCore
-
-                    QtCore.QTimer.singleShot(200, self.show_file_open_dlg)
-                else:
+                if SUPPORTED_ENGINES and self.engine.name not in SUPPORTED_ENGINES:
                     self.log_warning(
                         "Sorry, the launch at startup option is currently not supported "
                         "in this engine! You can currently only use it with the following "
                         "engines: %s" % ", ".join(SUPPORTED_ENGINES)
                     )
+                else:  # use a single-shot timer to show the open dialog to allow everything to
+                    # finish being set up first:
+                    from sgtk.platform.qt import QtCore
+
+                    QtCore.QTimer.singleShot(200, self.show_file_open_dlg)
 
     def destroy_app(self):
         """
