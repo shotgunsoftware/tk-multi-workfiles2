@@ -14,8 +14,6 @@ import gc
 import sgtk
 from sgtk.platform.qt import QtCore
 
-from .util import report_non_destroyed_qobjects
-
 
 def dbg_info(func):
     """
@@ -41,11 +39,6 @@ def dbg_info(func):
 
         # run the function:
         res = func(*args, **kwargs)
-
-        # report any non-destroyed QObjects:
-        # Note, this will usually run before the main objects have been destroyed by the
-        # event loop so it's important to cross-check the output with subsequent lines.
-        report_non_destroyed_qobjects()
 
         # cleanup and grab the post-run memory info:
         gc.collect()
