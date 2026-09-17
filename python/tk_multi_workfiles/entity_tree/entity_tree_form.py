@@ -25,7 +25,6 @@ from ..util import (
     get_model_str,
     map_to_source,
     get_source_model,
-    monitor_qobject_lifetime,
     create_case_insensitive_regex,
 )
 from ..util import get_sg_entity_name_field
@@ -173,9 +172,6 @@ class EntityTreeForm(QtGui.QWidget):
                         {"entity": "name"},
                     ]
                     + extra_fields,
-                )
-                monitor_qobject_lifetime(
-                    filter_model, "%s entity filter model" % search_label
                 )
                 filter_model.setSourceModel(entity_model)
                 self._ui.entity_tree.setModel(filter_model)

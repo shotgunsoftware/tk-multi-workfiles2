@@ -252,63 +252,6 @@ def refresh_widget_style_r(widget, refresh_children=False):
         refresh_widget_style_r(child, refresh_children)
 
 
-# storage for any tracked qobjects
-_g_monitored_qobjects = {}
-
-
-def monitor_qobject_lifetime(obj, name=""):
-    """
-    Debug method to help track the lifetime of a QObject derived instance.  Hooks into
-    the instances destroyed signal to report when the QObject has been destroyed.
-
-    :param obj:     The QObject instance to monitor
-    :param name:    An optional name to be appended to the debug output, useful for identifying
-                    a specific instance of a class.
-    """
-    msg = type(obj).__name__
-    if name:
-        msg = "%s [%s]" % (msg, name)
-    global _g_monitored_qobjects
-    uid = len(_g_monitored_qobjects)
-    _g_monitored_qobjects[uid] = msg
-    obj.destroyed.connect(lambda m=msg, u=uid: _on_qobject_destroyed(m, u))
-
-
-def _on_qobject_destroyed(name, uid):
-    """
-    Slot triggered whenever a monitored qobject is destroyed - reports to debug that the object
-    was destroyed.
-
-    :param name:    Name of the instance that was destroyed
-    :param uid:     Unique id of the QObject used to look it up in the monitored list
-    """
-    app = sgtk.platform.current_bundle()
-    app.log_debug("%s destroyed" % name)
-    global _g_monitored_qobjects
-    if uid in _g_monitored_qobjects:
-        del _g_monitored_qobjects[uid]
-
-
-def report_non_destroyed_qobjects(clear_list=True):
-    """
-    Report any monitored QObjects that have not yet been destroyed.  Care should be taken to
-    account for QObjects that are pending destruction via deleteLater signals that may be
-    pending.
-
-    :param clear_list:  If true then the list of monitored QObjects will be cleared after
-                        this function has reported them.
-    """
-    app = sgtk.platform.current_bundle()
-    global _g_monitored_qobjects
-    app.log_debug(
-        "%d monitored QObjects have not been destroyed!" % len(_g_monitored_qobjects)
-    )
-    for msg in _g_monitored_qobjects.values():
-        app.log_debug(" - %s" % msg)
-    if clear_list:
-        _g_monitored_qobjects = {}
-
-
 def get_template_user_keys(template):
     """
     Finds the keys in a template that relate to the HumanUser entity.

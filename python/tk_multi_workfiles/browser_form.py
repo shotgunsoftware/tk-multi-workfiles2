@@ -26,7 +26,6 @@ from .ui.browser_form import Ui_BrowserForm
 from .framework_qtwidgets import Breadcrumb, SGQIcon, shotgun_menus, shotgun_fields
 
 from .file_filters import FileFilters
-from .util import monitor_qobject_lifetime, get_template_user_keys
 from .step_list_filter import (
     StepListWidget,
     get_filter_from_filter_list,
@@ -115,7 +114,6 @@ class BrowserForm(QtGui.QWidget):
         self._ui.task_browser_tabs.currentChanged.connect(self._on_task_tab_changed)
 
         self._file_filters = FileFilters(parent=None)
-        monitor_qobject_lifetime(self._file_filters, "Browser file filters")
         self._file_filters.users_changed.connect(self._on_file_filters_users_changed)
 
         # Build the step filter UI

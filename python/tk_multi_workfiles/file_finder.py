@@ -29,7 +29,7 @@ task_manager = sgtk.platform.import_framework(
 BackgroundTaskManager = task_manager.BackgroundTaskManager
 
 from .work_area import WorkArea
-from .util import monitor_qobject_lifetime, Threaded
+from .util import Threaded
 
 
 class FileFinder(QtCore.QObject):
@@ -794,7 +794,6 @@ class AsyncFileFinder(FileFinder):
             publish_model.data_refresh_fail.connect(
                 self._on_publish_model_refresh_failed
             )
-            monitor_qobject_lifetime(publish_model, "Finder publish model")
         publish_model.uid = search_id
 
         # construct the new search data:

@@ -39,7 +39,7 @@ from .work_area import WorkArea
 from .actions.new_task_action import NewTaskAction
 from .actions.file_action import FileAction
 from .user_cache import g_user_cache
-from .util import monitor_qobject_lifetime, resolve_filters, get_sg_entity_name_field
+from .util import resolve_filters, get_sg_entity_name_field
 from .step_list_filter import get_saved_step_filter
 
 
@@ -64,7 +64,6 @@ class FileFormBase(QtGui.QWidget):
         # create a single instance of the task manager that manages all
         # asynchrounous work/tasks.
         self._bg_task_manager = BackgroundTaskManager(self, max_threads=8)
-        monitor_qobject_lifetime(self._bg_task_manager, "Main task manager")
         self._bg_task_manager.start_processing()
 
         shotgun_globals.register_bg_task_manager(self._bg_task_manager)
@@ -164,7 +163,6 @@ class FileFormBase(QtGui.QWidget):
             parent=self,
             bg_task_manager=self._bg_task_manager,
         )
-        monitor_qobject_lifetime(model, "My Tasks Model")
         # Load and refresh with default sorting by task name (content field)
         model.load_and_refresh(
             extra_sorting=[{"field_name": "content", "direction": "asc"}]
@@ -268,7 +266,6 @@ class FileFormBase(QtGui.QWidget):
                     parent=self,
                     bg_task_manager=self._bg_task_manager,
                 )
-            monitor_qobject_lifetime(model, "Entity Model")
             entity_models.append((caption, step_filter_on, model))
             if model.supports_step_filtering:
                 model.load_and_refresh(step_filter)
@@ -285,7 +282,6 @@ class FileFormBase(QtGui.QWidget):
                     and users.
         """
         file_model = FileModel(self._bg_task_manager, parent=self)
-        monitor_qobject_lifetime(file_model, "File Model")
         return file_model
 
     def _on_create_new_task(self, entity, step):

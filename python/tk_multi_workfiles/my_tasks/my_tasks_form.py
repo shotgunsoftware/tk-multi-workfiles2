@@ -13,7 +13,6 @@ Implementation of the my tasks list widget consisting of a list view displaying 
 of a Shotgun data model of my tasks, a text search and a filter control.
 """
 
-from ..util import monitor_qobject_lifetime
 from ..entity_tree.entity_tree_form import EntityTreeForm
 from ..framework_qtwidgets import ViewItemDelegate, sg_qwidgets
 
@@ -54,7 +53,6 @@ class MyTasksForm(EntityTreeForm):
         # Make sure we keep a reference to the delegate otherwise things may crash later on
         self._item_delegate = self._create_delegate(tasks_model, self._ui.entity_tree)
 
-        monitor_qobject_lifetime(self._item_delegate)
         self._ui.entity_tree.setItemDelegate(self._item_delegate)
 
         self._ui.entity_tree.doubleClicked.connect(self._on_double_clicked)
