@@ -818,13 +818,15 @@ class BrowserForm(QtGui.QWidget):
                     break
 
         # Menu sort order actions
-        sort_asc.triggered[()].connect(
-            lambda: self.load_sort_data(
+        # PySide6 6.7+ passes the checked boolean to triggered callbacks, so
+        # accept it first to avoid it overwriting the captured field arguments.
+        sort_asc.triggered.connect(
+            lambda checked=False: self.load_sort_data(
                 "ascending", sort_asc, sort_actions, sort_order="asc"
             )
         )
-        sort_desc.triggered[()].connect(
-            lambda: self.load_sort_data(
+        sort_desc.triggered.connect(
+            lambda checked=False: self.load_sort_data(
                 "descending", sort_desc, sort_actions, sort_order="desc"
             )
         )
@@ -833,8 +835,8 @@ class BrowserForm(QtGui.QWidget):
         for index, field_sort_action in enumerate(field_sort_actions):
             sort_field = sort_fields[index]
             field_code = sort_field["field_code"]
-            field_sort_action.triggered[()].connect(
-                lambda fc=field_code, fsa=field_sort_action: self.load_sort_data(
+            field_sort_action.triggered.connect(
+                lambda checked=False, fc=field_code, fsa=field_sort_action: self.load_sort_data(
                     fc, fsa, sort_actions
                 )
             )
