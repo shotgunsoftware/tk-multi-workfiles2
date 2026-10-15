@@ -127,6 +127,12 @@ configuration:
 
     # General preferences
     #
+    project_visible_pipeline_steps:
+        type: bool
+        default_value: False
+        description: If True, pipeline steps marked visible for the current project are available and listed.
+                     This flag is used to filter pipeline steps in the File Open dialog and the Create
+                     New Task dropdown. When False, all pipeline steps will be available.
     entities:
         type: list
         description: "This setting defines the different tabs that will show up on the left hand side.
