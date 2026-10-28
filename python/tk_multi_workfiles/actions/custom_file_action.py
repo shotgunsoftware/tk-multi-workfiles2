@@ -30,6 +30,7 @@ class CustomFileAction(FileAction):
                 work_file["modified_at"] = file.modified_at
                 work_file["modified_by"] = file.modified_by
                 work_file["read_only"] = not file.editable
+                work_file["sg_id"] = file.published_file_id
                 work_file["type"] = "work"
                 work_file_versions.append(work_file)
             if file.is_published:
@@ -39,6 +40,7 @@ class CustomFileAction(FileAction):
                 publish["version"] = file.version
                 publish["published_at"] = file.published_at
                 publish["published_by"] = file.published_by
+                publish["sg_id"] = file.published_file_id
                 publish["type"] = "publish"
                 publish_versions.append(publish)
 
