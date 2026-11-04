@@ -23,14 +23,15 @@ class MultiWorkFiles(sgtk.platform.Application):
         """
         Called as the application is being initialized
         """
-        self._tk_multi_workfiles = self.import_module("tk_multi_workfiles")
-        self.__is_pyside_unstable = None
 
         if not self.engine.has_ui:
             self.logger.debug(
                 "The engine reports that there is no UI. Workfiles2 will not continue initializing."
             )
             return
+
+        self._tk_multi_workfiles = self.import_module("tk_multi_workfiles")
+        self.__is_pyside_unstable = None
 
         if self.get_setting("show_change_context"):
             # This will only show the context change dialog and not register the save of open dialogs.
