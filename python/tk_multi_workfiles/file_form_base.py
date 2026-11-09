@@ -194,7 +194,6 @@ class FileFormBase(QtGui.QWidget):
             sub_query = ent.get("sub_hierarchy", [])
             deferred_query = None
             if sub_query:
-                step_filter_on = entity_type  # Ensure this is not wrongly set
                 # The target entity type for the sub query.
                 sub_entity_type = sub_query.get("entity_type", "Task")
                 # Optional filters for the sub query.
