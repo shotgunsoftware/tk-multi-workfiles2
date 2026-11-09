@@ -13,6 +13,7 @@ Implementation of the entity tree widget consisting of a tree view that displays
 contents of a Shotgun Data Model, a text search and a filter control.
 """
 
+from typing import List, Optional
 import weakref
 
 import sgtk
@@ -33,6 +34,42 @@ from ..entity_models import ShotgunDeferredEntityModel
 shotgun_globals = sgtk.platform.import_framework(
     "tk-framework-shotgunutils", "shotgun_globals"
 )
+
+
+def first_visible_item(
+    view_model: QtCore.QAbstractItemModel, items: List[QtGui.QStandardItem]
+) -> Optional[QtGui.QStandardItem]:
+    """
+    Return the first of the given items as shown by the given model.
+
+    The same entity can be shown in several places in a tree. If the model is a
+    proxy model, the items which are filtered out are ignored and the others are
+    compared with their position in the proxy model, so sorting is taken into
+    account. Without a proxy model, the first item is returned.
+
+    :param view_model: The model shown by the view, possibly a proxy model.
+    :param items: Items from the source model.
+    :returns: An item, or None if none of the items is visible.
+    """
+    if not isinstance(view_model, QtGui.QAbstractProxyModel):
+        return items[0] if items else None
+
+    first_item = None
+    first_path = None
+    for item in items:
+        index = view_model.mapFromSource(item.index())
+        if not index.isValid():
+            continue
+        # The rows to follow from the root of the proxy model to the item.
+        path = []
+        while index.isValid():
+            path.append(index.row())
+            index = index.parent()
+        path = tuple(reversed(path))
+        if first_path is None or path < first_path:
+            first_item = item
+            first_path = path
+    return first_item
 
 
 class EntityTreeForm(QtGui.QWidget):
@@ -566,9 +603,21 @@ class EntityTreeForm(QtGui.QWidget):
             # try to get the item to select:
             item = None
             if self._entity_to_select:
-                item = entity_model.item_from_entity(
-                    self._entity_to_select["type"], self._entity_to_select["id"]
-                )
+                items_from_entity = getattr(entity_model, "items_from_entity", None)
+                if items_from_entity:
+                    # The entity can be shown in several places, pick the first
+                    # one which is visible.
+                    item = first_visible_item(
+                        self._ui.entity_tree.model(),
+                        items_from_entity(
+                            self._entity_to_select["type"],
+                            self._entity_to_select["id"],
+                        ),
+                    )
+                else:
+                    item = entity_model.item_from_entity(
+                        self._entity_to_select["type"], self._entity_to_select["id"]
+                    )
             elif self._current_item_ref:
                 # no item to select but we do know about a current item:
                 item = self._current_item_ref()
