@@ -8,6 +8,8 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+from typing import List
+
 import sgtk
 from sgtk.platform.qt import QtGui, QtCore
 
@@ -91,6 +93,12 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         self._deferred_query = deferred_query
         self._task_step_icons = {}
         self._deferred_models = {}
+        # Index of the leaf nodes created by deferred queries, from an entity
+        # (type, id) to the list of uids of the nodes representing it. The same
+        # entity is shown under every parent it is linked to, so there can be
+        # several. This must exist before the base class is initialized because
+        # it can call clear().
+        self._deferred_uids_by_entity = {}
         # A bool used to track if a data_refreshed signal emission has been posted
         # in the event queue, to ensure there is only one at any given time.
         self._pending_delayed_data_refreshed = False
@@ -204,6 +212,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         for deferred_model in self._deferred_models.values():
             deferred_model.clear()
         self._deferred_models = {}
+        self._deferred_uids_by_entity = {}
         super().clear()
 
     def destroy(self):
@@ -232,11 +241,15 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         )
         refreshed_uids = []
         current_item = parent_item
+        # All the nodes are cached directly under the parent uid, so we can
+        # retrieve them easily. The uids themselves include the path from the
+        # parent, so the same entity gets a different uid under each parent and
+        # nodes of the same name under different branches don't clash.
         current_uid = parent_uid
+        path_uid = parent_uid
         for name in hierarchy:
-            # We cache items directly under a single parent to retrieve them
-            # easily.
-            uid = "%s/%s" % (parent_uid, self._get_key_for_field_data(name, sg_data))
+            path_uid = "%s/%s" % (path_uid, self._get_key_for_field_data(name, sg_data))
+            uid = path_uid
             refreshed_uids.append(uid)
             exists = self._deferred_cache.item_exists(uid)
             # Update or create the cached data item
@@ -257,7 +270,7 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             else:
                 current_item = self._get_item_by_unique_id(uid)
 
-        uid = self._deferred_entity_uid(sg_data)
+        uid = "%s/%s" % (path_uid, self._deferred_entity_uid(sg_data))
         refreshed_uids.append(uid)
         exists = self._deferred_cache.item_exists(uid)
         # Update or create the cached data item
@@ -275,6 +288,11 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                 data_item=self._deferred_cache.get_entry_by_uid(uid),
             )
             current_item.setData(True, self._SG_ITEM_FETCHED_MORE)
+            uids = self._deferred_uids_by_entity.setdefault(
+                (sg_data["type"], sg_data["id"]), []
+            )
+            if uid not in uids:
+                uids.append(uid)
         return refreshed_uids
 
     @classmethod
@@ -491,6 +509,8 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
                 # TODO: here we could update items from the refreshed data
                 continue
             data_item = self._deferred_cache.take_item(uid)
+            if data_item and data_item.is_leaf():
+                self._remove_from_entity_index(data_item.shotgun_data, uid)
             item = self._get_item_by_unique_id(uid)
             if item:
                 # The item might be already gone because one its ancestor was
@@ -535,10 +555,30 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
         self._pending_delayed_data_refreshed = False
         self.data_refreshed.emit(True)
 
+    def _remove_from_entity_index(self, sg_data: dict, uid: str) -> None:
+        """
+        Remove a uid from the entity index.
+
+        :param sg_data: The Shotgun data of the leaf node which was removed.
+        :param uid: The uid of the leaf node which was removed.
+        """
+        key = (sg_data.get("type"), sg_data.get("id"))
+        uids = self._deferred_uids_by_entity.get(key)
+        if not uids:
+            return
+        if uid in uids:
+            uids.remove(uid)
+        if not uids:
+            del self._deferred_uids_by_entity[key]
+
     @staticmethod
     def _deferred_entity_uid(sg_entity):
         """
-        Returns a unique id for the given Entity retrieved in a deferred query.
+        Returns an id for the given Entity retrieved in a deferred query.
+
+        This is not unique in the model: the same Entity is shown under each
+        parent it is linked to. It is only the last element of the uid of a
+        node, which starts with the uid of the parent and the path to the node.
         """
         # ShotgunModel uses the entity id for leaves, we use the Entity type and
         # its id to avoid clashes in the various internal caches.
@@ -650,10 +690,36 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             The same entity can appear multiple times in the hierarchy, the first
             match is returned. A typical example is Pipeline Steps, but this could
             happen as well for some unusual hierarchies, like /Task/Sequence/Shot:
-            the same Sequence could appear under different Task.
+            the same Sequence could appear under different Task. An Entity
+            retrieved with a deferred query is shown under every parent it is
+            linked to, the first one in the model order is returned. Use
+            :meth:`items_from_entity` to get all of them.
 
         :param str entity_type: A Shotgun Entity type.
         :param int entity_id: The Shotgun id of the Entity to look for.
+        """
+        items = self.items_from_entity(entity_type, entity_id)
+        if items:
+            return items[0]
+        return None
+
+    def items_from_entity(
+        self, entity_type: str, entity_id: int
+    ) -> List[QtGui.QStandardItem]:
+        """
+        Retrieve all the items representing the given entity in the model.
+
+        An Entity retrieved with a deferred query is shown under every parent it
+        is linked to, e.g. a Task under each Shot of the Asset it is linked to.
+        Only items currently in the model are returned, no deferred query is run.
+
+        For other Entity types, the list holds the item returned by the base
+        class implementation, if any.
+
+        :param entity_type: A Shotgun Entity type.
+        :param entity_id: The Shotgun id of the Entity to look for.
+        :returns: A list of :class:`ShotgunStandardItem`, in the order of the
+                  source model: by row from the root down to the item.
         """
         # If dealing with the primary entity type this model represents, just
         # call the base implementation which only considers leaves.
@@ -661,10 +727,29 @@ class ShotgunDeferredEntityModel(ShotgunExtendedEntityModel):
             entity_type == self.get_entity_type()
             or self._deferred_query["entity_type"] != entity_type
         ):
-            return super().item_from_entity(entity_type, entity_id)
-        return self._get_item_by_unique_id(
-            self._deferred_entity_uid({"type": entity_type, "id": entity_id})
-        )
+            item = super().item_from_entity(entity_type, entity_id)
+            return [item] if item else []
+        items = []
+        for uid in self._deferred_uids_by_entity.get((entity_type, entity_id), []):
+            item = self._get_item_by_unique_id(uid)
+            if item:
+                items.append(item)
+        items.sort(key=self._row_path)
+        return items
+
+    @staticmethod
+    def _row_path(item: QtGui.QStandardItem) -> tuple:
+        """
+        Return the rows to follow from the root of the model to reach the item.
+
+        :param item: A :class:`QtGui.QStandardItem` instance.
+        :returns: A tuple of row numbers, which sorts items in model order.
+        """
+        rows = []
+        while item is not None:
+            rows.append(item.row())
+            item = item.parent()
+        return tuple(reversed(rows))
 
     def item_from_field_value_path(self, field_value_list):
         """
