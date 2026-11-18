@@ -16,6 +16,7 @@ import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
 from .util import value_to_str
+from .step_list_filter import get_steps_for_entity_type
 
 get_type_display_name = sgtk.platform.import_framework(
     "tk-framework-shotgunutils", "shotgun_globals"
@@ -74,11 +75,11 @@ class NewTaskForm(QtGui.QWidget):
         self._ui.assigned_to.setText(username or "<unassigned>")
 
         # populate pipeline steps for this entity type:
-        sg_result = self._app.shotgun.find(
-            "Step", [["entity_type", "is", self._entity["type"]]], ["code", "id"]
-        )
+        entity_type = self._entity["type"]
+        steps = get_steps_for_entity_type(entity_type)
+
         self._pipeline_step_dict = {}
-        for item in sg_result:
+        for item in steps:
             step_name = item.get("code")
             if step_name is None:
                 step_name = "Unnamed Step"
