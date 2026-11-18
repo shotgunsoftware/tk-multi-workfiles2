@@ -125,6 +125,11 @@ configuration:
         description: Contains methods to retrieve custom user login and push user data when a
                      work file is saved.
 
+    file_action_hook:
+        type: hook
+        default_value: "{self}/file_action.py"
+        description: Hook which creates folders on disk.
+
     # General preferences
     #
     entities:
